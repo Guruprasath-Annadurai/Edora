@@ -1,0 +1,8 @@
+platform :ios, '15.0'
+use_frameworks! :linkage => :static
+
+# Capacitor uses Swift Package Manager for its own plugins.
+# This Podfile only adds the ML Kit dependency that SPM doesn't provide.
+target 'App' do
+  pod 'GoogleMLKit/SmartReply', '~> 8.0'
+end

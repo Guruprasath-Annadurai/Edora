@@ -66,19 +66,54 @@ const subjects = [
   { name: 'Biology',     progress: 30, color: '#EC4899' },
 ];
 
+interface WeeklyStats {
+  sprints: number;
+  quizzes: number;
+  cards:   number;
+}
+
 export default function LearningPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'tools' | 'progress'>('tools');
-  const [dueCount, setDueCount]   = useState<number | null>(null);
+  const [activeTab, setActiveTab]   = useState<'tools' | 'progress'>('tools');
+  const [dueCount, setDueCount]     = useState<number | null>(null);
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('flashcards')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .lte('next_review', new Date().toISOString())
-      .then(({ count }) => setDueCount(count ?? 0));
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const now     = new Date().toISOString();
+
+    // Parallel: due-card count + weekly stats
+    Promise.all([
+      supabase
+        .from('flashcards')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .lte('next_review', now),
+      supabase
+        .from('sprint_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .gte('created_at', weekAgo),
+      supabase
+        .from('quiz_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', weekAgo),
+      supabase
+        .from('flashcards')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gt('repetitions', 0),        // cards reviewed at least once
+    ]).then(([due, sprints, quizzes, reviewed]) => {
+      setDueCount(due.count ?? 0);
+      setWeeklyStats({
+        sprints: sprints.count ?? 0,
+        quizzes: quizzes.count ?? 0,
+        cards:   reviewed.count ?? 0,
+      });
+    });
   }, [user]);
 
   return (
@@ -177,9 +212,9 @@ export default function LearningPage() {
             <CardContent>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'Sprints', value: '8', sub: 'this week' },
-                  { label: 'Cards', value: '124', sub: 'reviewed' },
-                  { label: 'Quizzes', value: '5', sub: 'completed' },
+                  { label: 'Sprints',  value: weeklyStats?.sprints ?? '—', sub: 'this week' },
+                  { label: 'Cards',    value: weeklyStats?.cards   ?? '—', sub: 'reviewed'  },
+                  { label: 'Quizzes', value: weeklyStats?.quizzes  ?? '—', sub: 'completed' },
                 ].map(({ label, value, sub }) => (
                   <div key={label} className="text-center p-3 glass rounded-2xl">
                     <p className="font-heading text-xl font-bold text-foreground">{value}</p>
