@@ -40,6 +40,9 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    // ML Kit Smart Reply — bundled (model included in APK, available immediately)
+    implementation 'com.google.mlkit:smart-reply:17.0.4'
 }
 
 apply from: 'capacitor.build.gradle'
