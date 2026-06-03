@@ -19,6 +19,7 @@ import QuizPage       from '@/pages/QuizPage';
 import LearningPage   from '@/pages/LearningPage';
 import ToolsPage      from '@/pages/ToolsPage';
 import ProfilePage    from '@/pages/ProfilePage';
+import ScannerPage    from '@/pages/tools/ScannerPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +54,7 @@ function AppRoutes() {
         <Route path="/chat"      element={<ChatPage />} />
         <Route path="/flashcard" element={<FlashcardPage />} />
         <Route path="/quiz"      element={<QuizPage />} />
+        <Route path="/scanner"   element={<ScannerPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
