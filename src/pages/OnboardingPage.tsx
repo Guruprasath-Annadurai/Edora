@@ -14,7 +14,7 @@ const levels = [
 ];
 
 export default function OnboardingPage() {
-  const { user } = useAuth();
+  const { user, refetchProfile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
@@ -35,6 +35,9 @@ export default function OnboardingPage() {
       streak_freeze_count: 2,
       preferred_language: 'en',
     });
+    // ⚠️ Must await refetchProfile so AuthGuard sees the profile
+    // before navigate('/home') triggers a re-render check.
+    await refetchProfile();
     navigate('/home', { replace: true });
   }
 

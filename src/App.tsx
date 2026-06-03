@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Capacitor } from '@capacitor/core';
-import { SplashScreen } from '@capacitor/splash-screen';
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
 
+import { supabase } from '@/lib/supabase';
 import { AppShell } from '@/components/layout/AppShell';
 import { ConnectionGuard } from '@/components/guards/ConnectionGuard';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,6 +29,29 @@ const queryClient = new QueryClient({
   },
 });
 
+// ── OAuth deep-link handler ───────────────────────────────────────────────────
+// Runs once at app level so it captures callbacks whether the user is on /login
+// or anywhere else. Handles: com.edora.app://auth/callback?code=...
+function useOAuthDeepLink() {
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const listener = CapApp.addListener('appUrlOpen', async ({ url }) => {
+      if (!url.includes('auth/callback')) return;
+
+      // Close the in-app browser immediately
+      await Browser.close().catch(() => {});
+
+      // PKCE: exchange the authorization code for a session.
+      // supabase-js reads the code_verifier it stored before opening the browser.
+      const { error } = await supabase.auth.exchangeCodeForSession(url);
+      if (error) console.error('[OAuth] exchangeCodeForSession failed:', error.message);
+    });
+
+    return () => { listener.then(l => l.remove()); };
+  }, []);
+}
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
   if (loading) return (
@@ -34,7 +59,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
     </div>
   );
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user)    return <Navigate to="/login"      replace />;
   if (!profile) return <Navigate to="/onboarding" replace />;
   return <>{children}</>;
 }
@@ -62,6 +87,8 @@ function AppRoutes() {
 }
 
 export default function App() {
+  useOAuthDeepLink();
+
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     StatusBar.setStyle({ style: Style.Dark });

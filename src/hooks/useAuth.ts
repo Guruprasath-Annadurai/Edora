@@ -30,18 +30,26 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function fetchProfile(userId: string) {
+  async function fetchProfile(userId: string): Promise<Profile | null> {
     const { data } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
     if (data) setState(prev => ({ ...prev, profile: data as Profile }));
+    return (data as Profile) ?? null;
+  }
+
+  // Explicitly re-queries the DB and updates state — safe to await in components
+  async function refetchProfile(): Promise<Profile | null> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return null;
+    return fetchProfile(session.user.id);
   }
 
   async function signOut() {
     await supabase.auth.signOut();
   }
 
-  return { ...state, signOut, refetchProfile: () => state.user && fetchProfile(state.user.id) };
+  return { ...state, signOut, refetchProfile };
 }

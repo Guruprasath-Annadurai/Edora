@@ -12,7 +12,8 @@ const sections = [
     to: '/flashcard',
     color: '#7C3AED',
     bg: 'rgba(124,58,237,0.12)',
-    badge: 'Due: 12',
+    badge: null,
+    live: true,
   },
   {
     title: 'AI Quiz',
@@ -22,33 +23,37 @@ const sections = [
     color: '#EC4899',
     bg: 'rgba(236,72,153,0.12)',
     badge: null,
+    live: true,
   },
   {
     title: 'Knowledge Map',
     desc: 'Visual concept relationships',
     icon: Map,
-    to: '/knowledge-map',
+    to: null,
     color: '#06B6D4',
     bg: 'rgba(6,182,212,0.12)',
-    badge: 'New',
+    badge: 'Soon',
+    live: false,
   },
   {
     title: 'Study Plan',
     desc: 'Build your schedule',
     icon: Calendar,
-    to: '/study-plan',
+    to: null,
     color: '#10B981',
     bg: 'rgba(16,185,129,0.12)',
-    badge: null,
+    badge: 'Soon',
+    live: false,
   },
   {
     title: 'Study Rooms',
     desc: 'Collaborate with peers',
     icon: Users,
-    to: '/rooms',
+    to: null,
     color: '#F59E0B',
     bg: 'rgba(245,158,11,0.12)',
-    badge: null,
+    badge: 'Soon',
+    live: false,
   },
 ];
 
@@ -83,10 +88,24 @@ export default function LearningPage() {
 
       {activeTab === 'tools' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
-          {sections.map(({ title, desc, icon: Icon, to, color, bg, badge }, i) => (
-            <motion.div key={to} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-              <Link to={to}>
-                <div className="glass rounded-3xl p-4 flex items-center gap-4 active:scale-98 transition-all">
+          {sections.map(({ title, desc, icon: Icon, to, color, bg, badge, live }, i) => (
+            <motion.div key={title} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
+              {live && to ? (
+                <Link to={to}>
+                  <div className="glass rounded-3xl p-4 flex items-center gap-4 active:scale-98 transition-all">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: bg }}>
+                      <Icon size={24} style={{ color }} strokeWidth={1.75} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground text-sm">{title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                    </div>
+                    <ChevronRight size={18} className="text-muted-foreground shrink-0" />
+                  </div>
+                </Link>
+              ) : (
+                // Coming-soon items — visually present but not tappable
+                <div className="glass rounded-3xl p-4 flex items-center gap-4 opacity-50">
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: bg }}>
                     <Icon size={24} style={{ color }} strokeWidth={1.75} />
                   </div>
@@ -94,15 +113,15 @@ export default function LearningPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-foreground text-sm">{title}</p>
                       {badge && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                          style={{ background: color }}>{badge}</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                          {badge}
+                        </span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                   </div>
-                  <ChevronRight size={18} className="text-muted-foreground shrink-0" />
                 </div>
-              </Link>
+              )}
             </motion.div>
           ))}
         </motion.div>
