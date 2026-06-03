@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Edora</string>
+    <string name="title_activity_main">Edora</string>
+    <string name="package_name">com.edora.app</string>
+    <string name="custom_url_scheme">com.edora.app</string>
+</resources>
