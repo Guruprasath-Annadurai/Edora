@@ -1,7 +1,9 @@
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Flame, Zap, Star, Brain, BookOpen, Trophy, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { getLevelFromXP, getXPForLevel } from '@/lib/utils';
@@ -22,14 +24,34 @@ const quickActions = [
   { to: '/quiz',      icon: Target,   label: 'Quiz',        color: '#EC4899', bg: 'rgba(236,72,153,0.15)' },
 ];
 
-const challenges = [
-  { id: 1, title: 'Complete a 10-min Sprint', xp: 50, done: false, type: 'sprint' },
-  { id: 2, title: 'Review 10 Flashcards', xp: 30, done: true,  type: 'flashcard' },
-  { id: 3, title: 'Ask Nova 3 Questions', xp: 20, done: false, type: 'chat' },
-];
+interface ChallengeState {
+  id: string;
+  title: string;
+  xp: number;
+  done: boolean;
+}
+
+function todayKey(userId: string) {
+  return `challenges_${userId}_${new Date().toISOString().slice(0, 10)}`;
+}
+
+function getAwardedSet(userId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(todayKey(userId));
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function markAwarded(userId: string, id: string) {
+  const set = getAwardedSet(userId);
+  set.add(id);
+  localStorage.setItem(todayKey(userId), JSON.stringify([...set]));
+}
 
 export default function HomePage() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const xp = profile?.xp ?? 0;
   const level = getLevelFromXP(xp);
   const nextLevelXP = getXPForLevel(level + 1);
@@ -37,6 +59,70 @@ export default function HomePage() {
   const progress = Math.round(((xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100);
   const streak = profile?.streak_count ?? 0;
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Explorer';
+
+  const [challenges, setChallenges] = useState<ChallengeState[]>([
+    { id: 'sprint',    title: 'Complete a 10-min Sprint', xp: 50, done: false },
+    { id: 'flashcard', title: 'Review 10 Flashcards',     xp: 30, done: false },
+    { id: 'chat',      title: 'Ask Nova 3 Questions',     xp: 20, done: false },
+  ]);
+  const awardedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) return;
+
+    awardedRef.current = getAwardedSet(user.id);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayISO = todayStart.toISOString();
+
+    Promise.all([
+      supabase
+        .from('sprint_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .gte('created_at', todayISO),
+      supabase
+        .from('flashcards')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gt('repetitions', 0)
+        .gte('updated_at', todayISO),
+      supabase
+        .from('tutor_chats')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('role', 'user')
+        .gte('created_at', todayISO),
+    ]).then(async ([sprintRes, flashRes, chatRes]) => {
+      const counts: Record<string, number> = {
+        sprint:    sprintRes.count ?? 0,
+        flashcard: flashRes.count ?? 0,
+        chat:      chatRes.count ?? 0,
+      };
+      const thresholds: Record<string, number> = { sprint: 1, flashcard: 10, chat: 3 };
+      const xpRewards: Record<string, number>  = { sprint: 50, flashcard: 30, chat: 20 };
+
+      const newDone: string[] = [];
+      for (const id of Object.keys(thresholds)) {
+        if (counts[id] >= thresholds[id] && !awardedRef.current.has(id)) {
+          newDone.push(id);
+        }
+      }
+
+      // Award XP for newly completed challenges (fire-and-forget)
+      for (const id of newDone) {
+        markAwarded(user.id, id);
+        awardedRef.current.add(id);
+        supabase.rpc('increment_xp', { user_id: user.id, amount: xpRewards[id] }).then(() => {});
+      }
+
+      setChallenges(prev => prev.map(c => ({
+        ...c,
+        done: counts[c.id] >= thresholds[c.id],
+      })));
+    });
+  }, [user]);
 
   return (
     <div className="h-full native-scroll px-4 py-4 flex flex-col gap-5">

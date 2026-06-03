@@ -59,12 +59,26 @@ const sections = [
   },
 ];
 
-const subjects = [
-  { name: 'Mathematics', progress: 72, color: '#7C3AED' },
-  { name: 'Physics',     progress: 45, color: '#3B82F6' },
-  { name: 'Chemistry',   progress: 60, color: '#10B981' },
-  { name: 'Biology',     progress: 30, color: '#EC4899' },
-];
+const SUBJECT_COLORS: Record<string, string> = {
+  mathematics: '#7C3AED',
+  physics:     '#3B82F6',
+  chemistry:   '#10B981',
+  biology:     '#EC4899',
+  history:     '#F59E0B',
+  english:     '#06B6D4',
+  geography:   '#84CC16',
+  economics:   '#EF4444',
+};
+
+function subjectColor(name: string) {
+  return SUBJECT_COLORS[name.toLowerCase()] ?? '#8B5CF6';
+}
+
+interface SubjectStat {
+  name: string;
+  progress: number;
+  color: string;
+}
 
 interface WeeklyStats {
   sprints: number;
@@ -75,15 +89,16 @@ interface WeeklyStats {
 export default function LearningPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab]   = useState<'tools' | 'progress'>('tools');
-  const [dueCount, setDueCount]     = useState<number | null>(null);
+  const [dueCount, setDueCount]       = useState<number | null>(null);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
+  const [subjects, setSubjects]       = useState<SubjectStat[]>([]);
 
   useEffect(() => {
     if (!user) return;
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const now     = new Date().toISOString();
 
-    // Parallel: due-card count + weekly stats
+    // Parallel: due-card count + weekly stats + subject progress
     Promise.all([
       supabase
         .from('flashcards')
@@ -105,14 +120,36 @@ export default function LearningPage() {
         .from('flashcards')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .gt('repetitions', 0),        // cards reviewed at least once
-    ]).then(([due, sprints, quizzes, reviewed]) => {
+        .gt('repetitions', 0),
+      supabase
+        .from('flashcards')
+        .select('subject, repetitions')
+        .eq('user_id', user.id),
+    ]).then(([due, sprints, quizzes, reviewed, allCards]) => {
       setDueCount(due.count ?? 0);
       setWeeklyStats({
         sprints: sprints.count ?? 0,
         quizzes: quizzes.count ?? 0,
         cards:   reviewed.count ?? 0,
       });
+
+      // Compute per-subject progress from flashcards
+      const cards = (allCards.data ?? []) as { subject: string; repetitions: number }[];
+      const totals: Record<string, number>   = {};
+      const doneMap: Record<string, number>  = {};
+      for (const c of cards) {
+        const s = c.subject?.trim() || 'General';
+        totals[s]  = (totals[s]  ?? 0) + 1;
+        doneMap[s] = (doneMap[s] ?? 0) + (c.repetitions > 0 ? 1 : 0);
+      }
+      const stats: SubjectStat[] = Object.keys(totals)
+        .sort()
+        .map(name => ({
+          name,
+          progress: Math.round((doneMap[name] / totals[name]) * 100),
+          color: subjectColor(name),
+        }));
+      setSubjects(stats);
     });
   }, [user]);
 
@@ -189,7 +226,11 @@ export default function LearningPage() {
           <Card>
             <CardHeader><CardTitle>Subject Progress</CardTitle></CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {subjects.map(({ name, progress, color }) => (
+              {subjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  No flashcards yet — add some to see progress.
+                </p>
+              ) : subjects.map(({ name, progress, color }) => (
                 <div key={name}>
                   <div className="flex justify-between text-sm mb-1.5">
                     <span className="font-medium text-foreground">{name}</span>

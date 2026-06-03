@@ -32,6 +32,7 @@ export interface Flashcard {
   repetitions: number;
   next_review: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface QuizSession {
