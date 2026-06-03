@@ -35,9 +35,13 @@ const config: Config = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
         nova: {
-          purple: '#7C3AED',
-          blue: '#3B82F6',
+          purple: '#5B6AF5',
+          blue: '#8B5CF6',
           cyan: '#06B6D4',
           pink: '#EC4899',
         },
@@ -51,13 +55,14 @@ const config: Config = {
       height: { screen: '100dvh' },
       minHeight: { screen: '100dvh' },
       backgroundImage: {
-        'nova-gradient': 'linear-gradient(135deg, #7C3AED 0%, #3B82F6 50%, #06B6D4 100%)',
-        'card-glass': 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
+        'nova-gradient': 'linear-gradient(135deg, #5B6AF5 0%, #8B5CF6 100%)',
+        'card-ai': 'linear-gradient(135deg, #EEF1FF 0%, #E8EDFF 100%)',
       },
       boxShadow: {
-        glass: '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
-        nova: '0 0 40px rgba(124,58,237,0.3)',
-        card: '0 2px 12px rgba(0,0,0,0.4)',
+        glass: '0 2px 12px rgba(91,106,245,0.07)',
+        nova: '0 0 28px rgba(91,106,245,0.25)',
+        card: '0 2px 16px rgba(30,36,64,0.08)',
+        'card-lg': '0 8px 32px rgba(30,36,64,0.1)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

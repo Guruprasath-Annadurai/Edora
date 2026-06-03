@@ -8,24 +8,24 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-nova-gradient text-white shadow-nova',
-        secondary: 'glass text-foreground hover:bg-white/10',
-        ghost: 'text-muted-foreground hover:text-foreground hover:bg-white/5',
-        destructive: 'bg-red-500/20 text-red-400 border border-red-500/30',
-        outline: 'border border-border bg-transparent text-foreground hover:bg-white/5',
+        default:     'text-white shadow-nova',
+        secondary:   'bg-secondary text-foreground border border-border hover:bg-secondary/80',
+        ghost:       'text-muted-foreground hover:text-foreground hover:bg-secondary',
+        destructive: 'bg-red-50 text-red-500 border border-red-200',
+        outline:     'border border-border bg-white text-foreground hover:bg-secondary',
       },
       size: {
         default: 'h-12 px-6',
-        sm: 'h-9 px-4 text-xs',
-        lg: 'h-14 px-8 text-base',
-        icon: 'h-11 w-11',
+        sm:      'h-9 px-4 text-xs',
+        lg:      'h-14 px-8 text-base',
+        icon:    'h-11 w-11',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },
   }
 );
 
-const novaGradient = 'linear-gradient(135deg, #7C3AED 0%, #3B82F6 50%, #06B6D4 100%)';
+const NOVA_GRADIENT = 'linear-gradient(135deg, #5B6AF5 0%, #8B5CF6 100%)';
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -36,7 +36,7 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, style, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button';
-    const gradientStyle = variant === 'default' ? { background: novaGradient } : {};
+    const gradientStyle = (variant === 'default' || !variant) ? { background: NOVA_GRADIENT } : {};
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}

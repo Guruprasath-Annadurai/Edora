@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Map, Calendar, Users, Target, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -12,8 +11,8 @@ const sections = [
     desc: 'SM-2 spaced repetition review',
     icon: BookOpen,
     to: '/flashcard',
-    color: '#7C3AED',
-    bg: 'rgba(124,58,237,0.12)',
+    color: '#5B6AF5',
+    bg: 'rgba(91,106,245,0.10)',
     badge: 'DUE_COUNT',   // replaced dynamically below
     live: true,
   },
@@ -154,7 +153,7 @@ export default function LearningPage() {
   }, [user]);
 
   return (
-    <div className="h-full native-scroll px-4 py-4 flex flex-col gap-5">
+    <div className="h-full native-scroll px-4 py-4 flex flex-col gap-5 bg-background">
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground">Learning Hub</h1>
         <p className="text-muted-foreground text-sm">All your study tools in one place</p>
@@ -166,7 +165,7 @@ export default function LearningPage() {
           <button key={t} onClick={() => setActiveTab(t)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all
               ${activeTab === t ? 'text-white' : 'text-muted-foreground'}`}
-            style={activeTab === t ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)' } : {}}>
+            style={activeTab === t ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' } : {}}>
             {t === 'tools' ? 'Study Tools' : 'My Progress'}
           </button>
         ))}
@@ -175,18 +174,18 @@ export default function LearningPage() {
       {activeTab === 'tools' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
           {sections.map(({ title, desc, icon: Icon, to, color, bg, badge, live }, i) => (
-            <motion.div key={title} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
+            <motion.div key={title} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
               {live && to ? (
                 <Link to={to}>
-                  <div className="glass rounded-3xl p-4 flex items-center gap-4 active:scale-98 transition-all">
+                  <div className="glass rounded-3xl p-4 flex items-center gap-4 active:scale-98 transition-all shadow-card">
                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: bg }}>
-                      <Icon size={24} style={{ color }} strokeWidth={1.75} />
+                      <Icon size={22} style={{ color }} strokeWidth={1.75} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-foreground text-sm">{title}</p>
                         {badge === 'DUE_COUNT' && dueCount !== null && dueCount > 0 && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
                             style={{ background: color }}>
                             Due: {dueCount}
                           </span>
@@ -194,20 +193,19 @@ export default function LearningPage() {
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                     </div>
-                    <ChevronRight size={18} className="text-muted-foreground shrink-0" />
+                    <ChevronRight size={16} className="text-muted-foreground shrink-0" />
                   </div>
                 </Link>
               ) : (
-                // Coming-soon items — visually present but not tappable
-                <div className="glass rounded-3xl p-4 flex items-center gap-4 opacity-50">
+                <div className="glass rounded-3xl p-4 flex items-center gap-4 opacity-40">
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: bg }}>
-                    <Icon size={24} style={{ color }} strokeWidth={1.75} />
+                    <Icon size={22} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-foreground text-sm">{title}</p>
                       {badge && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary border border-border text-muted-foreground">
                           {badge}
                         </span>
                       )}
@@ -223,9 +221,11 @@ export default function LearningPage() {
 
       {activeTab === 'progress' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
-          <Card>
-            <CardHeader><CardTitle>Subject Progress</CardTitle></CardHeader>
-            <CardContent className="flex flex-col gap-4">
+          <div className="glass rounded-3xl overflow-hidden shadow-card">
+            <div className="px-5 pt-5 pb-3 border-b border-border">
+              <h3 className="font-heading font-semibold text-foreground">Subject Progress</h3>
+            </div>
+            <div className="px-5 pb-5 pt-4 flex flex-col gap-4">
               {subjects.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-2">
                   No flashcards yet — add some to see progress.
@@ -245,27 +245,29 @@ export default function LearningPage() {
                   </div>
                 </div>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader><CardTitle>Weekly Summary</CardTitle></CardHeader>
-            <CardContent>
+          <div className="glass rounded-3xl overflow-hidden shadow-card">
+            <div className="px-5 pt-5 pb-3 border-b border-border">
+              <h3 className="font-heading font-semibold text-foreground">Weekly Summary</h3>
+            </div>
+            <div className="px-5 pb-5 pt-4">
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Sprints',  value: weeklyStats?.sprints ?? '—', sub: 'this week' },
                   { label: 'Cards',    value: weeklyStats?.cards   ?? '—', sub: 'reviewed'  },
                   { label: 'Quizzes', value: weeklyStats?.quizzes  ?? '—', sub: 'completed' },
                 ].map(({ label, value, sub }) => (
-                  <div key={label} className="text-center p-3 glass rounded-2xl">
+                  <div key={label} className="text-center p-3 bg-secondary rounded-2xl border border-border">
                     <p className="font-heading text-xl font-bold text-foreground">{value}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
                     <p className="text-[10px] text-muted-foreground">{sub}</p>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
       )}
       <div className="h-4" />
