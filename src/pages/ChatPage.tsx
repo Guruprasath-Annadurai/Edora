@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Mic, Brain, GraduationCap, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Send, Mic, Brain, GraduationCap, MessageCircle, ArrowLeft, Volume2, Square, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { SmartReplyChips } from '@/components/chat/SmartReplyChips';
 import { getSmartReplies, SmartReplyMessage } from '@/plugins/SmartReplyPlugin';
 import { useAuth } from '@/hooks/useAuth';
+import { useNovaTTS } from '@/hooks/useNovaTTS';
 
 interface Message {
   id:        string;
@@ -21,6 +22,7 @@ const SYSTEM_PROMPTS = {
 
 export default function ChatPage() {
   const { profile } = useAuth();
+  const { speak, getState }         = useNovaTTS();
   const [mode, setMode]             = useState<'teacher' | 'friend'>('teacher');
   const [messages, setMessages]     = useState<Message[]>([{
     id: '1', role: 'assistant',
@@ -167,14 +169,48 @@ export default function ChatPage() {
                   <Brain size={14} className="text-white" />
                 </div>
               )}
-              <div className={`max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed
-                ${msg.role === 'user'
-                  ? 'text-white rounded-br-sm'
-                  : 'glass text-foreground rounded-bl-sm'}`}
-                style={msg.role === 'user'
-                  ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)' }
-                  : {}}>
-                {msg.content}
+              <div className="flex flex-col gap-1 max-w-[78%]">
+                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed
+                  ${msg.role === 'user'
+                    ? 'text-white rounded-br-sm'
+                    : 'glass text-foreground rounded-bl-sm'}`}
+                  style={msg.role === 'user'
+                    ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)' }
+                    : {}}>
+                  {msg.content}
+                </div>
+
+                {/* Voice button — only on Nova messages */}
+                {msg.role === 'assistant' && (() => {
+                  const ttsState = getState(msg.id);
+                  return (
+                    <button
+                      onClick={() => speak(msg.content, msg.id)}
+                      className="self-start flex items-center gap-1.5 px-2 py-1 rounded-lg
+                                 text-xs transition-all active:scale-95"
+                      style={{
+                        color:      ttsState === 'playing' ? '#a78bfa' : '#64748b',
+                        background: ttsState !== 'idle' ? 'rgba(124,58,237,0.1)' : 'transparent',
+                      }}
+                    >
+                      {ttsState === 'loading' && (
+                        <Loader2 size={12} className="animate-spin text-primary" />
+                      )}
+                      {ttsState === 'playing' && (
+                        <>
+                          <Square size={11} fill="currentColor" />
+                          <span>Stop</span>
+                        </>
+                      )}
+                      {ttsState === 'idle' && (
+                        <>
+                          <Volume2 size={12} />
+                          <span>Listen</span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
             </motion.div>
           ))}
