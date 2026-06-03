@@ -1,10 +1,19 @@
 import { motion } from 'framer-motion';
-import { Flame, Zap, Star, ChevronRight, Brain, BookOpen, Trophy, Target } from 'lucide-react';
+import { Flame, Zap, Star, Brain, BookOpen, Trophy, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { getLevelFromXP, getXPForLevel } from '@/lib/utils';
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 5)  return 'Night owl mode 🦉';
+  if (h < 12) return 'Good morning 🌅';
+  if (h < 17) return 'Good afternoon ☀️';
+  if (h < 21) return 'Good evening 🌙';
+  return 'Burning midnight oil 🔥';
+}
 
 const quickActions = [
   { to: '/chat',      icon: Brain,    label: 'Ask Nova',    color: '#7C3AED', bg: 'rgba(124,58,237,0.15)' },
@@ -35,7 +44,7 @@ export default function HomePage() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between pt-1">
         <div>
-          <p className="text-muted-foreground text-sm">Good morning 👋</p>
+          <p className="text-muted-foreground text-sm">{getGreeting()}</p>
           <h1 className="font-heading text-2xl font-bold text-foreground">{firstName}</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -120,9 +129,6 @@ export default function HomePage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-heading font-semibold text-foreground">Daily Challenges</h2>
-          <Link to="/challenges" className="text-xs text-primary font-medium flex items-center gap-0.5">
-            All <ChevronRight size={12} />
-          </Link>
         </div>
         <div className="flex flex-col gap-2.5">
           {challenges.map((c, i) => (

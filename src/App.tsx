@@ -7,6 +7,7 @@ import { Browser } from '@capacitor/browser';
 import { StatusBar, Style } from '@capacitor/status-bar';
 
 import { supabase } from '@/lib/supabase';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppShell } from '@/components/layout/AppShell';
 import { ConnectionGuard } from '@/components/guards/ConnectionGuard';
 import { useAuth } from '@/hooks/useAuth';
@@ -96,12 +97,14 @@ export default function App() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <ConnectionGuard>
-          <AppRoutes />
-        </ConnectionGuard>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ConnectionGuard>
+            <AppRoutes />
+          </ConnectionGuard>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

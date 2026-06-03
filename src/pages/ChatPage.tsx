@@ -2,11 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Mic, Brain, GraduationCap, MessageCircle, ArrowLeft, Volume2, Square, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { SmartReplyChips } from '@/components/chat/SmartReplyChips';
 import { getSmartReplies, SmartReplyMessage } from '@/plugins/SmartReplyPlugin';
 import { useAuth } from '@/hooks/useAuth';
 import { useNovaTTS } from '@/hooks/useNovaTTS';
+import { supabase } from '@/lib/supabase';
 
 interface Message {
   id:        string;
@@ -20,38 +20,81 @@ const SYSTEM_PROMPTS = {
   friend:  'You are Nova, a friendly study buddy. Keep it casual and encouraging. Use simple language. Never give personal or life advice — only study help.',
 };
 
+const WELCOME = (name: string) =>
+  `Hey ${name}! 👋 I'm Nova, your AI study companion. What would you like to learn today?`;
+
 export default function ChatPage() {
-  const { profile } = useAuth();
+  const { profile, user }           = useAuth();
   const { speak, getState }         = useNovaTTS();
   const [mode, setMode]             = useState<'teacher' | 'friend'>('teacher');
-  const [messages, setMessages]     = useState<Message[]>([{
-    id: '1', role: 'assistant',
-    content: `Hey ${profile?.full_name?.split(' ')[0] ?? 'there'}! 👋 I'm Nova, your AI study companion. What would you like to learn today?`,
-    timestamp: new Date(),
-  }]);
+  const [messages, setMessages]     = useState<Message[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [input, setInput]           = useState('');
   const [loading, setLoading]       = useState(false);
-  const [smartReplies, setSmartReplies]     = useState<string[]>([]);
+  const [smartReplies, setSmartReplies]         = useState<string[]>([]);
   const [smartRepliesLoading, setSmartRepliesLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // ── Load chat history on mount ───────────────────────────────
+  useEffect(() => {
+    if (!user || historyLoaded) return;
+    (async () => {
+      const { data } = await supabase
+        .from('tutor_chats')
+        .select('id, role, content, mode, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(60);
+
+      if (data && data.length > 0) {
+        setMessages(data.map(row => ({
+          id:        row.id,
+          role:      row.role as 'user' | 'assistant',
+          content:   row.content,
+          timestamp: new Date(row.created_at),
+        })));
+        // Restore the mode of the last message
+        const lastMode = data[data.length - 1].mode;
+        if (lastMode === 'teacher' || lastMode === 'friend') setMode(lastMode);
+      } else {
+        // First visit — show welcome greeting (not persisted)
+        setMessages([{
+          id: 'welcome',
+          role: 'assistant',
+          content: WELCOME(profile?.full_name?.split(' ')[0] ?? 'there'),
+          timestamp: new Date(),
+        }]);
+      }
+      setHistoryLoaded(true);
+    })();
+  }, [user, historyLoaded, profile]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, smartReplies]);
 
-  // ── Generate smart replies after Nova responds ───────────────────
+  // ── Persist a single message to Supabase ────────────────────
+  async function persistMessage(role: 'user' | 'assistant', content: string, msgMode: typeof mode) {
+    if (!user) return;
+    await supabase.from('tutor_chats').insert({
+      user_id: user.id,
+      role,
+      content,
+      mode: msgMode,
+    });
+  }
+
+  // ── Generate smart replies after Nova responds ───────────────
   const fetchSmartReplies = useCallback(async (msgs: Message[]) => {
     setSmartReplies([]);
     setSmartRepliesLoading(true);
     try {
-      // Build ML Kit-compatible message log (last 6 messages)
       const log: SmartReplyMessage[] = msgs.slice(-6).map((m, i) => ({
         text:      m.content,
         isLocal:   m.role === 'user',
         userId:    m.role === 'user' ? 'local' : 'nova',
-        timestamp: m.timestamp.getTime() + i,   // ensure strictly increasing
+        timestamp: m.timestamp.getTime() + i,
       }));
-
       const suggestions = await getSmartReplies(log);
       setSmartReplies(suggestions);
     } catch {
@@ -61,7 +104,7 @@ export default function ChatPage() {
     }
   }, []);
 
-  // ── Send a message ───────────────────────────────────────────────
+  // ── Send a message ───────────────────────────────────────────
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
     if (!content || loading) return;
@@ -75,6 +118,9 @@ export default function ChatPage() {
     setSmartReplies([]);
     setLoading(true);
 
+    // Persist user message (fire-and-forget — don't block UI)
+    persistMessage('user', content, mode);
+
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
@@ -83,12 +129,10 @@ export default function ChatPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             system_instruction: { parts: [{ text: SYSTEM_PROMPTS[mode] }] },
-            contents: [
-              ...updatedMsgs.slice(-8).map(m => ({
-                role: m.role === 'user' ? 'user' : 'model',
-                parts: [{ text: m.content }],
-              })),
-            ],
+            contents: updatedMsgs.slice(-8).map(m => ({
+              role:  m.role === 'user' ? 'user' : 'model',
+              parts: [{ text: m.content }],
+            })),
           }),
         }
       );
@@ -103,7 +147,9 @@ export default function ChatPage() {
       const finalMsgs = [...updatedMsgs, assistantMsg];
       setMessages(finalMsgs);
 
-      // Generate smart replies for Nova's response
+      // Persist Nova's reply
+      persistMessage('assistant', reply, mode);
+
       await fetchSmartReplies(finalMsgs);
 
     } catch {
@@ -118,7 +164,6 @@ export default function ChatPage() {
     }
   }
 
-  // Tap a chip → send it immediately
   function handleChipSelect(text: string) {
     setSmartReplies([]);
     sendMessage(text);
@@ -142,7 +187,6 @@ export default function ChatPage() {
             Online · {mode === 'teacher' ? 'Teacher Mode' : 'Friend Mode'}
           </p>
         </div>
-        {/* Mode toggle */}
         <div className="glass rounded-xl p-0.5 flex gap-0.5">
           <button onClick={() => setMode('teacher')}
             className={`p-2 rounded-lg transition-all ${mode === 'teacher' ? 'bg-primary text-white' : 'text-muted-foreground'}`}>
@@ -157,6 +201,12 @@ export default function ChatPage() {
 
       {/* ── Messages ── */}
       <div className="flex-1 native-scroll px-4 py-4 flex flex-col gap-3">
+        {!historyLoaded && (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+          </div>
+        )}
+
         <AnimatePresence initial={false}>
           {messages.map(msg => (
             <motion.div key={msg.id}
@@ -180,34 +230,20 @@ export default function ChatPage() {
                   {msg.content}
                 </div>
 
-                {/* Voice button — only on Nova messages */}
                 {msg.role === 'assistant' && (() => {
                   const ttsState = getState(msg.id);
                   return (
                     <button
                       onClick={() => speak(msg.content, msg.id)}
-                      className="self-start flex items-center gap-1.5 px-2 py-1 rounded-lg
-                                 text-xs transition-all active:scale-95"
+                      className="self-start flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all active:scale-95"
                       style={{
                         color:      ttsState === 'playing' ? '#a78bfa' : '#64748b',
                         background: ttsState !== 'idle' ? 'rgba(124,58,237,0.1)' : 'transparent',
                       }}
                     >
-                      {ttsState === 'loading' && (
-                        <Loader2 size={12} className="animate-spin text-primary" />
-                      )}
-                      {ttsState === 'playing' && (
-                        <>
-                          <Square size={11} fill="currentColor" />
-                          <span>Stop</span>
-                        </>
-                      )}
-                      {ttsState === 'idle' && (
-                        <>
-                          <Volume2 size={12} />
-                          <span>Listen</span>
-                        </>
-                      )}
+                      {ttsState === 'loading' && <Loader2 size={12} className="animate-spin text-primary" />}
+                      {ttsState === 'playing' && <><Square size={11} fill="currentColor" /><span>Stop</span></>}
+                      {ttsState === 'idle'    && <><Volume2 size={12} /><span>Listen</span></>}
                     </button>
                   );
                 })()}
@@ -216,7 +252,6 @@ export default function ChatPage() {
           ))}
         </AnimatePresence>
 
-        {/* Nova typing indicator */}
         {loading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-xl flex items-center justify-center"
@@ -236,12 +271,7 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Smart Reply Chips ── */}
-      <SmartReplyChips
-        suggestions={smartReplies}
-        onSelect={handleChipSelect}
-        loading={smartRepliesLoading}
-      />
+      <SmartReplyChips suggestions={smartReplies} onSelect={handleChipSelect} loading={smartRepliesLoading} />
 
       {/* ── Input bar ── */}
       <div className="glass-strong border-t border-border px-4 py-3 shrink-0"

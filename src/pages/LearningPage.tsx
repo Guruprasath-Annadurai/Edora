@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Map, Calendar, Users, Target, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 const sections = [
   {
@@ -12,7 +14,7 @@ const sections = [
     to: '/flashcard',
     color: '#7C3AED',
     bg: 'rgba(124,58,237,0.12)',
-    badge: null,
+    badge: 'DUE_COUNT',   // replaced dynamically below
     live: true,
   },
   {
@@ -65,7 +67,19 @@ const subjects = [
 ];
 
 export default function LearningPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'tools' | 'progress'>('tools');
+  const [dueCount, setDueCount]   = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('flashcards')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .lte('next_review', new Date().toISOString())
+      .then(({ count }) => setDueCount(count ?? 0));
+  }, [user]);
 
   return (
     <div className="h-full native-scroll px-4 py-4 flex flex-col gap-5">
@@ -97,7 +111,15 @@ export default function LearningPage() {
                       <Icon size={24} style={{ color }} strokeWidth={1.75} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground text-sm">{title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-foreground text-sm">{title}</p>
+                        {badge === 'DUE_COUNT' && dueCount !== null && dueCount > 0 && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                            style={{ background: color }}>
+                            Due: {dueCount}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                     </div>
                     <ChevronRight size={18} className="text-muted-foreground shrink-0" />

@@ -1,11 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Flame, Star, Trophy, Shield, Bell, LogOut, ChevronRight, Snowflake } from 'lucide-react';
+import { User, Flame, Star, Trophy, Shield, Bell, LogOut, ChevronRight, Snowflake, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
 import { getLevelFromXP, getXPForLevel } from '@/lib/utils';
+
+interface LeaderboardRow {
+  rank:           number;
+  display_name:   string;
+  xp:             number;
+  level:          number;
+  streak_count:   number;
+  is_current_user: boolean;
+}
 
 const STUDY_LEVELS = [
   { value: 'school',   label: 'School (6–12)' },
@@ -16,28 +26,45 @@ const STUDY_LEVELS = [
 
 export default function ProfilePage() {
   const { profile, signOut } = useAuth();
-  const [activeSection, setActiveSection] = useState<'main' | 'leaderboard'>('main');
+  const [leaderboard, setLeaderboard]       = useState<LeaderboardRow[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
 
-  const xp = profile?.xp ?? 0;
-  const level = getLevelFromXP(xp);
-  const nextXP = getXPForLevel(level + 1);
-  const curXP = getXPForLevel(level);
+  const xp      = profile?.xp ?? 0;
+  const level   = getLevelFromXP(xp);
+  const nextXP  = getXPForLevel(level + 1);
+  const curXP   = getXPForLevel(level);
   const xpProgress = Math.round(((xp - curXP) / (nextXP - curXP)) * 100);
-  const streak = profile?.streak_count ?? 0;
+  const streak  = profile?.streak_count ?? 0;
   const freezes = profile?.streak_freeze_count ?? 0;
 
+  useEffect(() => {
+    (async () => {
+      setLeaderboardLoading(true);
+      const { data } = await supabase
+        .from('weekly_leaderboard')
+        .select('rank, display_name, xp, level, streak_count, is_current_user')
+        .order('rank', { ascending: true })
+        .limit(10);
+      if (data) setLeaderboard(data as LeaderboardRow[]);
+      setLeaderboardLoading(false);
+    })();
+  }, []);
+
   const stats = [
-    { label: 'XP Total', value: xp.toLocaleString(), icon: Star, color: '#F59E0B' },
-    { label: 'Level',    value: level.toString(),     icon: Trophy, color: '#7C3AED' },
-    { label: 'Streak',   value: `${streak}d`,         icon: Flame,  color: '#EF4444' },
+    { label: 'XP Total', value: xp.toLocaleString(), icon: Star,      color: '#F59E0B' },
+    { label: 'Level',    value: level.toString(),     icon: Trophy,    color: '#7C3AED' },
+    { label: 'Streak',   value: `${streak}d`,         icon: Flame,     color: '#EF4444' },
     { label: 'Freezes',  value: freezes.toString(),   icon: Snowflake, color: '#06B6D4' },
   ];
 
   const menuItems = [
-    { icon: Bell,   label: 'Study Reminders',  to: '#' },
-    { icon: Shield, label: 'Parent Dashboard', to: '#' },
-    { icon: User,   label: 'Account Settings', to: '#' },
+    { icon: Bell,   label: 'Study Reminders' },
+    { icon: Shield, label: 'Parent Dashboard' },
+    { icon: User,   label: 'Account Settings' },
   ];
+
+  const rankEmoji = (rank: number) =>
+    rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
 
   return (
     <div className="h-full native-scroll px-4 py-4 flex flex-col gap-5">
@@ -90,51 +117,54 @@ export default function ProfilePage() {
         </div>
       </motion.div>
 
-      {/* Leaderboard preview */}
+      {/* Leaderboard */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Weekly Leaderboard</CardTitle>
-              <button className="text-xs text-primary font-medium flex items-center gap-0.5">
-                All <ChevronRight size={12} />
-              </button>
-            </div>
+            <CardTitle>Weekly Leaderboard</CardTitle>
           </CardHeader>
           <CardContent>
-            {[
-              { rank: 1, name: 'Star Learner', xp: 2840, isYou: false },
-              { rank: 2, name: 'Nova Master',  xp: 2200, isYou: false },
-              { rank: 3, name: 'You',          xp: xp,   isYou: true },
-            ].map(({ rank, name, xp: entryXp, isYou }) => (
-              <div key={rank} className={`flex items-center gap-3 py-2.5 border-b border-border last:border-0
-                ${isYou ? 'rounded-xl px-2' : ''}`}
-                style={isYou ? { background: 'rgba(124,58,237,0.1)' } : {}}>
-                <span className={`w-6 text-center text-sm font-bold
-                  ${rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-slate-400' : rank === 3 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                  {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
-                </span>
-                <span className={`flex-1 text-sm font-medium ${isYou ? 'text-primary' : 'text-foreground'}`}>{name}</span>
-                <div className="flex items-center gap-1">
-                  <Star size={12} className="text-yellow-400" />
-                  <span className="text-sm font-semibold text-foreground">{entryXp.toLocaleString()}</span>
-                </div>
+            {leaderboardLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 size={20} className="animate-spin text-primary" />
               </div>
-            ))}
+            ) : leaderboard.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-3">No data yet — start studying! 🚀</p>
+            ) : (
+              leaderboard.map(row => (
+                <div key={row.rank}
+                  className={`flex items-center gap-3 py-2.5 border-b border-border last:border-0
+                    ${row.is_current_user ? 'rounded-xl px-2' : ''}`}
+                  style={row.is_current_user ? { background: 'rgba(124,58,237,0.1)' } : {}}>
+                  <span className="w-7 text-center text-sm font-bold shrink-0">
+                    {rankEmoji(row.rank)}
+                  </span>
+                  <span className={`flex-1 text-sm font-medium truncate
+                    ${row.is_current_user ? 'text-primary' : 'text-foreground'}`}>
+                    {row.display_name}
+                    {row.is_current_user && <span className="text-xs text-muted-foreground ml-1">(you)</span>}
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Star size={12} className="text-yellow-400" />
+                    <span className="text-sm font-semibold text-foreground">{row.xp.toLocaleString()}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Menu items */}
+      {/* Menu items — coming soon */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
         className="flex flex-col gap-2">
         {menuItems.map(({ icon: Icon, label }) => (
-          <button key={label}
-            className="glass rounded-2xl p-4 flex items-center gap-3 w-full active:scale-98 transition-all">
+          <div key={label}
+            className="glass rounded-2xl p-4 flex items-center gap-3 w-full opacity-50">
             <Icon size={20} className="text-muted-foreground" strokeWidth={1.75} />
             <span className="flex-1 text-left text-sm font-medium text-foreground">{label}</span>
-            <ChevronRight size={16} className="text-muted-foreground" />
-          </button>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground">Soon</span>
+          </div>
         ))}
       </motion.div>
 
