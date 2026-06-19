@@ -23,7 +23,9 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: Capacitor.isNativePlatform() ? (capacitorStorage as any) : window.localStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // On web: detect session tokens passed in URL fragment (used by native→web payment redirect)
+    // On native: false to avoid interference with deep links
+    detectSessionInUrl: !Capacitor.isNativePlatform(),
     flowType: 'pkce',
   },
 });

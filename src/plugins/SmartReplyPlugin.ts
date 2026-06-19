@@ -1,4 +1,5 @@
 import { registerPlugin, Capacitor } from '@capacitor/core';
+import { geminiJSON } from '@/lib/gemini';
 
 export interface SmartReplyMessage {
   text:      string;
@@ -24,28 +25,13 @@ const NativeSmartReply = registerPlugin<SmartReplyPlugin>('SmartReply');
 // (ML Kit only works in English; Gemini handles all languages)
 async function geminiSmartReply(messages: SmartReplyMessage[]): Promise<string[]> {
   const lastMessages = messages.slice(-4).map(m =>
-    `${m.isLocal ? 'User' : 'Nova'}: ${m.text}`
+    `${m.isLocal ? 'User' : 'Novo'}: ${m.text}`
   ).join('\n');
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          role: 'user',
-          parts: [{ text: `Given this conversation:\n${lastMessages}\n\nGenerate exactly 3 very short reply suggestions (max 6 words each) the user could send next. Return ONLY a JSON array of 3 strings, no explanation:\n["reply1","reply2","reply3"]` }],
-        }],
-        generationConfig: { maxOutputTokens: 80, temperature: 0.7 },
-      }),
-    }
-  );
-
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]';
   try {
-    return JSON.parse(text.replace(/```json|```/g, '').trim()) as string[];
+    return await geminiJSON<string[]>(
+      `Given this conversation:\n${lastMessages}\n\nGenerate exactly 3 very short reply suggestions (max 6 words each) the user could send next. Return ONLY a JSON array of 3 strings, no explanation:\n["reply1","reply2","reply3"]`
+    );
   } catch {
     return [];
   }

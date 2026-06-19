@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.edora.app",
+      "sha256_cert_fingerprints": [
+        "1B:B2:E3:9D:04:ED:43:DE:F7:4F:4D:98:47:6A:13:C4:22:A6:89:B0:4F:42:00:F1:24:0A:5E:96:67:E6:21:4E"
+      ]
+    }
+  }
+]

@@ -7,3 +7,8 @@ ios/App/App/public
 android/app/src/main/assets/public
 .DS_Store
 *.log
+
+# Firebase — contains no private keys but best practice to gitignore
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
+.vercel

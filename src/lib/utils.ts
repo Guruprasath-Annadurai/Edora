@@ -22,3 +22,11 @@ export function getLevelFromXP(xp: number) {
 export function truncate(str: string, n: number) {
   return str.length > n ? str.substring(0, n - 1) + '…' : str;
 }
+
+/** Race a promise against a timeout. Rejects with a user-facing message on timeout. */
+export function withTimeout<T>(promise: Promise<T>, ms: number, msg = 'Request timed out. Please try again.'): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+  ]);
+}

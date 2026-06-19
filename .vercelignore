@@ -1,0 +1,11 @@
+node_modules
+android
+ios
+dist
+*.aab
+*.apk
+*.keystore
+.env
+.env.local
+supabase/.branches
+supabase/.temp

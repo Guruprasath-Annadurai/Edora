@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, ScanLine, Copy, Save, ArrowLeft, FileText, Sparkles, RotateCcw } from 'lucide-react';
+import { ScanLine, Copy, Save, ArrowLeft, Sparkles, RotateCcw, Brain } from 'lucide-react';
+import { CameraIcon, ImagesIcon } from '@/components/ui/icons';
 import { Link } from 'react-router-dom';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
@@ -8,9 +9,13 @@ import { Toast } from '@capacitor/toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
+import { withTimeout } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { geminiJSON } from '@/lib/gemini';
+import { track } from '@/lib/analytics';
+import { loadUnlockedIds, checkAchievements } from '@/lib/achievements';
 
-type Phase = 'idle' | 'scanning' | 'result' | 'saving';
+type Phase = 'idle' | 'scanning' | 'result' | 'saving' | 'generating';
 
 interface ScanResult {
   scan_id: string;
@@ -52,6 +57,10 @@ export default function ScannerPage() {
   const [editedText, setEditedText] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
   const [error, setError] = useState('');
+  const lastBase64Ref    = useRef<string>('');
+  const [showCameraRationale, setShowCameraRationale] = useState(false);
+  const pendingSourceRef = useRef<'camera' | 'gallery' | null>(null);
+  const skipRationaleRef = useRef(false);
 
   // ── Capture image from camera or gallery ──────────────────────
   async function captureImage(source: 'camera' | 'gallery') {
@@ -62,21 +71,44 @@ export default function ScannerPage() {
       if (!Capacitor.isNativePlatform()) {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'image/*';
+        input.accept = 'image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/heic,image/heif';
+        if (source === 'camera') input.capture = 'environment';
         input.onchange = async (e) => {
           const file = (e.target as HTMLInputElement).files?.[0];
           if (!file) return;
+          if (!file.type.startsWith('image/')) {
+            setError('Please select an image file (JPEG, PNG, WebP, etc.).');
+            return;
+          }
           const reader = new FileReader();
           reader.onload = async (ev) => {
             const dataUrl = ev.target?.result as string;
             setPreviewUrl(dataUrl);
-            await runOCR(dataUrl.split(',')[1]);
+            const base64 = dataUrl.split(',')[1];
+            lastBase64Ref.current = base64;
+            await runOCR(base64);
           };
           reader.readAsDataURL(file);
         };
         input.click();
         return;
       }
+
+      // Show in-app rationale before the system permission dialog
+      if (!skipRationaleRef.current) {
+        const perms = await CapCamera.checkPermissions();
+        const perm  = source === 'camera' ? perms.camera : perms.photos;
+        if (perm === 'denied') {
+          setError('Camera access is disabled. Go to Settings → Apps → Edora → Permissions to enable it.');
+          return;
+        }
+        if (perm !== 'granted') {
+          pendingSourceRef.current = source;
+          setShowCameraRationale(true);
+          return;
+        }
+      }
+      skipRationaleRef.current = false;
 
       const photo = await CapCamera.getPhoto({
         resultType: CameraResultType.DataUrl,
@@ -91,51 +123,60 @@ export default function ScannerPage() {
 
       // Resize before sending to API (saves bandwidth + cost)
       const base64 = await resizeImage(photo.dataUrl, 1024);
+      lastBase64Ref.current = base64;
       await runOCR(base64);
 
     } catch (err: any) {
-      if (!err.message?.includes('cancelled')) {
-        setError('Could not access camera. Please check permissions.');
+      const msg: string = (err?.message ?? '').toLowerCase();
+      if (msg.includes('cancel')) return;
+      if (msg.includes('permission') || msg.includes('denied') || msg.includes('notallowed')) {
+        setError('Camera access denied. Enable it in Settings → Apps → Edora → Permissions.');
+      } else if (msg.includes('in use') || msg.includes('busy') || msg.includes('already')) {
+        setError('Camera is in use by another app. Close it and try again.');
+      } else if (msg.includes('no camera') || msg.includes('not available') || msg.includes('unavailable')) {
+        setError('No camera found on this device.');
+      } else {
+        setError('Could not open camera. Please try again.');
       }
     }
   }
 
+  async function proceedWithCamera() {
+    const source = pendingSourceRef.current;
+    if (source === null) return;
+    pendingSourceRef.current = null;
+    skipRationaleRef.current = true;
+    setShowCameraRationale(false);
+    await captureImage(source);
+  }
+
   // ── Call the Supabase Edge Function ───────────────────────────
   async function runOCR(base64: string) {
+    if (!user) { setError('Please sign in to use the scanner.'); return; }
     setPhase('scanning');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ocr`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            image_base64: base64,
-            detection_type: 'DOCUMENT_TEXT_DETECTION',
-          }),
-        }
+      const { data, error: fnError } = await withTimeout(
+        supabase.functions.invoke('ocr', {
+          body: { image_base64: base64, detection_type: 'DOCUMENT_TEXT_DETECTION' },
+        }),
+        30_000,
+        'OCR timed out. Please try with a smaller or clearer image.',
       );
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? 'OCR failed');
-      }
+      if (fnError) throw new Error(fnError.message ?? 'OCR failed');
+      if (!data) throw new Error('No response from OCR service');
 
-      const data: ScanResult = await res.json();
-      setResult(data);
-      setEditedText(data.full_text);
+      const result: ScanResult = data;
+      setResult(result);
+      setEditedText(result.full_text);
       setNoteTitle(`Scan — ${new Date().toLocaleDateString('en-IN')}`);
       setPhase('result');
+      track('scan_complete', { word_count: result.full_text.split(/\s+/).filter(Boolean).length });
+      const unlocked = await loadUnlockedIds(user.id);
+      await checkAchievements({ userId: user.id, unlocked, profile: { xp: 0, streak_count: 0 }, extras: { isFirstScan: !unlocked.has('first_scan') } });
 
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message ?? 'Scanning failed. Please try again.');
       setPhase('idle');
     }
   }
@@ -145,17 +186,59 @@ export default function ScannerPage() {
     if (!user || !editedText.trim()) return;
     setPhase('saving');
     try {
-      await supabase.from('study_notes').insert({
+      const { error: insertError } = await supabase.from('study_notes').insert({
         user_id: user.id,
         title: noteTitle || 'Scanned Note',
         content: editedText,
         ocr_text: result?.full_text,
         subject: '',
       });
+      if (insertError) throw new Error(insertError.message);
+      track('scan_saved_as_note', { word_count: editedText.split(/\s+/).filter(Boolean).length });
       await Toast.show({ text: 'Note saved!', duration: 'short', position: 'bottom' });
       reset();
-    } catch {
-      setError('Failed to save note.');
+    } catch (err: any) {
+      setError(err.message ?? 'Failed to save note.');
+      setPhase('result');
+    }
+  }
+
+  // ── Generate flashcards from OCR text via Gemini ───────────────
+  async function generateFlashcards() {
+    if (!user || !editedText.trim()) return;
+    setPhase('generating');
+    try {
+      const cards = await geminiJSON<{ front: string; back: string }[]>(
+        `Extract key concept-answer pairs from this study text and create flashcards.
+Return ONLY a JSON array with 5 to 8 items, no markdown:
+[{"front":"question or concept","back":"answer or explanation"}]
+
+TEXT:
+${editedText.slice(0, 3000)}`
+      );
+
+      if (!Array.isArray(cards) || cards.length === 0) throw new Error('No cards generated');
+
+      const { error: insertError } = await supabase.from('flashcards').insert(
+        cards.map(c => ({
+          user_id: user.id,
+          front: c.front,
+          back: c.back,
+          subject: noteTitle || 'Scanned Note',
+          topic: noteTitle || '',
+          ease_factor: 2.5,
+          interval: 1,
+          repetitions: 0,
+          next_review: new Date().toISOString(),
+        }))
+      );
+      if (insertError) throw new Error(insertError.message);
+
+      track('ai_flashcards_generated', { count: cards.length, source: 'scanner' });
+      await Toast.show({ text: `${cards.length} flashcards created!`, duration: 'long', position: 'bottom' });
+      reset();
+    } catch (err: any) {
+      setError(err.message ?? 'Could not generate flashcards. Please try again.');
       setPhase('result');
     }
   }
@@ -175,18 +258,18 @@ export default function ScannerPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="glass-strong border-b border-border px-4 py-3 flex items-center gap-3 shrink-0">
         <Link to="/tools" className="touch-target">
-          <ArrowLeft size={22} className="text-foreground" strokeWidth={1.75} />
+          <ArrowLeft size={22} className="text-white" strokeWidth={1.75} />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
           style={{ background: 'linear-gradient(135deg, #06B6D4, #3B82F6)' }}>
           <ScanLine size={20} className="text-white" />
         </div>
         <div className="flex-1">
-          <h2 className="font-heading font-bold text-foreground text-sm">Notes Scanner</h2>
+          <h2 className="font-heading font-bold text-white text-sm">Notes Scanner</h2>
           <p className="text-xs text-muted-foreground">Cloud Vision OCR</p>
         </div>
         {phase !== 'idle' && (
@@ -196,7 +279,7 @@ export default function ScannerPage() {
         )}
       </div>
 
-      <div className="flex-1 native-scroll">
+      <div className="flex-1 native-scroll pb-nav">
         <AnimatePresence mode="wait">
 
           {/* ── IDLE — pick source ── */}
@@ -207,12 +290,12 @@ export default function ScannerPage() {
               {/* Hero */}
               <div className="rounded-3xl p-6 flex flex-col items-center gap-4 text-center"
                 style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(59,130,246,0.15))', border: '1px solid rgba(6,182,212,0.3)' }}>
-                <div className="w-16 h-16 rounded-3xl flex items-center justify-center nova-glow"
+                <div className="w-16 h-16 rounded-3xl flex items-center justify-center novo-glow"
                   style={{ background: 'linear-gradient(135deg, #06B6D4, #3B82F6)' }}>
                   <ScanLine size={32} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-xl font-bold text-foreground">Scan Handwriting</h3>
+                  <h3 className="font-heading text-xl font-bold text-white">Scan Handwriting</h3>
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                     Capture your handwritten notes and convert them to digital text instantly using Google Cloud Vision
                   </p>
@@ -220,8 +303,16 @@ export default function ScannerPage() {
               </div>
 
               {error && (
-                <div className="glass rounded-2xl px-4 py-3 border border-red-500/30">
-                  <p className="text-sm text-red-400">{error}</p>
+                <div className="glass rounded-2xl px-4 py-3 border border-red-500/30 flex items-start justify-between gap-3">
+                  <p className="text-sm text-red-400 flex-1">{error}</p>
+                  {lastBase64Ref.current && (
+                    <button
+                      onClick={() => { setError(''); runOCR(lastBase64Ref.current); }}
+                      className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl active:scale-95 transition-all"
+                      style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
+                      Retry
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -232,10 +323,10 @@ export default function ScannerPage() {
                   style={{ background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)' }}>
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                     style={{ background: 'rgba(6,182,212,0.2)' }}>
-                    <Camera size={24} className="text-cyan-400" strokeWidth={1.75} />
+                    <CameraIcon size={24} className="text-cyan-400" strokeWidth={1.75} />
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-foreground text-sm">Camera</p>
+                    <p className="font-semibold text-white text-sm">Camera</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Take a photo</p>
                   </div>
                 </button>
@@ -245,10 +336,10 @@ export default function ScannerPage() {
                   style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)' }}>
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                     style={{ background: 'rgba(59,130,246,0.2)' }}>
-                    <FileText size={24} className="text-blue-400" strokeWidth={1.75} />
+                    <ImagesIcon size={24} className="text-blue-400" strokeWidth={1.75} />
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-foreground text-sm">Gallery</p>
+                    <p className="font-semibold text-white text-sm">Gallery</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Choose image</p>
                   </div>
                 </button>
@@ -270,7 +361,7 @@ export default function ScannerPage() {
                       <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
                         {i + 1}
                       </span>
-                      <p className="text-sm text-foreground">{tip}</p>
+                      <p className="text-sm text-white/80">{tip}</p>
                     </div>
                   ))}
                 </CardContent>
@@ -303,7 +394,7 @@ export default function ScannerPage() {
               </div>
 
               <div className="text-center">
-                <h3 className="font-heading text-xl font-bold text-foreground">Recognising Text…</h3>
+                <h3 className="font-heading text-xl font-bold text-white">Recognising Text…</h3>
                 <p className="text-muted-foreground text-sm mt-1">Cloud Vision is processing your image</p>
               </div>
             </motion.div>
@@ -313,6 +404,14 @@ export default function ScannerPage() {
           {phase === 'result' && result && (
             <motion.div key="result" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="flex flex-col gap-4 px-4 py-4">
+
+              {error && (
+                <div className="glass rounded-2xl px-4 py-3 border border-red-500/30 flex items-center justify-between gap-3">
+                  <p className="text-sm text-red-400 flex-1">{error}</p>
+                  <button onClick={() => setError('')}
+                    className="text-xs font-bold text-red-400 shrink-0 px-2 py-1">✕</button>
+                </div>
+              )}
 
               {/* Preview thumbnail */}
               {previewUrl && (
@@ -353,7 +452,7 @@ export default function ScannerPage() {
               {/* Extracted text editor */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <p className="text-sm font-semibold text-white flex items-center gap-2">
                     <Sparkles size={14} className="text-cyan-400" />
                     Extracted Text
                   </p>
@@ -366,13 +465,13 @@ export default function ScannerPage() {
                   value={editedText}
                   onChange={e => setEditedText(e.target.value)}
                   rows={10}
-                  className="w-full glass rounded-2xl px-4 py-3 bg-transparent text-foreground text-sm outline-none resize-none leading-relaxed"
+                  className="w-full glass rounded-2xl px-4 py-3 bg-transparent text-white text-sm outline-none resize-none leading-relaxed"
                   style={{ WebkitUserSelect: 'text', userSelect: 'text' }}
                   placeholder="No text detected. Try a clearer image."
                 />
               </div>
 
-              {/* Save as note */}
+              {/* Save as note + Generate flashcards */}
               {editedText.trim() && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-2">
                   <input
@@ -380,12 +479,19 @@ export default function ScannerPage() {
                     placeholder="Note title (optional)"
                     value={noteTitle}
                     onChange={e => setNoteTitle(e.target.value)}
-                    className="glass rounded-2xl px-4 h-11 bg-transparent text-foreground placeholder:text-muted-foreground text-sm outline-none w-full"
+                    className="glass rounded-2xl px-4 h-11 bg-transparent text-white placeholder:text-white/30 text-sm outline-none w-full"
                     style={{ WebkitUserSelect: 'text', userSelect: 'text' }}
                   />
                   <Button onClick={saveAsNote} className="w-full">
                     <Save size={16} /> Save as Study Note
                   </Button>
+                  {/* ── Flashcard generation from scanned text ── */}
+                  <button onClick={generateFlashcards}
+                    className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-semibold border transition-all active:scale-98"
+                    style={{ background: 'rgba(91,106,245,0.08)', borderColor: 'rgba(91,106,245,0.3)', color: '#5B6AF5' }}>
+                    <Brain size={16} />
+                    Generate Flashcards with AI
+                  </button>
                 </motion.div>
               )}
 
@@ -399,12 +505,60 @@ export default function ScannerPage() {
           {phase === 'saving' && (
             <motion.div key="saving" className="flex flex-col items-center justify-center h-full gap-4">
               <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-              <p className="text-foreground font-medium">Saving note…</p>
+              <p className="text-white font-medium">Saving note…</p>
+            </motion.div>
+          )}
+
+          {/* ── GENERATING FLASHCARDS ── */}
+          {phase === 'generating' && (
+            <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center h-full gap-4 px-8 text-center">
+              <div className="w-16 h-16 rounded-3xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
+                <Brain size={32} className="text-white" />
+              </div>
+              <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+              <div>
+                <p className="text-white font-semibold">Generating Flashcards…</p>
+                <p className="text-sm text-muted-foreground mt-1">AI is extracting key concepts from your notes</p>
+              </div>
             </motion.div>
           )}
 
         </AnimatePresence>
       </div>
+
+      {/* Camera permission rationale — shown before system dialog on native */}
+      <AnimatePresence>
+        {showCameraRationale && (
+          <motion.div className="fixed inset-0 z-50 flex items-end"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowCameraRationale(false)} />
+            <motion.div className="relative w-full rounded-t-3xl p-6 pb-10"
+              style={{ background: 'rgba(10,12,28,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.1)' }}
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />
+              <div className="flex items-start gap-3 mb-5">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(6,182,212,0.15)' }}>
+                  <CameraIcon size={22} className="text-cyan-400" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <p className="font-bold text-white text-base">Allow camera access?</p>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    Edora needs your camera to scan your handwritten notes and convert them to digital text.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setShowCameraRationale(false)}>Not Now</Button>
+                <Button className="flex-1" onClick={proceedWithCamera}>Continue</Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

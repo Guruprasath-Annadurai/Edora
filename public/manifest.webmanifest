@@ -1,0 +1,24 @@
+{
+  "name": "Edora — AI Study Assistant",
+  "short_name": "Edora",
+  "description": "Your personal AI tutor for JEE, NEET, and all Indian board exams",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F7FF",
+  "theme_color": "#5B6AF5",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["education"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/chat.jpg", "sizes": "390x844", "type": "image/jpeg", "form_factor": "narrow" }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [
+    { "platform": "play", "url": "https://play.google.com/store/apps/details?id=com.edora.app", "id": "com.edora.app" }
+  ]
+}

@@ -13,22 +13,28 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2500,
+      launchShowDuration: 2000,
       launchAutoHide: true,
-      launchFadeOutDuration: 500,
-      backgroundColor: '#0F172A',
+      launchFadeOutDuration: 400,
+      backgroundColor: '#F4F7FF',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
       splashFullScreen: true,
-      splashImmersive: true,
+      splashImmersive: false,
     },
     StatusBar: {
-      style: 'DARK',
-      backgroundColor: '#0F172A',
+      // Capacitor semantics: 'LIGHT' = dark text for light backgrounds
+      style: 'LIGHT',
+      backgroundColor: '#F4F7FF',
       overlaysWebView: false,
     },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
+    },
+    LocalNotifications: {
+      smallIcon: 'ic_stat_icon_config_sample',
+      iconColor: '#5B6AF5',
+      sound: 'beep.wav',
     },
   },
   ios: {
@@ -40,7 +46,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
     webContentsDebuggingEnabled: false,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F4F7FF',
   },
 };
 

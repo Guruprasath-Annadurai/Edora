@@ -6,8 +6,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        heading: ['Space Grotesk', 'sans-serif'],
-        body: ['Plus Jakarta Sans', 'sans-serif'],
+        heading: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        body:    ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        mono:    ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -39,11 +40,15 @@ const config: Config = {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
-        nova: {
-          purple: '#5B6AF5',
-          blue: '#8B5CF6',
-          cyan: '#06B6D4',
-          pink: '#EC4899',
+        novo: {
+          purple: '#7C3AED',
+          light:  '#A855F7',
+          dark:   '#5B21B6',
+          cyan:   '#06B6D4',
+          pink:   '#EC4899',
+          war:    '#EF4444',
+          xp:     '#F59E0B',
+          win:    '#10B981',
         },
       },
       spacing: {
@@ -55,14 +60,20 @@ const config: Config = {
       height: { screen: '100dvh' },
       minHeight: { screen: '100dvh' },
       backgroundImage: {
-        'nova-gradient': 'linear-gradient(135deg, #5B6AF5 0%, #8B5CF6 100%)',
-        'card-ai': 'linear-gradient(135deg, #EEF1FF 0%, #E8EDFF 100%)',
+        'novo-gradient':  'linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)',
+        'novo-gradient-dark': 'linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%)',
+        'war-gradient':   'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+        'xp-gradient':    'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)',
+        'win-gradient':   'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+        'card-ai':        'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(168,85,247,0.08) 100%)',
       },
       boxShadow: {
-        glass: '0 2px 12px rgba(91,106,245,0.07)',
-        nova: '0 0 28px rgba(91,106,245,0.25)',
-        card: '0 2px 16px rgba(30,36,64,0.08)',
-        'card-lg': '0 8px 32px rgba(30,36,64,0.1)',
+        glass:    '0 2px 12px rgba(124,58,237,0.08)',
+        novo:     '0 0 28px rgba(124,58,237,0.4)',
+        'novo-lg':'0 0 48px rgba(124,58,237,0.5)',
+        card:     '0 2px 16px rgba(0,0,0,0.4)',
+        'card-lg':'0 8px 32px rgba(0,0,0,0.5)',
+        war:      '0 4px 24px rgba(239,68,68,0.5)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -93,6 +104,10 @@ const config: Config = {
         '2xl': '1rem',
         '3xl': '1.5rem',
         '4xl': '2rem',
+        // Design-system tokens — use these, not arbitrary px values
+        'chip':  '0.5rem',   // 8px  — tags, badges, small labels
+        'card':  '1.25rem',  // 20px — standard content card
+        'panel': '1.5rem',   // 24px — large panels, modals (= 3xl)
       },
     },
   },
