@@ -53,7 +53,7 @@ const SCENARIO_BANK: Record<string, Scenario[]> = {
   ],
   Chemistry: [
     { id: 'detective_poison', title: 'The Poisoned Garden', hook: 'A nobleman has been poisoned. Only chemical analysis can reveal the culprit substance.', description: 'Use acid-base chemistry and qualitative analysis to identify a mysterious poison.', topic: 'Acids, Bases & Analysis', emoji: '🧪', xp_max: 200 },
-    { id: 'pharmacist_drugs', title: 'The Underground Pharmacist', hook: 'You must synthesise the only compound that can cure a mysterious plague. Organic chemistry is your weapon.', description: 'Navigate organic reaction pathways to synthesise a life-saving compound.', topic: 'Organic Chemistry', emoji: '💊', xp_max: 300 },
+    { id: 'pharmacist_drugs', title: 'The Emergency Synthesis', hook: 'A hospital has run out of a critical drug. You are the only chemist who can synthesise it in time. Organic chemistry is your tool.', description: 'Navigate organic reaction pathways to synthesise a life-saving pharmaceutical compound under time pressure.', topic: 'Organic Chemistry', emoji: '⚗️', xp_max: 300 },
   ],
   Biology: [
     { id: 'virologist_outbreak', title: 'The Viral Outbreak', hook: 'A new virus has emerged. You are patient zero\'s doctor. Understanding immunology is your only hope.', description: 'Trace how an immune response combats a novel virus through a medical thriller.', topic: 'Immunology', emoji: '🦠', xp_max: 250 },

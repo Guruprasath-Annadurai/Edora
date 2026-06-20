@@ -36,6 +36,8 @@
     <!-- Google Classroom -->
     <domain includeSubdomains="true">classroom.googleapis.com</domain>
     <domain includeSubdomains="true">accounts.google.com</domain>
+    <!-- Novo AI image generation (educational diagrams via Pollinations) -->
+    <domain includeSubdomains="true">pollinations.ai</domain>
   </domain-config>
 
 </network-security-config>

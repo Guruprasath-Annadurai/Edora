@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
     iosScheme: 'https',
     hostname: 'app.edora',
     cleartext: false,
-    allowNavigation: ['app.edora', '*.supabase.co', 'accounts.google.com', 'appleid.apple.com'],
+    allowNavigation: ['app.edora', '*.supabase.co', 'accounts.google.com', 'appleid.apple.com', 'image.pollinations.ai'],
   },
   plugins: {
     SplashScreen: {
