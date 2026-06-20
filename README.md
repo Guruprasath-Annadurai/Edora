@@ -88,6 +88,28 @@ edora/
 
 ---
 
+## Hard Problems Solved
+
+### 1. SM-2 Spaced Repetition Algorithm
+Implemented the full SuperMemo-2 algorithm from scratch in [`src/lib/spacedRepetition.ts`](src/lib/spacedRepetition.ts). The challenge was mapping user responses (Again / Hard / Good / Easy) to ease-factor adjustments and computing the next review interval correctly — a naive implementation either shows cards too early (wasting time) or too late (forgetting sets in). SM-2 uses a per-card ease factor (default 2.5) that decays on failure and grows on success, with inter-repetition intervals growing exponentially: 1 day → 6 days → `previous × ease_factor`. Cards rated "Again" reset to interval 1 with a 20% ease penalty. Due dates are stored in Supabase and queried on app open so the review queue is always accurate across devices.
+
+### 2. Offline Sync Queue
+On mobile, users study on the train with no signal. The problem: how do you record XP, sprint sessions, and flashcard reviews when Supabase is unreachable, then sync without duplicates when connectivity returns?
+
+Solution in [`src/lib/syncQueue.ts`](src/lib/syncQueue.ts) + [`src/hooks/useOfflineSync.ts`](src/hooks/useOfflineSync.ts):
+- Every write goes to a local queue (persisted to Capacitor Preferences) before hitting Supabase
+- A `startConnectivityListener()` fires on the `online` event and flushes the queue in order
+- Each item has an idempotency key (`uuid` generated at write time) so retries are safe
+- A 6-hour WiFi-only prefetch (`runOfflinePrefetch`) pre-loads flashcard decks and curriculum data
+
+### 3. Dual-Write Storage Abstraction
+Android clears `localStorage` when users clear app data in Settings — killing streak data, theme preference, and push token state. The fix in [`src/lib/storage.ts`](src/lib/storage.ts): a drop-in `localStorage` replacement that synchronously reads from `localStorage` (fast, no async) but fire-and-forgets every write to Capacitor Preferences (the native key-value store that survives data clears). On boot, `initStorage()` restores Preferences → localStorage so the cache is warm. Zero changes needed at call sites — just swap the import.
+
+### 4. ELO Rating System for 1v1 Battle
+Standard Elo formula: `E = 1 / (1 + 10^((Rb - Ra) / 400))`, `K = 32`. The tricky part was handling simultaneous writes — two players finish a game at the same millisecond and both try to update each other's ELO, creating a race condition. Solution: ELO updates run inside a Supabase Edge Function ([`supabase/functions/boss-fight`](supabase/functions/boss-fight/index.ts)) that uses a Postgres transaction with `SELECT ... FOR UPDATE` row-locking on both player rows before computing and writing the delta. This guarantees consistency even under concurrent battles.
+
+---
+
 ## Key Engineering Decisions
 
 **Offline-first storage** — `storage.ts` wraps `localStorage` with a dual-write to Capacitor Preferences so data survives app-data-clear on Android.
@@ -95,8 +117,6 @@ edora/
 **Auth resilience** — `useAuth` implements exponential back-off retry (400ms → 800ms → 1600ms) for transient Supabase DB errors, with a global `unhandledrejection` → Sentry safety net.
 
 **Security** — `allowBackup="false"` in AndroidManifest, `noopener,noreferrer` on all external links, server-side-only API keys via Edge Functions, `SCHEDULE_EXACT_ALARM` graceful degradation on Android 12+.
-
-**SM-2 Spaced Repetition** — full SuperMemo-2 algorithm implemented in `src/lib/spacedRepetition.ts` with due-date scheduling and ease-factor tracking.
 
 **Trial system** — 30-day free Pro trial calculated from `user.created_at` in `src/lib/trial.ts`, zero database changes needed.
 
@@ -149,6 +169,17 @@ cd android && JAVA_HOME=/path/to/temurin-21 ./gradlew bundleRelease
 - [ ] NCERT content ingestion pipeline
 - [ ] Novo Live (real-time AI tutoring sessions)
 - [ ] Tournament mode (bracket-style battles)
+
+---
+
+## Early Users
+
+Edora is being used by real students in its closed beta:
+
+- **Veerarajeshwari A** — early access tester, feedback on flashcard UX and study sprint flow
+- **R Annadurai** — early access tester, feedback on AI chat responses and daily challenge engagement
+
+If you're a student preparing for JEE / NEET and want early access, sign up at [edora-app.vercel.app](https://edora-app.vercel.app).
 
 ---
 
