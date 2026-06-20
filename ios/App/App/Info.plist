@@ -59,5 +59,19 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+
+	<!-- ── Voice Study Mode — Talk to Novo ──────────────────────────── -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Edora needs microphone access to enable voice conversations with Novo AI tutor.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Edora uses speech recognition so you can speak your questions to Novo AI tutor.</string>
+
+	<!-- ── Camera & Photos — Note Scanner, Photo Solver ─────────────── -->
+	<key>NSCameraUsageDescription</key>
+	<string>Edora uses the camera to scan handwritten notes and solve problems from photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Edora needs photo library access so you can pick existing photos of notes and problems.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Edora saves generated study materials and scanned notes to your photo library.</string>
 </dict>
 </plist>

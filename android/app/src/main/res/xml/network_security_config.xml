@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Config for Edora
+  ─────────────────────────────────────────────────────────────
+  • Production: only trust the system CA store (HTTPS only)
+  • Debug builds: also allow localhost for Capacitor live-reload
+  • Cleartext traffic explicitly disabled for production domains
+  ─────────────────────────────────────────────────────────────
+-->
+<network-security-config>
+
+  <!-- System CAs only for all domains in release builds -->
+  <base-config cleartextTrafficPermitted="false">
+    <trust-anchors>
+      <certificates src="system" />
+    </trust-anchors>
+  </base-config>
+
+  <!-- Allow localhost cleartext for Capacitor dev server (debug only) -->
+  <debug-overrides>
+    <trust-anchors>
+      <certificates src="system" />
+      <certificates src="user" />
+    </trust-anchors>
+  </debug-overrides>
+
+  <domain-config cleartextTrafficPermitted="false">
+    <!-- Supabase -->
+    <domain includeSubdomains="true">supabase.co</domain>
+    <!-- Firebase / Google APIs -->
+    <domain includeSubdomains="true">googleapis.com</domain>
+    <domain includeSubdomains="true">firebaseapp.com</domain>
+    <domain includeSubdomains="true">web.app</domain>
+    <!-- Gemini AI -->
+    <domain includeSubdomains="true">generativelanguage.googleapis.com</domain>
+    <!-- Google Classroom -->
+    <domain includeSubdomains="true">classroom.googleapis.com</domain>
+    <domain includeSubdomains="true">accounts.google.com</domain>
+  </domain-config>
+
+</network-security-config>

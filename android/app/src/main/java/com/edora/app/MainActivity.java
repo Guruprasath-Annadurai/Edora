@@ -1,13 +1,8 @@
 package com.edora.app;
 
 import com.getcapacitor.BridgeActivity;
-import com.edora.app.plugins.SmartReplyPlugin;
-import android.os.Bundle;
 
 public class MainActivity extends BridgeActivity {
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        registerPlugin(SmartReplyPlugin.class);
-        super.onCreate(savedInstanceState);
-    }
+    // Capacitor 6+ auto-discovers plugins annotated with @CapacitorPlugin.
+    // No manual registerPlugin() calls needed.
 }

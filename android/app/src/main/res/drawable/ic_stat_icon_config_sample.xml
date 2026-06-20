@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Notification status-bar icon for Edora.
+  Must be: single-colour white (#FFFFFF), transparent background, 24×24dp.
+  Represents an open book — matches the app's Learn tab icon.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="@android:color/white">
+
+    <!-- Open book shape (matches BookIcon custom icon) -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,20 H5.2 C4.08,20 3.52,20 3.09,19.78 C2.72,19.59 2.41,19.28 2.22,18.91 C2,18.48 2,17.92 2,16.8 V7.2 C2,6.08 2,5.52 2.22,5.09 C2.41,4.72 2.72,4.41 3.09,4.22 C3.52,4 4.08,4 5.2,4 H5.6 C7.84,4 8.96,4 9.82,4.44 C10.57,4.82 11.18,5.43 11.56,6.18 C12,7.04 12,8.16 12,10.4 M12,20 V10.4 M12,20 H18.8 C19.92,20 20.48,20 20.91,19.78 C21.28,19.59 21.59,19.28 21.78,18.91 C22,18.48 22,17.92 22,16.8 V7.2 C22,6.08 22,5.52 21.78,5.09 C21.59,4.72 21.28,4.41 20.91,4.22 C20.48,4 19.92,4 18.8,4 H18.4 C16.16,4 15.04,4 14.18,4.44 C13.43,4.82 12.82,5.43 12.44,6.18 C12,7.04 12,8.16 12,10.4" />
+</vector>

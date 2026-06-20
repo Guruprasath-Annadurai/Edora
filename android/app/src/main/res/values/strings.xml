@@ -4,4 +4,7 @@
     <string name="title_activity_main">Edora</string>
     <string name="package_name">com.edora.app</string>
     <string name="custom_url_scheme">com.edora.app</string>
+    <string name="widget_description">Streak count and today\'s question, right on your home screen.</string>
+    <string name="widget_novo_description">Novo AI on your home screen — streak, XP, exam countdown and quick chat.</string>
+    <string name="widget_compact_description">Your Edora streak at a glance — tap to open Novo.</string>
 </resources>

@@ -6,13 +6,15 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCors } from '../_shared/cors.ts';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
-serve(async (req) => {
+import { withSentry } from '../_shared/sentry.ts';
+serve(withSentry('ocr', async (req) => {
+  const CORS = getCors(req);
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS });
@@ -119,4 +121,4 @@ serve(async (req) => {
       { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
     );
   }
-});
+}));
