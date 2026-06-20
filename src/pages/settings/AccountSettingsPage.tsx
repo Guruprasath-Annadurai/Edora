@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, ChevronLeft, Save, Trash2, AlertTriangle, ExternalLink, Sparkles, Languages } from 'lucide-react';
+import { User, ChevronLeft, Save, Trash2, AlertTriangle, ExternalLink, Sparkles, Languages, BarChart2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { Toast } from '@capacitor/toast';
 import { Browser } from '@capacitor/browser';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import posthog from 'posthog-js';
 
 const STUDY_LEVELS = [
   { value: 'school',   label: 'School (Class 6–12)' },
@@ -27,6 +28,19 @@ export default function AccountSettingsPage() {
   const [saving,    setSaving]    = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting,   setDeleting]   = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(
+    () => localStorage.getItem('edora_analytics_opt_out') !== 'true'
+  );
+
+  useEffect(() => {
+    if (analyticsEnabled) {
+      posthog.opt_in_capturing();
+      localStorage.removeItem('edora_analytics_opt_out');
+    } else {
+      posthog.opt_out_capturing();
+      localStorage.setItem('edora_analytics_opt_out', 'true');
+    }
+  }, [analyticsEnabled]);
 
   async function save() {
     if (!profile) return;
@@ -186,6 +200,25 @@ export default function AccountSettingsPage() {
             <span className="text-sm font-medium text-white/80">Privacy Policy</span>
             <ExternalLink size={15} className="text-muted-foreground" />
           </button>
+          <div
+            className="w-full flex items-center justify-between px-4 py-3"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="flex items-center gap-2">
+              <BarChart2 size={15} className="text-muted-foreground" />
+              <span className="text-sm font-medium text-white/80">Analytics & Crash Reporting</span>
+            </div>
+            <button
+              onClick={() => setAnalyticsEnabled(v => !v)}
+              className="relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none"
+              style={{ background: analyticsEnabled ? '#5B6AF5' : 'rgba(255,255,255,0.15)' }}
+              aria-label={analyticsEnabled ? 'Disable analytics' : 'Enable analytics'}
+            >
+              <span
+                className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200"
+                style={{ transform: analyticsEnabled ? 'translateX(20px)' : 'translateX(0)' }}
+              />
+            </button>
+          </div>
           <button
             onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
             className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"

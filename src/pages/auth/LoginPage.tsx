@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, User, ArrowRight, X, ShieldCheck } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { CharacterImage } from '@/components/ui/CharacterImage';
 import { Events } from '@/lib/analytics';
@@ -38,6 +39,7 @@ function AppleIcon() {
 
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [mode, setMode]             = useState<'login' | 'signup'>('login');
   const [email, setEmail]           = useState('');
   const [password, setPassword]     = useState('');
@@ -325,9 +327,17 @@ export default function LoginPage() {
                 </div>
                 <span className="text-xs leading-relaxed" style={{ color: GRAY }}>
                   I agree to Edora's{' '}
-                  <span className="font-semibold" style={{ color: '#5B6AF5' }}>Privacy Policy</span>
+                  <span
+                    className="font-semibold underline"
+                    style={{ color: '#5B6AF5' }}
+                    onClick={e => { e.stopPropagation(); navigate('/privacy-policy'); }}
+                  >Privacy Policy</span>
                   {' '}and{' '}
-                  <span className="font-semibold" style={{ color: '#5B6AF5' }}>Terms of Service</span>.
+                  <span
+                    className="font-semibold underline"
+                    style={{ color: '#5B6AF5' }}
+                    onClick={e => { e.stopPropagation(); navigate('/terms-of-service'); }}
+                  >Terms of Service</span>.
                   {' '}My data is protected under India's DPDP Act 2023.{' '}
                   <ShieldCheck size={12} className="inline mb-0.5" style={{ color: '#10B981' }} />
                 </span>
