@@ -99,22 +99,20 @@ export default function ProSubscriptionPage() {
   }
 
   // ── Purchase handler ─────────────────────────────────────────────────────
+  // Android native: Google Play Billing not yet configured.
+  // Subscription must be completed on the web — the button is hidden on Android
+  // and this handler is only reachable from web / iOS.
   async function handleSubscribe() {
     if (!user) return;
+    if (platform === 'android') return; // guard — CTA is hidden on Android
     setErrorMsg('');
     setLoading(true);
 
     try {
-      // Open web checkout in an in-app browser — works on all platforms,
-      // no third-party payment processor inside the native app.
       const { data: { session } } = await supabase.auth.getSession();
       const plan = selectedPlan === 'annual' ? 'annual' : 'monthly';
-      let url = `https://edora-bb02e.web.app/pro?plan=${plan}`;
-      if (session?.access_token) {
-        url += `#token=${encodeURIComponent(session.access_token)}`;
-      }
+      const url = `https://edora-app.vercel.app/pro?plan=${plan}&uid=${user.id ?? ''}`;
       await Browser.open({ url, presentationStyle: 'popover' });
-      // After they close the browser, refresh profile in case they subscribed
       setShowReturnHint(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Could not open checkout. Please try again.';
@@ -450,7 +448,7 @@ export default function ProSubscriptionPage() {
         <div className="rounded-2xl p-4 flex flex-col gap-2.5"
           style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.06)' }}>
           {[
-            { Icon: Shield,        text: platform === 'android' ? 'Payment secured by Google Play' : platform === 'ios' ? 'Payment secured by Apple App Store' : 'Secure checkout' },
+            { Icon: Shield,        text: platform === 'android' ? 'Your data is encrypted and secure' : platform === 'ios' ? 'Payment secured by Apple App Store' : 'Secure checkout' },
             { Icon: CalendarDays,  text: 'Cancel anytime from your store account — no lock-in' },
             { Icon: GraduationCap, text: 'Built for Indian students, priced fairly' },
           ].map(({ Icon, text }, i) => (
@@ -461,8 +459,8 @@ export default function ProSubscriptionPage() {
           ))}
         </div>
 
-        {/* Restore purchases */}
-        {platform !== 'web' && (
+        {/* Restore purchases — only on iOS (Android uses Play billing which isn't active yet) */}
+        {platform === 'ios' && (
           <button
             onClick={handleRestore}
             disabled={restoring}
@@ -483,7 +481,7 @@ export default function ProSubscriptionPage() {
         )}
       </div>
 
-      {/* Sticky CTA — with full pricing disclosure (Play Billing policy) */}
+      {/* Sticky CTA */}
       <div className="shrink-0 px-4 pt-3"
         style={{
           background: 'rgba(10,10,15,0.97)',
@@ -491,46 +489,72 @@ export default function ProSubscriptionPage() {
           borderTop: '1px solid rgba(124,58,237,0.15)',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 14px)',
         }}>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={handleSubscribe}
-          disabled={loading}
-          className="w-full h-13 rounded-2xl font-heading font-bold text-base text-white flex items-center justify-center gap-2.5 disabled:opacity-60"
-          style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)', height: 52, boxShadow: '0 0 32px rgba(124,58,237,0.45)' }}>
-          {loading
-            ? <><RefreshCw size={16} className="animate-spin" /> Processing…</>
-            : <><Crown size={16} /> Upgrade to Pro — {currentPlan.price}</>}
-        </motion.button>
 
-        {/* Legally required billing disclosure */}
-        <p className="text-center text-xs mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.28)' }}>
-          {currentPlan.legalLine}{' '}
-          {platform !== 'web' ? 'Cancel anytime in your store account settings.' : 'Cancel anytime.'}{' '}
-          By subscribing you agree to our{' '}
-          <button
-            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
-            className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
-            Terms
-          </button>{' '}and{' '}
-          <button
-            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
-            className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
-            Privacy Policy
-          </button>.
-        </p>
-
-        {/* Return hint — shown after browser closes */}
-        <AnimatePresence>
-          {showReturnHint && (
+        {platform === 'android' ? (
+          /* ── Android: Google Play Billing not yet configured.
+             Direct purchase inside the app is not permitted by Google Play policy.
+             Users must subscribe on the web. ── */
+          <div className="rounded-2xl p-4 text-center"
+            style={{ background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.22)' }}>
+            <Crown size={22} style={{ color: '#A855F7' }} className="mx-auto mb-2" />
+            <p className="font-heading font-bold text-white text-sm mb-1">Subscribe on the Web</p>
+            <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.48)' }}>
+              Open your browser and visit the link below to upgrade. Your Pro access will sync to this app automatically.
+            </p>
+            <button
+              onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/pro', presentationStyle: 'popover' })}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold"
+              style={{ background: 'linear-gradient(135deg,#7C3AED,#A855F7)', color: '#fff' }}>
+              <Crown size={12} /> edora-app.vercel.app/pro
+            </button>
+            <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              Plans start at ₹99/month · Cancel anytime
+            </p>
+          </div>
+        ) : (
+          /* ── Web / iOS: full purchase CTA ── */
+          <>
             <motion.button
-              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              onClick={async () => { setShowReturnHint(false); await refreshStatus(); }}
-              className="w-full mt-2 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
-              style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', color: '#A855F7' }}>
-              <RefreshCw size={14} /> Already subscribed? Tap to activate
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSubscribe}
+              disabled={loading}
+              className="w-full rounded-2xl font-heading font-bold text-base text-white flex items-center justify-center gap-2.5 disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)', height: 52, boxShadow: '0 0 32px rgba(124,58,237,0.45)' }}>
+              {loading
+                ? <><RefreshCw size={16} className="animate-spin" /> Processing…</>
+                : <><Crown size={16} /> Upgrade to Pro — {currentPlan.price}</>}
             </motion.button>
-          )}
-        </AnimatePresence>
+
+            {/* Legally required billing disclosure */}
+            <p className="text-center text-xs mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.28)' }}>
+              {currentPlan.legalLine}{' '}
+              {platform === 'ios' ? 'Cancel anytime in iPhone Settings → Subscriptions.' : 'Cancel anytime.'}{' '}
+              By subscribing you agree to our{' '}
+              <button
+                onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
+                className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
+                Terms
+              </button>{' '}and{' '}
+              <button
+                onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
+                className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
+                Privacy Policy
+              </button>.
+            </p>
+
+            <AnimatePresence>
+              {showReturnHint && (
+                <motion.button
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  onClick={async () => { setShowReturnHint(false); await refreshStatus(); }}
+                  className="w-full mt-2 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
+                  style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', color: '#A855F7' }}>
+                  <RefreshCw size={14} /> Already subscribed? Tap to activate
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </>
+        )}
       </div>
     </div>
   );
