@@ -180,10 +180,17 @@ export default function AccountSettingsPage() {
             </p>
           </div>
           <button
-            onClick={() => Browser.open({ url: 'https://edora-bb02e.web.app/privacy-policy', presentationStyle: 'popover' })}
+            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
             className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"
             style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
             <span className="text-sm font-medium text-white/80">Privacy Policy</span>
+            <ExternalLink size={15} className="text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
+            className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            <span className="text-sm font-medium text-white/80">Terms of Service</span>
             <ExternalLink size={15} className="text-muted-foreground" />
           </button>
         </motion.div>

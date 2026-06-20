@@ -23,6 +23,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import LoginPage              from '@/pages/auth/LoginPage';
 import OnboardingPage         from '@/pages/OnboardingPage';
 import PrivacyPolicyPage      from '@/pages/PrivacyPolicyPage';
+import TermsOfServicePage     from '@/pages/TermsOfServicePage';
 import HomePage               from '@/pages/HomePage';
 import SprintPage             from '@/pages/SprintPage';
 import LearningPage           from '@/pages/LearningPage';
@@ -300,7 +301,8 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
       <Routes>
         <Route path="/login"          element={user ? <Navigate to={profile ? '/home' : '/onboarding'} replace /> : <LoginPage />} />
         <Route path="/onboarding"     element={!user ? <Navigate to="/login" replace /> : <OnboardingPage />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/privacy-policy"   element={<PrivacyPolicyPage />} />
+        <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
         {/* All protected routes share the AppShell (tab bar) */}
         <Route element={<AuthGuard><AppShell /></AuthGuard>}>

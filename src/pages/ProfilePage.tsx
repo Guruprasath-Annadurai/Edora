@@ -626,7 +626,7 @@ export default function ProfilePage() {
             style={{ background: 'rgba(15,20,45,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}
           >
             <button
-              onClick={() => Browser.open({ url: 'https://edora-bb02e.web.app/privacy-policy', presentationStyle: 'popover' })}
+              onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
               className="flex items-center gap-3.5 px-4 w-full text-left active:scale-98 transition-all"
               style={{ minHeight: 56 }}
             >
@@ -638,7 +638,7 @@ export default function ProfilePage() {
             </button>
             <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '0 16px' }} />
             <button
-              onClick={() => Browser.open({ url: 'https://edora-bb02e.web.app/terms', presentationStyle: 'popover' })}
+              onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
               className="flex items-center gap-3.5 px-4 w-full text-left active:scale-98 transition-all"
               style={{ minHeight: 56 }}
             >

@@ -109,9 +109,6 @@
     <!-- SCHEDULE_EXACT_ALARM: user must grant in Settings for study reminders -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
-    <!-- ── Google Play Billing (required for subscriptions) ─────────────── -->
-    <uses-permission android:name="com.android.vending.BILLING" />
-
     <!-- ── Voice Study Mode (microphone for speech-to-text) ─────────────── -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 

@@ -508,12 +508,12 @@ export default function ProSubscriptionPage() {
           {platform !== 'web' ? 'Cancel anytime in your store account settings.' : 'Cancel anytime.'}{' '}
           By subscribing you agree to our{' '}
           <button
-            onClick={() => Browser.open({ url: 'https://edora-bb02e.web.app/terms', presentationStyle: 'popover' })}
+            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
             className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
             Terms
           </button>{' '}and{' '}
           <button
-            onClick={() => Browser.open({ url: 'https://edora-bb02e.web.app/privacy-policy', presentationStyle: 'popover' })}
+            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
             className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
             Privacy Policy
           </button>.
