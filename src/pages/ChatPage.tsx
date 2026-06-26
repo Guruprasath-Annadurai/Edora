@@ -913,7 +913,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
 
     // Increment follow_up_count on the previous AI response (follow-up signal for flywheel)
     if (lastInteractionId.current && user) {
-      supabase.rpc('increment_follow_up', { p_interaction_id: lastInteractionId.current }).catch(() => {});
+      void supabase.rpc('increment_follow_up', { p_interaction_id: lastInteractionId.current }).then(undefined, () => {});
     }
 
     if (quizCheck.detected) {

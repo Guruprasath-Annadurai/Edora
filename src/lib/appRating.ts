@@ -66,8 +66,9 @@ async function triggerNativeReview(): Promise<boolean> {
     // Attempt to call native review via Capacitor's registerPlugin bridge.
     // This requires the @capacitor-community/app-rate or equivalent native plugin
     // to be installed. If not available, falls through to store link.
-    const { Plugins } = await import('@capacitor/core');
-    const AppReview = (Plugins as Record<string, unknown>)['AppReview'] as
+    const cap = await import('@capacitor/core');
+    const Plugins = (cap as unknown as { Plugins?: Record<string, unknown> }).Plugins ?? {};
+    const AppReview = Plugins['AppReview'] as
       { requestReview?: () => Promise<void> } | undefined;
 
     if (AppReview?.requestReview) {

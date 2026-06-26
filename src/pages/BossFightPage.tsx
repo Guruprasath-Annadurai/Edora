@@ -200,7 +200,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
   "explanation": "One concise sentence explaining why the answer is correct.",
   "taunt": "A short dramatic taunt from a villain boss (1 sentence, 10 words max)."
 }]`;
-      const qs = await geminiJSON<BossQuestion[]>(prompt, { temperature: 0.7 });
+      const qs = await geminiJSON<BossQuestion[]>(prompt);
       if (Array.isArray(qs) && qs.length >= 5) return qs.slice(0, 10);
     } catch { /* fall through to null */ }
 

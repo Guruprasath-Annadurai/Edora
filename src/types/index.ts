@@ -31,6 +31,11 @@ export interface Profile {
   // Network Effects — friends, study buddy
   username?: string | null;
   last_active?: string | null;
+  // DPDP Act 2023 consent tracking
+  dpdp_consent_at?: string | null;
+  dpdp_consent_version?: string | null;
+  // Referral program
+  referral_code?: string | null;
 }
 
 export interface Achievement {
