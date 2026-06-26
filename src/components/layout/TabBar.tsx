@@ -10,8 +10,8 @@ const LEFT_TABS: { to: string; icon: LucideIcon; label: string }[] = [
 ];
 
 const RIGHT_TABS: { to: string; icon: LucideIcon; label: string }[] = [
-  { to: '/battle',   icon: Swords,   label: 'Battle'  },
-  { to: '/profile',  icon: User,     label: 'Profile' },
+  { to: '/battle',  icon: Swords, label: 'Battle'  },
+  { to: '/profile', icon: User,   label: 'Profile' },
 ];
 
 async function hapticLight() {
@@ -23,48 +23,65 @@ function TabButton({ to, icon: Icon, label }: { to: string; icon: LucideIcon; la
     <NavLink
       to={to}
       onClick={hapticLight}
-      className="flex-1 flex flex-col items-center justify-center gap-0.5 pt-2 pb-1 relative min-w-0"
+      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 relative min-w-0"
       style={{ minHeight: 44, minWidth: 44 }}
       aria-label={label}
     >
       {({ isActive }) => (
         <>
+          {/* Liquid glass active bubble */}
           <motion.div
-            style={{ position: 'absolute', top: 0, left: '50%', x: '-50%', height: 2, borderRadius: 2 }}
-            animate={isActive
-              ? { width: 24, opacity: 1, background: 'linear-gradient(90deg,#7C3AED,#A855F7)' }
-              : { width: 0,  opacity: 0 }
-            }
-            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+            style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -58%)',
+              width: 46, height: 36,
+              borderRadius: 14,
+              pointerEvents: 'none',
+            }}
+            animate={isActive ? {
+              opacity: 1,
+              background: 'rgba(124,58,237,0.18)',
+              border: '1px solid rgba(124,58,237,0.26)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14), 0 2px 10px rgba(124,58,237,0.28)',
+            } : {
+              opacity: 0,
+              background: 'transparent',
+              border: '1px solid transparent',
+              boxShadow: 'none',
+            }}
+            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
           />
 
           <motion.div
-            className="flex items-center justify-center rounded-2xl"
-            style={{ width: 40, height: 36 }}
-            animate={isActive
-              ? { scale: 1.08, background: 'rgba(124,58,237,0.18)', boxShadow: '0 0 12px rgba(124,58,237,0.3)' }
-              : { scale: 1,    background: 'transparent',           boxShadow: 'none' }
-            }
-            transition={{ duration: 0.2 }}
+            className="flex items-center justify-center"
+            style={{ width: 46, height: 36, borderRadius: 14, position: 'relative', zIndex: 1 }}
+            animate={isActive ? { scale: 1.06 } : { scale: 1 }}
+            transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
           >
             <Icon
               size={20}
               strokeWidth={isActive ? 2.5 : 1.75}
-              style={isActive
-                ? { color: '#A855F7', filter: 'drop-shadow(0 0 6px rgba(124,58,237,0.7))' }
-                : { color: 'rgba(255,255,255,0.35)' }
-              }
+              style={isActive ? {
+                color: '#A78BFA',
+                filter: 'drop-shadow(0 0 6px rgba(167,139,250,0.65))',
+              } : {
+                color: 'rgba(255,255,255,0.32)',
+              }}
             />
           </motion.div>
 
-          <span
-            style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
-              color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
-            }}
+          <motion.span
+            className="tab-label"
+            animate={isActive
+              ? { color: 'rgba(255,255,255,0.88)', opacity: 1 }
+              : { color: 'rgba(255,255,255,0.28)', opacity: 1 }
+            }
+            transition={{ duration: 0.2 }}
+            style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1 }}
           >
             {label}
-          </span>
+          </motion.span>
         </>
       )}
     </NavLink>
@@ -83,46 +100,82 @@ function NovoCenterButton() {
       style={{ minHeight: 44 }}
       aria-label="Novo AI"
     >
-      {/* Ambient glow */}
+      {/* Layered ambient glow — depth effect */}
       <motion.div
         style={{
-          position: 'absolute', width: 60, height: 60, borderRadius: '50%',
-          top: '50%', left: '50%', transform: 'translate(-50%, -55%)',
+          position: 'absolute',
+          width: 80, height: 80,
+          borderRadius: '50%',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -60%)',
           pointerEvents: 'none',
-          background: 'radial-gradient(circle, rgba(124,58,237,0.35), transparent 70%)',
+          background: 'radial-gradient(circle, rgba(139,92,246,0.28) 0%, transparent 68%)',
         }}
-        animate={{ scale: [1, 1.12, 1], opacity: [0.6, 1, 0.6] }}
-        transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+        animate={{ scale: [1, 1.14, 1], opacity: [0.5, 0.9, 0.5] }}
+        transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+      />
+      <motion.div
+        style={{
+          position: 'absolute',
+          width: 48, height: 48,
+          borderRadius: '50%',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -60%)',
+          pointerEvents: 'none',
+          background: 'radial-gradient(circle, rgba(91,106,245,0.22) 0%, transparent 72%)',
+          filter: 'blur(6px)',
+        }}
+        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.8, 0.4] }}
+        transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut', delay: 0.4 }}
       />
 
+      {/* Novo orb button — liquid glass with specular */}
       <motion.div
+        className="novo-orb"
         style={{
-          width: 52, height: 52, borderRadius: '50%', marginTop: -16,
-          background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 54, height: 54,
+          borderRadius: '50%',
+          marginTop: -18,
           position: 'relative',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'linear-gradient(145deg, #6B7BF7 0%, #7C3AED 55%, #9333EA 100%)',
         }}
-        animate={isActive
-          ? { scale: 1.1, boxShadow: '0 0 0 3px rgba(124,58,237,0.3), 0 8px 28px rgba(124,58,237,0.7)' }
-          : { scale: 1,   boxShadow: '0 4px 20px rgba(124,58,237,0.55), 0 0 0 1.5px rgba(168,85,247,0.3)' }
-        }
-        whileTap={{ scale: 0.92 }}
-        transition={{ duration: 0.2 }}
+        animate={isActive ? {
+          scale: 1.1,
+          boxShadow: '0 0 0 3px rgba(124,58,237,0.28), 0 8px 32px rgba(124,58,237,0.75), 0 0 60px rgba(139,92,246,0.35)',
+        } : {
+          scale: 1,
+          boxShadow: '0 0 0 1.5px rgba(168,85,247,0.28), 0 4px 22px rgba(124,58,237,0.60), 0 0 40px rgba(139,92,246,0.20)',
+        }}
+        whileTap={{ scale: 0.90 }}
+        transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
       >
+        {/* Specular highlight — Vision Pro inner shine */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: '50%',
-          background: 'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.22), transparent 60%)',
+          background: 'radial-gradient(ellipse 70% 45% at 38% 28%, rgba(255,255,255,0.28), transparent 65%)',
+          pointerEvents: 'none',
+        }} />
+        {/* Bottom depth shadow layer */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          background: 'radial-gradient(ellipse 80% 50% at 50% 90%, rgba(0,0,0,0.30), transparent 70%)',
+          pointerEvents: 'none',
         }} />
         <TeachingIcon size={22} className="text-white relative z-10" />
       </motion.div>
 
-      <span style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', marginTop: 2,
-        color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
-        ...(isActive ? { textShadow: '0 0 8px rgba(168,85,247,0.6)' } : {}),
-      }}>
+      <motion.span
+        className="tab-label"
+        animate={isActive
+          ? { color: 'rgba(255,255,255,0.92)', textShadow: '0 0 10px rgba(168,85,247,0.55)' }
+          : { color: 'rgba(255,255,255,0.28)', textShadow: 'none' }
+        }
+        transition={{ duration: 0.2 }}
+        style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', marginTop: 4 }}
+      >
         Novo
-      </span>
+      </motion.span>
     </NavLink>
   );
 }
@@ -131,25 +184,31 @@ export function TabBar() {
   return (
     <div
       className="absolute bottom-0 left-0 right-0 pointer-events-none"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 10, paddingRight: 10, zIndex: 50 }}
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 12, paddingRight: 12,
+        zIndex: 50,
+      }}
     >
       <nav
-        className="pointer-events-auto flex items-stretch"
+        className="liquid-glass-nav pointer-events-auto flex items-stretch"
         role="navigation"
         aria-label="Main navigation"
         style={{
           height: 'var(--nav-pill-height)',
-          borderRadius: 26,
+          borderRadius: 28,
           marginBottom: 'var(--nav-bottom-offset)',
-          background: 'rgba(10,10,15,0.93)',
-          backdropFilter: 'blur(28px)',
-          WebkitBackdropFilter: 'blur(28px)',
-          border: '1px solid rgba(124,58,237,0.12)',
-          boxShadow: '0 -4px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05)',
           overflow: 'visible',
         }}
       >
-        {LEFT_TABS.map(tab => <TabButton key={tab.to} {...tab} />)}
+        {/* Inner prismatic top edge */}
+        <div style={{
+          position: 'absolute', top: 0, left: '8%', right: '8%',
+          height: 1, borderRadius: '50%', pointerEvents: 'none', zIndex: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.22), rgba(167,139,250,0.3), rgba(255,255,255,0.22), transparent)',
+        }} />
+
+        {LEFT_TABS.map(tab  => <TabButton key={tab.to} {...tab} />)}
         <NovoCenterButton />
         {RIGHT_TABS.map(tab => <TabButton key={tab.to} {...tab} />)}
       </nav>

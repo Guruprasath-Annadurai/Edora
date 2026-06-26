@@ -223,7 +223,7 @@ function ConfirmModal({ onConfirm, onCancel }: ConfirmModalProps) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         className="rounded-3xl p-6 w-full max-w-sm"
-        style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}
+        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)' }}
         onClick={e => e.stopPropagation()}>
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
@@ -544,10 +544,10 @@ export default function DebateModePage() {
 
   if (screen === 'selector') {
     return (
-      <div className="flex flex-col h-screen bg-gradient-page">
+      <div className="page-immersive bg-gradient-page">
         <div
           className="shrink-0"
-          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
@@ -668,7 +668,7 @@ export default function DebateModePage() {
               className="fixed inset-0 z-50 flex items-center justify-center"
               style={{ background: 'rgba(0,0,0,0.4)' }}>
               <div className="rounded-3xl p-8 flex flex-col items-center gap-4 mx-6"
-                style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <Loader2 size={32} className="text-primary animate-spin" />
                 <p className="font-heading text-base font-bold text-white">Preparing your debate…</p>
                 <p className="text-xs text-muted-foreground text-center">Novo is formulating its position</p>
@@ -686,10 +686,10 @@ export default function DebateModePage() {
 
   if (screen === 'debate' && session) {
     return (
-      <div className="flex flex-col h-screen bg-gradient-page">
+      <div className="page-immersive bg-gradient-page">
         <div
           className="shrink-0"
-          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
@@ -739,7 +739,7 @@ export default function DebateModePage() {
 
         {turnCount > 0 && (
           <div className="px-4 py-1.5 flex items-center gap-1.5 shrink-0"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(10,12,28,0.6)' }}>
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(8,6,20,0.88)' }}>
             <Clock size={11} className="text-muted-foreground" />
             <span className="text-[11px] text-muted-foreground">{turnCount} exchange{turnCount !== 1 ? 's' : ''}</span>
           </div>
@@ -793,7 +793,7 @@ export default function DebateModePage() {
 
         <div
           className="shrink-0 px-4 pt-3"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', background: 'rgba(10,12,28,0.92)', borderTop: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', background: 'rgba(8,6,20,0.82)', borderTop: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="flex items-end gap-2">
             <div className="flex-1 rounded-2xl px-4 py-3 flex items-end"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -838,10 +838,10 @@ export default function DebateModePage() {
   if (screen === 'results' && result) {
     const bd = result.breakdown;
     return (
-      <div className="flex flex-col h-screen bg-gradient-page">
+      <div className="page-immersive bg-gradient-page">
         <div
           className="shrink-0"
-          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="px-4 py-3 flex items-center gap-3">
             <button
               onClick={resetToSelector}

@@ -93,7 +93,7 @@ export function ChatSkeleton() {
 export function SkeletonProfileHero() {
   return (
     <div className="rounded-3xl overflow-hidden"
-      style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
       <div style={{ height: 2, background: 'rgba(255,255,255,0.05)' }} />
       <div className="p-5">
         <div className="flex items-start justify-between mb-4">
@@ -127,7 +127,7 @@ export function SkeletonProfileHero() {
 export function SkeletonLeaderboardRows({ count = 5 }: { count?: number }) {
   return (
     <div className="rounded-3xl overflow-hidden"
-      style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 px-4 py-3"
           style={{ borderBottom: i < count - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
@@ -190,12 +190,71 @@ export function SkeletonTopWeakness() {
   );
 }
 
+export function ListPageSkeleton({ count = 5, header = true }: { count?: number; header?: boolean }) {
+  return (
+    <div className="flex flex-col gap-3 px-4 py-4">
+      {header && (
+        <div className="flex items-center gap-3 mb-2">
+          <Skeleton className="w-9 h-9" rounded="full" />
+          <Skeleton className="w-40 h-5" rounded="xl" />
+          <div className="flex-1" />
+          <Skeleton className="w-20 h-7" rounded="full" />
+        </div>
+      )}
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 p-4 rounded-2xl"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <Skeleton className="w-10 h-10 shrink-0" rounded="2xl" />
+          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+            <Skeleton className="w-3/4 h-4" rounded="xl" />
+            <Skeleton className="w-1/2 h-3" rounded="xl" />
+          </div>
+          <Skeleton className="w-14 h-6 shrink-0" rounded="full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function StatsPageSkeleton() {
+  return (
+    <div className="flex flex-col gap-4 px-4 py-4">
+      <div className="flex items-center gap-3 mb-1">
+        <Skeleton className="w-9 h-9" rounded="full" />
+        <Skeleton className="w-44 h-5" rounded="xl" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="rounded-3xl p-4 flex flex-col gap-2"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <Skeleton className="w-8 h-8" rounded="xl" />
+            <Skeleton className="w-16 h-6" rounded="xl" />
+            <Skeleton className="w-24 h-3" rounded="xl" />
+          </div>
+        ))}
+      </div>
+      <div className="rounded-3xl p-4 flex flex-col gap-3"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <Skeleton className="w-32 h-4" rounded="xl" />
+        {[1,2,3].map(i => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="w-20 h-3" rounded="xl" />
+            <div className="flex-1"><Skeleton className="w-full h-2" rounded="full" /></div>
+            <Skeleton className="w-10 h-3" rounded="xl" />
+          </div>
+        ))}
+      </div>
+      {[1,2].map(i => <Skeleton key={i} className="w-full h-24" rounded="3xl" />)}
+    </div>
+  );
+}
+
 export function SkeletonNcertCards({ count = 3 }: { count?: number }) {
   return (
     <div className="flex flex-col gap-3">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="rounded-2xl overflow-hidden"
-          style={{ background: 'rgba(15,20,45,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <Skeleton className="w-36 h-3 rounded-md" />

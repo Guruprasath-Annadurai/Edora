@@ -147,7 +147,7 @@ export default function LiveEventPage() {
   const myRank = leaders.findIndex(l => l.user_id === user?.id) + 1;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #05060F 0%, #0B0E1F 100%)' }}>
+    <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <button aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
           <ChevronLeft className="w-5 h-5 text-white" />
@@ -155,7 +155,7 @@ export default function LiveEventPage() {
         <h1 className="font-heading text-lg font-bold text-white flex-1">Live Events</h1>
       </div>
 
-      <div className="flex-1 px-5 pb-24">
+      <div className="flex-1 px-5 pb-nav overflow-y-auto">
         {loading ? (
           <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
         ) : !event ? (
@@ -166,7 +166,7 @@ export default function LiveEventPage() {
         ) : phase === 'waiting' ? (
           <div className="pt-6">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl p-6 text-center mb-6" style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              className="rounded-3xl p-6 text-center mb-6" style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <div className="text-4xl mb-3">🎪</div>
               <h2 className="font-heading text-xl font-bold text-white mb-1">{event.title}</h2>
               {event.description && <p className="text-sm text-white/50 mb-4">{event.description}</p>}
@@ -200,7 +200,7 @@ export default function LiveEventPage() {
                 <p className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-3">Live Leaderboard</p>
                 <div className="flex flex-col gap-2">
                   {leaders.slice(0, 10).map((l, i) => (
-                    <div key={l.user_id} className="flex items-center gap-3 p-2.5 rounded-2xl" style={{ background: 'rgba(15,20,45,0.6)' }}>
+                    <div key={l.user_id} className="flex items-center gap-3 p-2.5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.045)' }}>
                       <span className="w-6 text-center text-sm font-bold" style={{ color: i < 3 ? '#FBBF24' : 'rgba(255,255,255,0.4)' }}>{i + 1}</span>
                       <Avatar url={l.avatar_url} name={l.full_name ?? ''} />
                       <span className="flex-1 text-sm text-white truncate">{l.full_name}{l.user_id === user?.id ? ' (you)' : ''}</span>

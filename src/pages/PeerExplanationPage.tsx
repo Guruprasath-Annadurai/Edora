@@ -243,8 +243,8 @@ Rules:
   if (phase === 'select') {
     const sc = SUBJECT_COLORS[selectedSubject];
     return (
-      <div className="min-h-screen bg-[#0A0A0F] text-white">
-        <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <div className="h-full text-white">
+        <div className="sticky top-0 z-20/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
           <Link to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </Link>
@@ -358,8 +358,8 @@ Rules:
   // ── Teach phase ───────────────────────────────────────────────────────────────
   if (phase === 'teach') {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] text-white flex flex-col">
-        <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <div className="h-full text-white flex flex-col">
+        <div className="sticky top-0 z-20/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
           <button onClick={() => setPhase('select')} className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </button>
@@ -412,7 +412,7 @@ Rules:
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-[#0A0A0F]/95 backdrop-blur border-t border-white/5 px-4 py-3">
+        <div className="sticky bottom-0/95 backdrop-blur border-t border-white/5 px-4 py-3">
           <button
             onClick={evaluate}
             disabled={!canSubmit}
@@ -432,8 +432,8 @@ Rules:
   // ── Result phase ──────────────────────────────────────────────────────────────
   if (!evalResult) return null;
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white">
-      <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+    <div className="h-full text-white">
+      <div className="sticky top-0 z-20/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
         <button onClick={reset} className="p-2 rounded-xl hover:bg-white/5">
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </button>

@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { SmartReplyChips } from '@/components/chat/SmartReplyChips';
 import { NovoMemoryPanel } from '@/components/chat/NovoMemoryPanel';
 import { ConceptPills } from '@/components/chat/ConceptPills';
+import { AIFeedback, logAIInteraction } from '@/components/ui/AIFeedback';
 import { FlashcardSaveSheet } from '@/components/chat/FlashcardSaveSheet';
 import { InlineQuizEmbed, type QuizQuestion } from '@/components/chat/InlineQuizEmbed';
 import { getSmartReplies, SmartReplyMessage } from '@/plugins/SmartReplyPlugin';
@@ -29,6 +30,8 @@ import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import type { NovoPersonality, NovoMemory, NovoMemoryContext, NovoProactiveMessage } from '@/types';
 import { EmotionalCheckIn, getTodayMood, getMoodSystemAddendum, type CheckInMood } from '@/components/chat/EmotionalCheckIn';
 import { NovoMarkdown } from '@/components/ui/NovoMarkdown';
+import { NovoEmptyState } from '@/components/novo/NovoEmptyState';
+import { useStudyContext, buildStudyContextBlock, getPersonalisedChips } from '@/hooks/useStudyContext';
 
 // ── Personality configuration ─────────────────────────────────────────────────
 
@@ -163,6 +166,7 @@ interface Message {
   concepts?:       string[];
   quizData?:       { questions: QuizQuestion[]; topic: string };
   ncertSources?:   NcertSource[]; // NCERT chapters the answer was grounded in
+  interactionId?:  string;        // ai_interactions row ID — used for AIFeedback
   timestamp:      Date;
 }
 
@@ -243,12 +247,14 @@ function buildSystemPrompt(
   memCtx: NovoMemoryContext | null,
   mood: MoodState,
   checkInMood: CheckInMood | null,
+  studyCtxBlock?: string,
 ): string {
   const base = PERSONALITIES[personality].systemPrompt;
-  const memBlock = memCtx?.system_prompt_block?.trim() ? `\n\n${memCtx.system_prompt_block}` : '';
-  const moodBlock = getMoodInstruction(mood);
+  const memBlock   = memCtx?.system_prompt_block?.trim() ? `\n\n${memCtx.system_prompt_block}` : '';
+  const studyBlock = studyCtxBlock?.trim() ? `\n\n${studyCtxBlock}` : '';
+  const moodBlock  = getMoodInstruction(mood);
   const checkInBlock = checkInMood ? getMoodSystemAddendum(checkInMood) : '';
-  return `${base}${memBlock}${moodBlock}${checkInBlock}${CONCEPTS_SUFFIX}`;
+  return `${base}${memBlock}${studyBlock}${moodBlock}${checkInBlock}${CONCEPTS_SUFFIX}`;
 }
 
 // ── Proactive message banner ──────────────────────────────────────────────────
@@ -317,7 +323,7 @@ function PersonalityCards({ current, onSelect }: {
               style={{
                 paddingTop: 18,
                 paddingBottom: 14,
-                background: active ? 'rgba(91,106,245,0.15)' : 'rgba(15,20,45,0.6)',
+                background: active ? 'rgba(91,106,245,0.15)' : 'rgba(255,255,255,0.045)',
                 border: active ? '1.5px solid rgba(91,106,245,0.45)' : '1px solid rgba(255,255,255,0.06)',
                 boxShadow: active ? '0 4px 24px rgba(91,106,245,0.28)' : 'none',
               }}>
@@ -359,7 +365,7 @@ function PersonalitySheet({ current, onSelect, onClose }: {
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 280 }}
         className="w-full rounded-t-3xl p-5 pb-8"
-        style={{ background: 'rgba(10,12,28,0.95)', border: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.07)' }}
         onClick={e => e.stopPropagation()}>
         <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.15)' }} />
         <p className="font-heading font-bold text-white text-lg mb-4">Novo's Personality</p>
@@ -469,10 +475,14 @@ export default function ChatPage() {
   } | null>(null);
   const [snapSolving, setSnapSolving] = useState(false);
 
-  const bottomRef   = useRef<HTMLDivElement>(null);
-  const sessionMsgs = useRef<Message[]>([]);
+  const bottomRef          = useRef<HTMLDivElement>(null);
+  const sessionMsgs        = useRef<Message[]>([]);
+  const lastInteractionId  = useRef<string | null>(null); // tracks last logged AI response for follow_up_count
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'there';
+
+  // ── Study context for Novo contextual awareness ──────────────────────────
+  const { ctx: studyCtx } = useStudyContext(user?.id, profile?.streak_count ?? 0);
 
   // ── Voice availability ───────────────────────────────────────────────────
   useEffect(() => {
@@ -884,6 +894,8 @@ Return ONLY valid JSON (no markdown, no code blocks):
     const content = (text ?? input).trim();
     if (!content || loading || rateLimitCountdown > 0) return;
 
+    const sendStartMs = Date.now();
+
     // Detect quiz intent — handle separately
     const quizCheck = detectQuizIntent(content);
 
@@ -898,6 +910,11 @@ Return ONLY valid JSON (no markdown, no code blocks):
     setLoading(true);
     sessionMsgs.current = [...sessionMsgs.current, userMsg];
     persistMessage('user', content, personality);
+
+    // Increment follow_up_count on the previous AI response (follow-up signal for flywheel)
+    if (lastInteractionId.current && user) {
+      supabase.rpc('increment_follow_up', { p_interaction_id: lastInteractionId.current }).catch(() => {});
+    }
 
     if (quizCheck.detected) {
       await handleQuizIntent(quizCheck.topic, userMsg.id);
@@ -918,7 +935,8 @@ Return ONLY valid JSON (no markdown, no code blocks):
       const englishContent = isEnglish ? content : await translateText(content, 'en', language);
       const ncertContext = await fetchNcertContext(englishContent);
 
-      let systemPrompt = buildSystemPrompt(personality, memCtx, mood, checkInMood);
+      const studyCtxBlock = buildStudyContextBlock(studyCtx);
+      let systemPrompt = buildSystemPrompt(personality, memCtx, mood, checkInMood, studyCtxBlock);
       if (ncertContext.text) {
         systemPrompt += `\n\n=== Relevant NCERT Reference ===\n${ncertContext.text}\n\nCite chapter/subject naturally when relevant.`;
       }
@@ -953,6 +971,28 @@ Return ONLY valid JSON (no markdown, no code blocks):
       setMessages(finalMsgs);
       sessionMsgs.current = [...sessionMsgs.current, assistantMsg];
       persistMessage('assistant', resolvedReply, personality);
+
+      // Log to ai_interactions flywheel — async, non-blocking
+      if (user) {
+        logAIInteraction({
+          userId:      user.id,
+          sessionType: 'chat',
+          userQuery:   content,
+          aiResponse:  resolvedReply,
+          subject:     studyCtx?.recentQuizTopics?.[0]?.topic?.split(' ')?.[0] ?? undefined,
+          topic:       concepts[0] ?? undefined,
+          modelUsed:   'gemini-2.0-flash',
+          responseMs:  Date.now() - sendStartMs,
+          language,
+        }).then(interactionId => {
+          if (interactionId) {
+            lastInteractionId.current = interactionId;
+            setMessages(prev => prev.map(m =>
+              m.id === assistantMsg.id ? { ...m, interactionId } : m
+            ));
+          }
+        });
+      }
 
       // Auto-speak
       if (autoSpeak) speak(displayContent, assistantMsg.id);
@@ -1084,6 +1124,31 @@ Return ONLY valid JSON (no markdown, no code blocks):
           </div>
         )}
 
+        {/* ── Rich empty state: shown when only welcome msg exists ── */}
+        <AnimatePresence>
+          {historyLoaded && messages.length === 1 && messages[0].id.startsWith('welcome') && (() => {
+            const weakTopics = (memCtx?.top_weaknesses ?? [])
+              .map(w => w.topic ?? w.content.split(' ').slice(0, 3).join(' '))
+              .filter(Boolean);
+            const chips = getPersonalisedChips(studyCtx, weakTopics, profile?.exam_name ?? null);
+            return (
+              <NovoEmptyState
+                key="empty-state"
+                firstName={firstName}
+                examName={profile?.exam_name ?? null}
+                streak={profile?.streak_count ?? 0}
+                personality={personality}
+                personalityLabel={cfg.label}
+                personalityGradient={cfg.gradient}
+                studyCtx={studyCtx}
+                memCtx={memCtx}
+                chips={chips}
+                onChipSelect={text => { setInput(text); }}
+              />
+            );
+          })()}
+        </AnimatePresence>
+
         <AnimatePresence initial={false}>
           {messages.map((msg, msgIdx) => (
             <motion.div key={msg.id}
@@ -1112,8 +1177,18 @@ Return ONLY valid JSON (no markdown, no code blocks):
                   <div
                     className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${msg.role === 'user' ? 'text-white rounded-br-sm' : 'rounded-bl-sm'}`}
                     style={msg.role === 'user'
-                      ? { background: cfg.gradient }
-                      : { background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.85)' }
+                      ? {
+                          background: cfg.gradient,
+                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 12px rgba(91,106,245,0.3)',
+                        }
+                      : {
+                          background: 'rgba(255,255,255,0.055)',
+                          backdropFilter: 'blur(28px) saturate(160%)',
+                          WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          color: 'rgba(255,255,255,0.88)',
+                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+                        }
                     }>
                     {msg.id.startsWith('streaming_') ? (
                       streamingText
@@ -1131,13 +1206,13 @@ Return ONLY valid JSON (no markdown, no code blocks):
                   </div>
                 )}
 
-                {/* Assistant action row: TTS + Flashcard save */}
+                {/* Assistant action row: TTS + Flashcard save + AI Feedback */}
                 {msg.role === 'assistant' && !msg.quizData && (() => {
                   const ttsState = getState(msg.id);
                   // Find the previous user message for flashcard front
                   const prevUserMsg = messages.slice(0, msgIdx).reverse().find(m => m.role === 'user');
                   return (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {/* TTS button */}
                       <button onClick={() => speak(msg.displayContent ?? msg.content, msg.id)}
                         className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all active:scale-95"
@@ -1163,6 +1238,15 @@ Return ONLY valid JSON (no markdown, no code blocks):
                           <BookOpen size={11} />
                           <span>Save</span>
                         </button>
+                      )}
+
+                      {/* AI Feedback — only for logged interactions */}
+                      {msg.interactionId && (
+                        <AIFeedback
+                          interactionId={msg.interactionId}
+                          topic={msg.concepts?.[0] ?? undefined}
+                          compact
+                        />
                       )}
                     </div>
                   );
@@ -1212,7 +1296,13 @@ Return ONLY valid JSON (no markdown, no code blocks):
               <span className="text-sm">{cfg.emoji}</span>
             </div>
             <div className="px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1 items-center"
-              style={{ background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{
+                background: 'rgba(255,255,255,0.055)',
+                backdropFilter: 'blur(28px) saturate(160%)',
+                WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+              }}>
               {[0, 0.15, 0.3].map((delay, i) => (
                 <motion.div key={i} className="w-2 h-2 rounded-full bg-primary"
                   animate={{ y: [0, -4, 0] }}
@@ -1230,11 +1320,11 @@ Return ONLY valid JSON (no markdown, no code blocks):
       {/* ── Input ── */}
       <div className="px-4 py-3 shrink-0 pb-nav"
         style={{
-          background: 'rgba(10,12,28,0.88)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
+          background: 'rgba(6,8,20,0.82)',
+          backdropFilter: 'blur(48px) saturate(180%) brightness(1.04)',
+          WebkitBackdropFilter: 'blur(48px) saturate(180%) brightness(1.04)',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 -1px 0 rgba(255,255,255,0.05), 0 -8px 32px rgba(0,0,0,0.45)',
         }}>
         <div className="flex items-center gap-2">
           {/* Camera / Snap & Solve — long-press or hold opens gallery option */}
@@ -1267,7 +1357,13 @@ Return ONLY valid JSON (no markdown, no code blocks):
 
           {/* Text input */}
           <div className="rounded-2xl flex items-center gap-2 px-4 h-11 flex-1"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{
+              background: 'rgba(255,255,255,0.07)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+            }}>
             <input
               type="text"
               placeholder="Ask Novo or say &quot;quiz me on…&quot;"

@@ -38,6 +38,11 @@ interface GeneratedQuestion {
   correct_idx: number;
   explanation: string;
   difficulty: string;
+  // AI safety fields — added by verification pass
+  confidence?: number;         // 0–1: how confident the model is in the answer
+  verify_in_textbook?: boolean; // true → student should double-check against NCERT
+  ncert_reference?: string;     // e.g. "Class 12 Physics, Chapter 3 — Current Electricity"
+  flags?: string[];             // internal: 'ambiguous_options' | 'multiple_correct' | 'calculation_error_risk'
 }
 
 serve(withSentry('ai-question-gen', async (req) => {
@@ -112,23 +117,32 @@ Requirements:
 - Questions must be ORIGINAL — not copied from any textbook or previous year paper
 - Each question should test ${diffDesc}
 - Every question must have exactly 4 options (A, B, C, D)
-- Only ONE option is clearly correct
-- Explanation must be clear, educational, and help the student understand WHY the answer is correct
+- Only ONE option is clearly correct and unambiguous
+- Explanation must be clear, educational, and step-by-step where calculation is involved
 - Cover different sub-topics; avoid repetition
+- For each question, assess your own confidence in the correctness of the answer (0.0–1.0)
+- Flag any question where a student should verify the answer against their NCERT textbook (e.g. exact values, formulas, exceptions)
 
 Return ONLY a valid JSON array with NO markdown or preamble:
 [
   {
     "subject": "${subject}",
-    "chapter": "specific chapter name",
+    "chapter": "specific NCERT chapter name",
     "concept": "specific concept being tested",
     "question": "complete question text",
     "options": ["option A text", "option B text", "option C text", "option D text"],
     "correct_idx": 0,
-    "explanation": "clear explanation of why this is correct and the concept behind it",
-    "difficulty": "${difficulty}"
+    "explanation": "clear step-by-step explanation of why this is correct",
+    "difficulty": "${difficulty}",
+    "confidence": 0.95,
+    "verify_in_textbook": false,
+    "ncert_reference": "${classCtx}${subject}, Chapter — <chapter name>",
+    "flags": []
   }
-]`;
+]
+
+Confidence guide: 1.0 = definitively correct from first principles; 0.8–0.99 = high confidence; 0.6–0.79 = moderate, student should verify; <0.6 = set verify_in_textbook=true.
+Flags: use "ambiguous_options" if two options could both be argued correct, "calculation_error_risk" for numerical questions where a slip in calculation changes the answer, "ncert_exception" for edge cases not in standard NCERT.`;
 
     // ── Call Claude ────────────────────────────────────────────────
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
@@ -172,33 +186,65 @@ Return ONLY a valid JSON array with NO markdown or preamble:
       return jsonResp({ error: 'Invalid JSON from AI' }, 500);
     }
 
-    // Validate structure
+    // ── Safety validation ──────────────────────────────────────────
     questions = questions.filter(q =>
       q.question && Array.isArray(q.options) && q.options.length === 4 &&
-      typeof q.correct_idx === 'number' && q.explanation
+      typeof q.correct_idx === 'number' && q.correct_idx >= 0 && q.correct_idx <= 3 &&
+      q.explanation && q.options.every((o: string) => typeof o === 'string' && o.trim().length > 0)
     );
 
+    // Normalise confidence and auto-flag low-confidence questions
+    questions = questions.map(q => {
+      const conf = typeof q.confidence === 'number' ? Math.min(1, Math.max(0, q.confidence)) : 0.85;
+      const flags: string[] = Array.isArray(q.flags) ? q.flags : [];
+      const verify = q.verify_in_textbook === true || conf < 0.7;
+      // Auto-add flag for borderline confidence
+      if (conf < 0.7 && !flags.includes('low_confidence')) flags.push('low_confidence');
+      return { ...q, confidence: conf, verify_in_textbook: verify, flags };
+    });
+
+    // Drop questions the model itself rated below 0.5 confidence — too risky for students
+    const safeQuestions = questions.filter(q => (q.confidence ?? 1) >= 0.5);
+    const droppedCount  = questions.length - safeQuestions.length;
+    if (droppedCount > 0) {
+      console.warn(`[ai-question-gen] Dropped ${droppedCount} question(s) with confidence < 0.5`);
+    }
+
     // Persist to ai_questions table (best-effort)
-    if (questions.length > 0) {
+    if (safeQuestions.length > 0) {
       serviceDb.from('ai_questions').insert(
-        questions.map(q => ({
-          subject: q.subject || subject,
-          chapter: q.chapter || chapter || 'General',
-          concept: q.concept || 'General',
-          class_num: class_num ?? null,
-          question: q.question,
-          options: q.options,
-          correct_idx: q.correct_idx,
-          explanation: q.explanation,
-          difficulty: q.difficulty || difficulty,
-          ability_target: ability_score,
+        safeQuestions.map(q => ({
+          subject:           q.subject || subject,
+          chapter:           q.chapter || chapter || 'General',
+          concept:           q.concept || 'General',
+          class_num:         class_num ?? null,
+          question:          q.question,
+          options:           q.options,
+          correct_idx:       q.correct_idx,
+          explanation:       q.explanation,
+          difficulty:        q.difficulty || difficulty,
+          ability_target:    ability_score,
           language,
-          generated_by: 'claude-sonnet-4-6',
+          generated_by:      'claude-sonnet-4-6',
+          confidence:        q.confidence ?? 0.85,
+          verify_in_textbook: q.verify_in_textbook ?? false,
+          ncert_reference:   q.ncert_reference ?? null,
+          flags:             q.flags ?? [],
         }))
       ).then(() => {}).catch(e => console.error('[ai-question-gen] persist error:', e));
     }
 
-    return jsonResp({ questions, count: questions.length, difficulty, ability_score });
+    return jsonResp({
+      questions: safeQuestions,
+      count: safeQuestions.length,
+      difficulty,
+      ability_score,
+      safety_stats: {
+        generated: questions.length + droppedCount,
+        dropped_low_confidence: droppedCount,
+        flagged_verify: safeQuestions.filter(q => q.verify_in_textbook).length,
+      },
+    });
 
   } catch (err) {
     console.error('[ai-question-gen] unexpected error:', err);

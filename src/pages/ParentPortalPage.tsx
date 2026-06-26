@@ -267,7 +267,7 @@ export default function ParentPortalPage() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (phase === 'loading') {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center">
+      <div className="h-full flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
       </div>
     );
@@ -276,8 +276,8 @@ export default function ParentPortalPage() {
   // ── Student Setup Phase ───────────────────────────────────────────────────
   if (phase === 'student_setup') {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] text-white">
-        <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <div className="h-full text-white flex flex-col">
+        <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
           <Link to="/home" className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </Link>
@@ -293,6 +293,7 @@ export default function ParentPortalPage() {
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto pb-nav">
         <div className="max-w-md mx-auto px-4 py-8 space-y-6">
           {/* Hero */}
           <div className="text-center space-y-2">
@@ -387,6 +388,7 @@ export default function ParentPortalPage() {
             ))}
           </div>
         </div>
+        </div>
       </div>
     );
   }
@@ -394,8 +396,8 @@ export default function ParentPortalPage() {
   // ── Enter Code Phase (parent) ─────────────────────────────────────────────
   if (phase === 'enter_code') {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] text-white">
-        <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <div className="h-full text-white flex flex-col">
+        <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
           <button onClick={() => setPhase('student_setup')} className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </button>
@@ -405,6 +407,7 @@ export default function ParentPortalPage() {
           </div>
         </div>
 
+        <div className="flex-1 overflow-y-auto pb-nav">
         <div className="max-w-sm mx-auto px-4 py-12 space-y-8">
           <div className="text-center space-y-2">
             <div className="text-6xl">🔗</div>
@@ -434,15 +437,16 @@ export default function ParentPortalPage() {
             </button>
           </div>
         </div>
+        </div>
       </div>
     );
   }
 
   // ── Parent Dashboard ──────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white">
+    <div className="h-full text-white flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#0A0A0F]/95 backdrop-blur border-b border-white/5 px-4 py-3">
+      <div className="sticky top-0 z-20 backdrop-blur border-b border-white/5 px-4 py-3 shrink-0">
         <div className="flex items-center gap-3">
           <Link to="/home" className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
@@ -476,6 +480,7 @@ export default function ParentPortalPage() {
         )}
       </div>
 
+      <div className="flex-1 overflow-y-auto pb-nav">
       {statsLoading && !childStats ? (
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
@@ -661,6 +666,7 @@ export default function ParentPortalPage() {
           <div className="pb-8" />
         </div>
       )}
+      </div>
     </div>
   );
 }

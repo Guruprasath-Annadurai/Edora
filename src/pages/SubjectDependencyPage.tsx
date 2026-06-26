@@ -182,7 +182,7 @@ function BottomSheet({ info, onClose, onStudy }: BottomSheetProps) {
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 380, damping: 36 }}
         className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl px-5 pt-4 pb-8 max-w-lg mx-auto"
-        style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
       >
         {/* Drag handle */}
         <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'rgba(255,255,255,0.15)' }} />
@@ -623,7 +623,7 @@ export default function SubjectDependencyPage() {
 
       {/* ── Header ── */}
       <div className="px-4 py-3 shrink-0 flex items-center gap-3 sticky top-0 z-10"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-all text-white"
@@ -678,7 +678,7 @@ export default function SubjectDependencyPage() {
               style={
                 filter === f.value
                   ? { background: 'rgba(91,106,245,0.15)', borderColor: '#5B6AF5', color: '#8B9BFA' }
-                  : { background: 'rgba(15,20,45,0.6)', borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)' }
+                  : { background: 'rgba(255,255,255,0.045)', borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)' }
               }
             >
               {f.label}

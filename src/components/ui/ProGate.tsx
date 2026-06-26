@@ -52,7 +52,7 @@ function InlinePaywall({ featureName, featureDesc }: { featureName: string; feat
         </div>
 
         <div className="w-full rounded-2xl p-4 flex flex-col gap-2.5"
-          style={{ background: '#0F1117', border: '1px solid rgba(124,58,237,0.18)' }}>
+          style={{ background: 'rgba(8,6,20,0.92)', border: '1px solid rgba(124,58,237,0.18)' }}>
           {TEASER_FEATURES.map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-3">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
@@ -93,7 +93,7 @@ function SheetPaywall({
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <div className="absolute inset-0 bg-black/60" onClick={onClose} />
           <motion.div className="relative w-full rounded-t-3xl px-5 pt-5 pb-8 flex flex-col gap-5"
-            style={{ background: '#0F1117', borderTop: '1px solid rgba(124,58,237,0.25)' }}
+            style={{ background: 'rgba(8,6,20,0.92)', borderTop: '1px solid rgba(124,58,237,0.25)' }}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
             {/* Handle */}

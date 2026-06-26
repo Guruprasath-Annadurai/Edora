@@ -152,7 +152,7 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
   const total = week.chapters.length;
 
   return (
-    <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}>
+    <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
       <button className="w-full px-4 py-3.5 flex items-center justify-between" onClick={() => setOpen(o => !o)}>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center"
@@ -438,7 +438,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
   const daysLeft = plan ? Math.ceil((new Date(plan.exam_date).getTime() - Date.now()) / 86400000) : null;
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg,#0A0F25 0%,#080C1A 100%)' }}>
+    <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
       {/* Header */}
       <div className="shrink-0 px-4 pb-3" style={{ paddingTop: 'max(16px,env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-4">
@@ -473,7 +473,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-28">
+      <div className="flex-1 overflow-y-auto px-fluid pb-nav">
         {loading ? (
           <div className="space-y-3">
             {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.05)' }} />)}

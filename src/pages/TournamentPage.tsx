@@ -211,7 +211,7 @@ interface ListScreenProps {
 function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewResults }: ListScreenProps) {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-gradient-page pb-24">
+    <div className="h-full overflow-y-auto pb-nav">
       <div className="px-4 pt-12 pb-4 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center"
           style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
@@ -541,7 +541,7 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
   const pct = max_score > 0 ? Math.round((score / max_score) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-page pb-24 relative">
+    <div className="h-full overflow-y-auto pb-nav relative">
       {isTop3 && <Confetti />}
 
       <div className="px-4 pt-12 pb-4">
@@ -653,7 +653,7 @@ interface LeaderboardScreenProps {
 
 function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenProps) {
   return (
-    <div className="min-h-screen bg-gradient-page pb-24">
+    <div className="h-full overflow-y-auto pb-nav">
       <div className="px-4 pt-12 pb-4 flex items-center gap-3">
         <button
           onClick={onBack}
@@ -909,10 +909,18 @@ export default function TournamentPage() {
   return (
     <>
       {error && (
-        <div className="fixed top-4 left-4 right-4 z-50 text-sm rounded-2xl px-4 py-3 flex items-center justify-between"
+        <div className="fixed top-4 left-4 right-4 z-50 text-sm rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
           style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171' }}>
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-2 font-bold text-red-400">
+          <span className="flex-1">{error}</span>
+          {/* Retry lets users recover without navigating away */}
+          <button
+            onClick={() => { setError(null); void fetchTournaments(); }}
+            className="text-xs font-bold px-2.5 py-1 rounded-lg shrink-0"
+            style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}
+          >
+            Retry
+          </button>
+          <button onClick={() => setError(null)} className="shrink-0 font-bold text-red-400 active:opacity-70">
             <XCircle size={16} />
           </button>
         </div>

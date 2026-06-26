@@ -22,6 +22,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { logAIInteraction } from '@/components/ui/AIFeedback';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -251,6 +252,18 @@ Return ONLY valid JSON:
       if (data) {
         setAnswers((prev) => [...prev, { ...data, author_name: 'Novo AI', user_voted: false }]);
       }
+
+      // Log to AI flywheel — non-blocking
+      if (user) {
+        logAIInteraction({
+          userId:      user.id,
+          sessionType: 'doubt',
+          userQuery:   `${activePost.title}\n${activePost.body}`,
+          aiResponse:  body,
+          subject:     activePost.subject ?? undefined,
+          modelUsed:   'gemini-2.0-flash',
+        }).catch(() => {});
+      }
     } catch {
       // Silently fail — user can retry
     } finally {
@@ -348,8 +361,8 @@ Return ONLY valid JSON:
   // ── Feed view ─────────────────────────────────────────────────────────────
   if (view === 'feed') {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] text-white">
-        <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <div className="h-full text-white">
+        <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
           <Link to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </Link>
@@ -451,8 +464,8 @@ Return ONLY valid JSON:
   // ── Create view ───────────────────────────────────────────────────────────
   if (view === 'create') {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] text-white">
-        <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <div className="h-full text-white">
+        <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
           <button onClick={() => setView('feed')} className="p-2 rounded-xl hover:bg-white/5">
             <X className="w-5 h-5 text-gray-400" />
           </button>
@@ -536,8 +549,8 @@ Return ONLY valid JSON:
   // ── Post view ─────────────────────────────────────────────────────────────
   if (!activePost) return null;
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white flex flex-col">
-      <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+    <div className="h-full text-white flex flex-col">
+      <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
         <button onClick={() => { setView('feed'); setActivePost(null); setAnswers([]); }}
           className="p-2 rounded-xl hover:bg-white/5">
           <ArrowLeft className="w-5 h-5 text-gray-400" />
@@ -666,7 +679,7 @@ Return ONLY valid JSON:
       </div>
 
       {/* Answer input */}
-      <div className="sticky bottom-0 bg-[#0A0A0F]/95 backdrop-blur border-t border-white/5 px-4 py-3 space-y-2">
+      <div className="sticky bottom-0/95 backdrop-blur border-t border-white/5 px-4 py-3 space-y-2">
         <div className="flex gap-2">
           <input
             value={answerInput}

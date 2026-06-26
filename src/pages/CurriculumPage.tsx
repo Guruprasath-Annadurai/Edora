@@ -248,13 +248,16 @@ function SubjectSheet({ board, onClose, onSelectSubject }: SubjectSheetProps) {
   );
 }
 
+// ── Module-level cache — survives navigation within the session ───────────────
+let _boardsCache: ExamBoard[] | null = null;
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function CurriculumPage() {
   const navigate = useNavigate();
 
-  const [boards,        setBoards]        = useState<ExamBoard[]>([]);
-  const [loading,       setLoading]       = useState(true);
+  const [boards,        setBoards]        = useState<ExamBoard[]>(_boardsCache ?? []);
+  const [loading,       setLoading]       = useState(_boardsCache === null);
   const [error,         setError]         = useState<string | null>(null);
   const [activeRegion,  setActiveRegion]  = useState('All');
   const [activeLevel,   setActiveLevel]   = useState('All');
@@ -273,7 +276,9 @@ export default function CurriculumPage() {
       });
       if (fnError) throw fnError;
       if (!mountedRef.current) return;
-      setBoards(data?.boards ?? []);
+      const fetched = data?.boards ?? [];
+      _boardsCache = fetched;
+      setBoards(fetched);
     } catch (err) {
       if (!mountedRef.current) return;
       console.error('[CurriculumPage] fetchBoards:', err);
@@ -306,7 +311,7 @@ export default function CurriculumPage() {
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: 'linear-gradient(160deg, #0F1221 0%, #161A30 60%, #0F1221 100%)' }}
+      style={{ background: 'transparent' }}
     >
       {/* ── Header ── */}
       <div

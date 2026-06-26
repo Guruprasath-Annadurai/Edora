@@ -242,7 +242,7 @@ export default function TeacherExportPage() {
 
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-10"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/profile">
           <button aria-label="Go back" className="w-8 h-8 flex items-center justify-center rounded-xl text-white transition-colors"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', WebkitTapHighlightColor: 'transparent' }}>
@@ -428,7 +428,7 @@ export default function TeacherExportPage() {
 
             {/* Modal header */}
             <div className="flex items-center gap-3 px-4 py-3 shrink-0"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(10,12,28,0.85)', backdropFilter: 'blur(12px)' }}>
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.10)', background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
               <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
                 <FileText size={15} className="text-white" />

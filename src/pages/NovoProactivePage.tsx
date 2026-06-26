@@ -67,8 +67,8 @@ function MessageCard({ msg, onMarkRead, onCTA }: {
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl overflow-hidden"
       style={unread
-        ? { background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(255,255,255,0.07)', borderLeft: `3px solid ${style.color}` }
-        : { background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        ? { background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)', borderLeft: `3px solid ${style.color}` }
+        : { background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
       <div className="px-4 py-4">
         <div className="flex items-start gap-3">
           {/* Novo avatar */}
@@ -102,7 +102,7 @@ function MessageCard({ msg, onMarkRead, onCTA }: {
               {unread && (
                 <button onClick={() => onMarkRead(msg.id)}
                   className="text-xs text-muted-foreground px-2 py-1.5 rounded-xl active:scale-95 transition-all"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
                   Mark read
                 </button>
               )}
@@ -212,11 +212,11 @@ export default function NovoProactivePage() {
 
       {/* ── Header ── */}
       <div className="px-4 py-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <div className="flex items-center gap-3 mb-3">
           <Link aria-label="Go back" to="/home"
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
             <ChevronLeft size={18} className="text-white" />
           </Link>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -238,7 +238,7 @@ export default function NovoProactivePage() {
             onClick={generateCheckin}
             disabled={generating || cooldownSecs > 0}
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors relative"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
             {generating
               ? <RefreshCw size={15} className="text-primary animate-spin" />
               : cooldownSecs > 0
@@ -321,7 +321,7 @@ export default function NovoProactivePage() {
       {/* ── Generate CTA at bottom (persistent) ── */}
       {!loading && messages.length > 0 && (
         <div className="px-4 py-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}>
+          style={{ background: 'rgba(8,6,20,0.88)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}>
           <button onClick={generateCheckin} disabled={generating || cooldownSecs > 0}
             className="w-full py-3 rounded-2xl border border-dashed border-primary/30 text-sm font-semibold text-primary text-center active:bg-primary/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
             {generating

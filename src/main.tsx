@@ -41,6 +41,20 @@ if (sentryDsn) {
   });
 }
 
+// ── Production console suppression ───────────────────────────────────────────
+// All [Tag] console.error/warn/log calls across the codebase are dev diagnostics.
+// In production, errors are captured by Sentry above; warn/log are pure noise.
+// ErrorBoundary uses Sentry.captureException directly so this override is safe.
+if (import.meta.env.PROD) {
+  const _noop = () => {};
+  console.warn  = _noop;
+  console.log   = _noop;
+  console.info  = _noop;
+  console.debug = _noop;
+  // console.error intentionally kept — Sentry's SDK instruments it to capture
+  // any errors that slip through un-caught (belt-and-suspenders).
+}
+
 // ── PostHog ──────────────────────────────────────────────────────────────────
 initAnalytics();
 

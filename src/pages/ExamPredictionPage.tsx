@@ -74,7 +74,7 @@ function ScoreGauge({ score, target }: { score: number; target: number }) {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative" style={{ width: 200, height: 106 }}>
+      <div className="relative" style={{ width: 'min(200px, 52vw)', height: 'min(106px, 28vw)' }}>
         <svg
           viewBox="-90 -90 180 90"
           width={200}
@@ -341,7 +341,7 @@ function SetupScreen({
             style={
               !useCustom && selectedGrade === g
                 ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#fff', boxShadow: '0 4px 20px rgba(91,106,245,0.4)' }
-                : { background: 'rgba(15,20,45,0.7)', color: 'rgba(255,255,255,0.7)', border: '2px solid rgba(255,255,255,0.12)' }
+                : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.7)', border: '2px solid rgba(255,255,255,0.12)' }
             }
           >
             {g}
@@ -378,7 +378,7 @@ function SetupScreen({
                 onChange={e => setCustomScore(e.target.value)}
                 placeholder="Enter target % (e.g. 75)"
                 className="w-full px-4 py-3.5 rounded-2xl font-bold text-center text-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
-                style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.12)' }}
+                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.12)' }}
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">%</span>
             </div>
@@ -832,7 +832,7 @@ function ResultsScreen({
           onClick={onRecalculate}
           disabled={recalculating}
           className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-muted-foreground transition-all active:scale-95 disabled:opacity-50"
-          style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
           <RefreshCw size={14} className={recalculating ? 'animate-spin' : ''} />
           {recalculating ? 'Recalculating…' : 'Recalculate'}
@@ -935,7 +935,7 @@ export default function ExamPredictionPage() {
       <div className="flex flex-col h-full bg-gradient-page">
         <div
           className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
         >
           <button
             onClick={() => navigate(-1)}
@@ -961,7 +961,7 @@ export default function ExamPredictionPage() {
       {/* Header */}
       <div
         className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
       >
         <button
           onClick={() => navigate(-1)}

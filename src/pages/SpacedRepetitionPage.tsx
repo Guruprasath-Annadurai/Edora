@@ -433,7 +433,7 @@ export default function SpacedRepetitionPage() {
     return (
       <div
         className="flex flex-col h-full"
-        style={{ background: 'linear-gradient(180deg, #0F1124 0%, #13152B 100%)' }}
+        style={{ background: 'transparent' }}
       >
         {/* Toasts */}
         <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
@@ -570,7 +570,7 @@ export default function SpacedRepetitionPage() {
     return (
       <div
         className="flex flex-col h-full items-center justify-center px-6"
-        style={{ background: 'linear-gradient(180deg, #0F1124 0%, #13152B 100%)' }}
+        style={{ background: 'transparent' }}
       >
         {/* Toasts */}
         <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
@@ -659,7 +659,7 @@ export default function SpacedRepetitionPage() {
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: 'linear-gradient(180deg, #0F1124 0%, #13152B 100%)' }}
+      style={{ background: 'transparent' }}
     >
       {/* Toasts */}
       <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">

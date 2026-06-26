@@ -1,14 +1,17 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { SkeletonTopWeakness } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, ChevronLeft, CheckCircle, XCircle, Trophy, Zap, Star, Flame, AlertTriangle, Lightbulb, HelpCircle, Clock } from 'lucide-react';
 import { PeerPercentile } from '@/components/quiz/PeerPercentile';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON, geminiCall } from '@/lib/gemini';
 import { OfflineCache } from '@/lib/offlineCache';
+import { SyncQueue } from '@/lib/syncQueue';
 import { track } from '@/lib/analytics';
 import { loadUnlockedIds, checkAchievements } from '@/lib/achievements';
 import type { QuizQuestion } from '@/types';
@@ -61,21 +64,25 @@ const QuizOptionButton = memo(function QuizOptionButton({
   option: string; index: number; isCorrect: boolean; isSelected: boolean; revealed: boolean;
   onSelect: (i: number) => void;
 }) {
-  let bg = 'rgba(15,20,45,0.7)';
-  let border = 'rgba(255,255,255,0.08)';
-  let textColor = 'rgba(255,255,255,0.85)';
-  let labelBg = 'rgba(91,106,245,0.12)';
+  let bg = 'rgba(255,255,255,0.055)';
+  let blur = 'blur(24px) saturate(160%)';
+  let border = 'rgba(255,255,255,0.1)';
+  let insetShadow = 'inset 0 1px 0 rgba(255,255,255,0.1)';
+  let textColor = 'rgba(255,255,255,0.88)';
+  let labelBg = 'rgba(91,106,245,0.18)';
   let labelColor = '#A0AEFF';
 
   if (revealed) {
     if (isCorrect) {
-      bg = 'rgba(16,185,129,0.12)';
-      border = 'rgba(16,185,129,0.4)';
+      bg = 'rgba(16,185,129,0.14)';
+      border = 'rgba(16,185,129,0.42)';
+      insetShadow = 'inset 0 1px 0 rgba(255,255,255,0.12)';
       labelBg = '#10B981';
       labelColor = '#fff';
     } else if (isSelected) {
-      bg = 'rgba(239,68,68,0.1)';
-      border = 'rgba(239,68,68,0.4)';
+      bg = 'rgba(239,68,68,0.12)';
+      border = 'rgba(239,68,68,0.42)';
+      insetShadow = 'inset 0 1px 0 rgba(255,255,255,0.08)';
       labelBg = '#EF4444';
       labelColor = '#fff';
       textColor = '#F87171';
@@ -93,7 +100,10 @@ const QuizOptionButton = memo(function QuizOptionButton({
       className="w-full text-left rounded-2xl p-4 transition-all"
       style={{
         background: bg,
+        backdropFilter: blur,
+        WebkitBackdropFilter: blur,
         border: `1.5px solid ${border}`,
+        boxShadow: insetShadow,
       }}>
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-extrabold shrink-0 transition-all"
@@ -121,6 +131,8 @@ export default function QuizPage() {
   const [answers, setAnswers]     = useState<number[]>([]);
   const [revealed, setRevealed]   = useState(false);
   const [genError, setGenError]   = useState('');
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [loadStatus,   setLoadStatus]   = useState('');
   const [xpPopVisible, setXpPopVisible] = useState(false);
   const [draft, setDraft]         = useState<QuizDraft | null>(null);
 
@@ -133,7 +145,35 @@ export default function QuizPage() {
 
   // ── Per-question countdown timer ──────────────────────────────────────────
   const [qTimeLeft, setQTimeLeft] = useState<number | null>(null);
-  const qTimerRef = useRef<ReturnType<typeof setInterval>>();
+  const qTimerRef    = useRef<ReturnType<typeof setInterval>>();
+  const timerPaused  = useRef(false);
+  const bgEnteredAt  = useRef<number | null>(null);
+
+  // ── App lifecycle: pause timer when backgrounded, resume when foregrounded ─
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let listener: Promise<{ remove: () => void }> | null = null;
+    listener = CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) {
+        // App going to background — pause the per-question timer
+        timerPaused.current = true;
+        bgEnteredAt.current = Date.now();
+        if (qTimerRef.current) clearInterval(qTimerRef.current);
+      } else {
+        // App coming back to foreground
+        const elapsed = bgEnteredAt.current ? Math.floor((Date.now() - bgEnteredAt.current) / 1000) : 0;
+        bgEnteredAt.current = null;
+        timerPaused.current = false;
+        // Deduct elapsed seconds — if gone > 30s treat as timeout
+        setQTimeLeft(prev => {
+          if (prev === null) return prev;
+          const remaining = prev - elapsed;
+          return remaining <= 0 ? 0 : remaining;
+        });
+      }
+    });
+    return () => { listener?.then(l => l.remove()).catch(() => {}); };
+  }, []);
 
   // ── Novo Memory: top weakness for setup callout ───────────────────────────
   const [topWeakness, setTopWeakness]         = useState<string | null>(null);
@@ -144,7 +184,7 @@ export default function QuizPage() {
     if (!profile) return;
 
     function isValidDraft(d: QuizDraft) {
-      return Date.now() - d.savedAt < 3_600_000 && d.questions.length > 0 && d.current < d.questions.length;
+      return Date.now() - d.savedAt < 7 * 24 * 3_600_000 && d.questions.length > 0 && d.current < d.questions.length;
     }
 
     async function loadDraft() {
@@ -209,7 +249,9 @@ export default function QuizPage() {
     if (phase !== 'quiz') { clearInterval(qTimerRef.current); setQTimeLeft(null); return; }
     if (revealed) { clearInterval(qTimerRef.current); return; }
     setQTimeLeft(30);
+    timerPaused.current = false;
     const id = setInterval(() => {
+      if (timerPaused.current) return; // app is backgrounded — skip tick
       setQTimeLeft(t => {
         if (t === null || t <= 1) { clearInterval(id); return 0; }
         return t - 1;
@@ -244,6 +286,7 @@ export default function QuizPage() {
   async function generateQuiz() {
     if (!topic.trim()) return;
     setGenError(''); clearDraft(); setDraft(null);
+    setLoadProgress(0); setLoadStatus('Checking your cached questions…');
     setPhase('loading');
     try {
       // Try offline cache first for instant start
@@ -276,10 +319,21 @@ export default function QuizPage() {
       }
 
       // No cache — generate with AI
+      setLoadProgress(20); setLoadStatus('Connecting to Novo AI…');
+      // Simulate incremental progress while the AI works (real completion snaps to 100%)
+      const progressTimer = setInterval(() => {
+        setLoadProgress(p => {
+          if (p >= 85) { clearInterval(progressTimer); return p; }
+          return p + Math.random() * 8;
+        });
+      }, 800);
+      setLoadStatus(`Writing ${count} questions on "${topic}"…`);
       const parsed = await geminiJSON<QuizQuestion[]>(
         `Create ${count} MCQ questions about "${topic}". Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}]. correct_answer is 0-indexed.`
       );
+      clearInterval(progressTimer);
       if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('No questions returned');
+      setLoadProgress(100); setLoadStatus('Ready!');
       const qs = parsed.map((q, i) => ({ ...q, id: `q${i}` }));
       setQuestions(qs);
       setCurrent(0); setAnswers([]); setSelected(null); setRevealed(false);
@@ -333,6 +387,7 @@ export default function QuizPage() {
 
   function next() {
     if (selected === null) return;
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
     const newAnswers = [...answers, selected];
     const nextIdx = current + 1;
     setAnswers(newAnswers); setSelected(null); setRevealed(false);
@@ -352,6 +407,9 @@ export default function QuizPage() {
     clearDraft();
     const score = finalAnswers.filter((a, i) => a === questions[i].correct_answer).length;
     const pct   = Math.round((score / questions.length) * 100);
+    // Haptic punctuates the result — strong success for ≥70%, warning otherwise
+    if (pct >= 70) Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+    else Haptics.notification({ type: NotificationType.Warning }).catch(() => {});
     setPhase('result');
     setConsecWrong(0);
     track('quiz_complete', { topic, score, total: questions.length, pct,
@@ -360,12 +418,39 @@ export default function QuizPage() {
     });
 
     if (profile) {
+      const completedAt = new Date().toISOString();
+      const xpGain      = score * 10;
+
+      // ── Write-ahead: enqueue session + XP BEFORE network calls ──────────
+      // These are durable — if the app dies, network drops, or session expires
+      // between now and the DB write, the SyncQueue re-tries on next launch.
+      await SyncQueue.enqueue({
+        type: 'quiz_session',
+        payload: {
+          user_id: profile.id, subject: topic, topic,
+          questions: questions as unknown[],
+          user_answers: finalAnswers,
+          score, score_pct: pct, completed_at: completedAt,
+        },
+      });
+      await SyncQueue.enqueue({
+        type: 'xp_grant',
+        payload: { user_id: profile.id, amount: xpGain, reason: `quiz:${topic}` },
+      });
+      await SyncQueue.enqueue({
+        type: 'topic_perf',
+        payload: { user_id: profile.id, subject: topic, topic, correct: score, total: questions.length },
+      });
+
+      // ── Attempt live save immediately — queue handles failure ─────────────
       const { error: insertError } = await supabase.from('quiz_sessions').insert({
         user_id: profile.id, subject: topic, topic, questions,
-        user_answers: finalAnswers, score, score_pct: pct, completed_at: new Date().toISOString(),
+        user_answers: finalAnswers, score, score_pct: pct, completed_at: completedAt,
       });
       if (!insertError) {
-        const xpGain = score * 10;
+        // Live save succeeded — remove from queue so we don't double-save
+        await SyncQueue.flush();
+
         await supabase.rpc('increment_xp', { user_id: profile.id, amount: xpGain });
         const unlocked = await loadUnlockedIds(profile.id);
         await checkAchievements({
@@ -374,19 +459,10 @@ export default function QuizPage() {
           extras: { quizScore: score, quizTotal: questions.length },
         });
       }
+      // insertError branch: queue already holds the payload — it will sync
+      // when connection is restored. No action needed here.
 
-      // ── Upsert topic_performance for Weakness Radar ──────────────────────
-      try {
-        await supabase.rpc('upsert_topic_performance', {
-          p_user_id: profile.id,
-          p_subject: topic,
-          p_topic:   topic,
-          p_correct: score,
-          p_total:   questions.length,
-        });
-      } catch { /* best-effort — don't block result screen */ }
-
-      // ── Save confidence ratings ───────────────────────────────────────────
+      // ── Save confidence ratings (best-effort, not critical) ───────────────
       const confRows = Object.entries(confidence).map(([idx, conf]) => ({
         user_id:   profile.id,
         topic,
@@ -395,7 +471,9 @@ export default function QuizPage() {
         correct:   finalAnswers[parseInt(idx)] === questions[parseInt(idx)]?.correct_answer,
       })).filter(r => r.question);
       if (confRows.length > 0) {
-        try { await supabase.from('quiz_confidence').insert(confRows); } catch { /* best-effort */ }
+        supabase.from('quiz_confidence').insert(confRows).then(({ error }) => {
+          if (error) console.warn('[QuizPage] confidence save failed (non-critical):', error.message);
+        });
       }
 
       // ── Fire-and-forget: feed quiz result into Novo memory ───────────────
@@ -455,7 +533,7 @@ export default function QuizPage() {
   const chipStyle = subjectColor(topic);
 
   return (
-    <div className="h-full native-scroll pb-nav bg-gradient-page">
+    <div className="h-full native-scroll pb-nav" style={{ background: 'transparent' }}>
       <div className="px-4 pt-5 flex flex-col h-full">
         <AnimatePresence mode="wait">
 
@@ -538,8 +616,11 @@ export default function QuizPage() {
                   onKeyDown={e => e.key === 'Enter' && generateQuiz()}
                   className="w-full h-14 px-4 rounded-2xl text-white placeholder:text-white/30 outline-none text-sm font-medium"
                   style={{
-                    background: 'rgba(15,20,45,0.7)',
-                    border: '1.5px solid rgba(91,106,245,0.25)',
+                    background: 'rgba(255,255,255,0.06)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: '1.5px solid rgba(91,106,245,0.28)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
                     WebkitUserSelect: 'text',
                     userSelect: 'text',
                   }} />
@@ -555,11 +636,14 @@ export default function QuizPage() {
                       style={count === n ? {
                         background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
                         color: '#fff',
-                        boxShadow: '0 4px 16px rgba(91,106,245,0.3)',
+                        boxShadow: '0 4px 16px rgba(91,106,245,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
                       } : {
-                        background: 'rgba(15,20,45,0.7)',
-                        color: 'rgba(255,255,255,0.5)',
-                        border: '1px solid rgba(255,255,255,0.08)',
+                        background: 'rgba(255,255,255,0.055)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        color: 'rgba(255,255,255,0.55)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
                       }}>
                       {n}
                     </button>
@@ -592,7 +676,7 @@ export default function QuizPage() {
           {/* ── LOADING ───────────────────────────────────── */}
           {phase === 'loading' && (
             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center flex-1 gap-6">
+              className="flex flex-col items-center justify-center flex-1 gap-8 px-6">
               <div className="relative w-24 h-24">
                 <div className="w-24 h-24 rounded-full border-4 border-secondary"
                   style={{ borderTopColor: '#5B6AF5', animation: 'spin 1s linear infinite' }} />
@@ -600,10 +684,18 @@ export default function QuizPage() {
                   <Brain size={30} style={{ color: '#5B6AF5' }} />
                 </div>
               </div>
-              <div className="text-center">
+              <div className="w-full max-w-xs flex flex-col gap-3 text-center">
                 <h2 className="font-heading text-xl font-extrabold text-foreground">Crafting Your Quiz…</h2>
-                <p className="text-muted-foreground text-sm mt-1.5">Novo is writing {count} questions on</p>
-                <p className="font-bold text-primary mt-0.5">{topic}</p>
+                {/* Status text — reassures users the app is working, not frozen */}
+                <p className="text-sm text-muted-foreground min-h-[20px]">{loadStatus}</p>
+                {/* Animated progress bar */}
+                <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <motion.div className="h-full rounded-full"
+                    animate={{ width: `${Math.min(loadProgress, 100)}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    style={{ background: 'linear-gradient(90deg,#5B6AF5,#8B5CF6)' }} />
+                </div>
+                <p className="text-xs text-muted-foreground/60">This may take up to 30 seconds on a slow connection</p>
               </div>
             </motion.div>
           )}
@@ -678,8 +770,7 @@ export default function QuizPage() {
               </div>
 
               {/* Question card */}
-              <div className="rounded-3xl p-5"
-                style={{ background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
+              <div className="liquid-glass specular rounded-3xl p-5" style={{ position: 'relative' }}>
                 <p className="text-[11px] font-extrabold uppercase tracking-widest mb-3"
                   style={{ color: chipStyle.text }}>
                   Question {current + 1}
@@ -761,11 +852,7 @@ export default function QuizPage() {
                       </div>
                     )}
 
-                    <div className="rounded-2xl p-4"
-                      style={{
-                        background: 'linear-gradient(135deg,rgba(91,106,245,0.06),rgba(139,92,246,0.06))',
-                        border: '1.5px solid rgba(91,106,245,0.15)',
-                      }}>
+                    <div className="lg-indigo rounded-2xl p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap size={13} style={{ color: '#5B6AF5' }} />
                         <p className="text-[11px] font-extrabold uppercase tracking-wider" style={{ color: '#5B6AF5' }}>
@@ -832,8 +919,7 @@ export default function QuizPage() {
                   { label: 'Wrong',    value: questions.length - score, color: '#EF4444' },
                   { label: 'Accuracy', value: `${Math.round((score/questions.length)*100)}%`, color: '#5B6AF5' },
                 ].map(stat => (
-                  <div key={stat.label} className="rounded-2xl py-3 text-center"
-                    style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div key={stat.label} className="bento-cell rounded-2xl py-3 text-center">
                     <p className="font-heading text-2xl font-extrabold" style={{ color: stat.color }}>{stat.value}</p>
                     <p className="text-[11px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{stat.label}</p>
                   </div>

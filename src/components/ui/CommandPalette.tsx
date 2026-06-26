@@ -106,9 +106,11 @@ export function CommandPalette({ open, onClose }: Props) {
             style={{
               top: 'max(env(safe-area-inset-top, 0px) + 16px, 60px)',
               maxHeight: 'calc(100dvh - 140px)',
-              background: '#0F1117',
-              border: '1px solid rgba(124,58,237,0.3)',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.1)',
+              background: 'rgba(8,6,20,0.88)',
+              backdropFilter: 'blur(72px) saturate(220%) brightness(1.04)',
+              WebkitBackdropFilter: 'blur(72px) saturate(220%) brightness(1.04)',
+              border: '1px solid rgba(124,58,237,0.28)',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(124,58,237,0.18)',
             }}
             initial={{ y: -24, opacity: 0, scale: 0.97 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}

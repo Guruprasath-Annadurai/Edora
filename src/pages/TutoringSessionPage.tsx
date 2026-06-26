@@ -307,14 +307,14 @@ function MCQCard({ checkpoint, onAnswer, answered, selectedIdx, correctIdx }: MC
               labelBg = '#EF4444';
               icon = <XCircle size={15} className="text-red-400 ml-auto shrink-0" />;
             } else {
-              bg = 'rgba(15,20,45,0.5)'; border = 'rgba(255,255,255,0.06)';
+              bg = 'rgba(255,255,255,0.035)'; border = 'rgba(255,255,255,0.06)';
               labelBg = 'rgba(255,255,255,0.08)';
             }
           } else if (isSelected) {
             bg = 'rgba(91,106,245,0.15)'; border = 'rgba(91,106,245,0.5)';
             labelBg = '#5B6AF5';
           } else {
-            bg = 'rgba(15,20,45,0.7)'; border = 'rgba(255,255,255,0.08)';
+            bg = 'rgba(255,255,255,0.055)'; border = 'rgba(255,255,255,0.08)';
             labelBg = 'rgba(255,255,255,0.1)';
           }
 
@@ -375,7 +375,7 @@ function MessageItem({ msg, displayContent, isTyping, onAnswer, answered, select
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl p-4"
-        style={{ background: 'rgba(15,20,45,0.85)', border: '1px solid rgba(91,106,245,0.2)' }}>
+        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(91,106,245,0.2)' }}>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-7 h-7 rounded-xl flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
@@ -1169,7 +1169,7 @@ Rules:
 
         {/* Header */}
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <button onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -1215,7 +1215,7 @@ Rules:
               value={subject}
               onChange={e => setSubject(e.target.value)}
               className="w-full rounded-2xl px-4 h-14 text-sm text-white placeholder:text-white/30 outline-none"
-              style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
+              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
             />
           </div>
 
@@ -1231,7 +1231,7 @@ Rules:
               onChange={e => setTopic(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleStartSession()}
               className="w-full rounded-2xl px-4 h-14 text-sm text-white placeholder:text-white/30 outline-none"
-              style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
+              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
             />
           </div>
 
@@ -1323,7 +1323,7 @@ Rules:
       <div className="shrink-0"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
-          background: 'rgba(10,12,28,0.85)',
+          background: 'rgba(8,6,20,0.88)',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           backdropFilter: 'blur(12px)',
         }}>
@@ -1478,7 +1478,7 @@ Rules:
         <div
           className="shrink-0"
           style={{
-            background: 'rgba(10,12,28,0.95)',
+            background: 'rgba(8,6,20,0.88)',
             backdropFilter: 'blur(20px)',
             borderTop: '1px solid rgba(255,255,255,0.08)',
             paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',

@@ -596,7 +596,7 @@ export default function ErrorPatternsPage() {
       {/* ── Header ── */}
       <div
         className="px-4 py-3 shrink-0 flex items-center gap-3"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
       >
         <Link
           to="/home"
@@ -652,7 +652,7 @@ export default function ErrorPatternsPage() {
                       border: '1px solid rgba(91,106,245,0.5)',
                       color: '#fff',
                     }
-                  : { background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }
+                  : { background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }
               }
             >
               All Subjects
@@ -670,7 +670,7 @@ export default function ErrorPatternsPage() {
                         borderColor: '#5B6AF5',
                         color: '#5B6AF5',
                       }
-                    : { background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }
+                    : { background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }
                 }
               >
                 {subject}

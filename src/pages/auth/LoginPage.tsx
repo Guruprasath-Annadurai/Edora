@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, User, ArrowRight, X, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, ArrowRight, X, ShieldCheck, KeyRound, RefreshCw } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { CharacterImage } from '@/components/ui/CharacterImage';
@@ -11,13 +12,40 @@ import { Events } from '@/lib/analytics';
 const NATIVE_REDIRECT = 'com.edora.app://auth/callback';
 const WEB_REDIRECT    = `${window.location.origin}/home`;
 
-const BG      = '#0A0A0F';
-const PURPLE  = 'linear-gradient(135deg,#7C3AED,#A855F7)';
-const DARK    = '#F4F6FA';
-const GRAY    = 'rgba(255,255,255,0.5)';
-const BORDER  = 'rgba(255,255,255,0.08)';
+// Maps raw Supabase/network error messages to user-friendly copy.
+// Never expose internal error codes or server stack traces to the user.
+function humaniseAuthError(raw: string): string {
+  const s = raw.toLowerCase();
+  if (s.includes('invalid login credentials') || s.includes('invalid_credentials'))
+    return 'Incorrect email or password. Please try again.';
+  if (s.includes('email not confirmed'))
+    return 'Please confirm your email before signing in. Check your inbox.';
+  if (s.includes('user already registered') || s.includes('already been registered'))
+    return 'An account with this email already exists. Try signing in instead.';
+  if (s.includes('user not found') || s.includes('no user'))
+    return 'No account found with this email. Check for typos or sign up.';
+  if (s.includes('rate limit') || s.includes('too many'))
+    return 'Too many attempts. Please wait a minute and try again.';
+  if (s.includes('network') || s.includes('fetch') || s.includes('failed to fetch'))
+    return 'No internet connection. Check your network and try again.';
+  if (s.includes('weak password') || s.includes('password should be'))
+    return 'Password is too weak. Use at least 8 characters with letters and numbers.';
+  if (s.includes('signup disabled') || s.includes('signups not allowed'))
+    return 'New sign-ups are temporarily paused. Please try again later.';
+  if (s.includes('otp') || s.includes('token has expired') || s.includes('token not found'))
+    return 'Code is incorrect or has expired. Request a new one.';
+  if (s.includes('invalid otp') || s.includes('otp_expired'))
+    return 'That code has expired. Tap "Resend code" to get a fresh one.';
+  // Fallback — still better than showing raw server text
+  return 'Something went wrong. Please try again.';
+}
 
-// Google SVG inline
+const BG     = '#0A0A0F';
+const PURPLE = 'linear-gradient(135deg,#6D28D9,#9333EA)';
+const DARK   = '#F4F6FA';
+const GRAY   = 'rgba(255,255,255,0.5)';
+const BORDER = 'rgba(255,255,255,0.18)';
+
 function GoogleIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
@@ -37,61 +65,139 @@ function AppleIcon() {
   );
 }
 
+// ── OTP digit input ──────────────────────────────────────────────────────────
+function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const refs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
+
+  function handleChange(i: number, char: string) {
+    const digits = value.split('');
+    digits[i] = char.replace(/\D/g, '').slice(-1);
+    const next = digits.join('');
+    onChange(next);
+    if (char && i < 5) refs[i + 1].current?.focus();
+  }
+
+  function handleKeyDown(i: number, e: React.KeyboardEvent) {
+    if (e.key === 'Backspace' && !value[i] && i > 0) {
+      refs[i - 1].current?.focus();
+      const digits = value.split('');
+      digits[i - 1] = '';
+      onChange(digits.join(''));
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    onChange(pasted.padEnd(6, ''));
+    refs[Math.min(pasted.length, 5)].current?.focus();
+  }
+
+  return (
+    <div className="flex gap-2 justify-center">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <input
+          key={i}
+          ref={refs[i]}
+          type="tel"
+          inputMode="numeric"
+          maxLength={1}
+          value={value[i] ?? ''}
+          onChange={e => handleChange(i, e.target.value)}
+          onKeyDown={e => handleKeyDown(i, e)}
+          onPaste={handlePaste}
+          className="w-11 h-14 text-center text-xl font-bold rounded-2xl outline-none transition-all"
+          style={{
+            background: 'rgba(15,17,23,0.9)',
+            border: value[i] ? '2px solid #5B6AF5' : `1.5px solid ${BORDER}`,
+            color: DARK,
+            WebkitUserSelect: 'text',
+            caretColor: '#5B6AF5',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [mode, setMode]             = useState<'login' | 'signup'>('login');
-  const [email, setEmail]           = useState('');
-  const [password, setPassword]     = useState('');
-  const [confirmPass, setConfirmPass] = useState('');
-  const [name, setName]             = useState('');
-  const [showPass, setShowPass]     = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('edora_remember_email'));
-  const [dpdpConsent, setDpdpConsent] = useState(false);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
-  const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSent, setForgotSent] = useState(false);
-  const [forgotLoading, setForgotLoading] = useState(false);
 
-  // Restore remembered email
+  // Auth method: password or otp
+  const [authMethod, setAuthMethod] = useState<'password' | 'otp'>('password');
+
+  // Password flow
+  const [mode, setMode]               = useState<'login' | 'signup'>('login');
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [name, setName]               = useState('');
+  const [showPass, setShowPass]       = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [rememberMe, setRememberMe]   = useState(() => !!localStorage.getItem('edora_remember_email'));
+  const [dpdpConsent, setDpdpConsent] = useState(false);
+
+  // OTP flow
+  const [otpEmail, setOtpEmail]       = useState('');
+  const [otpCode, setOtpCode]         = useState('');
+  const [otpSent, setOtpSent]         = useState(false);
+  const [otpConsent, setOtpConsent]   = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  // Shared
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState('');
+  const [forgotOpen, setForgotOpen]       = useState(false);
+  const [forgotEmail, setForgotEmail]     = useState('');
+  const [forgotSent, setForgotSent]       = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError]     = useState('');
+
   useEffect(() => {
     const saved = localStorage.getItem('edora_remember_email');
     if (saved) setEmail(saved);
   }, []);
 
+  // Resend countdown
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const t = setTimeout(() => setResendTimer(v => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendTimer]);
+
   function switchMode(m: 'login' | 'signup') {
-    setMode(m);
-    setError('');
-    setPassword('');
-    setConfirmPass('');
+    setMode(m); setError(''); setPassword(''); setConfirmPass('');
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function switchMethod(m: 'password' | 'otp') {
+    setAuthMethod(m); setError(''); setOtpSent(false); setOtpCode('');
+  }
+
+  // ── Password submit ──────────────────────────────────────────────────────
+  async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-
     if (mode === 'signup') {
-      if (!name.trim()) { setError('Please enter your name.'); return; }
-      if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-      if (password !== confirmPass) { setError('Passwords do not match.'); return; }
-      if (!dpdpConsent) { setError('Please accept the Privacy Policy to continue.'); return; }
+      if (!name.trim())              { setError('Please enter your name.'); return; }
+      if (password.length < 8)       { setError('Password must be at least 8 characters.'); return; }
+      if (password !== confirmPass)  { setError('Passwords do not match.'); return; }
+      if (!dpdpConsent)              { setError('Please accept the Privacy Policy to continue.'); return; }
     }
-
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!EMAIL_RE.test(email.trim())) { setError('Please enter a valid email address.'); return; }
+    if (mode === 'login' && !password) { setError('Please enter your password.'); return; }
     setLoading(true);
     try {
       if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
+        Haptics.notification({ type: NotificationType.Success }).catch(() => {});
         if (rememberMe) localStorage.setItem('edora_remember_email', email);
         else localStorage.removeItem('edora_remember_email');
       } else {
         Events.signupStarted({ method: 'email' });
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email, password,
           options: {
             data: {
               full_name:            name.trim(),
@@ -103,17 +209,70 @@ export default function LoginPage() {
         if (error) throw error;
         Events.signupCompleted({ method: 'email' });
         Events.dpdpConsentGiven({ version: 'v2026.06' });
-        setError('Check your email for a confirmation link before signing in.');
+        setError('✓ Account created! Check your email to confirm before signing in.');
         setLoading(false);
         return;
       }
     } catch (err: unknown) {
-      setError((err as Error).message);
+      setError(humaniseAuthError((err as Error).message ?? ''));
     } finally {
       setLoading(false);
     }
   }
 
+  // ── OTP: send code ───────────────────────────────────────────────────────
+  async function sendOtp() {
+    if (!otpEmail.trim())   { setError('Enter your email address.'); return; }
+    if (!otpConsent)        { setError('Please accept the Privacy Policy to continue.'); return; }
+    setError(''); setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: otpEmail.trim(),
+        options: { shouldCreateUser: true },
+      });
+      if (error) throw error;
+      setOtpSent(true);
+      setResendTimer(60);
+      setOtpCode('');
+    } catch (err: unknown) {
+      setError(humaniseAuthError((err as Error).message ?? ''));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── OTP: verify code ─────────────────────────────────────────────────────
+  async function verifyOtp() {
+    if (otpCode.replace(/\D/g, '').length < 6) {
+      setError('Enter the 6-digit code from your email.'); return;
+    }
+    setError(''); setLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: otpEmail.trim(),
+        token: otpCode,
+        type:  'email',
+      });
+      if (error) throw error;
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+      // Update DPDP consent metadata for new OTP users
+      await supabase.auth.updateUser({
+        data: {
+          dpdp_consent_at:      new Date().toISOString(),
+          dpdp_consent_version: 'v2026.06',
+        },
+      });
+      Events.signupCompleted({ method: 'email' });
+    } catch (err: unknown) {
+      // Give specific feedback: wrong code vs expired vs network
+      const msg = (err as Error).message ?? '';
+      setError(humaniseAuthError(msg));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── OAuth ────────────────────────────────────────────────────────────────
   async function openOAuth(provider: 'google' | 'apple') {
     setError('');
     if (Capacitor.isNativePlatform()) {
@@ -121,7 +280,7 @@ export default function LoginPage() {
         provider,
         options: { redirectTo: NATIVE_REDIRECT, skipBrowserRedirect: true },
       });
-      if (error) { setError(error.message); return; }
+      if (error) { setError(humaniseAuthError(error.message)); return; }
       if (data?.url) await Browser.open({ url: data.url, windowName: '_self' });
     } else {
       await supabase.auth.signInWithOAuth({
@@ -131,18 +290,38 @@ export default function LoginPage() {
     }
   }
 
+  // ── Forgot password ──────────────────────────────────────────────────────
   async function sendForgotPassword() {
-    if (!forgotEmail.trim()) { return; }
+    if (!forgotEmail.trim()) return;
+    setForgotError('');
     setForgotLoading(true);
     try {
       const redirectTo = Capacitor.isNativePlatform()
         ? NATIVE_REDIRECT
         : `${window.location.origin}/login`;
-      await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), { redirectTo });
+
+      // Race the Supabase call against a 10-second timeout so the spinner
+      // never hangs forever on a dead network connection.
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 10_000)
+      );
+      await Promise.race([
+        supabase.auth.resetPasswordForEmail(forgotEmail.trim(), { redirectTo }),
+        timeoutPromise,
+      ]);
+
       setForgotSent(true);
-    } catch {
-      // silently succeed — don't reveal if email exists
-      setForgotSent(true);
+    } catch (err: unknown) {
+      const msg = (err as Error).message ?? '';
+      if (msg === 'TIMEOUT') {
+        setForgotError('Request timed out. Check your connection and try again.');
+      } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+        setForgotError('No internet connection. Please try again.');
+      } else {
+        // Supabase intentionally returns success for unknown emails (security).
+        // Any other error is still surfaced so we don't silently fail.
+        setForgotError('Something went wrong. Please try again.');
+      }
     } finally {
       setForgotLoading(false);
     }
@@ -150,386 +329,403 @@ export default function LoginPage() {
 
   const inputClass = "flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400";
   const inputStyle = { color: DARK, WebkitUserSelect: 'text' as const, userSelect: 'text' as const };
-  const fieldWrap = {
-    background: 'rgba(15,17,23,0.9)',
-    border: `1.5px solid ${BORDER}`,
-    borderRadius: 16,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    paddingLeft: 16,
-    paddingRight: 16,
-    height: 56,
+  const fieldWrap  = {
+    background: 'rgba(15,17,23,0.9)', border: `1.5px solid ${BORDER}`,
+    borderRadius: 16, display: 'flex', alignItems: 'center',
+    gap: 12, paddingLeft: 16, paddingRight: 16, height: 56,
     boxShadow: '0 1px 4px rgba(91,106,245,0.06)',
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: BG }}>
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: BG }}>
       <div style={{ paddingTop: 'env(safe-area-inset-top)' }} />
 
-      {/* ── Illustration hero (top 42%) ── */}
-      <div className="relative shrink-0" style={{ height: '42%' }}>
-        {/* Subtle decorative circles */}
+      {/* Hero */}
+      <div className="relative shrink-0" style={{ height: '38%' }}>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute rounded-full" style={{
-            width: 220, height: 220, top: -40, right: -40,
-            background: 'rgba(91,106,245,0.08)', filter: 'blur(1px)',
-          }} />
-          <div className="absolute rounded-full" style={{
-            width: 140, height: 140, bottom: 20, left: -20,
-            background: 'rgba(139,92,246,0.07)',
-          }} />
+          <div className="absolute rounded-full" style={{ width: '56vw', height: '56vw', maxWidth: 220, maxHeight: 220, top: -40, right: -40, background: 'rgba(91,106,245,0.08)', filter: 'blur(1px)' }} />
+          <div className="absolute rounded-full" style={{ width: '36vw', height: '36vw', maxWidth: 140, maxHeight: 140, bottom: 20, left: -20, background: 'rgba(139,92,246,0.07)' }} />
         </div>
-
-        {/* App wordmark */}
         <div className="absolute top-4 left-0 right-0 flex justify-center">
-          <p className="font-heading text-xl font-black tracking-wider" style={{ color: '#5B6AF5' }}>
-            EDORA
-          </p>
+          <p className="font-heading text-xl font-black tracking-wider" style={{ color: '#5B6AF5' }}>EDORA</p>
         </div>
-
         <CharacterImage slug="login-character" anim="float" fillParent fallbackEmoji="📚" />
       </div>
 
-      {/* ── Form card (bottom 58%) ── */}
+      {/* Form card */}
       <motion.div
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-        className="flex-1 overflow-y-auto native-scroll px-6 pt-6 pb-safe"
-        style={{
-          background: 'rgba(15,17,23,0.9)',
-          borderTopLeftRadius: 32,
-          borderTopRightRadius: 32,
-          boxShadow: '0 -4px 24px rgba(91,106,245,0.08)',
-        }}
+        className="flex-1 overflow-y-auto native-scroll px-6 pt-5 pb-safe"
+        style={{ background: 'rgba(15,17,23,0.9)', borderTopLeftRadius: 32, borderTopRightRadius: 32, boxShadow: '0 -4px 24px rgba(91,106,245,0.08)' }}
       >
         {/* Title */}
-        <div className="mb-6">
+        <div className="mb-4">
           <h1 className="font-heading text-2xl font-bold" style={{ color: DARK }}>
-            {mode === 'login' ? 'Welcome Back! 👋' : 'Create Account ✨'}
+            {authMethod === 'otp' ? 'Quick Sign In ⚡' : mode === 'login' ? 'Welcome Back! 👋' : 'Create Account ✨'}
           </h1>
           <p className="text-sm mt-1" style={{ color: GRAY }}>
-            {mode === 'login' ? 'Sign in to continue your learning journey' : 'Join EDORA and start learning smarter'}
+            {authMethod === 'otp'
+              ? 'No password needed — we\'ll email you a code'
+              : mode === 'login' ? 'Sign in to continue your learning journey' : 'Join EDORA and start learning smarter'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {/* Name — signup only */}
-          <AnimatePresence>
-            {mode === 'signup' && (
-              <motion.div
-                key="name-field"
-                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                animate={{ opacity: 1, height: 56, marginBottom: 0 }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                style={fieldWrap}
-              >
-                <User size={18} color="#9CA3AF" />
-                <input
-                  type="text"
-                  placeholder="Your full name"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  className={inputClass}
-                  style={inputStyle}
-                  autoComplete="name"
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Email */}
-          <div style={fieldWrap}>
-            <Mail size={18} color="#9CA3AF" />
-            <input
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className={inputClass}
-              style={inputStyle}
-              autoComplete="email"
-            />
-          </div>
-
-          {/* Password */}
-          <div style={fieldWrap}>
-            <Lock size={18} color="#9CA3AF" />
-            <input
-              type={showPass ? 'text' : 'password'}
-              placeholder="Password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className={inputClass}
-              style={inputStyle}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            />
-            <button type="button" onClick={() => setShowPass(v => !v)} className="shrink-0 touch-target">
-              {showPass
-                ? <EyeOff size={18} color="#9CA3AF" />
-                : <Eye size={18} color="#9CA3AF" />}
-            </button>
-          </div>
-
-          {/* Confirm password — signup only */}
-          <AnimatePresence>
-            {mode === 'signup' && (
-              <motion.div
-                key="confirm-field"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 56 }}
-                exit={{ opacity: 0, height: 0 }}
-                style={fieldWrap}
-              >
-                <Lock size={18} color="#9CA3AF" />
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  placeholder="Confirm password"
-                  value={confirmPass}
-                  onChange={e => setConfirmPass(e.target.value)}
-                  className={inputClass}
-                  style={inputStyle}
-                  autoComplete="new-password"
-                />
-                <button type="button" onClick={() => setShowConfirm(v => !v)} className="shrink-0 touch-target">
-                  {showConfirm
-                    ? <EyeOff size={18} color="#9CA3AF" />
-                    : <Eye size={18} color="#9CA3AF" />}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* DPDP consent — signup only */}
-          <AnimatePresence>
-            {mode === 'signup' && (
-              <motion.button
-                key="dpdp-consent"
-                type="button"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                onClick={() => setDpdpConsent(v => !v)}
-                className="flex items-start gap-3 text-left active:opacity-70 transition-opacity mt-1"
-              >
-                <div
-                  className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all"
-                  style={dpdpConsent
-                    ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', borderColor: '#5B6AF5' }
-                    : { borderColor: BORDER, background: 'rgba(15,17,23,0.9)' }}
-                >
-                  {dpdpConsent && (
-                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                      <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </div>
-                <span className="text-xs leading-relaxed" style={{ color: GRAY }}>
-                  I agree to Edora's{' '}
-                  <span
-                    className="font-semibold underline"
-                    style={{ color: '#5B6AF5' }}
-                    onClick={e => { e.stopPropagation(); navigate('/privacy-policy'); }}
-                  >Privacy Policy</span>
-                  {' '}and{' '}
-                  <span
-                    className="font-semibold underline"
-                    style={{ color: '#5B6AF5' }}
-                    onClick={e => { e.stopPropagation(); navigate('/terms-of-service'); }}
-                  >Terms of Service</span>.
-                  {' '}My data is protected under India's DPDP Act 2023.{' '}
-                  <ShieldCheck size={12} className="inline mb-0.5" style={{ color: '#10B981' }} />
-                </span>
-              </motion.button>
-            )}
-          </AnimatePresence>
-
-          {/* Remember me + Forgot password (login only) */}
-          {mode === 'login' && (
-            <div className="flex items-center justify-between mt-1">
-              <button
-                type="button"
-                onClick={() => setRememberMe(v => !v)}
-                className="flex items-center gap-2 active:opacity-70 transition-opacity"
-              >
-                <div
-                  className="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all"
-                  style={rememberMe
-                    ? { background: PURPLE, borderColor: '#5B6AF5' }
-                    : { borderColor: BORDER, background: 'rgba(15,17,23,0.9)' }}
-                >
-                  {rememberMe && (
-                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                      <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </div>
-                <span className="text-xs font-medium" style={{ color: GRAY }}>Remember me</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setForgotOpen(true); setForgotEmail(email); setForgotSent(false); }}
-                className="text-xs font-semibold active:opacity-60 transition-opacity"
-                style={{ color: '#5B6AF5' }}
-              >
-                Forgot Password?
-              </button>
-            </div>
-          )}
-
-          {/* Error / success message */}
-          {error && (
-            <motion.p
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`text-xs text-center px-2 py-2 rounded-xl font-medium ${
-                error.includes('confirmation') || error.includes('Check')
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-red-600 bg-red-50'
-              }`}
+        {/* Auth method tabs */}
+        <div className="flex gap-2 mb-4 p-1 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${BORDER}` }}>
+          {(['password', 'otp'] as const).map(m => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => switchMethod(m)}
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+              style={authMethod === m
+                ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(91,106,245,0.35)' }
+                : { color: GRAY }}
             >
-              {error}
-            </motion.p>
+              {m === 'password' ? <><Lock size={13} /> Password</> : <><KeyRound size={13} /> Email OTP</>}
+            </button>
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+
+          {/* ── PASSWORD TAB ── */}
+          {authMethod === 'password' && (
+            <motion.div key="password-tab"
+              initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}>
+
+              {/* Login / Signup pills */}
+              <div className="flex gap-2 mb-4">
+                {(['login', 'signup'] as const).map(m => (
+                  <button key={m} type="button" onClick={() => switchMode(m)}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+                    style={mode === m
+                      ? { background: 'rgba(91,106,245,0.15)', color: '#A0AEFF', border: '1px solid rgba(91,106,245,0.3)' }
+                      : { color: GRAY, border: `1px solid ${BORDER}` }}>
+                    {m === 'login' ? 'Sign In' : 'Sign Up'}
+                  </button>
+                ))}
+              </div>
+
+              <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-3">
+                <AnimatePresence>
+                  {mode === 'signup' && (
+                    <motion.div key="name-field"
+                      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 56 }}
+                      exit={{ opacity: 0, height: 0 }} style={fieldWrap}>
+                      <User size={18} color="#9CA3AF" />
+                      <input type="text" placeholder="Your full name" value={name}
+                        onChange={e => setName(e.target.value)}
+                        className={inputClass} style={inputStyle} autoComplete="name" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div style={fieldWrap}>
+                  <Mail size={18} color="#9CA3AF" />
+                  <input type="email" placeholder="Email address" value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className={inputClass} style={inputStyle} autoComplete="email"
+                    autoFocus aria-label="Email address" />
+                </div>
+
+                <div style={fieldWrap}>
+                  <Lock size={18} color="#9CA3AF" />
+                  <input type={showPass ? 'text' : 'password'} placeholder="Password"
+                    value={password} onChange={e => setPassword(e.target.value)}
+                    className={inputClass} style={inputStyle}
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+                  <button type="button" onClick={() => setShowPass(v => !v)} className="shrink-0"
+                    aria-label={showPass ? 'Hide password' : 'Show password'}>
+                    {showPass ? <EyeOff size={18} color="#9CA3AF" /> : <Eye size={18} color="#9CA3AF" />}
+                  </button>
+                </div>
+
+                <AnimatePresence>
+                  {mode === 'signup' && (
+                    <motion.div key="confirm-field"
+                      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 56 }}
+                      exit={{ opacity: 0, height: 0 }} style={fieldWrap}>
+                      <Lock size={18} color="#9CA3AF" />
+                      <input type={showConfirm ? 'text' : 'password'} placeholder="Confirm password"
+                        value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
+                        className={inputClass} style={inputStyle} autoComplete="new-password" />
+                      <button type="button" onClick={() => setShowConfirm(v => !v)} className="shrink-0"
+                        aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}>
+                        {showConfirm ? <EyeOff size={18} color="#9CA3AF" /> : <Eye size={18} color="#9CA3AF" />}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {mode === 'signup' && (
+                    <motion.button key="dpdp" type="button"
+                      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      onClick={() => setDpdpConsent(v => !v)}
+                      className="flex items-start gap-3 text-left active:opacity-70 mt-1">
+                      <div className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all"
+                        style={dpdpConsent
+                          ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', borderColor: '#5B6AF5' }
+                          : { borderColor: BORDER, background: 'rgba(15,17,23,0.9)' }}>
+                        {dpdpConsent && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </div>
+                      <span className="text-xs leading-relaxed" style={{ color: GRAY }}>
+                        I agree to Edora's{' '}
+                        <span className="font-semibold underline" style={{ color: '#5B6AF5' }}
+                          onClick={e => { e.stopPropagation(); navigate('/privacy-policy'); }}>Privacy Policy</span>
+                        {' '}and{' '}
+                        <span className="font-semibold underline" style={{ color: '#5B6AF5' }}
+                          onClick={e => { e.stopPropagation(); navigate('/terms-of-service'); }}>Terms of Service</span>.
+                        {' '}My data is protected under India's DPDP Act 2023.{' '}
+                        <ShieldCheck size={12} className="inline mb-0.5" style={{ color: '#10B981' }} />
+                      </span>
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+
+                {mode === 'login' && (
+                  <div className="flex items-center justify-between mt-1">
+                    <button type="button" onClick={() => setRememberMe(v => !v)}
+                      className="flex items-center gap-2 active:opacity-70">
+                      <div className="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all"
+                        style={rememberMe
+                          ? { background: PURPLE, borderColor: '#5B6AF5' }
+                          : { borderColor: BORDER, background: 'rgba(15,17,23,0.9)' }}>
+                        {rememberMe && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </div>
+                      <span className="text-xs font-medium" style={{ color: GRAY }}>Remember me</span>
+                    </button>
+                    <button type="button"
+                      onClick={() => { setForgotOpen(true); setForgotEmail(email); setForgotSent(false); }}
+                      className="text-xs font-semibold" style={{ color: '#5B6AF5' }}>
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
+
+                {error && (
+                  <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className={`text-xs text-center px-2 py-2 rounded-xl font-medium ${
+                      error.startsWith('✓') ? 'text-emerald-300 bg-emerald-500/10' : 'text-red-300 bg-red-500/10'}`}>
+                    {error}
+                  </motion.p>
+                )}
+
+                <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.97 }}
+                  onClick={() => Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {})}
+                  className="w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 mt-1 disabled:opacity-60"
+                  style={{ background: PURPLE, boxShadow: '0 8px 32px rgba(147,51,234,0.55), 0 2px 8px rgba(0,0,0,0.4)' }}>
+                  {loading
+                    ? <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    : <>{mode === 'login' ? 'Sign In' : 'Create Account'}<ArrowRight size={18} /></>}
+                </motion.button>
+              </form>
+
+              <p className="text-center text-sm mt-4 mb-1" style={{ color: GRAY }}>
+                {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+                <button type="button" onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+                  className="font-bold" style={{ color: '#5B6AF5' }}>
+                  {mode === 'login' ? 'Sign Up' : 'Sign In'}
+                </button>
+              </p>
+            </motion.div>
           )}
 
-          {/* CTA button */}
-          <motion.button
-            type="submit"
-            disabled={loading}
-            whileTap={{ scale: 0.97 }}
-            className="w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 mt-1 disabled:opacity-60 transition-opacity"
-            style={{ background: PURPLE, boxShadow: '0 6px 24px rgba(91,106,245,0.35)' }}
-          >
-            {loading ? (
-              <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-            ) : (
-              <>
-                {mode === 'login' ? 'Login' : 'Create Account'}
-                <ArrowRight size={18} />
-              </>
-            )}
-          </motion.button>
-        </form>
+          {/* ── OTP TAB ── */}
+          {authMethod === 'otp' && (
+            <motion.div key="otp-tab"
+              initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.18 }}
+              className="flex flex-col gap-4">
 
-        {/* Divider */}
+              <AnimatePresence mode="wait">
+
+                {/* Step 1 — Enter email */}
+                {!otpSent && (
+                  <motion.div key="otp-email" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="flex flex-col gap-3">
+                    <div style={fieldWrap}>
+                      <Mail size={18} color="#9CA3AF" />
+                      <input type="email" placeholder="Email address" value={otpEmail}
+                        onChange={e => setOtpEmail(e.target.value)}
+                        className={inputClass} style={inputStyle} autoComplete="email" />
+                    </div>
+
+                    {/* DPDP consent for OTP */}
+                    <button type="button" onClick={() => setOtpConsent(v => !v)}
+                      className="flex items-start gap-3 text-left active:opacity-70">
+                      <div className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all"
+                        style={otpConsent
+                          ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', borderColor: '#5B6AF5' }
+                          : { borderColor: BORDER, background: 'rgba(15,17,23,0.9)' }}>
+                        {otpConsent && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </div>
+                      <span className="text-xs leading-relaxed" style={{ color: GRAY }}>
+                        I agree to Edora's{' '}
+                        <span className="font-semibold underline" style={{ color: '#5B6AF5' }}
+                          onClick={e => { e.stopPropagation(); navigate('/privacy-policy'); }}>Privacy Policy</span>
+                        {' '}and{' '}
+                        <span className="font-semibold underline" style={{ color: '#5B6AF5' }}
+                          onClick={e => { e.stopPropagation(); navigate('/terms-of-service'); }}>Terms of Service</span>.
+                        {' '}<ShieldCheck size={12} className="inline mb-0.5" style={{ color: '#10B981' }} />
+                      </span>
+                    </button>
+
+                    {error && (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="text-xs text-center px-2 py-2 rounded-xl font-medium text-red-300 bg-red-500/10">
+                        {error}
+                      </motion.p>
+                    )}
+
+                    <motion.button type="button" onClick={sendOtp} disabled={loading || !otpEmail.trim()}
+                      whileTap={{ scale: 0.97 }}
+                      className="w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 disabled:opacity-60"
+                      style={{ background: PURPLE, boxShadow: '0 6px 24px rgba(91,106,245,0.35)' }}>
+                      {loading
+                        ? <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        : <>Send OTP Code <ArrowRight size={18} /></>}
+                    </motion.button>
+                  </motion.div>
+                )}
+
+                {/* Step 2 — Enter OTP */}
+                {otpSent && (
+                  <motion.div key="otp-verify" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col gap-4">
+
+                    <div className="text-center">
+                      <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center"
+                        style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.2)' }}>
+                        <Mail size={24} color="#A0AEFF" />
+                      </div>
+                      <p className="text-sm font-semibold" style={{ color: DARK }}>Check your inbox</p>
+                      <p className="text-xs mt-1" style={{ color: GRAY }}>
+                        We sent a 6-digit code to{' '}
+                        <span style={{ color: '#A0AEFF' }}>{otpEmail}</span>
+                      </p>
+                    </div>
+
+                    <OtpInput value={otpCode} onChange={setOtpCode} />
+
+                    {error && (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="text-xs text-center px-2 py-2 rounded-xl font-medium text-red-300 bg-red-500/10">
+                        {error}
+                      </motion.p>
+                    )}
+
+                    <motion.button type="button" onClick={verifyOtp}
+                      disabled={loading || otpCode.replace(/\D/g, '').length < 6}
+                      whileTap={{ scale: 0.97 }}
+                      className="w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 disabled:opacity-60"
+                      style={{ background: PURPLE, boxShadow: '0 6px 24px rgba(91,106,245,0.35)' }}>
+                      {loading
+                        ? <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        : <>Verify & Sign In <ArrowRight size={18} /></>}
+                    </motion.button>
+
+                    <div className="flex items-center justify-center gap-2">
+                      {resendTimer > 0 ? (
+                        <p className="text-xs" style={{ color: GRAY }}>Resend in {resendTimer}s</p>
+                      ) : (
+                        <button type="button" onClick={() => { setOtpSent(false); setError(''); }}
+                          className="flex items-center gap-1.5 text-xs font-semibold"
+                          style={{ color: '#5B6AF5' }}>
+                          <RefreshCw size={12} /> Resend Code
+                        </button>
+                      )}
+                      <span style={{ color: BORDER }}>·</span>
+                      <button type="button" onClick={() => { setOtpSent(false); setOtpCode(''); setError(''); }}
+                        className="text-xs" style={{ color: GRAY }}>
+                        Change email
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* OAuth divider + buttons */}
         <div className="flex items-center gap-3 my-4">
           <div className="flex-1 h-px" style={{ background: BORDER }} />
           <span className="text-xs font-medium" style={{ color: '#C0C4D6' }}>or</span>
           <div className="flex-1 h-px" style={{ background: BORDER }} />
         </div>
 
-        {/* OAuth buttons — side by side */}
         <div className="flex gap-3">
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => openOAuth('google')}
-            className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 active:opacity-80 transition-opacity"
-            style={{ background: 'rgba(15,17,23,0.9)', border: `1.5px solid ${BORDER}`, color: DARK, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-          >
-            <GoogleIcon />
-            Google
+          <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('google')}
+            className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
+            style={{ background: 'rgba(15,17,23,0.9)', border: `1.5px solid ${BORDER}`, color: DARK }}>
+            <GoogleIcon /> Google
           </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => openOAuth('apple')}
-            className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 active:opacity-80 transition-opacity"
-            style={{ background: 'rgba(15,17,23,0.9)', border: `1.5px solid ${BORDER}`, color: DARK, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-          >
-            <AppleIcon />
-            Apple
+          <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('apple')}
+            className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
+            style={{ background: 'rgba(15,17,23,0.9)', border: `1.5px solid ${BORDER}`, color: DARK }}>
+            <AppleIcon /> Apple
           </motion.button>
         </div>
 
-        {/* Mode switch */}
-        <p className="text-center text-sm mt-5 mb-2" style={{ color: GRAY }}>
-          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <button
-            type="button"
-            onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-            className="font-bold active:opacity-60 transition-opacity"
-            style={{ color: '#5B6AF5' }}
-          >
-            {mode === 'login' ? 'Sign Up' : 'Sign In'}
-          </button>
-        </p>
-
-        <div style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} className="pb-4" />
+        <div style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} className="pb-6" />
       </motion.div>
 
       {/* ── Forgot Password modal ── */}
       <AnimatePresence>
         {forgotOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end"
             style={{ background: 'rgba(26,26,46,0.5)', backdropFilter: 'blur(4px)' }}
-            onClick={() => setForgotOpen(false)}
-          >
+            onClick={() => { setForgotOpen(false); setForgotError(""); setForgotSent(false); setForgotEmail(""); }}>
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="w-full rounded-t-3xl px-6 pt-4 pb-safe"
               style={{ background: 'rgba(15,17,23,0.9)', boxShadow: '0 -4px 32px rgba(0,0,0,0.5)' }}
-              onClick={e => e.stopPropagation()}
-            >
+              onClick={e => e.stopPropagation()}>
               <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: '#E5E7EB' }} />
-
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-heading text-xl font-bold" style={{ color: DARK }}>
-                  Reset Password
-                </h2>
-                <button aria-label="Close" onClick={() => setForgotOpen(false)}
+                <h2 className="font-heading text-xl font-bold" style={{ color: DARK }}>Reset Password</h2>
+                <button aria-label="Close" onClick={() => { setForgotOpen(false); setForgotError(""); setForgotSent(false); setForgotEmail(""); }}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
                   style={{ background: 'rgba(255,255,255,0.06)' }}>
                   <X size={16} color={GRAY} />
                 </button>
               </div>
-
               {forgotSent ? (
                 <div className="text-center py-6">
                   <div className="text-5xl mb-3">📬</div>
                   <p className="font-semibold text-base mb-1" style={{ color: DARK }}>Check your inbox</p>
                   <p className="text-sm" style={{ color: GRAY }}>
-                    We've sent a password reset link to{' '}
-                    <span className="font-semibold" style={{ color: '#5B6AF5' }}>{forgotEmail}</span>
+                    Reset link sent to <span className="font-semibold" style={{ color: '#5B6AF5' }}>{forgotEmail}</span>
                   </p>
-                  <button
-                    onClick={() => setForgotOpen(false)}
+                  <button onClick={() => { setForgotOpen(false); setForgotError(""); setForgotSent(false); setForgotEmail(""); }}
                     className="mt-5 w-full py-3.5 rounded-2xl font-bold text-white text-sm"
-                    style={{ background: PURPLE }}
-                  >
-                    Got It
-                  </button>
+                    style={{ background: PURPLE }}>Got It</button>
                 </div>
               ) : (
                 <>
-                  <p className="text-sm mb-5" style={{ color: GRAY }}>
-                    Enter your email and we'll send you a link to reset your password.
-                  </p>
+                  <p className="text-sm mb-5" style={{ color: GRAY }}>Enter your email and we'll send a reset link.</p>
                   <div style={fieldWrap}>
                     <Mail size={18} color="#9CA3AF" />
-                    <input
-                      type="email"
-                      placeholder="Email address"
-                      value={forgotEmail}
-                      onChange={e => setForgotEmail(e.target.value)}
-                      className={inputClass}
-                      style={inputStyle}
-                      autoFocus
-                    />
+                    <input type="email" placeholder="Email address" value={forgotEmail}
+                      onChange={e => { setForgotEmail(e.target.value); setForgotError(''); }}
+                      className={inputClass} style={inputStyle} autoFocus />
                   </div>
-                  <button
-                    onClick={sendForgotPassword}
-                    disabled={forgotLoading || !forgotEmail.trim()}
+                  {forgotError && (
+                    <p className="mt-2 text-sm text-red-400 flex items-center gap-1.5">
+                      <span>⚠</span>{forgotError}
+                    </p>
+                  )}
+                  <button onClick={sendForgotPassword} disabled={forgotLoading || !forgotEmail.trim()}
                     className="mt-4 w-full py-3.5 rounded-2xl font-bold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                    style={{ background: PURPLE, boxShadow: '0 4px 16px rgba(91,106,245,0.3)' }}
-                  >
+                    style={{ background: PURPLE, boxShadow: '0 4px 16px rgba(91,106,245,0.3)' }}>
                     {forgotLoading
                       ? <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                       : 'Send Reset Link'}

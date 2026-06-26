@@ -47,15 +47,14 @@ export function AppShell() {
   }, []);
 
   return (
-    <div
-      className="flex flex-col h-screen overflow-hidden relative"
-      style={{ background: 'var(--page-gradient, linear-gradient(180deg, #0A0F25 0%, #080C1A 100%))' }}
-    >
-      {/* Ambient background orbs */}
+    <div className="flex flex-col h-full overflow-hidden relative bg-deep-space">
+      {/* 5-layer ambient orb system — fluid vw sizing scales on all phone widths */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-        <div className="orb-purple" style={{ width: 340, height: 340, top: -100, left: -80, opacity: 0.6 }} />
-        <div className="orb-blue"   style={{ width: 280, height: 280, bottom: 120, right: -60, opacity: 0.5 }} />
-        <div className="orb-cyan"   style={{ width: 200, height: 200, top: '45%', left: '40%', opacity: 0.3 }} />
+        <div style={{ position:'absolute', width:'115vw', height:'115vw', maxWidth:440, maxHeight:440, top:'-18vw', left:'-22vw', borderRadius:'50%', background:'radial-gradient(circle, rgba(124,58,237,0.22), transparent 68%)', filter:'blur(50px)' }} />
+        <div style={{ position:'absolute', width:'92vw',  height:'92vw',  maxWidth:360, maxHeight:360, bottom:'10vw', right:'-18vw', borderRadius:'50%', background:'radial-gradient(circle, rgba(91,106,245,0.18), transparent 68%)', filter:'blur(46px)' }} />
+        <div style={{ position:'absolute', width:'64vw',  height:'64vw',  maxWidth:250, maxHeight:250, top:'38%', left:'36%',  borderRadius:'50%', background:'radial-gradient(circle, rgba(6,182,212,0.11), transparent 70%)',  filter:'blur(38px)' }} />
+        <div style={{ position:'absolute', width:'54vw',  height:'54vw',  maxWidth:210, maxHeight:210, top:'-10vw', right:'-10vw', borderRadius:'50%', background:'radial-gradient(circle, rgba(236,72,153,0.09), transparent 70%)', filter:'blur(42px)' }} />
+        <div style={{ position:'absolute', width:'82vw',  height:'46vw',  maxWidth:320, maxHeight:180, bottom:0, left:'15%',  borderRadius:'50%', background:'radial-gradient(ellipse, rgba(91,106,245,0.10), transparent 70%)', filter:'blur(34px)' }} />
       </div>
 
       {/* Status bar safe area */}

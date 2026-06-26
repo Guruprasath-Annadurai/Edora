@@ -6,10 +6,28 @@
 import * as Sentry from '@sentry/react';
 import { supabase } from '@/lib/supabase';
 
-// Request timeout — 35 seconds (edge function timeout is 30s, add buffer)
-const REQUEST_TIMEOUT_MS = 35_000;
+// Adaptive timeout based on network quality (navigator.connection is non-standard but widely available on Android)
+function getRequestTimeoutMs(): number {
+  const conn = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
+  const type = conn?.effectiveType;
+  if (type === '2g' || type === 'slow-2g') return 90_000;
+  if (type === '3g') return 60_000;
+  return 35_000; // 4g / wifi / unknown — edge function timeout is 30s, add buffer
+}
+const REQUEST_TIMEOUT_MS = getRequestTimeoutMs();
 // Report to Sentry if a Gemini call exceeds this
 const SLOW_CALL_THRESHOLD_MS = 3_000;
+
+// Strips auth tokens / keys from objects before sending to Sentry or console
+const SENSITIVE_KEYS = /token|authorization|apikey|api_key|secret|password|bearer/i;
+function sanitizeForLog(obj: unknown, depth = 0): unknown {
+  if (depth > 4 || obj === null || typeof obj !== 'object') return obj;
+  return Object.fromEntries(
+    Object.entries(obj as Record<string, unknown>).map(([k, v]) =>
+      SENSITIVE_KEYS.test(k) ? [k, '[REDACTED]'] : [k, sanitizeForLog(v, depth + 1)]
+    )
+  );
+}
 
 // Custom error types for user-facing messages
 export class GeminiRateLimitError extends Error {
@@ -112,7 +130,9 @@ export async function geminiCall(prompt: string, options: GeminiOptions = {}): P
 
       if (error) {
         const debugInfo = (data as { _debug?: string } | null)?._debug;
-        console.error('[geminiCall] edge error:', error.message, debugInfo ?? data);
+        // Strip any auth headers / tokens from the data object before logging
+        const safeData = data ? sanitizeForLog(data) : undefined;
+        console.error('[geminiCall] edge error:', error.message, debugInfo ?? safeData);
         throw new Error(debugInfo ?? error.message ?? 'Edge function error');
       }
       if (!data)  throw new Error('No response from AI service');

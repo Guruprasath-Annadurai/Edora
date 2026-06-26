@@ -54,7 +54,7 @@ Return ONLY valid JSON (no markdown): {
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/tools"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -97,12 +97,12 @@ Return ONLY valid JSON (no markdown): {
               <input type="text" placeholder="Concept / Formula / Fact (e.g. Krebs Cycle)"
                 value={topic} onChange={e => setTopic(e.target.value)}
                 className="rounded-2xl px-4 h-14 text-white placeholder:text-white/30 outline-none w-full"
-                style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
 
               <input type="text" placeholder="Context (optional — e.g. Biology chapter 5)"
                 value={context} onChange={e => setContext(e.target.value)}
                 className="rounded-2xl px-4 h-11 text-white placeholder:text-white/30 outline-none w-full text-sm"
-                style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
 
               {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 

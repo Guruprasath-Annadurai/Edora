@@ -179,7 +179,7 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'rgba(15,20,45,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}>
+    <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
       {/* Header */}
       <div className="p-4">
         <div className="flex items-start gap-2 mb-2">
@@ -314,7 +314,7 @@ Return ONLY JSON array:
   const DIFFICULTIES = ['All', 'Easy', 'Medium', 'Hard'];
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg,#0A0F25 0%,#080C1A 100%)' }}>
+    <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
       {/* Header */}
       <div className="shrink-0 px-4 pb-2" style={{ paddingTop: 'max(16px,env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-3">
@@ -377,7 +377,7 @@ Return ONLY JSON array:
       </div>
 
       {/* Examples list */}
-      <div className="flex-1 overflow-y-auto px-4 pb-28">
+      <div className="flex-1 overflow-y-auto px-fluid pb-nav">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center py-16 gap-3">
             <BookOpen size={32} className="text-white/15" />

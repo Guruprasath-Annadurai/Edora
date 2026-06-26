@@ -80,7 +80,7 @@ export default function StudyNotesPage() {
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/tools"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -105,7 +105,7 @@ export default function StudyNotesPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
             className="absolute inset-0 z-50 bg-gradient-page flex flex-col">
             <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-              style={{ background: 'rgba(10,12,28,0.9)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+              style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
               <button onClick={() => setViewing(null)}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>

@@ -308,9 +308,9 @@ export default function FormulaARPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white flex flex-col">
+    <div className="h-full text-white flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
         <Link to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </Link>
@@ -334,15 +334,33 @@ export default function FormulaARPage() {
         {(scanState === 'idle' || scanState === 'capturing') && (
           <div className="relative bg-black overflow-hidden" style={{ aspectRatio: '4/3' }}>
             {cameraError ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <AlertCircle className="w-10 h-10 text-red-400" />
-                <p className="text-sm text-gray-300">{cameraError}</p>
-                <button
-                  onClick={startCamera}
-                  className="px-4 py-2 rounded-xl bg-white/10 text-sm hover:bg-white/15 transition-colors"
-                >
-                  Retry
-                </button>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center"
+                style={{ background: 'rgba(10,8,24,0.95)' }}>
+                <div className="w-16 h-16 rounded-3xl flex items-center justify-center"
+                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                  <Camera className="w-7 h-7 text-red-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white mb-1">
+                    {cameraError.includes('denied') || cameraError.includes('NotAllowed')
+                      ? 'Camera Permission Denied'
+                      : 'Camera Unavailable'}
+                  </p>
+                  <p className="text-xs text-gray-400 leading-relaxed max-w-xs mx-auto">{cameraError}</p>
+                </div>
+                {(cameraError.includes('denied') || cameraError.includes('NotAllowed')) ? (
+                  <p className="text-xs text-gray-500 px-2">
+                    Go to your device Settings → App → Camera and allow access, then come back.
+                  </p>
+                ) : (
+                  <button
+                    onClick={startCamera}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-95"
+                    style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
             ) : (
               <>

@@ -93,7 +93,7 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
 
   return (
     <div className="rounded-2xl overflow-hidden mb-3"
-      style={{ background: 'rgba(15,20,45,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
       <div className="p-4">
         {/* Meta */}
         <div className="flex items-center justify-between mb-2">
@@ -265,7 +265,7 @@ Return ONLY JSON:
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg,#0A0F25 0%,#080C1A 100%)' }}>
+    <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
       {/* Header */}
       <div className="shrink-0 px-4 pb-3" style={{ paddingTop: 'max(16px,env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-4">
@@ -325,7 +325,7 @@ Return ONLY JSON:
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-28">
+      <div className="flex-1 overflow-y-auto px-fluid pb-nav">
         <AnimatePresence mode="wait">
 
           {/* Language picker */}
@@ -338,7 +338,7 @@ Return ONLY JSON:
                   <motion.button key={lang.code} whileTap={{ scale:0.97 }}
                     onClick={() => { setSelLang(lang); setPhase('questions'); }}
                     className="w-full flex items-center justify-between px-4 py-4 rounded-2xl text-left active:opacity-80"
-                    style={{ background: 'rgba(15,20,45,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
                     <div className="flex items-center gap-3.5">
                       <span className="text-2xl">{lang.flag}</span>
                       <div>

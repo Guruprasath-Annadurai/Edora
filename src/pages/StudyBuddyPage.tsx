@@ -122,7 +122,7 @@ export default function StudyBuddyPage() {
   const cfg = { gradient: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #05060F 0%, #0B0E1F 100%)' }}>
+    <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <button aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
           <ChevronLeft className="w-5 h-5 text-white" />
@@ -130,7 +130,7 @@ export default function StudyBuddyPage() {
         <h1 className="font-heading text-lg font-bold text-white flex-1">Study Buddy</h1>
       </div>
 
-      <div className="flex-1 px-5 pb-24">
+      <div className="flex-1 px-5 pb-nav overflow-y-auto">
         {loading ? (
           <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
         ) : !pair ? (
@@ -152,7 +152,7 @@ export default function StudyBuddyPage() {
             {/* Pair card */}
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               className="rounded-3xl p-6 text-center mb-5"
-              style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <div className="flex items-center justify-center gap-3 mb-4">
                 <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? 'You'} />
                 <div className="text-2xl">🤝</div>

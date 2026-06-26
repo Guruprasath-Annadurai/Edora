@@ -87,6 +87,37 @@
     user-select: text;
   }
 
+  /* ── Global glass input style ─────────────────────────────────
+     Applies to all text-entry elements not overridden by inline styles.
+     Inline style={{ }} always wins — this is a safe baseline.          */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="color"]),
+  textarea,
+  select {
+    background: rgba(255,255,255,0.07);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.92);
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="color"]):focus,
+  textarea:focus,
+  select:focus {
+    border-color: rgba(124,58,237,0.55);
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+  }
+
+  ::placeholder {
+    color: rgba(255,255,255,0.30);
+  }
+
+  option {
+    background: #080614;
+    color: rgba(255,255,255,0.88);
+  }
+
   /* WCAG 2.5.5 — minimum tap target height.
      min-height covers the most common failure (vertically thin buttons).
      For icon-only buttons that are also narrow, use .touch-target or w-11 h-11.
@@ -139,28 +170,36 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* ── Dark glass surfaces ───────────────────────────────────── */
+  /* ── Glass surfaces — updated to Liquid Glass spec ────────── */
   .glass {
-    background: rgba(15, 20, 45, 0.65);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow: var(--shadow-sm);
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(28px) saturate(170%) brightness(1.04);
+    -webkit-backdrop-filter: blur(28px) saturate(170%) brightness(1.04);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 4px 20px rgba(0,0,0,0.38);
   }
 
   .glass-strong {
-    background: rgba(8, 12, 30, 0.82);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: var(--shadow-md);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(40px) saturate(190%) brightness(1.06);
+    -webkit-backdrop-filter: blur(40px) saturate(190%) brightness(1.06);
+    border: 1px solid rgba(255,255,255,0.11);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,0.15),
+      0 6px 28px rgba(0,0,0,0.45);
   }
 
   .card-surface {
-    background: rgba(15, 20, 45, 0.8);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
     border-radius: 20px;
-    box-shadow: var(--shadow-card);
-    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      0 4px 24px rgba(0,0,0,0.38);
+    border: 1px solid rgba(255,255,255,0.09);
   }
 
   .card-ai {
@@ -273,6 +312,63 @@
   }
 }
 
+/* ── Design-system tokens ──────────────────────────────────────── */
+/* Centralised values — reference these in inline styles and Tailwind
+   arbitrary-value classes rather than duplicating rgba() strings.    */
+:root {
+  /* Surface layers (dark glass, no backdrop-filter) */
+  --s1: rgba(15, 20, 45, 0.80);   /* primary card */
+  --s2: rgba(15, 20, 45, 0.55);   /* nested / secondary card */
+  --s3: rgba(10, 12, 30, 0.70);   /* deepest surface (overlays, illustration panes) */
+
+  /* Default card border */
+  --b0: rgba(255,255,255,0.04);   /* ultra-subtle */
+  --b1: rgba(255,255,255,0.06);   /* standard card border  ← use this everywhere */
+  --b2: rgba(255,255,255,0.10);   /* emphasis */
+
+  /* Text hierarchy (white on dark) */
+  --t1: rgba(255,255,255,0.95);   /* headings / numbers */
+  --t2: rgba(255,255,255,0.65);   /* body */
+  --t3: rgba(255,255,255,0.40);   /* secondary / meta */
+  --t4: rgba(255,255,255,0.25);   /* muted / eyebrow */
+}
+
+/* Utility: eyebrow / section label
+   Usage: <p class="ds-eyebrow">Section title</p>                    */
+.ds-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t4);
+}
+
+/* Utility: standard list row
+   Usage: <div class="ds-row">…icon…content…</div>                   */
+.ds-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;            /* rounded-2xl */
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  transition: opacity 0.15s;
+}
+
+/* Icon-container size scale
+   All containers: display flex + items-center + justify-center + shrink-0
+   radii: sm → rounded-xl (12px), md → rounded-2xl (16px), lg → rounded-2xl (16px) */
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.icon-sm  { width: 36px; height: 36px; border-radius: 12px; } /* w-9  h-9  rounded-xl  */
+.icon-md  { width: 44px; height: 44px; border-radius: 16px; } /* w-11 h-11 rounded-2xl */
+.icon-lg  { width: 52px; height: 52px; border-radius: 16px; } /* w-13 h-13 rounded-2xl */
+
 /* ── Scrollbar hide ────────────────────────────────────────────── */
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; -ms-overflow-style: none; }
@@ -369,7 +465,7 @@
 .bg-gradient-quiz    { background: linear-gradient(135deg, #EC4899, #8B5CF6); }
 .bg-gradient-warm    { background: linear-gradient(135deg, #F97316, #EF4444); }
 .bg-gradient-success { background: linear-gradient(135deg, #10B981, #059669); }
-.bg-gradient-page    { background: linear-gradient(180deg, #0A0F25 0%, #080C1A 100%); }
+.bg-gradient-page    { background: transparent; }
 
 /* ── Dark skeleton shimmer ──────────────────────────────────────── */
 .skeleton-dark {
@@ -531,3 +627,607 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
   100% { opacity: 0; transform: translateY(-44px) scale(0.9); }
 }
 .animate-xp-gain { animation: xp-gain 1.4s ease-out forwards; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LIQUID GLASS — iOS 26 / Apple Vision Pro design language
+   Three tiers: sm (cards), md (panels), strong (modals / nav)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Tier 1 — light cards, nested surfaces */
+.liquid-glass {
+  background: rgba(255,255,255,0.055);
+  backdrop-filter: blur(36px) saturate(180%) brightness(1.06);
+  -webkit-backdrop-filter: blur(36px) saturate(180%) brightness(1.06);
+  border: 1px solid rgba(255,255,255,0.11);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.16),
+    inset 0 -0.5px 0 rgba(0,0,0,0.2),
+    0 6px 32px rgba(0,0,0,0.42),
+    0 1px 8px rgba(91,106,245,0.08);
+}
+
+/* Tier 2 — hero panels, drawers, sheet cards */
+.liquid-glass-panel {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(52px) saturate(200%) brightness(1.08);
+  -webkit-backdrop-filter: blur(52px) saturate(200%) brightness(1.08);
+  border: 1px solid rgba(255,255,255,0.13);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.20),
+    inset 0 -1px 0 rgba(0,0,0,0.12),
+    0 12px 48px rgba(0,0,0,0.52),
+    0 2px 12px rgba(91,106,245,0.12),
+    0 0 0 0.5px rgba(255,255,255,0.04);
+}
+
+/* Tier 3 — navigation pill, modal backdrops */
+.liquid-glass-nav {
+  background: rgba(6,8,22,0.72);
+  backdrop-filter: blur(64px) saturate(220%) brightness(1.05);
+  -webkit-backdrop-filter: blur(64px) saturate(220%) brightness(1.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.14),
+    inset 0 -0.5px 0 rgba(0,0,0,0.4),
+    0 -8px 48px rgba(0,0,0,0.55),
+    0 -2px 16px rgba(0,0,0,0.35),
+    0 0 60px rgba(91,106,245,0.07);
+}
+
+/* Tier 4 — modal / overlay sheets */
+.liquid-glass-modal {
+  background: rgba(8,10,26,0.60);
+  backdrop-filter: blur(72px) saturate(240%) brightness(1.10);
+  -webkit-backdrop-filter: blur(72px) saturate(240%) brightness(1.10);
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.24),
+    inset 0 -1px 0 rgba(255,255,255,0.04),
+    0 24px 80px rgba(0,0,0,0.70),
+    0 8px 24px rgba(91,106,245,0.16),
+    0 0 120px rgba(139,92,246,0.08);
+}
+
+/* Active tab bubble (nav item active state) */
+.tab-bubble-active {
+  background: rgba(124,58,237,0.18);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(124,58,237,0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    0 2px 10px rgba(124,58,237,0.30);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BENTO GRID SYSTEM
+   ════════════════════════════════════════════════════════════════════════════ */
+.bento-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.bento-full  { grid-column: 1 / -1; }
+.bento-tall  { grid-row: span 2; }
+.bento-3col  { grid-template-columns: 1fr 1fr 1fr; }
+
+.bento-cell {
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.038);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 4px 24px rgba(0,0,0,0.30);
+}
+
+.bento-cell-elevated {
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.052);
+  border: 1px solid rgba(255,255,255,0.11);
+  backdrop-filter: blur(36px) saturate(170%) brightness(1.05);
+  -webkit-backdrop-filter: blur(36px) saturate(170%) brightness(1.05);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.15),
+    inset 0 -0.5px 0 rgba(0,0,0,0.15),
+    0 6px 30px rgba(0,0,0,0.38);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SPECULAR HIGHLIGHT — top-edge glow on glass surfaces
+   Usage: add class .specular to any glass card
+   ════════════════════════════════════════════════════════════════════════════ */
+.specular { position: relative; }
+.specular::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 12%; right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.40), transparent);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DEEP SPACE PAGE BACKGROUND
+   ════════════════════════════════════════════════════════════════════════════ */
+.bg-deep-space {
+  background:
+    radial-gradient(ellipse 130% 55% at 50% -5%,  rgba(91,106,245,0.20) 0%, transparent 60%),
+    radial-gradient(ellipse 80%  50% at -8%  45%,  rgba(139,92,246,0.15) 0%, transparent 55%),
+    radial-gradient(ellipse 70%  40% at 108% 75%,  rgba(6,182,212,0.11)  0%, transparent 55%),
+    radial-gradient(ellipse 60%  35% at 55%  90%,  rgba(91,106,245,0.10) 0%, transparent 50%),
+    linear-gradient(180deg, #060918 0%, #040610 100%);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LIQUID SHIMMER — premium hover / loading animation
+   ════════════════════════════════════════════════════════════════════════════ */
+@keyframes liquid-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.liquid-shimmer {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0)    0%,
+    rgba(255,255,255,0.05) 40%,
+    rgba(255,255,255,0.10) 50%,
+    rgba(255,255,255,0.05) 60%,
+    rgba(255,255,255,0)    100%
+  );
+  background-size: 200% 100%;
+  animation: liquid-shimmer 2.4s ease-in-out infinite;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   COLOUR-TINTED LIQUID GLASS VARIANTS (for subject/status cards)
+   ════════════════════════════════════════════════════════════════════════════ */
+.lg-indigo  { background: rgba(91,106,245,0.15);  border-color: rgba(91,106,245,0.26);  border-left: 3px solid rgba(91,106,245,0.60)  !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 24px rgba(91,106,245,0.22); }
+.lg-violet  { background: rgba(139,92,246,0.15);  border-color: rgba(139,92,246,0.26);  border-left: 3px solid rgba(139,92,246,0.60) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 24px rgba(139,92,246,0.22); }
+.lg-cyan    { background: rgba(6,182,212,0.13);   border-color: rgba(6,182,212,0.24);   border-left: 3px solid rgba(6,182,212,0.56)   !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 20px rgba(6,182,212,0.18); }
+.lg-green   { background: rgba(16,185,129,0.13);  border-color: rgba(16,185,129,0.24);  border-left: 3px solid rgba(16,185,129,0.56)  !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 20px rgba(16,185,129,0.18); }
+.lg-amber   { background: rgba(251,191,36,0.12);  border-color: rgba(251,191,36,0.24);  border-left: 3px solid rgba(251,191,36,0.56)  !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 20px rgba(251,191,36,0.15); }
+.lg-red     { background: rgba(239,68,68,0.13);   border-color: rgba(239,68,68,0.26);   border-left: 3px solid rgba(239,68,68,0.56)   !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 20px rgba(239,68,68,0.18); }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GRADIENT ACCENT BORDERS — iridescent / prismatic edges
+   ════════════════════════════════════════════════════════════════════════════ */
+@keyframes iridescent-shift {
+  0%   { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+.border-iridescent {
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+.border-iridescent::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg,
+    rgba(91,106,245,0.6),
+    rgba(139,92,246,0.5),
+    rgba(236,72,153,0.4),
+    rgba(6,182,212,0.5),
+    rgba(91,106,245,0.6)
+  );
+  z-index: -1;
+  animation: iridescent-shift 6s linear infinite;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   UPDATED PAGE GRADIENT TOKEN
+   ════════════════════════════════════════════════════════════════════════════ */
+:root {
+  --page-gradient: linear-gradient(180deg,
+    #060918 0%,
+    #070B1C 40%,
+    #050810 100%
+  );
+  /* Indigo-violet primary gradient */
+  --primary-gradient: linear-gradient(135deg, #5B6AF5 0%, #8B5CF6 100%);
+  /* Premium gold accent */
+  --gold-gradient: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
+
+  /* Legacy CSS var tokens — resolved to deep space palette */
+  --color-bg:             transparent;
+  --color-surface:        rgba(255,255,255,0.055);
+  --color-border:         rgba(255,255,255,0.10);
+  /* Typography tiers: heading(0.95) body(0.80) support(0.55) muted(0.35) */
+  --color-text:           rgba(255,255,255,0.88);
+  --color-text-body:      rgba(255,255,255,0.80);
+  --color-text-support:   rgba(255,255,255,0.55);
+  --color-text-muted:     rgba(255,255,255,0.45);
+  --color-text-secondary: rgba(255,255,255,0.45);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PERFORMANCE TIER — LOW-END DEVICE FALLBACKS
+   JS sets html.perf-low via usePerformanceTier() when deviceMemory < 3 GB
+   or hardwareConcurrency ≤ 4 cores (budget Snapdragon/Helio devices).
+   !important overrides inline style={{ backdropFilter }} — CSS spec allows
+   !important to beat inline styles.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Browsers that don't support backdrop-filter at all (old Android WebView) */
+@supports not (backdrop-filter: blur(1px)) {
+  .liquid-glass, .glass         { background: rgba(22,20,44,0.93); }
+  .liquid-glass-panel           { background: rgba(16,14,36,0.96); }
+  .liquid-glass-nav             { background: rgba(8,6,22,0.97);   }
+  .liquid-glass-modal           { background: rgba(6,4,18,0.98);   }
+  .glass-strong, .card-surface  { background: rgba(14,12,32,0.95); }
+  .bento-cell                   { background: rgba(20,18,40,0.91); }
+  .bento-cell-elevated          { background: rgba(22,20,44,0.93); }
+}
+
+/* JS-detected low-end: disable ALL backdrop-filter including inline styles */
+html.perf-low * {
+  backdrop-filter:         none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Solid fallback backgrounds for glass CSS classes */
+html.perf-low .liquid-glass        { background: rgba(22,20,44,0.93) !important; }
+html.perf-low .liquid-glass-panel  { background: rgba(16,14,36,0.96) !important; }
+html.perf-low .liquid-glass-nav    { background: rgba(8,6,22,0.97)   !important; }
+html.perf-low .liquid-glass-modal  { background: rgba(6,4,18,0.98)   !important; }
+html.perf-low .glass               { background: rgba(22,20,44,0.93) !important; }
+html.perf-low .glass-strong        { background: rgba(14,12,32,0.95) !important; }
+html.perf-low .card-surface        { background: rgba(14,12,32,0.95) !important; }
+html.perf-low .bento-cell          { background: rgba(20,18,40,0.91) !important; }
+html.perf-low .bento-cell-elevated { background: rgba(22,20,44,0.93) !important; }
+
+/* Inline-style glass cards (e.g. rgba(255,255,255,0.055) panels) stay
+   semi-transparent — that's fine on a dark bg without blur. Nav bars with
+   rgba(8,6,20,0.82) are opaque enough to read without blur. No extra fix needed. */
+
+/* Reduce Framer Motion on low-end — keep tap feedback, skip layout animations */
+html.perf-low [data-framer-motion-layout-id],
+html.perf-low [style*="will-change"] {
+  will-change: auto !important;
+  transition: none !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   TYPOGRAPHY HIERARCHY — Issue 6
+   Four semantic opacity tiers. Use these instead of arbitrary rgba(255,255,255,X)
+   heading (0.95) > body (0.80) > support (0.55) > muted (0.35)
+   ════════════════════════════════════════════════════════════════════════════ */
+.text-heading  { color: rgba(255,255,255,0.95); }
+.text-body     { color: rgba(255,255,255,0.80); }
+.text-support  { color: rgba(255,255,255,0.55); }
+.text-muted-ui { color: rgba(255,255,255,0.35); }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CARD VISUAL HIERARCHY — Issue 5
+   Elevate KPI / hero cards above list-item cards so scannable hierarchy exists.
+   Usage:
+     • .card-hero   → primary KPI, streak banner, exam countdown
+     • .bento-cell-elevated → standard prominent card
+     • .bento-cell          → secondary / metadata chip
+   ════════════════════════════════════════════════════════════════════════════ */
+.card-hero {
+  background: rgba(255,255,255,0.068);
+  border: 1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(44px) saturate(190%) brightness(1.09);
+  -webkit-backdrop-filter: blur(44px) saturate(190%) brightness(1.09);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.20),
+    inset 0 -1px 0 rgba(0,0,0,0.18),
+    0 12px 48px rgba(0,0,0,0.50),
+    0 3px 16px rgba(91,106,245,0.18),
+    0 0 0 0.5px rgba(255,255,255,0.06);
+  border-radius: 28px;
+}
+html.perf-low .card-hero { background: rgba(24,22,46,0.94) !important; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   AVATAR GROUNDING SHADOW — Issue 10
+   Adds a soft drop-shadow under 3D PNG avatars so they sit on the
+   background instead of floating detached on low-contrast dark screens.
+   ════════════════════════════════════════════════════════════════════════════ */
+.avatar-grounded {
+  filter:
+    drop-shadow(0 14px 28px rgba(6,9,24,0.70))
+    drop-shadow(0 4px  10px rgba(91,106,245,0.22));
+}
+html.perf-low .avatar-grounded { filter: none !important; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   360px VIEWPORT FIXES — Issues 8 & 9
+   Budget Android phones (Redmi A1, Samsung A03) are exactly 360px wide.
+   The 5-tab nav + floating Novo orb need special treatment at this width.
+   ════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 360px) {
+  /* Tab labels: shrink font to prevent clipping */
+  .tab-label {
+    font-size: 9px !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  /* Novo orb: reduce from 54px to 46px so adjacent labels aren't crowded */
+  .novo-orb {
+    width: 46px !important;
+    height: 46px !important;
+    margin-top: -14px !important;
+  }
+
+  /* Quick-start FAB: shrink to icon-only on very small screens */
+  .fab-label-text {
+    display: none !important;
+  }
+  .fab-button {
+    padding: 12px !important;
+    right: 12px !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FULL RESPONSIVE SYSTEM
+   Breakpoints:
+     xs  : ≤360px   — budget Android (Redmi A1, Samsung A03)
+     sm  : 361–390px — standard Android (Pixel 6a, Galaxy A54)
+     md  : 391–430px — large Android / iPhone Pro Max
+     lg  : 431–480px — tablet mini / foldables
+   Strategy: fluid base values using clamp() + dvh + safe-area aware
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Root fluid sizing ──────────────────────────────────────────────────── */
+:root {
+  /* Fluid base font: 14px on 360px → 16px on 430px */
+  --fluid-base:    clamp(14px, calc(14px + (16 - 14) * ((100vw - 360px) / (430 - 360))), 16px);
+
+  /* Fluid heading: 22px → 26px */
+  --fluid-h1:      clamp(22px, calc(22px + (26 - 22) * ((100vw - 360px) / (430 - 360))), 26px);
+
+  /* Fluid subheading: 17px → 20px */
+  --fluid-h2:      clamp(17px, calc(17px + (20 - 17) * ((100vw - 360px) / (430 - 360))), 20px);
+
+  /* Fluid body: 13px → 15px */
+  --fluid-body:    clamp(13px, calc(13px + (15 - 13) * ((100vw - 360px) / (430 - 360))), 15px);
+
+  /* Fluid caption: 11px → 12px */
+  --fluid-caption: clamp(11px, calc(11px + (12 - 11) * ((100vw - 360px) / (430 - 360))), 12px);
+
+  /* Fluid horizontal padding: 14px → 20px */
+  --fluid-px:      clamp(14px, calc(14px + (20 - 14) * ((100vw - 360px) / (430 - 360))), 20px);
+
+  /* Fluid gap/spacing: 10px → 16px */
+  --fluid-gap:     clamp(10px, calc(10px + (16 - 10) * ((100vw - 360px) / (430 - 360))), 16px);
+
+  /* Fluid card radius: 16px → 24px */
+  --fluid-radius:  clamp(16px, calc(16px + (24 - 16) * ((100vw - 360px) / (430 - 360))), 24px);
+
+  /* Fluid button height: 46px → 56px */
+  --fluid-btn:     clamp(46px, calc(46px + (56 - 46) * ((100vw - 360px) / (430 - 360))), 56px);
+
+  /* Fluid icon size: 18px → 22px */
+  --fluid-icon:    clamp(18px, calc(18px + (22 - 18) * ((100vw - 360px) / (430 - 360))), 22px);
+
+  /* Nav dimensions that auto-adjust */
+  --nav-height:       72px;
+  --nav-bottom-offset: 16px;
+
+  /* Dynamic viewport height (handles mobile browser chrome correctly) */
+  --dvh-full: 100dvh;
+  --app-height: 100dvh;
+}
+
+/* ── Universal page container ───────────────────────────────────────────── */
+/* Use .page-root as the outermost div of any page rendered inside AppShell */
+.page-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* Pages that need full-height scroll */
+.page-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding-left: var(--fluid-px);
+  padding-right: var(--fluid-px);
+  padding-bottom: calc(var(--nav-height) + var(--nav-bottom-offset) + env(safe-area-inset-bottom) + 12px);
+}
+
+/* Pages with NO bottom nav (auth, onboarding, standalone modals) */
+.page-scroll-free {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding-left: var(--fluid-px);
+  padding-right: var(--fluid-px);
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+/* ── Fluid typography utilities ─────────────────────────────────────────── */
+.text-fluid-h1      { font-size: var(--fluid-h1);      font-weight: 700; letter-spacing: -0.03em; }
+.text-fluid-h2      { font-size: var(--fluid-h2);      font-weight: 700; letter-spacing: -0.02em; }
+.text-fluid-base    { font-size: var(--fluid-base);    font-weight: 400; }
+.text-fluid-body    { font-size: var(--fluid-body);    font-weight: 400; }
+.text-fluid-caption { font-size: var(--fluid-caption); font-weight: 500; }
+
+/* ── Fluid spacing utilities ────────────────────────────────────────────── */
+.px-fluid  { padding-left: var(--fluid-px);  padding-right: var(--fluid-px);  }
+.gap-fluid { gap: var(--fluid-gap); }
+
+/* ── Fluid card ─────────────────────────────────────────────────────────── */
+.card-fluid {
+  border-radius: var(--fluid-radius);
+  padding: var(--fluid-gap);
+}
+
+/* ── Fluid CTA button ───────────────────────────────────────────────────── */
+.btn-fluid {
+  min-height: var(--fluid-btn);
+  font-size: var(--fluid-base);
+  border-radius: calc(var(--fluid-radius) * 0.7);
+}
+
+/* ── Safe-area aware top padding ────────────────────────────────────────── */
+.pt-safe    { padding-top: max(16px, env(safe-area-inset-top)); }
+.pt-safe-lg { padding-top: max(24px, env(safe-area-inset-top)); }
+
+/* ── min-h-screen → h-full replacement ─────────────────────────────────── */
+/* Alias classes — apply these to root divs instead of min-h-screen */
+.h-app  { height: 100%; min-height: 0; }
+.h-page { height: 100dvh; overflow: hidden; }
+
+/* ── AppShell orb system — fluid sizes ──────────────────────────────────── */
+/* Orbs use vw-based sizes so they scale proportionally on all phone widths */
+.orb-primary {
+  width: clamp(200px, 60vw, 440px);
+  height: clamp(200px, 60vw, 440px);
+}
+.orb-secondary {
+  width: clamp(160px, 48vw, 360px);
+  height: clamp(160px, 48vw, 360px);
+}
+
+/* ── Input / form fluid ──────────────────────────────────────────────────── */
+.input-fluid {
+  height: clamp(46px, calc(46px + (54 - 46) * ((100vw - 360px) / 70)), 54px);
+  font-size: var(--fluid-body);
+  border-radius: clamp(12px, calc(12px + (14 - 12) * ((100vw - 360px) / 70)), 14px);
+}
+
+/* ── Grid helpers ────────────────────────────────────────────────────────── */
+/* Responsive 2-col bento grid: single col on 360px, 2-col on 390px+ */
+.bento-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--fluid-gap);
+}
+@media (min-width: 380px) {
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bento-span-2 {
+    grid-column: span 2;
+  }
+}
+
+/* ── Tablet / large screen layout (430px+) ──────────────────────────────── */
+@media (min-width: 430px) {
+  :root {
+    --nav-height: 76px;
+    --nav-bottom-offset: 18px;
+  }
+  .bento-grid {
+    gap: 14px;
+  }
+}
+
+/* ── Extra-large (480px+ — foldables, iPad mini in portrait) ─────────────── */
+@media (min-width: 480px) {
+  :root {
+    --fluid-px: 24px;
+    --fluid-gap: 18px;
+  }
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* ── Fix: replace all hardcoded min-h-screen/h-screen inside AppShell ────── */
+/* Any page using .page-root correctly will fill the available space
+   without overflowing the fixed-height AppShell */
+.app-inner-page {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Conversation / chat pages ────────────────────────────────────────────── */
+/* Chat input bar must stay above safe area AND nav */
+.chat-input-bar {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding-left: var(--fluid-px);
+  padding-right: var(--fluid-px);
+  flex-shrink: 0;
+}
+
+/* ── Fullscreen immersive pages (no tab bar) ─────────────────────────────── */
+/* e.g. DebateMode, StoryMode, ConceptReels */
+.page-immersive {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── Horizontal scroll strips ────────────────────────────────────────────── */
+.scroll-x-strip {
+  display: flex;
+  gap: var(--fluid-gap);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-left: var(--fluid-px);
+  padding-right: var(--fluid-px);
+  /* Negative margin to allow full-bleed scroll */
+  margin-left: calc(-1 * var(--fluid-px));
+  margin-right: calc(-1 * var(--fluid-px));
+}
+.scroll-x-strip::-webkit-scrollbar { display: none; }
+.scroll-x-strip > * { flex-shrink: 0; }
+
+/* ── Prevent text overflow on narrow screens ─────────────────────────────── */
+.text-clamp-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.text-clamp-3 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+
+/* ── 360px budget phone overrides (extend existing) ─────────────────────── */
+@media (max-width: 360px) {
+  .bento-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .bento-span-2 {
+    grid-column: span 1 !important;
+  }
+  .hide-xs {
+    display: none !important;
+  }
+  .text-fluid-h1  { font-size: 20px !important; }
+  .text-fluid-h2  { font-size: 16px !important; }
+  .px-fluid       { padding-left: 14px !important; padding-right: 14px !important; }
+
+  /* Prevent 4-col grids from cramping on 360px (each cell ≥70px) */
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* 3-col grids: keep 3 columns but tighten gap */
+  .grid-cols-3 {
+    gap: 6px !important;
+  }
+
+  /* Any fixed-width inline orbs / decorative circles scale with viewport */
+  .orb-decoration {
+    width: 50vw !important;
+    height: 50vw !important;
+  }
+}
+
+/* ── Tablet / large phone (430px+) grid enhancements ────────────────────── */
+@media (min-width: 430px) {
+  /* On large phones allow 3-col where we'd normally have 2 */
+  .grid-cols-2-to-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}

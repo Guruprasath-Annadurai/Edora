@@ -216,7 +216,7 @@ Return ONLY valid JSON array: [{"question":"...","options":["A","B","C","D"],"co
   const timerWarning = timeLeft < 300;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
+    <div className="h-full overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-safe-top pt-4 pb-3"
            style={{ borderBottom: '1px solid var(--color-border)' }}>

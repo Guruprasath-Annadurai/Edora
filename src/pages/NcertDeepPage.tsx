@@ -88,7 +88,7 @@ function ParagraphCard({ p, onBookmark }: { p: NcertParagraph; onBookmark: (id: 
   return (
     <motion.div layout initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
       className="rounded-2xl overflow-hidden mb-3"
-      style={{ background: 'rgba(15,20,45,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
       <div className="p-4">
         {/* Meta row */}
         <div className="flex items-center justify-between gap-2 mb-2">
@@ -255,7 +255,7 @@ Return ONLY valid JSON array:
     [...dbParagraphs, ...paragraphs].filter(p => p.subject === subject && p.chapter_title === chapter).length;
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg,#0A0F25 0%,#080C1A 100%)' }}>
+    <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
       {/* Header */}
       <div className="shrink-0 px-4 pb-2" style={{ paddingTop: 'max(16px,env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-3">
@@ -295,7 +295,7 @@ Return ONLY valid JSON array:
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-28">
+      <div className="flex-1 overflow-y-auto px-fluid pb-nav">
         <AnimatePresence mode="wait">
 
           {/* Browse subjects */}
@@ -341,7 +341,7 @@ Return ONLY valid JSON array:
                   return (
                     <button key={ch} onClick={() => { setSelChapter(ch); setPhase('content'); }}
                       className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-left active:scale-98 transition-transform"
-                      style={{ background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.06)' }}>
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-bold text-white/30 w-5">{i+1}</span>
                         <p className="text-sm font-semibold text-white">{ch}</p>

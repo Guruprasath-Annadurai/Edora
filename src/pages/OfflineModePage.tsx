@@ -268,9 +268,9 @@ export default function OfflineModePage() {
   const totalCached = subjectStatus.reduce((s, st) => s + st.quizCount + st.flashcardCount, 0);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white">
+    <div className="h-full text-white">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
         <Link to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </Link>

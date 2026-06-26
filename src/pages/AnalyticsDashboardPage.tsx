@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { isInFreeTrial } from '@/lib/trial';
 import { supabase } from '@/lib/supabase';
+import { PageErrorState } from '@/components/ui/PageErrorState';
+import { StatsPageSkeleton } from '@/components/ui/skeleton';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { AnalyticsStats } from '@/types';
 
 async function callFn(body: Record<string, unknown>) {
@@ -140,18 +143,18 @@ function ProGate({ preview }: { preview: { total_sprints: number; total_quizzes:
           <div className="flex flex-col gap-3">
             {preview && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div className="bento-cell rounded-2xl p-4 text-center">
                   <p className="text-2xl font-bold text-white">{preview.total_sprints}</p>
                   <p className="text-xs text-muted-foreground">Study Sessions</p>
                 </div>
-                <div className="rounded-2xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div className="bento-cell rounded-2xl p-4 text-center">
                   <p className="text-2xl font-bold text-white">{preview.total_quizzes}</p>
                   <p className="text-xs text-muted-foreground">Quizzes Taken</p>
                 </div>
               </div>
             )}
             {/* Weekly activity bar chart — real sprint counts */}
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="bento-cell rounded-2xl p-4">
               <p className="text-xs font-semibold text-muted-foreground mb-3">THIS WEEK'S ACTIVITY</p>
               <div className="flex items-end gap-2 h-16">
                 {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d, i) => (
@@ -178,7 +181,7 @@ function ProGate({ preview }: { preview: { total_sprints: number; total_quizzes:
               { label: 'Total XP', value: preview.xp.toLocaleString() },
               { label: 'Day Streak', value: `${preview.streak}` },
             ].map(({ label, value }) => (
-              <div key={label} className="rounded-2xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div key={label} className="bento-cell rounded-2xl p-3 text-center">
                 <p className="text-lg font-bold text-white">{value}</p>
                 <p className="text-[10px] text-muted-foreground">{label}</p>
               </div>
@@ -201,14 +204,14 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
 
-      {/* ── Summary row ── */}
+      {/* ── Summary row — KPI tier (elevated) ── */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { icon: Zap, label: 'Sessions (30d)', value: stats.total_sessions_30d, color: '#5B6AF5' },
           { icon: Target, label: 'Avg Accuracy', value: `${stats.avg_accuracy_30d}%`, color: '#10B981' },
           { icon: Clock, label: 'Study Time', value: `${Math.round(stats.study_time_by_subject.reduce((s, x) => s + x.minutes, 0) / 60)}h`, color: '#F59E0B' },
         ].map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="glass rounded-2xl p-3 flex flex-col items-center gap-1">
+          <div key={label} className="bento-cell-elevated rounded-2xl p-3 flex flex-col items-center gap-1">
             <Icon size={18} style={{ color }} />
             <p className="text-base font-bold text-white">{value}</p>
             <p className="text-[10px] text-muted-foreground text-center leading-tight">{label}</p>
@@ -216,10 +219,10 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
         ))}
       </div>
 
-      {/* ── Predicted Score ── */}
+      {/* ── Predicted Score — hero tier ── */}
       {stats.predicted_score !== null && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-3xl p-5 flex items-center gap-4">
+          className="card-hero p-5 flex items-center gap-4">
           <ScoreRing score={stats.predicted_score} />
           <div className="flex-1">
             <p className="font-heading font-bold text-white">Predicted Score</p>
@@ -234,9 +237,9 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
         </motion.div>
       )}
 
-      {/* ── XP Trend ── */}
+      {/* ── XP Trend — secondary tier ── */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}
-        className="glass rounded-3xl p-5">
+        className="bento-cell rounded-3xl p-5">
         <div className="flex items-center gap-2 mb-3">
           <TrendingUp size={14} className="text-primary" />
           <p className="font-semibold text-white text-sm">XP Earned — Last 14 Days</p>
@@ -250,7 +253,7 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
       {/* ── Subject Accuracy ── */}
       {stats.subject_accuracy.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }}
-          className="glass rounded-3xl p-5">
+          className="bento-cell rounded-3xl p-5">
           <p className="font-semibold text-white text-sm mb-4">Subject Accuracy (30d)</p>
           <div className="flex flex-col gap-3">
             {stats.subject_accuracy.map((s, i) => (
@@ -264,7 +267,7 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
       {/* ── Study Time Breakdown ── */}
       {stats.study_time_by_subject.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
-          className="glass rounded-3xl p-5">
+          className="bento-cell rounded-3xl p-5">
           <p className="font-semibold text-white text-sm mb-3">Study Time by Subject</p>
           <div className="flex flex-col gap-2.5">
             {stats.study_time_by_subject.slice(0, 6).map((s, i) => {
@@ -292,7 +295,7 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
       {/* ── Weak Topics ── */}
       {stats.weak_topics.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-          className="glass rounded-3xl p-5">
+          className="bento-cell rounded-3xl p-5">
           <p className="font-semibold text-white text-sm mb-1">Topics Needing Attention</p>
           <p className="text-xs text-muted-foreground mb-4">Topics where your accuracy is below average (min 3 questions)</p>
           <div className="flex flex-col gap-2.5">
@@ -333,25 +336,33 @@ export default function AnalyticsDashboardPage() {
   const isPro = (!!profile?.is_pro && (!profile.pro_expires_at || new Date(profile.pro_expires_at) > new Date()))
     || (user?.created_at ? isInFreeTrial(user.created_at) : false);
 
+  const isOnline = useOnlineStatus();
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError]         = useState(false);
   const [stats, setStats]         = useState<AnalyticsStats | null>(null);
   const [preview, setPreview]     = useState<{ total_sprints: number; total_quizzes: number; xp: number; streak: number } | null>(null);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else { setLoading(true); setError(false); }
 
-    if (isPro) {
-      const res = await callFn({ action: 'get_stats' });
-      if (!res.error && res.data?.stats) setStats(res.data.stats);
-    } else {
-      const res = await callFn({ action: 'get_preview' });
-      if (!res.error && res.data?.preview) setPreview(res.data.preview);
+    try {
+      if (isPro) {
+        const res = await callFn({ action: 'get_stats' });
+        if (res.error) throw res.error;
+        if (res.data?.stats) setStats(res.data.stats);
+      } else {
+        const res = await callFn({ action: 'get_preview' });
+        if (res.error) throw res.error;
+        if (res.data?.preview) setPreview(res.data.preview);
+      }
+    } catch {
+      if (!isRefresh) setError(true);
+    } finally {
+      if (isRefresh) setRefreshing(false);
+      else setLoading(false);
     }
-
-    if (isRefresh) setRefreshing(false);
-    else setLoading(false);
   }, [isPro]);
 
   useEffect(() => { load(); }, [load]);
@@ -360,7 +371,7 @@ export default function AnalyticsDashboardPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="px-4 py-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <div className="flex items-center gap-3">
           <Link aria-label="Go back" to="/profile"
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
@@ -389,9 +400,12 @@ export default function AnalyticsDashboardPage() {
       {/* Content */}
       <div className="flex-1 native-scroll pb-nav">
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-          </div>
+          <StatsPageSkeleton />
+        ) : error ? (
+          <PageErrorState
+            offline={!isOnline}
+            onRetry={() => load()}
+          />
         ) : isPro && stats ? (
           <FullDashboard stats={stats} onRefresh={() => load(true)} refreshing={refreshing} />
         ) : (

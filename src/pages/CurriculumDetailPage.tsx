@@ -656,7 +656,7 @@ export default function CurriculumDetailPage() {
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: 'linear-gradient(160deg, #0F1221 0%, #161A30 60%, #0F1221 100%)' }}
+      style={{ background: 'transparent' }}
     >
       {/* ── Toasts ── */}
       <div className="fixed top-0 left-0 right-0 z-[60] pointer-events-none">

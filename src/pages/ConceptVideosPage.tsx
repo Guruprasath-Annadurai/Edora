@@ -132,9 +132,9 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
   const SUBJECTS = ['Physics', 'Chemistry', 'Maths', 'Biology', 'History', 'Geography', 'Science'];
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
+    <div className="h-full flex flex-col" style={{ background: 'var(--color-bg)' }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3"
+      <div className="flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3 shrink-0"
            style={{ borderBottom: '1px solid var(--color-border)' }}>
         <Link aria-label="Go back" to="/tools">
           <motion.button whileTap={{ scale: 0.92 }} className="p-2 rounded-xl"
@@ -148,7 +148,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-5">
+      <div className="flex-1 overflow-y-auto pb-nav px-4 py-4 space-y-5">
         {/* Search */}
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl"
              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>

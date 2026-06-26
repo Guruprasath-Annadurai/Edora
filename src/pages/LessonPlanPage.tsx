@@ -120,7 +120,7 @@ function SubjectPicker({ onSelect, onBack }: { onSelect: (s: string) => void; on
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button aria-label="Go back" onClick={onBack} className="text-white">
           <ChevronLeft size={20} />
         </button>
@@ -129,7 +129,7 @@ function SubjectPicker({ onSelect, onBack }: { onSelect: (s: string) => void; on
 
       {/* Search / custom input */}
       <div className="px-4 pt-4 pb-2 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-2 rounded-2xl px-3 h-11"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
           <Search size={15} className="text-muted-foreground shrink-0" />
@@ -304,7 +304,7 @@ export default function LessonPlanPage() {
 
       {/* ── Header ── */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/profile" className="text-white">
           <ChevronLeft size={20} />
         </Link>
@@ -381,7 +381,7 @@ export default function LessonPlanPage() {
 
             {/* Progress bar */}
             <div className="px-4 py-4"
-              style={{ background: 'rgba(10,12,28,0.7)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Week progress</p>
@@ -406,7 +406,7 @@ export default function LessonPlanPage() {
 
             {/* Day tabs */}
             <div className="px-3 py-2 flex gap-1 overflow-x-auto hide-scrollbar"
-              style={{ background: 'rgba(10,12,28,0.7)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               {DAY_NAMES.map((d, i) => {
                 const dt = dayTasks(i);
                 const dd = dayDone(i);

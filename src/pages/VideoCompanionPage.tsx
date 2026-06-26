@@ -367,7 +367,7 @@ export default function VideoCompanionPage() {
   return (
     <div
       className="flex flex-col h-full"
-      style={{ background: 'linear-gradient(160deg, #0D0E1A 0%, #12142B 100%)', minHeight: '100dvh' }}
+      style={{ background: 'transparent', minHeight: '100dvh' }}
     >
       {/* ── Toasts ── */}
       <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">

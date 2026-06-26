@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import {
   SkeletonProfileHero, SkeletonLeaderboardRows,
   SkeletonMasteryBars,
@@ -7,8 +8,8 @@ import {
 import {
   User, Flame, Star, Shield, Bell, LogOut, Snowflake, Loader2,
   ChevronRight, Award, CalendarDays, MessageSquare, Users, TrendingUp,
-  Crown, FileText, Medal, Trophy, X,
-  Calculator, Atom, FlaskConical, Microscope, BookOpen, Landmark, BarChart3, Code2,
+  Crown, FileText, Medal, Trophy, X, Gift, Copy, Check,
+  Calculator, Atom, FlaskConical, Microscope, BookOpen, Landmark, BarChart3, Code2, Building2,
 } from 'lucide-react';
 import { TrophyIcon, TeachingIcon } from '@/components/ui/icons';
 import { Link } from 'react-router-dom';
@@ -80,7 +81,9 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     title: 'Community',
     items: [
-      { icon: Users, label: 'Study Groups', to: '/study-groups' },
+      { icon: Users,     label: 'Study Groups',       to: '/study-groups' },
+      { icon: Gift,      label: 'Invite & Earn XP',   to: '/referral', highlight: true },
+      { icon: Building2, label: 'School Admin Portal', to: '/school-admin' },
     ],
   },
   {
@@ -289,11 +292,11 @@ export default function ProfilePage() {
             <SkeletonProfileHero />
           ) : (
           <div
-            className="rounded-3xl overflow-hidden"
+            className="liquid-glass-panel specular rounded-3xl overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg,#1A1060 0%,#1D1575 40%,#210C6B 100%)',
-              border: '1px solid rgba(91,106,245,0.3)',
-              boxShadow: '0 10px 40px rgba(91,106,245,0.25), inset 0 1px 0 rgba(255,255,255,0.06)',
+              position: 'relative',
+              border: '1px solid rgba(91,106,245,0.28)',
+              boxShadow: '0 10px 40px rgba(91,106,245,0.22), inset 0 1.5px 0 rgba(255,255,255,0.16), inset 0 -0.5px 0 rgba(0,0,0,0.2)',
             }}
           >
             {/* Neon top stripe */}
@@ -384,17 +387,17 @@ export default function ProfilePage() {
             </div>
 
             {/* Stats strip */}
-            <div className="grid grid-cols-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="grid grid-cols-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
               {stats.map(({ label, value, color }, i) => (
                 <div
                   key={label}
-                  className={`flex flex-col items-center py-3 gap-1 ${i < 3 ? 'border-r' : ''}`}
-                  style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+                  className={`flex flex-col items-center py-3.5 gap-1 ${i < 3 ? 'border-r' : ''}`}
+                  style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}
                 >
-                  <span className="font-heading font-extrabold text-sm text-white" style={{ color }}>
+                  <span className="font-heading font-extrabold text-sm" style={{ color }}>
                     {value}
                   </span>
-                  <span className="text-[10px] font-semibold text-white/40">{label}</span>
+                  <span className="text-[10px] font-semibold text-white/45">{label}</span>
                 </div>
               ))}
             </div>
@@ -405,14 +408,7 @@ export default function ProfilePage() {
         {/* ── Subject Mastery ───────────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}>
           <h3 className="font-heading font-bold text-white text-base mb-3">Subject Mastery</h3>
-          <div
-            className="rounded-3xl p-4"
-            style={{
-              background: 'rgba(15,20,45,0.7)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
-            }}
-          >
+          <div className="bento-cell-elevated rounded-3xl p-4">
             {masteryLoading ? (
               <SkeletonMasteryBars count={3} />
             ) : subjectMastery.length === 0 ? (
@@ -451,7 +447,7 @@ export default function ProfilePage() {
 
         {/* ── Achievements preview ──────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.10 }}>
-          <Link to="/achievements">
+          <Link to="/achievements" onClick={() => Haptics.impact({ style: ImpactStyle.Light }).catch(() => {})}>
             <div
               className="rounded-3xl p-4 flex items-center gap-3 active:scale-98 transition-all"
               style={{
@@ -484,13 +480,7 @@ export default function ProfilePage() {
           {lbLoading ? (
             <SkeletonLeaderboardRows count={5} />
           ) : (
-          <div
-            className="rounded-3xl overflow-hidden"
-            style={{
-              background: 'rgba(15,20,45,0.7)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
+          <div className="liquid-glass rounded-3xl overflow-hidden">
             {leaderboard.length === 0 ? (
               <p className="text-sm text-white/40 text-center py-5">No data yet — start studying!</p>
             ) : leaderboard.map((row, idx) => (
@@ -572,13 +562,14 @@ export default function ProfilePage() {
                 {title}
               </p>
               <div
-                className="rounded-3xl overflow-hidden"
-                style={{ background: 'rgba(15,20,45,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}
+                className="liquid-glass rounded-3xl overflow-hidden"
+                style={{}}
               >
                 {items.map(({ icon: Icon, label, to, pro, highlight }, idx) => (
                   <Link
                     key={label}
                     to={to}
+                    onClick={() => Haptics.impact({ style: ImpactStyle.Light }).catch(() => {})}
                     className="flex items-center gap-3.5 px-4 active:scale-98 transition-all"
                     style={{
                       minHeight: 56,
@@ -623,10 +614,10 @@ export default function ProfilePage() {
           {/* Legal — grouped separately at bottom */}
           <div
             className="rounded-3xl overflow-hidden"
-            style={{ background: 'rgba(15,20,45,0.6)', border: '1px solid rgba(255,255,255,0.05)' }}
+            style={{ background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.05)' }}
           >
             <button
-              onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
+              onClick={() => { Haptics.impact({ style: ImpactStyle.Light }).catch(() => {}); Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' }); }}
               className="flex items-center gap-3.5 px-4 w-full text-left active:scale-98 transition-all"
               style={{ minHeight: 56 }}
             >
@@ -638,7 +629,7 @@ export default function ProfilePage() {
             </button>
             <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '0 16px' }} />
             <button
-              onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
+              onClick={() => { Haptics.impact({ style: ImpactStyle.Light }).catch(() => {}); Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' }); }}
               className="flex items-center gap-3.5 px-4 w-full text-left active:scale-98 transition-all"
               style={{ minHeight: 56 }}
             >
@@ -654,7 +645,7 @@ export default function ProfilePage() {
         {/* ── Sign out ──────────────────────────────────────── */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18 }}>
           <button
-            onClick={signOut}
+            onClick={() => { Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {}); signOut(); }}
             className="w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-98 transition-all"
             style={{
               background: 'rgba(239,68,68,0.08)',

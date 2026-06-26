@@ -13,6 +13,7 @@ import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { supabase } from '@/lib/supabase';
 import { geminiCall, GeminiMessage } from '@/lib/gemini';
 import type { LanguageOption } from '@/hooks/useLanguage';
+import { logAIInteraction } from '@/components/ui/AIFeedback';
 
 // ── State machine phases ──────────────────────────────────────────────────────
 export type VoicePhase =
@@ -367,7 +368,9 @@ export function useVoiceStudy(
           text: t.content,
         }));
 
+      const replyStartMs = Date.now();
       const response = await geminiCall(text, { systemInstruction, history });
+      const responseMs = Date.now() - replyStartMs;
 
       // Append assistant turn
       const assistantTurn: VoiceTurn = { id: `a-${Date.now()}`, role: 'assistant', content: response };
@@ -381,6 +384,16 @@ export function useVoiceStudy(
         supabase.from('tutor_chats')
           .insert({ user_id: userId, role: 'assistant', content: response, mode: 'teacher' })
           .then(({ error: e }) => { if (e) console.error('[VoiceStudy] persist assistant msg:', e.message); });
+
+        // Log to AI flywheel — non-blocking
+        logAIInteraction({
+          userId,
+          sessionType: 'voice',
+          userQuery:   text,
+          aiResponse:  response,
+          modelUsed:   'gemini-2.0-flash',
+          responseMs,
+        }).catch(() => {});
       }
 
       // Play TTS — non-fatal: if audio fails, user still sees text response

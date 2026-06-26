@@ -398,7 +398,7 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl overflow-hidden"
-      style={{ background: 'rgba(15,20,45,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}
     >
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
@@ -556,7 +556,7 @@ export default function FormulaSheetPage() {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg,#0A0F25 0%,#080C1A 100%)' }}>
+    <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
       {/* Header */}
       <div className="shrink-0 px-4 pt-4 pb-2" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-4">
@@ -621,7 +621,7 @@ export default function FormulaSheetPage() {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-4 pb-28 space-y-3">
+      <div className="flex-1 overflow-y-auto px-fluid pb-nav space-y-3">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <BookMarked size={36} className="text-white/15" />

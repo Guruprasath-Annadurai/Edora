@@ -168,7 +168,7 @@ function InfoTooltip({ visible }: { visible: boolean }) {
           exit={{ opacity: 0, y: -6, scale: 0.95 }}
           transition={{ duration: 0.15 }}
           className="absolute top-8 right-0 z-20 w-56 text-white text-[11px] leading-snug rounded-2xl px-3.5 py-2.5 shadow-lg pointer-events-none"
-          style={{ background: 'rgba(15,20,45,0.95)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}
+          style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(28px) saturate(170%) brightness(1.04)', WebkitBackdropFilter: 'blur(28px) saturate(170%) brightness(1.04)', border: '1px solid rgba(255,255,255,0.10)' }}
         >
           Shows which topics you've been avoiding — the redder a card, the longer it's been since you studied it.
           <div className="absolute top-[-5px] right-4 w-2.5 h-2.5 rotate-45" style={{ background: 'rgba(15,20,45,0.95)' }} />
@@ -267,7 +267,7 @@ export default function AttentionHeatmapPage() {
     return (
       <div className="flex flex-col h-full bg-gradient-page">
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <button
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
@@ -324,7 +324,7 @@ export default function AttentionHeatmapPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"

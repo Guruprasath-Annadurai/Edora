@@ -140,7 +140,9 @@ function MessageBubble({ msg, index }: { msg: LocalMessage; index: number }) {
                 borderTopLeftRadius: 4,
               }
             : {
-                background: 'rgba(255,255,255,0.07)',
+                background: 'rgba(255,255,255,0.055)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
                 border: '1px solid rgba(255,255,255,0.12)',
                 borderTopRightRadius: 4,
               }
@@ -271,7 +273,7 @@ function SetupScreen({
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'rgba(255,255,255,0.055)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}
         >
           <ArrowLeft size={17} className="text-white" />
         </button>
@@ -296,8 +298,10 @@ function SetupScreen({
             placeholder="e.g. Physics, Mathematics…"
             className="w-full px-4 py-3.5 rounded-2xl text-sm text-white outline-none placeholder:opacity-30 transition-all"
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(255,255,255,0.07)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.14)',
             }}
           />
         </div>
@@ -313,8 +317,10 @@ function SetupScreen({
             placeholder="e.g. Newton's Laws, Quadratic Equations…"
             className="w-full px-4 py-3.5 rounded-2xl text-sm text-white outline-none placeholder:opacity-30 transition-all"
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(255,255,255,0.07)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.14)',
             }}
           />
         </div>
@@ -338,9 +344,11 @@ function SetupScreen({
                         border: '1px solid transparent',
                       }
                     : {
-                        background: 'rgba(255,255,255,0.05)',
-                        color: 'rgba(255,255,255,0.6)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'rgba(255,255,255,0.055)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        color: 'rgba(255,255,255,0.7)',
+                        border: '1px solid rgba(255,255,255,0.12)',
                       }
                 }
               >
@@ -355,12 +363,12 @@ function SetupScreen({
           <label className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Voice Speed
           </label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             {(['slow', 'normal', 'fast'] as const).map(speed => (
               <button
                 key={speed}
                 onClick={() => onSpeedChange(speed)}
-                className="py-3 px-3 rounded-2xl text-sm font-semibold transition-all active:scale-95 capitalize"
+                className="py-2.5 px-2 rounded-2xl text-xs font-semibold transition-all active:scale-95 capitalize"
                 style={
                   voiceSpeed === speed
                     ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#fff', border: '1px solid transparent' }
@@ -470,14 +478,14 @@ function CompleteScreen({ subject, topic, turnCount, cardCount, generating, mess
       <div className="flex gap-4 mb-8 w-full justify-center">
         <div
           className="flex-1 max-w-[140px] px-4 py-4 rounded-2xl text-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}
         >
           <p className="text-2xl font-bold text-white">{turnCount}</p>
           <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Turns</p>
         </div>
         <div
           className="flex-1 max-w-[140px] px-4 py-4 rounded-2xl text-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}
         >
           {generating ? (
             <Loader2 size={22} className="text-purple-400 animate-spin mx-auto" />
@@ -510,9 +518,11 @@ function CompleteScreen({ subject, topic, turnCount, cardCount, generating, mess
             onClick={() => setTranscriptOpen(o => !o)}
             className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition-all active:scale-98"
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: 'rgba(255,255,255,0.6)',
+              background: 'rgba(255,255,255,0.055)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.7)',
             }}>
             <span>Session Transcript ({messages.length} turns)</span>
             {transcriptOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -566,7 +576,7 @@ function CompleteScreen({ subject, topic, turnCount, cardCount, generating, mess
           onClick={onNewSession}
           className="w-full py-4 rounded-2xl text-sm font-bold transition-all active:scale-95"
           style={{
-            background: 'rgba(255,255,255,0.06)',
+            background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.1)',
             color: 'rgba(255,255,255,0.8)',
           }}
@@ -779,7 +789,7 @@ export default function NovoLivePage() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="absolute inset-0 bg-black/60" onClick={() => setShowMicRationale(false)} />
               <motion.div className="relative w-full rounded-t-3xl p-6 pb-10"
-                style={{ background: 'rgba(15,20,45,0.98)', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ background: 'rgba(8,6,20,0.92)', backdropFilter: 'blur(48px) saturate(180%)', WebkitBackdropFilter: 'blur(48px) saturate(180%)', border: '1px solid rgba(255,255,255,0.08)' }}
                 initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
                 <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />

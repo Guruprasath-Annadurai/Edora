@@ -247,7 +247,7 @@ export default function GroupDetailPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="px-4 py-3 shrink-0 sticky top-0 z-20"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <div className="flex items-center gap-3 mb-3">
           <button aria-label="Go back" onClick={() => navigate('/study-groups')} className="text-white">
             <ChevronLeft size={20} />
@@ -289,7 +289,7 @@ export default function GroupDetailPage() {
               className="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all"
               style={tab === t
                 ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'white' }
-                : { background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
+                : { background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
               {t === 'leaderboard' ? <><Trophy size={11} className="inline mr-1" />Leaderboard</> : <><Users size={11} className="inline mr-1" />Members</>}
             </button>
           ))}
@@ -309,7 +309,7 @@ export default function GroupDetailPage() {
           <motion.div className="fixed inset-0 z-50 flex items-end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/40" onClick={() => { setShowLeave(false); setShowDelete(false); }} />
             <motion.div className="relative w-full rounded-t-3xl p-6 pb-10"
-              style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+              style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
               <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />

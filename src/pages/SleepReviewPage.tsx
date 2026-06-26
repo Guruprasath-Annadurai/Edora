@@ -542,7 +542,7 @@ export default function SleepReviewPage() {
     return (
       <div
         className="fixed inset-0 flex items-center justify-center"
-        style={{ background: 'linear-gradient(180deg,#0D0A1F 0%,#120E2E 100%)' }}
+        style={{ background: 'transparent' }}
       >
         <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 2 }}>
           <Moon size={32} style={{ color: '#A78BFA' }} />
@@ -554,7 +554,7 @@ export default function SleepReviewPage() {
   return (
     <div
       className="fixed inset-0 flex flex-col"
-      style={{ background: 'linear-gradient(180deg,#0D0A1F 0%,#120E2E 60%,#0A0818 100%)' }}
+      style={{ background: 'transparent' }}
     >
       {/* Stars background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

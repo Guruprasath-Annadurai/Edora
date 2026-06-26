@@ -167,8 +167,10 @@ export function NovoAvatar({ state = 'idle', size = 'md', className, showLabel }
   // Walking legs animation (alternate WALK1/WALK2) for talking/voice
   const isWalking = state === 'talking' || state === 'voice';
 
+  const heroSize = size === 'lg' || size === 'xl';
+
   return (
-    <div className={cn('flex flex-col items-center gap-1', className)}>
+    <div className={cn('flex flex-col items-center gap-1', heroSize && 'avatar-grounded', className)}>
       <div style={{ position: 'relative' }}>
         {/* Glow platform shadow */}
         <motion.div

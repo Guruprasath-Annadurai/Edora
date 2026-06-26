@@ -107,7 +107,13 @@ export function SpacedReviewInterrupt() {
           </div>
 
           {/* Card body */}
-          <div className="px-4 py-4" style={{ background: '#0F1117', border: '1px solid rgba(124,58,237,0.25)', borderTop: 'none' }}>
+          <div className="px-4 py-4" style={{
+            background: 'rgba(255,255,255,0.04)',
+            backdropFilter: 'blur(36px)',
+            WebkitBackdropFilter: 'blur(36px)',
+            border: '1px solid rgba(124,58,237,0.22)',
+            borderTop: 'none',
+          }}>
             {card.subject && (
               <p className="text-xs font-semibold mb-2" style={{ color: '#A855F7' }}>{card.subject}</p>
             )}

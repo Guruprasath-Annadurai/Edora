@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, GraduationCap, BookOpen, Target, Check, Zap,
-  ArrowRight, ChevronRight, Brain, Calendar, Smile,
+  ArrowRight, ChevronRight, Brain, Calendar, Smile, Globe, Gift,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
 import type { NovoState } from '@/components/novo/NovoAvatar';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { incrementSession, maybePromptRating } from '@/lib/appRating';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STUDY_LEVELS = [
@@ -39,6 +40,16 @@ const EXAMS = [
   { value: 'Other',        label: 'Other'         },
 ];
 
+const LANGUAGES = [
+  { value: 'en', label: 'English',    native: 'English',    flag: '🇬🇧' },
+  { value: 'hi', label: 'Hindi',      native: 'हिन्दी',       flag: '🇮🇳' },
+  { value: 'ta', label: 'Tamil',      native: 'தமிழ்',        flag: '🇮🇳' },
+  { value: 'te', label: 'Telugu',     native: 'తెలుగు',       flag: '🇮🇳' },
+  { value: 'kn', label: 'Kannada',    native: 'ಕನ್ನಡ',        flag: '🇮🇳' },
+  { value: 'mr', label: 'Marathi',    native: 'मराठी',        flag: '🇮🇳' },
+  { value: 'bn', label: 'Bengali',    native: 'বাংলা',        flag: '🇮🇳' },
+];
+
 const MOODS = [
   { emoji: '🔥', label: 'Excited',    value: 'focused',    color: '#F97316' },
   { emoji: '😤', label: 'Determined', value: 'determined', color: '#7C3AED' },
@@ -63,6 +74,12 @@ const NOVO_INTRO = [
     cta: null,
   },
   {
+    state: 'talking' as NovoState,
+    heading: 'What language do you prefer?',
+    body: 'I can explain concepts, give hints, and chat with you in your mother tongue — making learning 2× easier.',
+    cta: null,
+  },
+  {
     state: 'thinking' as NovoState,
     heading: 'Which subjects do you study?',
     body: 'Pick all that apply. I\'ll track your progress and adapt your sessions for each one.',
@@ -78,6 +95,12 @@ const NOVO_INTRO = [
     state: 'idle' as NovoState,
     heading: 'Before we start...',
     body: 'How are you feeling about studying right now? No judgment — this helps me calibrate how we begin.',
+    cta: null,
+  },
+  {
+    state: 'talking' as NovoState,
+    heading: 'Got a referral code?',
+    body: 'If a friend invited you, enter their code to get 50 bonus XP! You can also skip this step.',
     cta: null,
   },
 ];
@@ -143,13 +166,16 @@ export default function OnboardingPage() {
   const { user } = useAuth();
   const navigate  = useNavigate();
 
-  const [step, setStep]             = useState(0);
-  const [studyLevel, setStudyLevel] = useState('');
-  const [subjects, setSubjects]     = useState<string[]>([]);
-  const [examName, setExamName]     = useState('');
-  const [examDate, setExamDate]     = useState('');
-  const [mood, setMood]             = useState('');
-  const [saving, setSaving]         = useState(false);
+  const [step, setStep]               = useState(0);
+  const [studyLevel, setStudyLevel]   = useState('');
+  const [language, setLanguage]       = useState('en');
+  const [subjects, setSubjects]       = useState<string[]>([]);
+  const [examName, setExamName]       = useState('');
+  const [examDate, setExamDate]       = useState('');
+  const [mood, setMood]               = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [referralStatus, setReferralStatus] = useState<'idle'|'ok'|'err'>('idle');
+  const [saving, setSaving]           = useState(false);
 
   const totalSteps = NOVO_INTRO.length;
   const progress   = ((step + 1) / totalSteps) * 100;
@@ -171,13 +197,32 @@ export default function OnboardingPage() {
     const moodKey = `edora_mood_${user.id}_${new Date().toISOString().slice(0, 10)}`;
     if (mood) localStorage.setItem(moodKey, mood);
 
+    // Record DPDP consent for OAuth/OTP users — password-signup records it at sign-up time,
+    // but Google/Apple/OTP users reach onboarding without a prior consent checkpoint.
+    const { data: existing } = await supabase
+      .from('profiles').select('dpdp_consent_at').eq('id', user.id).single();
+    const consentFields = existing?.dpdp_consent_at ? {} : {
+      dpdp_consent_at:      new Date().toISOString(),
+      dpdp_consent_version: 'v2026.06',
+    };
+
     await supabase.from('profiles').update({
-      study_level:  studyLevel || null,
-      subjects:     subjects.length ? subjects : null,
-      exam_name:    examName || null,
-      exam_date:    examDate || null,
+      study_level:         studyLevel || null,
+      subjects:            subjects.length ? subjects : null,
+      exam_name:           examName || null,
+      exam_date:           examDate || null,
+      preferred_language:  language || 'en',
       onboarding_completed: true,
+      ...consentFields,
     }).eq('id', user.id);
+
+    // Process referral code if provided
+    if (referralCode.trim()) {
+      await supabase.rpc('process_referral', {
+        p_referee_id:    user.id,
+        p_referral_code: referralCode.trim().toUpperCase(),
+      });
+    }
 
     if (mood) {
       await supabase.from('user_moods').insert({
@@ -185,45 +230,60 @@ export default function OnboardingPage() {
       });
     }
 
+    incrementSession();
+    maybePromptRating('onboarding_done').catch(() => {});
     navigate('/home', { replace: true });
   }
 
   function canProceed() {
     if (step === 0) return true;
     if (step === 1) return !!studyLevel;
-    if (step === 2) return subjects.length > 0;
-    if (step === 3) return true;
-    if (step === 4) return !!mood;
+    if (step === 2) return !!language;      // language picker
+    if (step === 3) return subjects.length > 0;
+    if (step === 4) return true;            // exam optional
+    if (step === 5) return !!mood;
+    if (step === 6) return true;            // referral optional
     return true;
   }
 
   const intro = NOVO_INTRO[step];
 
   return (
-    <div style={{
+    <div className="bg-deep-space" style={{
       height: '100dvh', display: 'flex', flexDirection: 'column',
-      background: 'linear-gradient(180deg, #0A0A0F 0%, #0D0818 100%)',
-      overflow: 'hidden',
+      overflow: 'hidden', position: 'relative',
     }}>
-      {/* Ambient orbs */}
+      {/* 5-layer ambient orb system matching AppShell */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
-        <div style={{ position: 'absolute', width: 300, height: 300, top: -80, left: '50%', transform: 'translateX(-50%)', borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.18), transparent 70%)', filter: 'blur(40px)' }} />
-        <div style={{ position: 'absolute', width: 200, height: 200, bottom: 100, right: -50, borderRadius: '50%', background: 'radial-gradient(circle, rgba(168,85,247,0.12), transparent 70%)', filter: 'blur(32px)' }} />
+        <div style={{ position: 'absolute', width: 440, height: 440, top: -130, left: -100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.22), transparent 68%)', filter: 'blur(50px)' }} />
+        <div style={{ position: 'absolute', width: 360, height: 360, bottom: 80, right: -80, borderRadius: '50%', background: 'radial-gradient(circle, rgba(91,106,245,0.18), transparent 68%)', filter: 'blur(46px)' }} />
+        <div style={{ position: 'absolute', width: 250, height: 250, top: '38%', left: '36%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(6,182,212,0.11), transparent 70%)', filter: 'blur(38px)' }} />
+        <div style={{ position: 'absolute', width: 210, height: 210, top: -50, right: -50, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.09), transparent 70%)', filter: 'blur(42px)' }} />
+        <div style={{ position: 'absolute', width: 320, height: 180, bottom: 0, left: '15%', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(91,106,245,0.10), transparent 70%)', filter: 'blur(34px)' }} />
       </div>
 
-      {/* Progress bar */}
+      {/* Progress indicator — segment dots */}
       <div style={{ position: 'relative', zIndex: 1, paddingTop: 'max(20px, env(safe-area-inset-top))', paddingLeft: 24, paddingRight: 24, paddingBottom: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-          <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          {Array.from({ length: totalSteps }).map((_, i) => (
             <motion.div
-              style={{ height: '100%', borderRadius: 2, background: 'linear-gradient(90deg, #7C3AED, #A855F7)' }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+              key={i}
+              animate={{
+                width: i === step ? 24 : 8,
+                background: i <= step
+                  ? 'linear-gradient(90deg,#7C3AED,#A855F7)'
+                  : 'rgba(255,255,255,0.15)',
+                opacity: i < step ? 0.55 : 1,
+              }}
+              transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+              style={{
+                height: 8,
+                borderRadius: 4,
+                flexShrink: 0,
+                boxShadow: i === step ? '0 0 10px rgba(168,85,247,0.55)' : 'none',
+              }}
             />
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em' }}>
-            {step + 1}/{totalSteps}
-          </span>
+          ))}
         </div>
       </div>
 
@@ -262,7 +322,7 @@ export default function OnboardingPage() {
                       onClick={() => { haptic(); setStudyLevel(value); }}
                       style={{
                         padding: '16px 12px', borderRadius: 18, textAlign: 'left',
-                        background: active ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)',
+                        background: active ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.07)',
                         border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid rgba(255,255,255,0.07)',
                         boxShadow: active ? '0 0 16px rgba(124,58,237,0.2)' : 'none',
                         cursor: 'pointer', minHeight: 44,
@@ -281,6 +341,36 @@ export default function OnboardingPage() {
           )}
 
           {step === 2 && (
+            <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {LANGUAGES.map(lang => {
+                  const active = language === lang.value;
+                  return (
+                    <motion.button
+                      key={lang.value}
+                      onClick={() => { haptic(); setLanguage(lang.value); }}
+                      style={{
+                        padding: '14px 16px', borderRadius: 16, textAlign: 'left',
+                        background: active ? 'rgba(124,58,237,0.18)' : 'rgba(255,255,255,0.06)',
+                        border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid rgba(255,255,255,0.08)',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14,
+                      }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <span style={{ fontSize: 24 }}>{lang.flag}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#F4F6FA' : 'rgba(255,255,255,0.7)' }}>{lang.label}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{lang.native}</div>
+                      </div>
+                      {active && <Check size={16} style={{ color: '#A855F7', flexShrink: 0 }} />}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </StepLayout>
+          )}
+
+          {step === 3 && (
             <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {SUBJECTS.map(({ value, color }) => {
@@ -311,7 +401,7 @@ export default function OnboardingPage() {
             </StepLayout>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Exam selector */}
@@ -350,6 +440,7 @@ export default function OnboardingPage() {
                       value={examDate}
                       onChange={e => setExamDate(e.target.value)}
                       min={new Date().toISOString().slice(0, 10)}
+                      max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
                       style={{
                         width: '100%', padding: '12px 14px', borderRadius: 14,
                         background: 'rgba(255,255,255,0.05)',
@@ -370,7 +461,7 @@ export default function OnboardingPage() {
             </StepLayout>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {MOODS.map(m => {
@@ -382,7 +473,7 @@ export default function OnboardingPage() {
                       style={{
                         padding: '14px 8px', borderRadius: 18,
                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                        background: active ? `rgba(${hexToRgb(m.color)}, 0.15)` : 'rgba(255,255,255,0.04)',
+                        background: active ? `rgba(${hexToRgb(m.color)}, 0.15)` : 'rgba(255,255,255,0.07)',
                         border: active ? `1.5px solid ${m.color}60` : '1.5px solid rgba(255,255,255,0.06)',
                         cursor: 'pointer', minHeight: 44,
                       }}
@@ -406,6 +497,53 @@ export default function OnboardingPage() {
                   Got it. {mood === 'anxious' ? "I'll go gentle today." : mood === 'low' ? "Short sessions today — quality over quantity." : mood === 'focused' ? "Let's make the most of this energy." : "Let's get started."}
                 </motion.p>
               )}
+            </StepLayout>
+          )}
+          {step === 6 && (
+            <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  background: 'rgba(255,255,255,0.06)', borderRadius: 16,
+                  border: '1px solid rgba(255,255,255,0.1)', padding: '12px 16px',
+                }}>
+                  <Gift size={18} style={{ color: '#A0AEFF', flexShrink: 0 }} />
+                  <input
+                    value={referralCode}
+                    onChange={e => { setReferralCode(e.target.value.toUpperCase()); setReferralStatus('idle'); }}
+                    placeholder="Enter 8-character code (e.g. ABCD1234)"
+                    maxLength={8}
+                    style={{
+                      flex: 1, background: 'none', outline: 'none',
+                      fontSize: 16, fontWeight: 700, letterSpacing: '0.12em',
+                      color: '#F4F6FA',
+                    }}
+                  />
+                  {referralStatus === 'ok' && <Check size={16} style={{ color: '#34D399' }} />}
+                </div>
+
+                {referralStatus === 'ok' && (
+                  <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 14,
+                      background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
+                    <Check size={16} style={{ color: '#34D399' }} />
+                    <p style={{ fontSize: 13, color: '#34D399', fontWeight: 600 }}>
+                      Code applied! You'll get 50 bonus XP after setup.
+                    </p>
+                  </motion.div>
+                )}
+
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '8px 16px', borderRadius: 100,
+                    background: 'rgba(160,174,255,0.08)', border: '1px solid rgba(160,174,255,0.15)',
+                  }}>
+                    <Gift size={13} style={{ color: '#A0AEFF' }} />
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Both you and your friend earn bonus XP</span>
+                  </div>
+                </div>
+              </div>
             </StepLayout>
           )}
         </AnimatePresence>
@@ -441,7 +579,7 @@ export default function OnboardingPage() {
             {!saving && <ChevronRight size={18} />}
           </motion.button>
 
-          {(step === 3 || step === 2) && (
+          {(step === 4 || step === 6) && (
             <button
               onClick={nextStep}
               style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', minHeight: 32 }}

@@ -232,7 +232,7 @@ function CompletionOverlay({ title, totalXp, concepts, onSaveNotes, onExploreMor
         animate={{ y: 0 }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
         className="w-full rounded-t-3xl p-6 flex flex-col gap-5"
-        style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
+        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
 
         <div className="flex flex-col items-center gap-3 text-center">
           <motion.div
@@ -481,7 +481,6 @@ export default function StoryModePage() {
   }, [inputText, storyLoading]);
 
   function handleSaveNotes() {
-    console.log('[StoryMode] Save to Notes — concepts:', conceptsCovered, 'session:', session?.id);
   }
 
   function resetToSelector() {
@@ -514,10 +513,10 @@ export default function StoryModePage() {
 
   if (screen === 'selector') {
     return (
-      <div className="flex flex-col h-screen bg-gradient-page">
+      <div className="page-immersive bg-gradient-page">
         <div
           className="shrink-0"
-          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
@@ -670,7 +669,7 @@ export default function StoryModePage() {
               className="fixed inset-0 z-50 flex items-center justify-center"
               style={{ background: 'rgba(0,0,0,0.4)' }}>
               <div className="rounded-3xl p-8 flex flex-col items-center gap-4 mx-6"
-                style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)' }}>
                 <BookOpen size={36} className="animate-bounce" style={{ color: '#FBBF24' }} />
                 <p className="font-heading text-base font-bold text-white">Opening the story…</p>
                 <p className="text-xs text-muted-foreground text-center">Setting the scene for your adventure</p>
@@ -687,12 +686,12 @@ export default function StoryModePage() {
   // ════════════════════════════════════════════════════════════════
 
   return (
-    <div className="flex flex-col h-screen relative bg-gradient-page">
+    <div className="page-immersive bg-gradient-page relative">
 
       {/* Sticky header */}
       <div
         className="shrink-0"
-        style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <div className="px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -813,7 +812,7 @@ export default function StoryModePage() {
       {!isCompleted && (
         <div
           className="shrink-0 px-4 pt-3"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', background: 'rgba(10,12,28,0.92)', borderTop: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', background: 'rgba(8,6,20,0.82)', borderTop: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="flex items-end gap-2">
             <div className="flex-1 rounded-2xl px-4 py-3 flex items-end"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>

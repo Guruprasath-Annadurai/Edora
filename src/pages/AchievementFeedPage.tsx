@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Megaphone } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -349,9 +351,9 @@ export default function AchievementFeedPage() {
   const withReactions = items.map(i => ({ ...i, my_reaction: myReactions[i.id] ?? null }));
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingBottom: 80 }}>
+    <div className="pb-nav" style={{ height: '100%', overflowY: 'auto' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px' }}>
           <button aria-label="Go back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)' }}>
             <ChevronLeft size={24} />
@@ -386,11 +388,13 @@ export default function AchievementFeedPage() {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <div style={{ fontSize: 64, marginBottom: 16 }}>📢</div>
-            <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 8 }}>Nothing here yet</div>
-            <div style={{ color: 'var(--color-text-secondary)', fontSize: 14 }}>Achievements from you and others will appear here.</div>
-          </div>
+          <EmptyState
+            icon={Megaphone}
+            iconColor="#FBBF24"
+            iconBg="rgba(251,191,36,0.10)"
+            title="Nothing here yet"
+            subtitle="Achievements and milestones from you and classmates will appear here as you study."
+          />
         ) : (
           <>
             <SchoolToppersBanner items={withReactions} />

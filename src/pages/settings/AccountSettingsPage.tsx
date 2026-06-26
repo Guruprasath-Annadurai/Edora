@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, ChevronLeft, Save, Trash2, AlertTriangle, ExternalLink, Sparkles, Languages, BarChart2 } from 'lucide-react';
+import { User, ChevronLeft, Save, Trash2, AlertTriangle, ExternalLink, Sparkles, Languages, BarChart2, Download } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,8 +26,9 @@ export default function AccountSettingsPage() {
   const [examName,  setExamName]  = useState(profile?.exam_name ?? '');
   const [examDate,  setExamDate]  = useState(profile?.exam_date ?? '');
   const [saving,    setSaving]    = useState(false);
-  const [showDelete, setShowDelete] = useState(false);
-  const [deleting,   setDeleting]   = useState(false);
+  const [showDelete,   setShowDelete]   = useState(false);
+  const [deleting,     setDeleting]     = useState(false);
+  const [exporting,    setExporting]    = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(
     () => localStorage.getItem('edora_analytics_opt_out') !== 'true'
   );
@@ -63,6 +64,34 @@ export default function AccountSettingsPage() {
     setSaving(false);
   }
 
+  async function exportData() {
+    if (!profile) return;
+    setExporting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke('export-user-data', {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
+      if (res.error) throw res.error;
+      // Trigger browser / native file save
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `edora-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      await Toast.show({ text: 'Your data export has been downloaded.', duration: 'long', position: 'bottom' });
+    } catch (err) {
+      console.error('[exportData]', err);
+      await Toast.show({ text: 'Export failed. Please try again.', duration: 'short', position: 'bottom' });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   async function deleteAccount() {
     if (!profile) return;
     setDeleting(true);
@@ -89,7 +118,7 @@ export default function AccountSettingsPage() {
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/profile"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -122,7 +151,7 @@ export default function AccountSettingsPage() {
           <input type="text" value={name} onChange={e => setName(e.target.value)}
             placeholder="Your full name"
             className="rounded-2xl px-4 h-12 text-white placeholder:text-white/30 outline-none w-full text-sm"
-            style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
         </motion.div>
 
         {/* Study level */}
@@ -134,7 +163,7 @@ export default function AccountSettingsPage() {
                 className="flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left"
                 style={level === value
                   ? { background: 'rgba(91,106,245,0.15)', borderColor: 'rgba(91,106,245,0.5)' }
-                  : { background: 'rgba(15,20,45,0.7)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                  : { background: 'rgba(255,255,255,0.055)', borderColor: 'rgba(255,255,255,0.08)' }}>
                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all
                   ${level === value ? 'border-primary' : 'border-border'}`}>
                   {level === value && <div className="w-2 h-2 rounded-full bg-primary" />}
@@ -152,11 +181,12 @@ export default function AccountSettingsPage() {
             <input type="text" value={examName} onChange={e => setExamName(e.target.value)}
               placeholder="Exam name (e.g. JEE Main, NEET, SAT)"
               className="rounded-2xl px-4 h-12 text-white placeholder:text-white/30 outline-none w-full text-sm"
-              style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
             <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)}
               min={new Date().toISOString().slice(0, 10)}
+              max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
               className="rounded-2xl px-4 h-12 text-white outline-none w-full text-sm"
-              style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', colorScheme: 'dark' }} />
+              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', colorScheme: 'dark' }} />
             <p className="text-xs text-muted-foreground px-1">Shows a countdown on your home screen</p>
           </div>
         </motion.div>
@@ -200,6 +230,12 @@ export default function AccountSettingsPage() {
             <span className="text-sm font-medium text-white/80">Privacy Policy</span>
             <ExternalLink size={15} className="text-muted-foreground" />
           </button>
+          <Link to="/data-rights"
+            className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            <span className="text-sm font-medium text-white/80">Data & Privacy Rights (DPDP)</span>
+            <ExternalLink size={15} className="text-muted-foreground" />
+          </Link>
           <div
             className="w-full flex items-center justify-between px-4 py-3"
             style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
@@ -226,6 +262,28 @@ export default function AccountSettingsPage() {
             <span className="text-sm font-medium text-white/80">Terms of Service</span>
             <ExternalLink size={15} className="text-muted-foreground" />
           </button>
+        </motion.div>
+
+        {/* Data export — DPDP Act 2023 right to portability */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.155 }}
+          className="rounded-3xl overflow-hidden"
+          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+            <Download size={15} className="text-primary" />
+            <p className="font-semibold text-white text-sm">Your Data</p>
+          </div>
+          <div className="px-4 pb-4">
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+              Download all your quiz history, progress, flashcard reviews, and profile data in JSON format.
+              Your right under the <strong className="text-white/70">DPDP Act 2023</strong>.
+            </p>
+            <button onClick={exportData} disabled={exporting}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-primary active:opacity-70 disabled:opacity-50 transition-opacity"
+              style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}>
+              <Download size={15} />
+              {exporting ? 'Preparing export…' : 'Export my data'}
+            </button>
+          </div>
         </motion.div>
 
         {/* Danger zone */}

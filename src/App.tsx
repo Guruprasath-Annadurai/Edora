@@ -15,9 +15,13 @@ import { ConnectionGuard } from '@/components/guards/ConnectionGuard';
 import { TeacherBroadcastBanner } from '@/components/realtime/TeacherBroadcastBanner';
 import { useAuth } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import DPDPConsentModal from '@/components/consent/DPDPConsentModal';
+import { PermissionRationale } from '@/components/ui/PermissionRationale';
+import { Bell } from 'lucide-react';
 import { useTeacherBroadcast } from '@/hooks/useRealtime';
 import { useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { usePerformanceTier } from '@/hooks/usePerformanceTier';
 
 // Core shell pages — eager so the first paint after login is instant
 import LoginPage              from '@/pages/auth/LoginPage';
@@ -48,6 +52,7 @@ const RoadmapPage           = lazy(() => import('@/pages/RoadmapPage'));
 const StudyRemindersPage    = lazy(() => import('@/pages/settings/StudyRemindersPage'));
 const AccountSettingsPage   = lazy(() => import('@/pages/settings/AccountSettingsPage'));
 const ParentDashboardPage   = lazy(() => import('@/pages/settings/ParentDashboardPage'));
+const DataRightsPage        = lazy(() => import('@/pages/settings/DataRightsPage'));
 const AchievementsPage      = lazy(() => import('@/pages/AchievementsPage'));
 const TutoringSessionPage   = lazy(() => import('@/pages/TutoringSessionPage'));
 const ConceptMapPage        = lazy(() => import('@/pages/ConceptMapPage'));
@@ -108,10 +113,12 @@ const StudyCirclePage     = lazy(() => import('@/pages/StudyCirclePage'));
 const AchievementFeedPage = lazy(() => import('@/pages/AchievementFeedPage'));
 // Network Effects Pack
 const FriendsPage           = lazy(() => import('@/pages/FriendsPage'));
+const ReferralPage          = lazy(() => import('@/pages/ReferralPage'));
 const StudyBuddyPage        = lazy(() => import('@/pages/StudyBuddyPage'));
 const SchoolLeaderboardPage = lazy(() => import('@/pages/SchoolLeaderboardPage'));
 const LiveEventPage         = lazy(() => import('@/pages/LiveEventPage'));
 // Tier 3 B2B — Google Classroom + School Dashboards
+const SchoolAdminPage        = lazy(() => import('@/pages/SchoolAdminPage'));
 const TeacherDashboardPage   = lazy(() => import('@/pages/teacher/TeacherDashboardPage'));
 const ClassroomCallbackPage  = lazy(() => import('@/pages/auth/ClassroomCallbackPage'));
 // Phase 2 — Core Features
@@ -128,6 +135,8 @@ const FormulaARPage       = lazy(() => import('@/pages/FormulaARPage'));
 // Phase 4 — Platform Expansion
 const ParentPortalPage    = lazy(() => import('@/pages/ParentPortalPage'));
 const OfflineModePage     = lazy(() => import('@/pages/OfflineModePage'));
+// v3.5.0 — Corporate Course System
+const CoursePage          = lazy(() => import('@/pages/CoursePage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -177,8 +186,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, profileLoading, profileError, refetchProfile } = useAuth();
 
   if (loading || profileLoading) return (
-    <div className="flex items-center justify-center h-screen bg-gradient-page">
+    <div className="flex flex-col items-center justify-center h-full gap-4 bg-gradient-page">
       <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+      <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.30)' }}>
+        Loading…
+      </p>
     </div>
   );
 
@@ -186,7 +198,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // Profile fetch failed (network/DB error) — show retry instead of infinite redirect
   if (profileError) return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gradient-page px-8 gap-6">
+    <div className="flex flex-col items-center justify-center h-full bg-gradient-page px-8 gap-6">
       <div className="w-16 h-16 rounded-3xl flex items-center justify-center"
         style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>
         <AlertTriangle size={30} style={{ color: '#F87171' }} strokeWidth={1.75} />
@@ -204,12 +216,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   );
 
   if (!profile) return <Navigate to="/onboarding" replace />;
+
+  // DPDP Act 2023: show consent modal for users who haven't consented yet
+  // (new users, or after a policy version update)
+  if (!profile.dpdp_consent_at) {
+    return <DPDPConsentModal userId={user.id} onAccepted={() => refetchProfile()} />;
+  }
+
   return <>{children}</>;
 }
 
 // Registers push notifications and wires up analytics identity once authenticated
 function PushNotificationsSetup() {
-  usePushNotifications();
+  const { showRationale, onRationaleAllow, onRationaleDeny } = usePushNotifications();
   const { user, profile } = useAuth();
 
   useEffect(() => {
@@ -217,7 +236,18 @@ function PushNotificationsSetup() {
     else resetAnalytics();
   }, [user, profile]);
 
-  return null;
+  return (
+    <PermissionRationale
+      open={showRationale}
+      icon={<Bell size={28} className="text-white" />}
+      title="Stay on top of your studies"
+      description="Edora sends one daily reminder at your preferred study time. No spam — just a nudge to keep your streak alive."
+      allowLabel="Allow notifications"
+      denyLabel="Not now"
+      onAllow={onRationaleAllow}
+      onDeny={onRationaleDeny}
+    />
+  );
 }
 
 // Tracks screen views whenever the route changes
@@ -394,11 +424,14 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
           {/* Phase 4 — Platform Expansion */}
           <Route path="/parent-portal"    element={<RouteErrorBoundary label="parent-portal"><ParentPortalPage /></RouteErrorBoundary>} />
           <Route path="/offline-mode"     element={<RouteErrorBoundary label="offline-mode"><OfflineModePage /></RouteErrorBoundary>} />
+          {/* v3.5.0 — Corporate Course System */}
+          <Route path="/course"           element={<RouteErrorBoundary label="course"><CoursePage /></RouteErrorBoundary>} />
 
           {/* Settings sub-pages */}
           <Route path="/reminders"    element={<RouteErrorBoundary label="reminders"><StudyRemindersPage /></RouteErrorBoundary>} />
           <Route path="/account"      element={<RouteErrorBoundary label="account"><AccountSettingsPage /></RouteErrorBoundary>} />
           <Route path="/parent"       element={<RouteErrorBoundary label="parent"><ParentDashboardPage /></RouteErrorBoundary>} />
+          <Route path="/data-rights"  element={<RouteErrorBoundary label="data-rights"><DataRightsPage /></RouteErrorBoundary>} />
           <Route path="/achievements" element={<RouteErrorBoundary label="achievements"><AchievementsPage /></RouteErrorBoundary>} />
           {/* Tier 6 — Independent AI Tutor Identity */}
           <Route path="/lesson-plan"    element={<RouteErrorBoundary label="lesson-plan"><LessonPlanPage /></RouteErrorBoundary>} />
@@ -415,6 +448,8 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
           <Route path="/study-buddy"    element={<RouteErrorBoundary label="study-buddy"><StudyBuddyPage /></RouteErrorBoundary>} />
           <Route path="/live-event"     element={<RouteErrorBoundary label="live-event"><LiveEventPage /></RouteErrorBoundary>} />
           <Route path="/analytics"             element={<RouteErrorBoundary label="analytics"><AnalyticsDashboardPage /></RouteErrorBoundary>} />
+          <Route path="/referral"              element={<RouteErrorBoundary label="referral"><ReferralPage /></RouteErrorBoundary>} />
+          <Route path="/school-admin"          element={<RouteErrorBoundary label="school-admin"><SchoolAdminPage /></RouteErrorBoundary>} />
           <Route path="/pro"                   element={<Navigate to="/profile" replace />} />
         </Route>
 
@@ -458,11 +493,13 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
 
 export default function App() {
   const deepLinkNavigateRef = useOAuthDeepLink();
+  usePerformanceTier();
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
+    // Light icons (white) on the dark deep-space background
     StatusBar.setStyle({ style: Style.Light });
-    StatusBar.setBackgroundColor({ color: '#F4F7FF' });
+    StatusBar.setBackgroundColor({ color: '#060918' });
   }, []);
 
   return (

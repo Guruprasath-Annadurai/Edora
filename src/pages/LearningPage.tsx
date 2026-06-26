@@ -5,6 +5,7 @@ import {
   Map, Calendar, Users, Target, ChevronRight, BookOpen,
   Calculator, Atom, FlaskConical, Microscope,
   BarChart3, Zap, Globe, Play, Sigma, CalendarCheck, Search,
+  GraduationCap, ArrowRight,
 } from 'lucide-react';
 import { BookIcon } from '@/components/ui/icons';
 import { Link } from 'react-router-dom';
@@ -172,8 +173,11 @@ export default function LearningPage() {
       <div
         className="rounded-2xl p-1 flex gap-1"
         style={{
-          background: 'rgba(15,20,45,0.7)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(255,255,255,0.055)',
+          backdropFilter: 'blur(28px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
         }}
       >
         {(['tools','progress'] as const).map(t => (
@@ -194,6 +198,45 @@ export default function LearningPage() {
         ))}
       </div>
 
+      {/* ── Featured: My Courses ── */}
+      {activeTab === 'tools' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+          <Link to="/course">
+            <div className="relative specular rounded-3xl p-4 overflow-hidden flex items-center gap-4"
+              style={{
+                position: 'relative',
+                background: 'rgba(91,106,245,0.13)',
+                backdropFilter: 'blur(36px) saturate(180%) brightness(1.08)',
+                WebkitBackdropFilter: 'blur(36px) saturate(180%) brightness(1.08)',
+                border: '1.5px solid rgba(91,106,245,0.3)',
+                boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.18), 0 4px 24px rgba(91,106,245,0.22)',
+              }}>
+              {/* Ambient orb */}
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none"
+                style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.3), transparent 70%)', transform: 'translate(30%, -30%)' }} />
+
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', boxShadow: '0 4px 16px rgba(91,106,245,0.45)' }}>
+                <GraduationCap size={22} className="text-white" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-heading font-bold text-white text-sm">My Courses</p>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                    style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}>NEW</span>
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  NCERT Classes 9–12 · Chapter-by-chapter
+                </p>
+              </div>
+
+              <ArrowRight size={18} style={{ color: '#A0AEFF', flexShrink: 0 }} />
+            </div>
+          </Link>
+        </motion.div>
+      )}
+
       {/* Tools tab */}
       {activeTab === 'tools' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
@@ -207,12 +250,8 @@ export default function LearningPage() {
               {live && to ? (
                 <Link to={to}>
                   <div
-                    className="rounded-3xl p-4 flex items-center gap-4 active:scale-98 transition-all"
-                    style={{
-                      background: 'rgba(15,20,45,0.7)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      boxShadow: `0 4px 20px ${glow}`,
-                    }}
+                    className="liquid-glass rounded-3xl p-4 flex items-center gap-4 active:scale-98 transition-all"
+                    style={{ boxShadow: `0 4px 20px ${glow}` }}
                   >
                     <div
                       className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
@@ -247,7 +286,10 @@ export default function LearningPage() {
               ) : (
                 <div
                   className="rounded-3xl p-4 flex items-center gap-4 opacity-30"
-                  style={{ background: 'rgba(15,20,45,0.5)', border: '1px solid rgba(255,255,255,0.04)' }}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                  }}
                 >
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: iconBg }}>
                     <Icon size={22} style={{ color }} strokeWidth={1.75} />
@@ -276,7 +318,7 @@ export default function LearningPage() {
               <motion.div key={to} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay: i*0.04 }}>
                 <Link to={to}>
                   <div className="rounded-2xl p-3.5 flex flex-col gap-2.5 active:scale-97 transition-transform h-full"
-                    style={{ background:'rgba(15,20,45,0.8)', border:'1px solid rgba(255,255,255,0.06)' }}>
+                    style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.06)' }}>
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: iconBg }}>
                       <Icon size={17} style={{ color }} strokeWidth={1.75} />
                     </div>
@@ -298,7 +340,7 @@ export default function LearningPage() {
           {/* Subject progress */}
           <div
             className="rounded-3xl overflow-hidden"
-            style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <div className="px-5 pt-5 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               <h3 className="font-heading font-semibold text-white">Subject Progress</h3>
@@ -331,7 +373,7 @@ export default function LearningPage() {
           {/* Weekly summary */}
           <div
             className="rounded-3xl overflow-hidden"
-            style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <div className="px-5 pt-5 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               <h3 className="font-heading font-semibold text-white">Weekly Summary</h3>

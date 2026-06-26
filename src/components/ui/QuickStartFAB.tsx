@@ -145,7 +145,7 @@ export function QuickStartFAB() {
         whileTap={{ scale: 0.9 }}
         onClick={() => setOpen(v => !v)}
         aria-label="Quick start a quiz"
-        className="fixed z-30 flex items-center gap-2.5 rounded-full shadow-lg"
+        className="fab-button fixed z-30 flex items-center gap-2.5 rounded-full shadow-lg"
         style={{
           bottom: 'calc(env(safe-area-inset-bottom) + 88px)',
           right: 20,
@@ -171,7 +171,7 @@ export function QuickStartFAB() {
             <motion.span key="zap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex items-center gap-2">
               <Zap size={18} className="text-white fill-white" />
-              <span className="text-sm font-extrabold text-white">Quick Start</span>
+              <span className="fab-label-text text-sm font-extrabold text-white">Quick Start</span>
             </motion.span>
           )}
         </AnimatePresence>

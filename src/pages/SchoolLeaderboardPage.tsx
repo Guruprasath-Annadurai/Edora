@@ -60,7 +60,7 @@ export default function SchoolLeaderboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #05060F 0%, #0B0E1F 100%)' }}>
+    <div className="h-full flex flex-col" style={{ background: "transparent" }}>
       {/* Header */}
       <div className="px-5 pt-8 pb-6 text-center">
         <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-3" style={{ background: 'rgba(91,106,245,0.15)' }}>
@@ -76,21 +76,21 @@ export default function SchoolLeaderboardPage() {
         <div className="px-5 flex-1">
           {/* Summary cards */}
           {summary && (
-            <div className="grid grid-cols-3 gap-2.5 mb-6">
-              <div className="rounded-2xl p-3.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <Trophy className="w-5 h-5 mx-auto mb-1.5" style={{ color: '#FBBF24' }} />
-                <p className="font-heading text-lg font-bold text-white">#{summary.school_rank}</p>
-                <p className="text-xs text-white/40">Nationwide</p>
+            <div className="grid grid-cols-3 gap-2 mb-6">
+              <div className="rounded-2xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <Trophy className="w-4 h-4 mx-auto mb-1" style={{ color: '#FBBF24' }} />
+                <p className="font-heading text-base font-bold text-white leading-tight">#{summary.school_rank}</p>
+                <p className="text-[10px] text-white/40 mt-0.5">Nationwide</p>
               </div>
-              <div className="rounded-2xl p-3.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <Zap className="w-5 h-5 mx-auto mb-1.5" style={{ color: '#A0AEFF' }} />
-                <p className="font-heading text-lg font-bold text-white">{summary.total_xp.toLocaleString()}</p>
-                <p className="text-xs text-white/40">Total XP</p>
+              <div className="rounded-2xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: '#A0AEFF' }} />
+                <p className="font-heading text-base font-bold text-white leading-tight truncate">{summary.total_xp.toLocaleString()}</p>
+                <p className="text-[10px] text-white/40 mt-0.5">Total XP</p>
               </div>
-              <div className="rounded-2xl p-3.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <Users className="w-5 h-5 mx-auto mb-1.5" style={{ color: '#34D399' }} />
-                <p className="font-heading text-lg font-bold text-white">{summary.student_count}</p>
-                <p className="text-xs text-white/40">Students</p>
+              <div className="rounded-2xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <Users className="w-4 h-4 mx-auto mb-1" style={{ color: '#34D399' }} />
+                <p className="font-heading text-base font-bold text-white leading-tight">{summary.student_count}</p>
+                <p className="text-[10px] text-white/40 mt-0.5">Students</p>
               </div>
             </div>
           )}
@@ -103,7 +103,7 @@ export default function SchoolLeaderboardPage() {
             ) : leaders.map((l, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                 className="flex items-center gap-3 p-3 rounded-2xl"
-                style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="w-7 text-center font-heading font-bold text-sm" style={{ color: i < 3 ? '#FBBF24' : 'rgba(255,255,255,0.4)' }}>
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${l.rank_pos}`}
                 </div>

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { Profile } from '@/types';
 import { initRevenueCat } from '@/lib/iap';
+import { clearUserQueue } from '@/lib/syncQueue';
 
 interface AuthState {
   user: User | null;
@@ -28,12 +29,19 @@ const PROFILE_FETCH_EVENTS = new Set<AuthChangeEvent>([
 // Exponential back-off delays for transient DB/network errors (ms)
 const RETRY_DELAYS_MS = [400, 800, 1600];
 
+// Refresh the access token when < 10 minutes remain, checked every 4 minutes.
+// This prevents the "Session Expired" modal from appearing mid-quiz when the
+// 60-minute access token silently expires while the student is working.
+const TOKEN_REFRESH_INTERVAL_MS = 4 * 60 * 1000;  // 4 min
+const TOKEN_REFRESH_THRESHOLD_MS = 10 * 60 * 1000; // refresh if < 10 min left
+
 export function useAuth() {
   const [state, setState] = useState<AuthState>({
     user: null, session: null, profile: null,
     loading: true, profileLoading: false,
     profileError: false, sessionExpired: false,
   });
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -80,7 +88,23 @@ export function useAuth() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // ── Proactive token refresh ────────────────────────────────────────────
+    // Poll every 4 minutes; if the access token expires in < 10 minutes,
+    // refresh it immediately so in-progress quizzes/lessons are never blocked.
+    refreshTimerRef.current = setInterval(async () => {
+      const { data: { session: current } } = await supabase.auth.getSession();
+      if (!current?.expires_at) return;
+      const msLeft = current.expires_at * 1000 - Date.now();
+      if (msLeft < TOKEN_REFRESH_THRESHOLD_MS) {
+        const { error } = await supabase.auth.refreshSession();
+        if (error) console.warn('[useAuth] proactive refresh failed:', error.message);
+      }
+    }, TOKEN_REFRESH_INTERVAL_MS);
+
+    return () => {
+      subscription.unsubscribe();
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+    };
   }, []);
 
   async function fetchProfile(userId: string, attempt = 0): Promise<Profile | null> {
@@ -129,8 +153,25 @@ export function useAuth() {
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
-    setState(prev => ({ ...prev, profile: null, profileLoading: false, profileError: false, sessionExpired: false }));
+    const userId = state.user?.id;
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      // Sign-out failed (network error) — still clear local state so the user
+      // isn't stuck on a shared device. The session will expire server-side.
+      console.warn('[useAuth] signOut network error (continuing local clear):', (err as Error)?.message);
+    } finally {
+      // Clear all per-user and app-level data from localStorage
+      const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('edora_'));
+      keysToRemove.forEach(k => { try { localStorage.removeItem(k); } catch { /* ignore */ } });
+      // Clear offline sync queue for this user (don't leak it to next session)
+      if (userId) clearUserQueue(userId);
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+      setState({ user: null, session: null, profile: null, loading: false, profileLoading: false, profileError: false, sessionExpired: false });
+    }
   }
 
   function clearSessionExpired() {

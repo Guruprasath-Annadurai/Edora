@@ -535,7 +535,7 @@ ${editedText.slice(0, 3000)}`
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowCameraRationale(false)} />
             <motion.div className="relative w-full rounded-t-3xl p-6 pb-10"
-              style={{ background: 'rgba(10,12,28,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ background: 'rgba(8,6,20,0.88)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.1)' }}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
               <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />

@@ -13,19 +13,19 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 1800,
       launchAutoHide: true,
-      launchFadeOutDuration: 400,
-      backgroundColor: '#F4F7FF',
+      launchFadeOutDuration: 350,
+      backgroundColor: '#060918',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
       splashFullScreen: true,
-      splashImmersive: false,
+      splashImmersive: true,
     },
     StatusBar: {
-      // Capacitor semantics: 'LIGHT' = dark text for light backgrounds
+      // 'LIGHT' = white icons — correct for the dark deep-space background
       style: 'LIGHT',
-      backgroundColor: '#F4F7FF',
+      backgroundColor: '#060918',
       overlaysWebView: false,
     },
     PushNotifications: {
@@ -46,7 +46,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
     webContentsDebuggingEnabled: false,
-    backgroundColor: '#F4F7FF',
+    backgroundColor: '#060918',
   },
 };
 

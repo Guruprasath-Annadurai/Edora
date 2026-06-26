@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -234,7 +235,7 @@ export default function FriendsPage() {
   const cfg = { gradient: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #05060F 0%, #0B0E1F 100%)' }}>
+    <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <button aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -265,17 +266,21 @@ export default function FriendsPage() {
         ))}
       </div>
 
-      <div className="flex-1 px-4 pb-24 overflow-y-auto">
+      <div className="flex-1 px-4 pb-nav overflow-y-auto">
         {/* ── Friends list ──────────────────────────────────────────────── */}
         {tab === 'friends' && (
           loading ? (
             <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
           ) : friends.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-              <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl" style={{ background: 'rgba(91,106,245,0.12)' }}>👫</div>
-              <p className="text-white/60 text-sm">No friends yet. Add some to start a streak together!</p>
-              <Button onClick={() => setTab('add')} className="mt-2" style={{ background: cfg.gradient }}>Find Friends</Button>
-            </div>
+            <EmptyState
+              icon={UsersIcon}
+              iconColor="#A0AEFF"
+              iconBg="rgba(91,106,245,0.12)"
+              title="No friends yet"
+              subtitle="Add study buddies to see each other's streaks and motivate each other daily."
+              actionLabel="Find Friends"
+              onAction={() => setTab('add')}
+            />
           ) : (
             <div className="flex flex-col gap-2.5 pt-1">
               {friends.map(f => {
@@ -283,7 +288,7 @@ export default function FriendsPage() {
                 return (
                   <motion.div key={f.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     className="flex items-center gap-3 p-3 rounded-2xl"
-                    style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <Avatar url={f.avatar_url} name={f.full_name} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white truncate">{f.full_name}</p>
@@ -329,7 +334,7 @@ export default function FriendsPage() {
               {requests.map(r => (
                 <motion.div key={r.friendship_id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="flex items-center gap-3 p-3 rounded-2xl"
-                  style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <Avatar url={r.avatar_url} name={r.full_name} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate">{r.full_name}</p>
@@ -373,7 +378,7 @@ export default function FriendsPage() {
             <div className="flex flex-col gap-2.5">
               {results.map(r => (
                 <div key={r.id} className="flex items-center gap-3 p-3 rounded-2xl"
-                  style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <Avatar url={r.avatar_url} name={r.full_name} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate">{r.full_name}</p>

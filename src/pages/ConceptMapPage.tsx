@@ -295,7 +295,7 @@ function DetailPanel({
       {/* Sheet */}
       <motion.div
         className="relative w-full rounded-t-3xl px-5 pt-5 pb-10"
-        style={{ maxHeight: '80vh', overflowY: 'auto', background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ maxHeight: '80vh', overflowY: 'auto', background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -971,7 +971,7 @@ export default function ConceptMapPage() {
   return (
     <div
       className="flex flex-col"
-      style={{ height: '100dvh', background: 'linear-gradient(180deg, #0A0F25 0%, #080C1A 100%)' }}
+      style={{ height: '100dvh', background: 'transparent' }}
     >
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div
@@ -1104,7 +1104,7 @@ function FilterPill({
       onClick={onClick}
       className="shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
       style={{
-        background: active ? 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' : 'rgba(15,20,45,0.7)',
+        background: active ? 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' : 'rgba(255,255,255,0.055)',
         color:      active ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
         border:     active ? 'none' : '1px solid rgba(255,255,255,0.1)',
         boxShadow:  active ? '0 2px 8px rgba(91,106,245,0.3)' : 'none',

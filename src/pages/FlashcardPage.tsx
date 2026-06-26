@@ -7,7 +7,9 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { track } from '@/lib/analytics';
 import { loadUnlockedIds, checkFlashcardCountAchievements } from '@/lib/achievements';
+import { useHaptic } from '@/hooks/useHaptic';
 import { OfflineCache } from '@/lib/offlineCache';
+import { getSubjectTheme } from '@/lib/subjectColors';
 import type { Flashcard } from '@/types';
 
 type ReviewRating = 'again' | 'hard' | 'good' | 'easy';
@@ -30,6 +32,7 @@ const ratingConfig = {
 
 export default function FlashcardPage() {
   const { profile }       = useAuth();
+  const haptic            = useHaptic();
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [current, setCurrent] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -102,7 +105,11 @@ export default function FlashcardPage() {
 
   async function handleRating(rating: ReviewRating) {
     if (!profile || !cards[current]) return;
-    if (isOfflineMode) return; // read-only in offline mode
+    if (isOfflineMode) return;
+    // Haptic tier matches rating difficulty
+    if (rating === 'easy') haptic.success();
+    else if (rating === 'good') haptic.medium();
+    else haptic.light();
     const prevValues = {
       ease_factor: cards[current].ease_factor,
       repetitions: cards[current].repetitions,
@@ -173,6 +180,7 @@ export default function FlashcardPage() {
   }
 
   const card = cards[current];
+  const subTheme = getSubjectTheme(card?.subject ?? subject ?? '');
 
   return (
     <div className="h-full native-scroll px-4 pt-5 pb-nav" style={{ background: 'transparent' }}>
@@ -206,7 +214,7 @@ export default function FlashcardPage() {
               <Button size="lg" variant="secondary" onClick={() => setView('create')} className="w-full"><Plus size={18} />Create Card</Button>
 
               {/* AI Generate */}
-              <div className="rounded-3xl p-4 flex flex-col gap-3" style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="bento-cell-elevated rounded-3xl p-4 flex flex-col gap-3">
                 <p className="text-sm font-semibold text-white flex items-center gap-2">
                   <Sparkles size={16} className="text-primary" /> Generate with AI
                 </p>
@@ -244,27 +252,29 @@ export default function FlashcardPage() {
               <div className="flex items-center gap-2">
                 <div className="h-1.5 rounded-full overflow-hidden bg-secondary w-32">
                   <div className="h-full rounded-full transition-all"
-                    style={{ width: `${((current + 1) / cards.length) * 100}%`, background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }} />
+                    style={{ width: `${((current + 1) / cards.length) * 100}%`, background: `linear-gradient(135deg,${subTheme.accent},${subTheme.text})` }} />
                 </div>
                 <span className="text-xs text-muted-foreground font-medium">{current + 1}/{cards.length}</span>
               </div>
             </div>
 
-            <div className="flex-1 flex items-center justify-center" onClick={() => setFlipped(f => !f)}>
+            <div className="flex-1 flex items-center justify-center" onClick={() => { haptic.light(); setFlipped(f => !f); }}>
               <motion.div className="w-full relative" style={{ perspective: 1000 }}>
                 <motion.div className="w-full" style={{ transformStyle: 'preserve-3d' }}
                   animate={{ rotateY: flipped ? 180 : 0 }} transition={{ duration: 0.4 }}>
                   {/* Front */}
                   <div className="w-full rounded-3xl min-h-[260px] flex items-center justify-center p-6"
                     style={{
-                      background: 'rgba(15,20,45,0.85)',
-                      border: '1.5px solid rgba(16,185,129,0.2)',
-                      boxShadow: '0 8px 32px rgba(16,185,129,0.08)',
+                      background: 'rgba(255,255,255,0.055)',
+                      backdropFilter: 'blur(40px) saturate(180%) brightness(1.06)',
+                      WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(1.06)',
+                      border: `1.5px solid rgba(${subTheme.accentRgb},0.22)`,
+                      boxShadow: `inset 0 1.5px 0 rgba(255,255,255,0.16), inset 0 -0.5px 0 rgba(0,0,0,0.15), 0 8px 32px rgba(${subTheme.accentRgb},0.10)`,
                       backfaceVisibility: 'hidden',
                     }}>
                     <div className="text-center">
                       <span className="inline-block text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
-                        style={{ background: 'rgba(16,185,129,0.15)', color: '#34D399' }}>Question</span>
+                        style={{ background: `rgba(${subTheme.accentRgb},0.15)`, color: subTheme.accent }}>Question</span>
                       <p className="font-heading text-lg font-bold text-white leading-snug">{card.front}</p>
                       <p className="text-xs mt-5 flex items-center justify-center gap-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
                         Tap to reveal answer
@@ -274,15 +284,17 @@ export default function FlashcardPage() {
                   {/* Back */}
                   <div className="w-full rounded-3xl min-h-[260px] flex items-center justify-center p-6 absolute inset-0"
                     style={{
-                      background: 'linear-gradient(135deg,rgba(16,185,129,0.12),rgba(6,182,212,0.12))',
-                      border: '1.5px solid rgba(16,185,129,0.35)',
-                      boxShadow: '0 8px 32px rgba(16,185,129,0.12)',
+                      background: `rgba(${subTheme.accentRgb},0.10)`,
+                      backdropFilter: 'blur(40px) saturate(200%) brightness(1.08)',
+                      WebkitBackdropFilter: 'blur(40px) saturate(200%) brightness(1.08)',
+                      border: `1.5px solid rgba(${subTheme.accentRgb},0.32)`,
+                      boxShadow: `inset 0 1.5px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(0,0,0,0.15), 0 8px 32px rgba(${subTheme.accentRgb},0.14)`,
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
                     }}>
                     <div className="text-center">
                       <span className="inline-block text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
-                        style={{ background: 'rgba(16,185,129,0.2)', color: '#34D399' }}>Answer</span>
+                        style={{ background: `rgba(${subTheme.accentRgb},0.20)`, color: subTheme.accent }}>Answer</span>
                       <p className="font-heading text-lg font-bold text-white leading-snug">{card.back}</p>
                     </div>
                   </div>
@@ -311,7 +323,7 @@ export default function FlashcardPage() {
                   onClick={() => { setCurrent(c => c - 1); setFlipped(false); }}>
                   <ChevronLeft size={16} />
                 </Button>
-                <Button variant="secondary" className="flex-1" onClick={() => setFlipped(true)}>Show Answer</Button>
+                <Button variant="secondary" className="flex-1" onClick={() => { haptic.light(); setFlipped(true); }}>Show Answer</Button>
                 <Button variant="outline" size="sm" aria-label="Next card"
                   onClick={() => { setCurrent(c => c + 1); setFlipped(false); }}>
                   <ChevronRight size={16} />
@@ -343,7 +355,7 @@ export default function FlashcardPage() {
             {/* ── Up Next preview ── */}
             {current + 1 < cards.length && (
               <div className="rounded-2xl px-3 py-2.5"
-                style={{ background: 'rgba(15,20,45,0.6)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                style={{ background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Up Next</p>
                 <div className="flex flex-col gap-1">
                   {cards.slice(current + 1, current + 3).map((c, i) => (
@@ -378,7 +390,7 @@ export default function FlashcardPage() {
               <input key={placeholder} placeholder={placeholder} value={value}
                 onChange={e => setter(e.target.value)}
                 className="rounded-2xl px-4 h-12 text-white placeholder:text-white/30 text-sm outline-none w-full"
-                style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
             ))}
             <Button size="lg" onClick={saveCard} disabled={!newFront.trim() || !newBack.trim()} className="w-full">
               Save Flashcard

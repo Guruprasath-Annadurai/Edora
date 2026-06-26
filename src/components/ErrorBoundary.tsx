@@ -20,7 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen px-8 gap-6" style={{ background: 'linear-gradient(180deg, #F5F7FF 0%, #EEF0FF 100%)' }}>
+        <div className="flex flex-col items-center justify-center h-full px-8 gap-6" style={{ background: 'linear-gradient(180deg, #F5F7FF 0%, #EEF0FF 100%)' }}>
           <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl"
             style={{ background: 'rgba(239,68,68,0.15)' }}>
             ⚠️

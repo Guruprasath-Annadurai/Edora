@@ -25,6 +25,7 @@ async function nativeShare(title: string, text: string): Promise<void> {
   }
 }
 import type { NovoCertification, CertificationAssessment, AssessmentQuestion } from '@/types';
+import { maybePromptRating } from '@/lib/appRating';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -118,7 +119,7 @@ function CertDetail({ cert, onBack }: { cert: NovoCertification; onBack: () => v
     <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
       className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button aria-label="Go back" onClick={onBack} className="text-white"><ChevronLeft size={20} /></button>
         <p className="font-heading font-bold text-white flex-1">Certificate</p>
         <button onClick={share} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl"
@@ -449,6 +450,7 @@ export default function CertificationsPage() {
       setCerts(prev => [cert, ...prev]);
       setSelectedCert(cert);
       setView('cert_detail');
+      maybePromptRating('first_cert').catch(() => {});
     } else {
       setAssessment(null);
       setView('list');
@@ -470,7 +472,7 @@ export default function CertificationsPage() {
     return (
       <div className="flex flex-col h-full bg-gradient-page">
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <button aria-label="Go back" onClick={goBack} className="text-white"><ChevronLeft size={20} /></button>
           <div className="flex-1">
             <p className="font-heading font-bold text-white text-sm">Certification Assessment</p>
@@ -506,7 +508,7 @@ export default function CertificationsPage() {
     return (
       <div className="flex flex-col h-full bg-gradient-page">
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <button aria-label="Go back" onClick={goBack} className="text-white"><ChevronLeft size={20} /></button>
           <p className="font-heading font-bold text-white flex-1">Enter Topic</p>
         </div>
@@ -558,7 +560,7 @@ export default function CertificationsPage() {
     return (
       <div className="flex flex-col h-full bg-gradient-page">
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <button aria-label="Go back" onClick={goBack} className="text-white"><ChevronLeft size={20} /></button>
           <p className="font-heading font-bold text-white flex-1">Choose Subject</p>
         </div>
@@ -585,7 +587,7 @@ export default function CertificationsPage() {
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/profile" className="text-white">
           <ChevronLeft size={20} />
         </Link>

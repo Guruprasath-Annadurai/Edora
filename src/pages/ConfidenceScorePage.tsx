@@ -66,7 +66,7 @@ function CircularMeter({ score, color }: { score: number; color: string }) {
   const targetOffset = circumference * (1 - score / 100);
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
+    <div className="relative flex items-center justify-center" style={{ width: 'min(160px, 42vw)', height: 'min(160px, 42vw)' }}>
       <svg width={160} height={160} className="-rotate-90" viewBox="0 0 160 160">
         {/* Track */}
         <circle
@@ -253,7 +253,7 @@ function InfoTooltip({ visible }: { visible: boolean }) {
       {visible && (
         <motion.div
           className="absolute right-0 top-8 z-50 w-64 text-white text-xs rounded-2xl p-3 shadow-xl leading-relaxed"
-          style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.12)' }}
+          style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.12)' }}
           initial={{ opacity: 0, y: -6, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -6, scale: 0.95 }}
@@ -366,7 +366,7 @@ export default function ConfidenceScorePage() {
       <div className="flex flex-col h-full bg-gradient-page">
         <div
           className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
         >
           <div className="w-8 h-8 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
           <div className="flex-1">
@@ -401,7 +401,7 @@ export default function ConfidenceScorePage() {
       <div className="flex flex-col h-full bg-gradient-page">
         <div
           className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
         >
           <button
             onClick={() => navigate(-1)}
@@ -440,7 +440,7 @@ export default function ConfidenceScorePage() {
       <div className="flex flex-col h-full bg-gradient-page">
         <div
           className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
         >
           <button
             onClick={() => navigate(-1)}
@@ -504,7 +504,7 @@ export default function ConfidenceScorePage() {
       {/* ── Header ── */}
       <div
         className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
       >
         <button
           onClick={() => navigate(-1)}
@@ -616,7 +616,7 @@ export default function ConfidenceScorePage() {
                 style={
                   selectedSubject === subj
                     ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'white' }
-                    : { background: 'rgba(15,20,45,0.7)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }
+                    : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }
                 }
               >
                 {subj}
@@ -641,7 +641,7 @@ export default function ConfidenceScorePage() {
                 style={
                   sortOrder === opt
                     ? { background: '#5B6AF5', color: 'white' }
-                    : { background: 'rgba(15,20,45,0.7)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }
+                    : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }
                 }
               >
                 {opt === 'weakest' ? 'Weakest First' : opt === 'strongest' ? 'Strongest First' : 'By Subject'}

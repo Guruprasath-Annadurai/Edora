@@ -131,7 +131,7 @@ export default function TermsOfServicePage() {
   }
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: BG }}>
+    <div className="flex flex-col h-full" style={{ background: BG }}>
       <div style={{ paddingTop: 'env(safe-area-inset-top)' }} />
 
       {/* ── Header ── */}

@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Zap, Heart, Shield, ChevronDown } from 'lucide-reac
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { geminiJSON } from '@/lib/gemini';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -141,57 +142,69 @@ export default function BossFightPage() {
   const [shaking, setShaking]     = useState(false);
   const [taunt, setTaunt]         = useState<string>('');
   const [xpEarned, setXpEarned]   = useState(0);
+  const [startError, setStartError] = useState('');
 
   const BOSS_MAX_HP   = 100;
   const PLAYER_MAX_HP = 100;
   const DMG_CORRECT   = 12; // player deals to boss
   const DMG_WRONG     = 15; // boss deals to player
 
-  // Load fight from edge function
+  // ── Question generation: edge function → Gemini local fallback → error ──
   async function startFight() {
     if (!user || !chapter.trim()) return;
+    setStartError('');
     setPhase('loading');
 
-    // Pick a random boss
     const b = BOSS_CATALOGUE[Math.floor(Math.random() * BOSS_CATALOGUE.length)];
     setBoss(b);
 
+    const qs = await fetchQuestions(b, subject, chapter.trim());
+    if (!qs) {
+      setPhase('setup');
+      setStartError('Could not generate questions. Check your connection and try again.');
+      return;
+    }
+
+    setQuestions(qs);
+    setQIndex(0);
+    setBossHp(BOSS_MAX_HP);
+    setPlayerHp(PLAYER_MAX_HP);
+    setSelected(null);
+    setTaunt(b.intro);
+    setPhase('fight');
+  }
+
+  async function fetchQuestions(
+    b: Boss, subj: string, chap: string
+  ): Promise<BossQuestion[] | null> {
+    // Tier 1: Supabase edge function (best quality, server-side)
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke('boss-fight', {
-        body: { subject, chapter: chapter.trim(), bossName: b.name, bossPersonality: b.personality },
+        body: { subject: subj, chapter: chap, bossName: b.name, bossPersonality: b.personality },
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
       });
-
       const qs: BossQuestion[] = res.data?.questions ?? [];
-      if (qs.length < 5) throw new Error('Not enough questions');
-      setQuestions(qs.slice(0, 10));
-      setQIndex(0);
-      setBossHp(BOSS_MAX_HP);
-      setPlayerHp(PLAYER_MAX_HP);
-      setSelected(null);
-      setTaunt(b.intro);
-      setPhase('fight');
-    } catch {
-      // Fallback questions
-      setQuestions(generateFallbackQuestions(subject, chapter));
-      setQIndex(0);
-      setBossHp(BOSS_MAX_HP);
-      setPlayerHp(PLAYER_MAX_HP);
-      setSelected(null);
-      setTaunt(b.intro);
-      setPhase('fight');
-    }
-  }
+      if (qs.length >= 5) return qs.slice(0, 10);
+    } catch { /* fall through to Tier 2 */ }
 
-  function generateFallbackQuestions(subj: string, chap: string): BossQuestion[] {
-    return Array.from({ length: 8 }, (_, i) => ({
-      question:     `[${subj} — ${chap}] Sample question ${i + 1}. Open Novo chat to practice this topic properly.`,
-      options:      ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctIndex: 0,
-      explanation:  'This is a placeholder. Generate proper questions by ensuring the boss-fight edge function is deployed.',
-      taunt:        'Think carefully...',
-    }));
+    // Tier 2: Gemini local generation (client-side, no edge function required)
+    try {
+      const prompt = `Generate 8 multiple-choice quiz questions for a student studying "${chap}" in ${subj}.
+Each question should test genuine understanding, not just recall.
+Return a JSON array — no markdown, no wrapper object — with this schema:
+[{
+  "question": "...",
+  "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+  "correctIndex": 0,
+  "explanation": "One concise sentence explaining why the answer is correct.",
+  "taunt": "A short dramatic taunt from a villain boss (1 sentence, 10 words max)."
+}]`;
+      const qs = await geminiJSON<BossQuestion[]>(prompt, { temperature: 0.7 });
+      if (Array.isArray(qs) && qs.length >= 5) return qs.slice(0, 10);
+    } catch { /* fall through to null */ }
+
+    return null;
   }
 
   async function handleAnswer(idx: number) {
@@ -338,9 +351,16 @@ export default function BossFightPage() {
             />
           </div>
 
+          {startError && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium"
+              style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.30)', color: '#F87171' }}>
+              <span>⚠</span>{startError}
+            </div>
+          )}
+
           <motion.button
             whileTap={{ scale: 0.96 }}
-            onClick={startFight}
+            onClick={() => { setStartError(''); startFight(); }}
             disabled={!chapter.trim()}
             className="w-full py-4 rounded-2xl font-heading font-extrabold text-white text-lg disabled:opacity-40"
             style={{ background: `linear-gradient(135deg, ${boss.color}, ${boss.color}cc)`, boxShadow: `0 8px 32px ${boss.color}55` }}>

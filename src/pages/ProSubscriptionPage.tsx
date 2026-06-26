@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, CheckCircle2, Crown, Zap, Mic, BarChart3,
@@ -8,11 +8,45 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
-import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Toast } from '@capacitor/toast';
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
-import { IAP, restorePurchases, getIAPPlatform } from '@/lib/iap';
+import { IAP, restorePurchases, getIAPPlatform, initRevenueCat } from '@/lib/iap';
+import { track } from '@/lib/analytics';
+import { maybePromptRating } from '@/lib/appRating';
+import { usePricingVariant, usePaywallCTAVariant } from '@/hooks/useExperiment';
+import { trackConversion, getPricingConfig } from '@/lib/experiments';
+
+// Razorpay checkout SDK (loaded dynamically to avoid SSR issues)
+declare global {
+  interface Window {
+    Razorpay: new (opts: RazorpayOptions) => { open(): void; on(event: string, handler: () => void): void };
+  }
+}
+interface RazorpayOptions {
+  key: string; order_id: string; amount: number; currency: string;
+  name: string; description: string; image?: string;
+  prefill?: { email?: string; contact?: string; name?: string };
+  theme?: { color?: string };
+  handler(res: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }): void;
+  modal?: { ondismiss?(): void; confirm_close?: boolean };
+}
+
+let razorpayScriptLoaded = false;
+function loadRazorpayScript(): Promise<void> {
+  if (razorpayScriptLoaded || typeof window.Razorpay !== 'undefined') {
+    razorpayScriptLoaded = true;
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.async = true;
+    s.onload = () => { razorpayScriptLoaded = true; resolve(); };
+    s.onerror = () => reject(new Error('Payment gateway failed to load. Check your internet connection.'));
+    document.head.appendChild(s);
+  });
+}
 
 // ── Plans ─────────────────────────────────────────────────────────────────────
 // Prices shown here must match exactly what's configured in the App Store /
@@ -68,10 +102,17 @@ export default function ProSubscriptionPage() {
   const navigate = useNavigate();
   const platform = getIAPPlatform();
 
+  // A/B experiments — PostHog determines variant
+  const pricingVariant = usePricingVariant();
+  const pricingConfig  = getPricingConfig();
+  const paywallCTA     = usePaywallCTAVariant();
+  const ctaLabel       = paywallCTA === 'unlock_everything' ? 'Unlock Everything'
+                       : paywallCTA === 'try_free'         ? 'Try Pro Free'
+                       : 'Start Pro';
+
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [loading,      setLoading]      = useState(false);
   const [restoring,    setRestoring]    = useState(false);
-  const [showReturnHint, setShowReturnHint] = useState(false);
   const [status,       setStatus]       = useState<{ is_pro: boolean; pro_expires_at: string | null; active_plan: string | null } | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [cancelConfirm, setCancelConfirm] = useState(false);
@@ -81,11 +122,21 @@ export default function ProSubscriptionPage() {
     !profile.pro_expires_at || new Date(profile.pro_expires_at) > new Date()
   );
 
+  // Capture pro state at mount — used to detect server-side trial→paid conversion
+  const wasProOnMount = useRef(isPro);
+
   useEffect(() => {
     (async () => {
       setStatusLoading(true);
       const res = await callFn({ action: 'get_status' });
-      if (!res.error) setStatus(res.data);
+      if (!res.error) {
+        setStatus(res.data);
+        // Free-trial → paid conversion: server says pro but profile was non-pro at mount.
+        // RevenueCat processes the renewal server-side; UI never saw a purchase event.
+        if (!wasProOnMount.current && res.data?.pro_active) {
+          maybePromptRating('pro_purchase').catch(() => {});
+        }
+      }
       setStatusLoading(false);
     })();
   }, [user]);
@@ -99,24 +150,73 @@ export default function ProSubscriptionPage() {
   }
 
   // ── Purchase handler ─────────────────────────────────────────────────────
-  // Android native: Google Play Billing not yet configured.
-  // Subscription must be completed on the web — the button is hidden on Android
-  // and this handler is only reachable from web / iOS.
   async function handleSubscribe() {
     if (!user) return;
-    if (platform === 'android') return; // guard — CTA is hidden on Android
     setErrorMsg('');
     setLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const plan = selectedPlan === 'annual' ? 'annual' : 'monthly';
-      const url = `https://edora-app.vercel.app/pro?plan=${plan}&uid=${user.id ?? ''}`;
-      await Browser.open({ url, presentationStyle: 'popover' });
-      setShowReturnHint(true);
+      // ── Native: iOS + Android via RevenueCat ──────────────────────────────
+      if (platform === 'ios' || platform === 'android') {
+        await initRevenueCat(user.id);
+        const planId = selectedPlan === 'annual' ? 'pro_annual' : 'pro_monthly';
+        const { success } = await IAP.purchase(planId);
+        if (success) {
+          await refetchProfile();
+          track('pro_purchase_success', { plan: selectedPlan, platform });
+          trackConversion('pricing_variant', pricingVariant, 'pro_purchase', { plan: selectedPlan, platform });
+          maybePromptRating('pro_purchase').catch(() => {});
+          navigate('/home');
+        }
+        return;
+      }
+
+      // ── Web: inline Razorpay checkout ──────────────────────────────────────
+      await loadRazorpayScript();
+
+      const { data, error: orderErr } = await callFn({ action: 'create_order', plan: selectedPlan });
+      if (orderErr || !data?.order_id) {
+        throw new Error((data as { error?: string })?.error ?? 'Could not create payment order. Please try again.');
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const rzp = new window.Razorpay({
+          key:         data.key_id as string,
+          order_id:    data.order_id as string,
+          amount:      data.amount as number,
+          currency:    'INR',
+          name:        'Edora Pro',
+          description: PLANS[selectedPlan].label,
+          prefill:     { email: user.email ?? '', name: profile?.full_name ?? '' },
+          theme:       { color: '#7C3AED' },
+          modal:       { confirm_close: true, ondismiss: () => reject(new Error('CANCELLED')) },
+          handler: async (resp) => {
+            try {
+              const { error: verifyErr } = await callFn({
+                action:                'verify_payment',
+                razorpay_order_id:     resp.razorpay_order_id,
+                razorpay_payment_id:   resp.razorpay_payment_id,
+                razorpay_signature:    resp.razorpay_signature,
+                plan:                  selectedPlan,
+              });
+              if (verifyErr) { reject(new Error('Payment verification failed. Contact support if charged.')); return; }
+              track('pro_purchase_success', { plan: selectedPlan, platform: 'web' });
+              trackConversion('pricing_variant', pricingVariant, 'pro_purchase', { plan: selectedPlan, platform: 'web' });
+              await refetchProfile();
+              maybePromptRating('pro_purchase').catch(() => {});
+              resolve();
+            } catch (e) { reject(e); }
+          },
+        });
+        rzp.open();
+      });
+
+      navigate('/home');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Could not open checkout. Please try again.';
-      setErrorMsg(msg);
+      const msg = (err as Error)?.message ?? '';
+      if (msg !== 'CANCELLED') {
+        setErrorMsg(msg || 'Purchase failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -125,6 +225,7 @@ export default function ProSubscriptionPage() {
   // ── Restore purchases ─────────────────────────────────────────────────────
   async function handleRestore() {
     setRestoring(true);
+    setErrorMsg('');
     try {
       const restored = await restorePurchases();
       if (restored) {
@@ -132,10 +233,14 @@ export default function ProSubscriptionPage() {
         await Toast.show({ text: '✅ Pro access restored!', duration: 'long' });
         navigate('/home');
       } else {
-        await Toast.show({ text: 'No active subscription found for this account.', duration: 'long' });
+        const msg = 'No active subscription found for this account. If you believe this is an error, contact support.';
+        setErrorMsg(msg);
+        await Toast.show({ text: msg, duration: 'long' });
       }
-    } catch {
-      await Toast.show({ text: 'Restore failed. Please try again.', duration: 'long' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Restore failed. Please try again.';
+      setErrorMsg(msg);
+      await Toast.show({ text: msg, duration: 'long' });
     } finally {
       setRestoring(false);
     }
@@ -174,10 +279,10 @@ export default function ProSubscriptionPage() {
       : null;
 
     return (
-      <div className="flex flex-col h-full" style={{ background: '#0A0A0F' }}>
+      <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
         {/* Header */}
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,10,15,0.9)', borderBottom: '1px solid rgba(124,58,237,0.15)', backdropFilter: 'blur(16px)' }}>
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(124,58,237,0.15)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <Link to="/profile" aria-label="Back"
             className="w-9 h-9 rounded-full flex items-center justify-center"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -229,7 +334,7 @@ export default function ProSubscriptionPage() {
 
           {/* Features */}
           <div className="rounded-2xl p-4 flex flex-col gap-3"
-            style={{ background: '#0F1117', border: '1px solid rgba(124,58,237,0.12)' }}>
+            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '1px solid rgba(124,58,237,0.15)' }}>
             <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
               Everything you have
             </p>
@@ -271,7 +376,7 @@ export default function ProSubscriptionPage() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="absolute inset-0 bg-black/60" onClick={() => setCancelConfirm(false)} />
               <motion.div className="relative w-full rounded-t-3xl p-6 pb-10"
-                style={{ background: '#0F1117', backdropFilter: 'blur(24px)', borderTop: '1px solid rgba(124,58,237,0.2)' }}
+                style={{ background: 'rgba(8,6,20,0.90)', backdropFilter: 'blur(72px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(72px) saturate(220%) brightness(1.04)', borderTop: '1px solid rgba(124,58,237,0.25)' }}
                 initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
                 <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.12)' }} />
@@ -309,10 +414,10 @@ export default function ProSubscriptionPage() {
   const currentPlan = PLANS[selectedPlan];
 
   return (
-    <div className="flex flex-col h-full" style={{ background: '#0A0A0F' }}>
+    <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,10,15,0.9)', borderBottom: '1px solid rgba(124,58,237,0.12)', backdropFilter: 'blur(16px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(124,58,237,0.12)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/profile" aria-label="Back"
           className="w-9 h-9 rounded-full flex items-center justify-center"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -363,7 +468,7 @@ export default function ProSubscriptionPage() {
                 className="relative rounded-2xl p-4 text-left transition-all"
                 style={active
                   ? { background: 'rgba(124,58,237,0.12)', border: '2px solid #7C3AED' }
-                  : { background: '#0F1117', border: '2px solid rgba(255,255,255,0.08)' }}>
+                  : { background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '2px solid rgba(255,255,255,0.08)' }}>
                 {plan.badge && (
                   <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full text-xs font-bold text-white"
                     style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}>
@@ -396,7 +501,7 @@ export default function ProSubscriptionPage() {
         {/* Free vs Pro comparison */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl p-3.5"
-            style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <p className="text-xs font-bold mb-2.5 uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.3)' }}>Free</p>
             {['5 certs/month', '2 plans/week', '10 voice msgs/day', 'Basic analytics'].map((l, i) => (
               <div key={i} className="flex items-start gap-1.5 mb-1.5">
@@ -429,7 +534,7 @@ export default function ProSubscriptionPage() {
                 initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 + 0.1 }}
                 className="flex items-start gap-3 rounded-2xl p-3.5"
-                style={{ background: '#0F1117', border: '1px solid rgba(124,58,237,0.1)' }}>
+                style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '1px solid rgba(124,58,237,0.12)' }}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                   style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(168,85,247,0.2))' }}>
                   <Icon size={16} style={{ color: '#A855F7' }} />
@@ -446,7 +551,7 @@ export default function ProSubscriptionPage() {
 
         {/* Trust signals */}
         <div className="rounded-2xl p-4 flex flex-col gap-2.5"
-          style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
           {[
             { Icon: Shield,        text: platform === 'android' ? 'Your data is encrypted and secure' : platform === 'ios' ? 'Payment secured by Apple App Store' : 'Secure checkout' },
             { Icon: CalendarDays,  text: 'Cancel anytime from your store account — no lock-in' },
@@ -484,77 +589,45 @@ export default function ProSubscriptionPage() {
       {/* Sticky CTA */}
       <div className="shrink-0 px-4 pt-3"
         style={{
-          background: 'rgba(10,10,15,0.97)',
-          backdropFilter: 'blur(24px)',
+          background: 'rgba(8,6,20,0.82)',
+          backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)',
+          WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)',
           borderTop: '1px solid rgba(124,58,237,0.15)',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 14px)',
         }}>
 
-        {platform === 'android' ? (
-          /* ── Android: Google Play Billing not yet configured.
-             Direct purchase inside the app is not permitted by Google Play policy.
-             Users must subscribe on the web. ── */
-          <div className="rounded-2xl p-4 text-center"
-            style={{ background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.22)' }}>
-            <Crown size={22} style={{ color: '#A855F7' }} className="mx-auto mb-2" />
-            <p className="font-heading font-bold text-white text-sm mb-1">Subscribe on the Web</p>
-            <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.48)' }}>
-              Open your browser and visit the link below to upgrade. Your Pro access will sync to this app automatically.
-            </p>
-            <button
-              onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/pro', presentationStyle: 'popover' })}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold"
-              style={{ background: 'linear-gradient(135deg,#7C3AED,#A855F7)', color: '#fff' }}>
-              <Crown size={12} /> edora-app.vercel.app/pro
-            </button>
-            <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.25)' }}>
-              Plans start at ₹99/month · Cancel anytime
-            </p>
-          </div>
-        ) : (
-          /* ── Web / iOS: full purchase CTA ── */
-          <>
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={handleSubscribe}
-              disabled={loading}
-              className="w-full rounded-2xl font-heading font-bold text-base text-white flex items-center justify-center gap-2.5 disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)', height: 52, boxShadow: '0 0 32px rgba(124,58,237,0.45)' }}>
-              {loading
-                ? <><RefreshCw size={16} className="animate-spin" /> Processing…</>
-                : <><Crown size={16} /> Upgrade to Pro — {currentPlan.price}</>}
-            </motion.button>
+        {/* ── Unified CTA: native for iOS/Android, Razorpay for web ── */}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleSubscribe}
+          disabled={loading}
+          className="w-full rounded-2xl font-heading font-bold text-base text-white flex items-center justify-center gap-2.5 disabled:opacity-60"
+          style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)', height: 52, boxShadow: '0 0 32px rgba(124,58,237,0.45)' }}>
+          {loading
+            ? <><RefreshCw size={16} className="animate-spin" /> Processing…</>
+            : <><Crown size={16} /> {ctaLabel} — {currentPlan.price}</>}
+        </motion.button>
 
-            {/* Legally required billing disclosure */}
-            <p className="text-center text-xs mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.28)' }}>
-              {currentPlan.legalLine}{' '}
-              {platform === 'ios' ? 'Cancel anytime in iPhone Settings → Subscriptions.' : 'Cancel anytime.'}{' '}
-              By subscribing you agree to our{' '}
-              <button
-                onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
-                className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
-                Terms
-              </button>{' '}and{' '}
-              <button
-                onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
-                className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
-                Privacy Policy
-              </button>.
-            </p>
-
-            <AnimatePresence>
-              {showReturnHint && (
-                <motion.button
-                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  onClick={async () => { setShowReturnHint(false); await refreshStatus(); }}
-                  className="w-full mt-2 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
-                  style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', color: '#A855F7' }}>
-                  <RefreshCw size={14} /> Already subscribed? Tap to activate
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </>
-        )}
+        {/* Legally required billing disclosure */}
+        <p className="text-center text-xs mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.28)' }}>
+          {currentPlan.legalLine}{' '}
+          {platform === 'ios'
+            ? 'Manage subscription in iPhone Settings → Subscriptions.'
+            : platform === 'android'
+            ? 'Manage subscription in Google Play Store → Subscriptions.'
+            : 'Cancel anytime.'}{' '}
+          By subscribing you agree to our{' '}
+          <button
+            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
+            className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
+            Terms
+          </button>{' '}and{' '}
+          <button
+            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
+            className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
+            Privacy Policy
+          </button>.
+        </p>
       </div>
     </div>
   );

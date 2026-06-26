@@ -242,7 +242,12 @@ export default function NovoChallengesPage() {
         body: { action: 'get_today', subject },
       });
       if (fnErr) throw new Error(fnErr.message);
-      const ch = data.challenge as Challenge;
+      const ch = data?.challenge as Challenge | null;
+      if (!ch) {
+        setError('No challenge available for today. Check back soon — Novo generates new ones daily!');
+        setLoading(false);
+        return;
+      }
       setChallenge(ch);
       const att = (data.attempt ?? null) as Attempt | null;
       setAttempt(att);
@@ -364,7 +369,7 @@ export default function NovoChallengesPage() {
 
       {/* Sticky header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-20"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => screen !== 'picker' ? resetToSubjectPicker() : navigate(-1)}
           className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-90 transition-transform"
@@ -572,7 +577,7 @@ export default function NovoChallengesPage() {
                         WebkitTapHighlightColor: 'transparent',
                         background: selectedOption === i
                           ? 'rgba(91,106,245,0.15)'
-                          : 'rgba(15,20,45,0.7)',
+                          : 'rgba(255,255,255,0.055)',
                         borderColor: selectedOption === i ? '#5B6AF5' : 'rgba(255,255,255,0.08)',
                         color: '#FFFFFF',
                         opacity: timerActive ? 1 : 0.55,
@@ -598,7 +603,7 @@ export default function NovoChallengesPage() {
                     placeholder={timerActive ? 'Type your answer here…' : 'Press "Start Challenge" to begin'}
                     rows={5}
                     className="w-full rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/30 resize-none outline-none transition-colors disabled:opacity-55"
-                    style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
+                    style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
                   />
                 </div>
               )}

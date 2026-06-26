@@ -521,9 +521,9 @@ export default function RoadmapPage() {
   if (phase === 'loading') return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
           <ArrowLeft size={17} className="text-white" />
         </Link>
         <h1 className="font-heading text-lg font-bold text-white">Study Roadmap</h1>
@@ -538,9 +538,9 @@ export default function RoadmapPage() {
   if (phase === 'setup') return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
           <ArrowLeft size={17} className="text-white" />
         </Link>
         <div>
@@ -576,14 +576,14 @@ export default function RoadmapPage() {
                 className="flex items-center gap-2.5 px-3 py-3 rounded-2xl border text-left transition-all active:scale-95"
                 style={examName === ex.name
                   ? { background: 'rgba(91,106,245,0.15)', borderColor: 'rgba(91,106,245,0.5)' }
-                  : { background: 'rgba(15,20,45,0.7)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                  : { background: 'rgba(255,255,255,0.055)', borderColor: 'rgba(255,255,255,0.08)' }}>
                 <span className={`text-sm font-semibold ${examName === ex.name ? 'text-primary' : 'text-white'}`}>{ex.name}</span>
               </button>
             ))}
           </div>
           {/* Custom exam input */}
           <div className="rounded-2xl flex items-center px-3 h-11"
-            style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <BookOpen size={15} className="text-muted-foreground mr-2 shrink-0" />
             <input
               type="text" placeholder="Or type your exam name…"
@@ -597,7 +597,7 @@ export default function RoadmapPage() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Exam Date</p>
           <div className="rounded-2xl flex items-center px-3 h-11"
-            style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <Calendar size={15} className="text-muted-foreground mr-2 shrink-0" />
             <input
               type="date" value={examDate} onChange={e => setExamDate(e.target.value)}
@@ -767,7 +767,7 @@ export default function RoadmapPage() {
               Today's Focus
             </p>
             <div className="rounded-3xl p-5 flex flex-col items-center text-center gap-2"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                 style={{ background: 'rgba(91,106,245,0.15)' }}>
                 <Calendar size={22} className="text-primary" />
@@ -784,7 +784,7 @@ export default function RoadmapPage() {
               Today's Focus
             </p>
             <div className="rounded-3xl p-5 flex flex-col items-center text-center gap-2"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                 style={{ background: 'rgba(52,211,153,0.15)' }}>
                 <Sparkles size={22} style={{ color: '#34D399' }} />
@@ -801,7 +801,7 @@ export default function RoadmapPage() {
               Today's Focus
             </p>
             <div className="rounded-3xl p-4"
-              style={{ background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(91,106,245,0.3)' }}>
+              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(91,106,245,0.3)' }}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: subjectStyle(todayTask.subject).bg }}>
@@ -861,7 +861,7 @@ export default function RoadmapPage() {
         {/* Plan summary */}
         {roadmap.plan_summary && (
           <div className="rounded-2xl p-4"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles size={14} className="text-primary" />
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Novo's Strategy</p>
@@ -888,7 +888,7 @@ export default function RoadmapPage() {
         <button
           onClick={() => { setExamName(roadmap.exam_name); setExamDate(roadmap.exam_date); setPhase('setup'); }}
           className="w-full py-3 rounded-2xl text-xs font-bold text-muted-foreground active:scale-95 transition-all flex items-center justify-center gap-2"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <RefreshCw size={13} />
           Start a new roadmap
         </button>

@@ -217,9 +217,9 @@ Keep it under 100 words. Be warm and encouraging.`;
   const correctCount = answers.filter((a, i) => a === questions[i]?.correct_idx).length;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
+    <div className="h-full flex flex-col" style={{ background: 'var(--color-bg)' }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3"
+      <div className="flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3 shrink-0"
            style={{ borderBottom: '1px solid var(--color-border)' }}>
         <motion.button whileTap={{ scale: 0.92 }}
           onClick={() => {
@@ -243,6 +243,7 @@ Keep it under 100 words. Be warm and encouraging.`;
         </div>
       </div>
 
+      <div className="flex-1 overflow-y-auto pb-nav">
       <AnimatePresence mode="wait">
         {/* ── Browse ── */}
         {phase === 'browse' && (
@@ -549,6 +550,7 @@ Keep it under 100 words. Be warm and encouraging.`;
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

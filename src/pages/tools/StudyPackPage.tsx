@@ -252,7 +252,7 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
           className="flex flex-col gap-3">
           <div className="rounded-2xl p-4"
-            style={{ background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
             <p className="text-white font-semibold text-sm leading-relaxed">{q.question}</p>
           </div>
 
@@ -260,7 +260,7 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
           {q.options.map((opt, i) => {
             const isCorrect  = i === q.correct_answer;
             const isSelected = i === selected;
-            let optBg = 'rgba(15,20,45,0.7)';
+            let optBg = 'rgba(255,255,255,0.055)';
             let optBorder = 'rgba(255,255,255,0.08)';
             let textColor = 'rgba(255,255,255,0.85)';
             if (revealed) {
@@ -623,7 +623,7 @@ export default function StudyPackPage() {
       <div className="flex flex-col h-full bg-gradient-page">
         {/* Header */}
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <button onClick={() => setPhase('list')}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -653,7 +653,7 @@ export default function StudyPackPage() {
 
         {/* Tabs */}
         <div className="px-4 shrink-0"
-          style={{ background: 'rgba(10,12,28,0.8)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex gap-1">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => { setActiveTab(id); setCardIndex(0); }}
@@ -878,7 +878,7 @@ export default function StudyPackPage() {
 function Header({ title }: { title: string }) {
   return (
     <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-      style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+      style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
       <Link to="/tools"
         className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>

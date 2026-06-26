@@ -65,3 +65,11 @@ export function usePricingVariant() {
 export function useDailyChallengeVariant() {
   return useExperiment('daily_challenge_count');
 }
+
+export function usePaywallCTAVariant() {
+  return useExperiment('paywall_cta');
+}
+
+export function useD30RetentionVariant() {
+  return useExperiment('d30_retention');
+}

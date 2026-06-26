@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Globe, MapPin, Building2, School, Users, Trophy, TrendingUp, TrendingDown, Minus, Sword, Crown, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { SkeletonLeaderboardRows } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
@@ -221,7 +223,7 @@ export default function LeaderboardPage() {
   const rest  = entries.slice(3);
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
+    <div className="h-full overflow-y-auto">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3"
            style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -309,14 +311,17 @@ export default function LeaderboardPage() {
         </AnimatePresence>
 
         {loading ? (
-          <div className="text-center py-12" style={{ color: 'var(--color-text-secondary)' }}>Loading…</div>
+          <SkeletonLeaderboardRows count={8} />
         ) : entries.length === 0 ? (
-          <div className="text-center py-12 space-y-2">
-            <Globe size={40} className="mx-auto opacity-30" style={{ color: 'var(--color-text-secondary)' }} />
-            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              {scope === 'friends' ? 'Join a study circle to see friends.' : `No data for ${scope} scope yet.`}
-            </p>
-          </div>
+          <EmptyState
+            icon={Globe}
+            iconColor="#A0AEFF"
+            iconBg="rgba(91,106,245,0.10)"
+            title={scope === 'friends' ? 'No friends on the board' : 'No rankings yet'}
+            subtitle={scope === 'friends'
+              ? 'Add study friends to see how you stack up against each other.'
+              : 'Start studying to earn XP and appear on the leaderboard.'}
+          />
         ) : (
           <>
             {/* Top 3 podium */}

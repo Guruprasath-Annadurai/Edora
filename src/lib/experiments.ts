@@ -51,6 +51,20 @@ export const EXPERIMENTS = {
     variants: ['no_timer', 'pomodoro'] as const,
     fallback: 'no_timer' as const,
   },
+
+  // Paywall CTA text: 'Start Pro' vs 'Unlock Everything' vs 'Try Pro Free'
+  paywall_cta: {
+    key:      'paywall_cta',
+    variants: ['start_pro', 'unlock_everything', 'try_free'] as const,
+    fallback: 'start_pro' as const,
+  },
+
+  // D30 retention driver: streak-first vs. social-first vs. content-first home
+  d30_retention: {
+    key:      'd30_retention',
+    variants: ['streak_first', 'social_first', 'content_first'] as const,
+    fallback: 'streak_first' as const,
+  },
 } as const;
 
 export type ExperimentKey = keyof typeof EXPERIMENTS;

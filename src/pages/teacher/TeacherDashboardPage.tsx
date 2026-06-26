@@ -236,7 +236,7 @@ function CreateAssignmentModal({ courses, creating, onSubmit, onClose }: CreateM
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         style={{
-          background:   'rgba(10,12,28,0.98)',
+          background:   'rgba(8,6,20,0.88)',
           border:       '1px solid rgba(255,255,255,0.1)',
           borderBottom: 'none',
           borderRadius: '20px 20px 0 0',
@@ -266,7 +266,7 @@ function CreateAssignmentModal({ courses, creating, onSubmit, onClose }: CreateM
 
             <div
               style={{
-                background: 'rgba(15,20,45,0.85)',
+                background: 'rgba(255,255,255,0.06)',
                 borderRadius: '12px',
                 padding:      '12px 14px',
                 marginBottom: '16px',
@@ -669,7 +669,7 @@ export default function TeacherDashboardPage() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'linear-gradient(180deg, #0A0F25 0%, #080C1A 100%)', paddingBottom: '32px' }}>
+    <div style={{ minHeight: '100dvh', background: 'transparent', paddingBottom: '32px' }}>
       {/* Header */}
       <div style={{ padding: '20px 20px 0', maxWidth: '640px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
@@ -776,7 +776,7 @@ export default function TeacherDashboardPage() {
             <div
               key={stat.label}
               style={{
-                background:   'rgba(15,20,45,0.85)',
+                background:   'rgba(255,255,255,0.06)',
                 border:       '1px solid rgba(255,255,255,0.06)',
                 borderRadius: '14px',
                 padding:      '14px',
@@ -791,7 +791,7 @@ export default function TeacherDashboardPage() {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', background: 'rgba(15,20,45,0.85)', borderRadius: '12px', padding: '4px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '12px', padding: '4px', marginBottom: '20px' }}>
           {([
             ['assignments', 'Assignments', <ClipboardList size={14} />],
             ['analytics',   'Reports',     <BarChart2 size={14} />],
@@ -1126,18 +1126,18 @@ export default function TeacherDashboardPage() {
                 </>
               ) : (
                 // School setup form
-                <div style={{ background: 'rgba(15,20,45,0.85)', borderRadius: '16px', padding: '20px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: '20px' }}>
                   <div style={{ fontWeight: 700, color: 'white', marginBottom: '16px' }}>Add Your School</div>
                   <input
                     value={schoolName}
                     onChange={e => setSchoolName(e.target.value)}
                     placeholder="School name"
-                    style={{ width: '100%', background: 'rgba(15,20,45,0.85)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', padding: '10px 14px', fontSize: '14px', outline: 'none', marginBottom: '12px' }}
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', padding: '10px 14px', fontSize: '14px', outline: 'none', marginBottom: '12px' }}
                   />
                   <select
                     value={schoolBoard}
                     onChange={e => setSchoolBoard(e.target.value)}
-                    style={{ width: '100%', background: 'rgba(15,20,45,0.85)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', padding: '10px 14px', fontSize: '14px', outline: 'none', marginBottom: '16px', appearance: 'none' }}
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', padding: '10px 14px', fontSize: '14px', outline: 'none', marginBottom: '16px', appearance: 'none' }}
                   >
                     {['CBSE','ICSE','State','IB','IGCSE','Other'].map(b => <option key={b}>{b}</option>)}
                   </select>
@@ -1360,7 +1360,7 @@ export default function TeacherDashboardPage() {
           >
             <motion.div
               initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-              style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', borderRadius: '20px 20px 0 0', padding: '24px', width: '100%', maxWidth: '480px', maxHeight: '80dvh', overflowY: 'auto' }}
+              style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', borderRadius: '20px 20px 0 0', padding: '24px', width: '100%', maxWidth: '480px', maxHeight: '80dvh', overflowY: 'auto' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1458,7 +1458,7 @@ export default function TeacherDashboardPage() {
           >
             <motion.div
               initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-              style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', borderRadius: '20px 20px 0 0', padding: '24px', width: '100%', maxWidth: '480px', maxHeight: '70dvh', overflowY: 'auto' }}
+              style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', borderRadius: '20px 20px 0 0', padding: '24px', width: '100%', maxWidth: '480px', maxHeight: '70dvh', overflowY: 'auto' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

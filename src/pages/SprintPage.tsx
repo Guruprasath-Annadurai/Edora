@@ -8,7 +8,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { formatDuration } from '@/lib/utils';
 import { loadUnlockedIds, checkAchievements, checkSprintCountAchievements } from '@/lib/achievements';
+import { Haptics, NotificationType } from '@capacitor/haptics';
 import { track } from '@/lib/analytics';
+import { maybePromptRating, incrementSession } from '@/lib/appRating';
 
 type Phase = 'select' | 'active' | 'complete';
 
@@ -67,6 +69,7 @@ export default function SprintPage() {
     const maxXP  = SPRINT_DURATIONS.find(s => s.value === d)?.xp ?? 50;
     const earned = Math.max(10, Math.round((spent / d) * maxXP));
     setXpEarned(earned); setElapsedSeconds(spent); setPhase('complete');
+    Haptics.notification({ type: NotificationType.Success }).catch(() => {});
     track('sprint_complete', { mode: 'solo', subject, xp: earned, duration: d });
     if (profile) {
       const { error: insertError } = await supabase.from('sprint_sessions').insert({
@@ -80,6 +83,12 @@ export default function SprintPage() {
           .eq('user_id',profile.id).eq('completed',true);
         const isFirst = (count ?? 0) === 1;
         const unlocked = await loadUnlockedIds(profile.id);
+        incrementSession();
+        // Prompt for rating at 7-day and 30-day streak milestones
+        const newStreak = profile.streak_count;
+        if (newStreak === 7 || newStreak === 30) {
+          maybePromptRating(newStreak === 7 ? 'streak_7' : 'streak_30').catch(() => {});
+        }
         const updatedProfile = { xp: profile.xp + earned, streak_count: profile.streak_count };
         await checkAchievements({ userId: profile.id, unlocked, profile: updatedProfile, extras: { isFirstSprint: isFirst } });
         await checkSprintCountAchievements(profile.id, unlocked);
@@ -180,7 +189,7 @@ export default function SprintPage() {
                       boxShadow: '0 4px 20px rgba(91,106,245,0.4)',
                       border: '1px solid transparent',
                     } : {
-                      background: 'rgba(15,20,45,0.7)',
+                      background: 'rgba(255,255,255,0.055)',
                       border: '1px solid rgba(255,255,255,0.06)',
                       color: 'rgba(255,255,255,0.6)',
                     }}
@@ -194,19 +203,19 @@ export default function SprintPage() {
             {/* Duration selector */}
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-white/40 mb-2">Duration</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
                 {SPRINT_DURATIONS.map(({ label, value, xp }) => (
                   <button
                     key={value}
                     onClick={() => { setDuration(value); durationRef.current = value; }}
-                    className="flex flex-col items-center py-3 rounded-2xl text-xs font-bold transition-all active:scale-95"
+                    className="flex flex-col items-center py-2.5 rounded-2xl text-[11px] font-bold transition-all active:scale-95 min-w-0"
                     style={duration === value ? {
                       background: 'linear-gradient(135deg,#F59E0B,#EF4444)',
                       color: '#fff',
                       boxShadow: '0 4px 16px rgba(245,158,11,0.35)',
                       border: '1px solid transparent',
                     } : {
-                      background: 'rgba(15,20,45,0.7)',
+                      background: 'rgba(255,255,255,0.055)',
                       border: '1px solid rgba(255,255,255,0.06)',
                       color: 'rgba(255,255,255,0.55)',
                     }}
@@ -222,7 +231,7 @@ export default function SprintPage() {
             <div
               className="flex items-center px-4 h-14 rounded-2xl"
               style={{
-                background: 'rgba(15,20,45,0.7)',
+                background: 'rgba(255,255,255,0.055)',
                 border: '1.5px solid rgba(91,106,245,0.2)',
               }}
             >
@@ -398,7 +407,7 @@ export default function SprintPage() {
                   key={label}
                   className="rounded-2xl p-4 text-center"
                   style={{
-                    background: 'rgba(15,20,45,0.7)',
+                    background: 'rgba(255,255,255,0.055)',
                     border: '1px solid rgba(255,255,255,0.06)',
                     boxShadow: `0 4px 16px ${color}22`,
                   }}

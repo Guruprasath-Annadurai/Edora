@@ -67,7 +67,7 @@ export function SpeedReaderOverlay({ open, onClose, content, title }: Props) {
 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 shrink-0"
-            style={{ background: 'rgba(10,10,15,0.9)', borderBottom: '1px solid rgba(124,58,237,0.12)', backdropFilter: 'blur(16px)' }}>
+            style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(124,58,237,0.12)', backdropFilter: 'blur(16px)' }}>
             <div className="flex items-center gap-2">
               <Type size={16} style={{ color: '#A855F7' }} />
               <span className="font-heading font-bold text-white text-sm">{title ?? 'Speed Reader'}</span>

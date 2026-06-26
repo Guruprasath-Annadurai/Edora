@@ -229,7 +229,7 @@ export function EmotionalCheckIn({ userId, firstName, onComplete, onSkip }: Emot
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex flex-col"
       style={{
-        background: 'radial-gradient(ellipse at 50% 20%, rgba(91,106,245,0.15) 0%, rgba(10,12,28,0.98) 60%)',
+        background: 'radial-gradient(ellipse at 50% 20%, rgba(91,106,245,0.15) 0%, rgba(8,6,20,0.88) 60%)',
         backdropFilter: 'blur(20px)',
       }}>
 

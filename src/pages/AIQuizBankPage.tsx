@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
+import { AIFeedback, logAIInteraction } from '@/components/ui/AIFeedback';
 
 type Phase = 'setup' | 'generating' | 'quiz' | 'result';
 type FlagReason = 'wrong_answer' | 'unclear' | 'too_easy' | 'too_hard' | 'duplicate' | 'other';
@@ -59,6 +60,7 @@ export default function AIQuizBankPage() {
   const [loadingExp, setLoadingExp] = useState(false);
   const [flagModal, setFlagModal] = useState(false);
   const [flagging, setFlagging] = useState(false);
+  const [expInteractionId, setExpInteractionId] = useState<string | null>(null);
   const [abilityScore, setAbilityScore] = useState(0); // IRT theta
   const [streak, setStreak]   = useState(0);
   const subjectConfig = SUBJECTS.find(s => s.name === subject) ?? SUBJECTS[0];
@@ -115,7 +117,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
       const qs: AIQuestion[] = parsed.map((q, i) => ({ ...q, id: `ai_${i}_${Date.now()}`, ability_target: abilityScore, language: profile.preferred_language ?? 'en' }));
       setQuestions(qs);
       setAnswers(new Array(qs.length).fill(null));
-      setCurrent(0); setRevealed(false); setNovoExp(''); setStreak(0);
+      setCurrent(0); setRevealed(false); setNovoExp(''); setExpInteractionId(null); setStreak(0);
       setPhase('quiz');
       track('ai_quiz_started', { subject, count, difficulty: targetDiff, ability: abilityScore });
     } catch {
@@ -127,14 +129,32 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
   async function fetchNovoExp(q: AIQuestion) {
     if (novoExp || loadingExp) return;
     setLoadingExp(true);
+    setExpInteractionId(null);
     const langInstr = getLangInstruction(profile?.preferred_language);
+    const startMs = Date.now();
     try {
       const { data } = await supabase.functions.invoke('gemini-chat', {
         body: {
           prompt: `Explain why "${q.options[q.correct_idx]}" is correct for: ${q.question}. Be concise (80 words max).${langInstr}`,
         },
       });
-      setNovoExp(data?.text ?? q.explanation);
+      const explanation = data?.text ?? q.explanation;
+      setNovoExp(explanation);
+
+      // Log to AI flywheel — non-blocking
+      if (profile) {
+        logAIInteraction({
+          userId:      profile.id,
+          sessionType: 'quiz_explain',
+          userQuery:   q.question,
+          aiResponse:  explanation,
+          subject:     q.subject,
+          topic:       q.concept,
+          modelUsed:   'gemini-2.0-flash',
+          responseMs:  Date.now() - startMs,
+          language:    profile.preferred_language ?? 'en',
+        }).then(id => { if (id) setExpInteractionId(id); });
+      }
     } catch { setNovoExp(q.explanation); }
     setLoadingExp(false);
   }
@@ -159,16 +179,31 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
   async function flagQuestion(reason: FlagReason) {
     if (!profile || flagging) return;
     const q = questions[current];
-    if (!q.id.startsWith('ai_')) {
-      // Persisted question — flag in DB
-      setFlagging(true);
-      await supabase.from('ai_question_flags').upsert({
+    setFlagging(true);
+    // Insert into unified question_reports for moderation dashboard
+    const reportType = reason === 'wrong_answer' ? 'wrong_answer'
+      : reason === 'unclear'   ? 'ambiguous'
+      : reason === 'other'     ? 'other'
+      : 'other';
+    await Promise.allSettled([
+      supabase.from('question_reports').insert({
+        user_id:       profile.id,
+        question_id:   q.id.startsWith('ai_') ? null : q.id,
+        question_text: q.question,
+        report_type:   reportType,
+        details:       `Flagged as: ${reason}. Subject: ${subject}, Chapter: ${q.chapter ?? 'N/A'}`,
+      }),
+      // Legacy table — keep for backwards compat
+      !q.id.startsWith('ai_') && supabase.from('ai_question_flags').upsert({
         question_id: q.id, user_id: profile.id, reason,
-      }, { onConflict: 'question_id,user_id' });
-      setFlagging(false);
-    }
+      }, { onConflict: 'question_id,user_id' }),
+    ]);
+    setFlagging(false);
     setFlagModal(false);
     track('ai_question_flagged', { subject, reason });
+    await import('@capacitor/toast').then(({ Toast }) =>
+      Toast.show({ text: 'Thanks for the report! We\'ll review it.', duration: 'short' })
+    );
   }
 
   function nextQuestion() {
@@ -178,7 +213,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
       setPhase('result');
     } else {
       setCurrent(c => c + 1);
-      setRevealed(false); setNovoExp('');
+      setRevealed(false); setNovoExp(''); setExpInteractionId(null);
     }
   }
 
@@ -186,7 +221,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
   const correctCount = answers.filter((a, i) => a === questions[i]?.correct_idx).length;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
+    <div className="h-full overflow-y-auto">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3"
            style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -233,11 +268,11 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
             <div>
               <p className="text-xs font-semibold mb-3 uppercase tracking-wider"
                  style={{ color: 'var(--color-text-secondary)' }}>Subject</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 {SUBJECTS.map(s => (
                   <motion.button key={s.name} whileTap={{ scale: 0.95 }}
                     onClick={() => setSubject(s.name)}
-                    className="p-3 rounded-2xl text-center transition-all"
+                    className="p-2 rounded-2xl text-center transition-all"
                     style={{
                       background: subject === s.name ? `${s.color}20` : 'var(--color-surface)',
                       border: `1.5px solid ${subject === s.name ? s.color : 'var(--color-border)'}`,
@@ -368,7 +403,17 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                   {loadingExp ? (
                     <p className="text-xs animate-pulse" style={{ color: 'var(--color-text-secondary)' }}>Thinking…</p>
                   ) : (
-                    <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text)' }}>{novoExp || q.explanation}</p>
+                    <>
+                      <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text)' }}>{novoExp || q.explanation}</p>
+                      {expInteractionId && (
+                        <AIFeedback
+                          interactionId={expInteractionId}
+                          subject={q.subject}
+                          topic={q.concept}
+                          compact
+                        />
+                      )}
+                    </>
                   )}
                 </motion.div>
               )}
@@ -386,7 +431,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                 <motion.div key="flag" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 40 }}
                   className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl p-5 space-y-3"
-                  style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)' }}>
+                  style={{ background: 'rgba(8,6,20,0.90)', backdropFilter: 'blur(64px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(200%) brightness(1.04)', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
                   <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Report this question</p>
                   {FLAG_REASONS.map(r => (
                     <button key={r.id} onClick={() => flagQuestion(r.id)}
@@ -418,13 +463,13 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                 Ability score updated to {abilityScore.toFixed(2)} — next batch will adjust difficulty.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {[
                 { l: 'Correct',  v: correctCount,                     c: '#34D399' },
                 { l: 'Wrong',    v: questions.length - correctCount,   c: '#F87171' },
                 { l: 'Streak',   v: `${streak}🔥`,                    c: '#FBBF24' },
               ].map(s => (
-                <div key={s.l} className="p-4 rounded-2xl"
+                <div key={s.l} className="p-3 rounded-2xl"
                   style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                   <p className="text-xl font-bold" style={{ color: s.c }}>{s.v}</p>
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{s.l}</p>

@@ -61,7 +61,13 @@ export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nex
           <div className="absolute inset-0 bg-black/70" onClick={handleClose} />
 
           <motion.div className="relative w-full rounded-t-[32px] px-5 pt-6 pb-10 flex flex-col gap-5"
-            style={{ background: 'linear-gradient(180deg, #0D0818 0%, #0A0A0F 100%)', borderTop: '1px solid rgba(124,58,237,0.3)' }}
+            style={{
+              background: 'rgba(10,8,24,0.92)',
+              backdropFilter: 'blur(72px) saturate(220%) brightness(1.04)',
+              WebkitBackdropFilter: 'blur(72px) saturate(220%) brightness(1.04)',
+              borderTop: '1px solid rgba(124,58,237,0.32)',
+              boxShadow: 'inset 0 1px 0 rgba(124,58,237,0.2)',
+            }}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 26, stiffness: 260 }}>
 

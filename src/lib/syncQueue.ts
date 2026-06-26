@@ -14,8 +14,15 @@ const QUEUE_KEY = 'edora_sync_queue';
 export type SyncAction =
   | { type: 'xp_grant';    payload: { user_id: string; amount: number; reason: string } }
   | { type: 'quiz_answer'; payload: { user_id: string; session_id: string; question_id: string; correct: boolean; topic: string; subject: string } }
+  | { type: 'quiz_session'; payload: {
+      user_id: string; subject: string; topic: string;
+      questions: unknown[]; user_answers: number[];
+      score: number; score_pct: number; completed_at: string;
+    }
+  }
   | { type: 'streak_tick'; payload: { user_id: string; date: string } }
   | { type: 'topic_perf';  payload: { user_id: string; subject: string; topic: string; correct: number; total: number } }
+  | { type: 'lesson_complete'; payload: { user_id: string; lesson_id: string; xp_earned: number; completed_at: string } }
   | { type: 'flashcard_review'; payload: { user_id: string; card_id: string; quality: number } };
 
 interface QueueEntry {
@@ -46,6 +53,15 @@ async function saveQueue(queue: QueueEntry[]): Promise<void> {
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
+
+/** Wipe the queue for a specific user on sign-out so it doesn't persist to the next session. */
+export async function clearUserQueue(_userId?: string): Promise<void> {
+  try {
+    await Preferences.remove({ key: QUEUE_KEY });
+  } catch {
+    try { localStorage.removeItem(QUEUE_KEY); } catch { /* ignore */ }
+  }
+}
 
 export const SyncQueue = {
   async enqueue(action: SyncAction): Promise<void> {
@@ -155,6 +171,30 @@ async function processAction(action: SyncAction, accessToken: string, sessionUse
         p_correct:  correct,
         p_total:    total,
       }));
+      break;
+    }
+
+    case 'quiz_session': {
+      const { user_id, subject, topic, questions, user_answers, score, score_pct, completed_at } = action.payload;
+      // Guard: user_id must match authenticated session
+      if (user_id !== sessionUserId) throw new Error('quiz_session user_id mismatch — discarding');
+      await withRetry(() =>
+        supabase.from('quiz_sessions').insert({
+          user_id, subject, topic, questions, user_answers, score, score_pct, completed_at,
+        })
+      );
+      break;
+    }
+
+    case 'lesson_complete': {
+      const { user_id, lesson_id, xp_earned, completed_at } = action.payload;
+      if (user_id !== sessionUserId) throw new Error('lesson_complete user_id mismatch — discarding');
+      await withRetry(() =>
+        supabase.from('lesson_progress').upsert(
+          { user_id, lesson_id, completed: true, xp_earned, completed_at },
+          { onConflict: 'user_id,lesson_id' }
+        )
+      );
       break;
     }
 

@@ -6,6 +6,7 @@ import {
   GraduationCap, Sun, Moon, type LucideIcon,
 } from 'lucide-react';
 import { AwardIcon } from '@/components/ui/icons';
+import { ListPageSkeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -67,7 +68,7 @@ export default function AchievementsPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/profile"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -172,7 +173,7 @@ export default function AchievementsPage() {
                   transition={{ delay: i * 0.03 }}
                   className="rounded-3xl p-4 flex flex-col items-center gap-2 text-center"
                   style={{
-                    background: 'rgba(15,20,45,0.5)',
+                    background: 'rgba(255,255,255,0.035)',
                     border: '1px solid rgba(255,255,255,0.05)',
                     opacity: 0.55,
                   }}>
@@ -200,11 +201,7 @@ export default function AchievementsPage() {
           </div>
         )}
 
-        {loading && (
-          <div className="flex justify-center py-10">
-            <div className="w-8 h-8 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-          </div>
-        )}
+        {loading && <ListPageSkeleton count={6} header={false} />}
 
         <div className="h-4" />
       </div>

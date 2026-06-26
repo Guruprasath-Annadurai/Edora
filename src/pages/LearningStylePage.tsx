@@ -68,7 +68,7 @@ function LoadingSkeleton() {
         <SkeletonBlock className="h-48 rounded-3xl" />
       </div>
       <div className="rounded-2xl p-4 space-y-4"
-        style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
         <SkeletonBlock className="h-4 w-28" />
         {[0, 1, 2, 3].map(i => (
           <div key={i} className="flex items-center gap-3">
@@ -230,11 +230,11 @@ export default function LearningStylePage() {
 
       {/* ── Header ── */}
       <div className="px-4 py-3 shrink-0 flex items-center gap-3 sticky top-0 z-20"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-all text-white"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}
         >
           <ArrowLeft size={17} />
         </button>
@@ -332,7 +332,7 @@ export default function LearningStylePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.4 }}
               className="rounded-2xl p-4"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               <h3 className="text-sm font-bold text-white mb-4">Style Breakdown</h3>
               <div className="flex flex-col gap-3.5">
@@ -356,7 +356,7 @@ export default function LearningStylePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.4 }}
               className="rounded-2xl p-4"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               <h3 className="text-sm font-bold text-white mb-3">Your Strengths</h3>
               <div className="flex flex-wrap gap-2">
@@ -384,7 +384,7 @@ export default function LearningStylePage() {
                   <div
                     key={i}
                     className="rounded-2xl p-3.5 flex items-start gap-3"
-                    style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
                     <div
                       className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5"

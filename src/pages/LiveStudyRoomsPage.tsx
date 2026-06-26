@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { ConnectionPill, type ConnStatus } from '@/components/ui/ConnectionPill';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,6 +118,8 @@ export default function LiveStudyRoomsPage() {
   const [copiedCode, setCopiedCode]     = useState(false);
   const [activeTab, setActiveTab]       = useState<'chat' | 'ask'>('chat');
 
+  const [connStatus, setConnStatus] = useState<ConnStatus>('connected');
+
   const channelRef    = useRef<RealtimeChannel | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -198,9 +201,14 @@ export default function LiveStudyRoomsPage() {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          const name       = (profile as { full_name?: string } | null)?.full_name ?? 'Student';
+          setConnStatus('connected');
+          const name        = (profile as { full_name?: string } | null)?.full_name ?? 'Student';
           const avatarLetter = name[0]?.toUpperCase() ?? 'S';
           await channel.track({ user_id: user.id, name, avatar_letter: avatarLetter, is_studying: true });
+        } else if (status === 'CLOSED') {
+          setConnStatus('disconnected');
+        } else {
+          setConnStatus('reconnecting');
         }
       });
 
@@ -372,9 +380,9 @@ Answer concisely for a JEE/NEET student. Return ONLY valid JSON:
   // ── Lobby UI ──────────────────────────────────────────────────────────────────
   if (phase === 'lobby') {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] text-white">
+      <div className="h-full text-white">
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-[#0A0A0F]/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
+        <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
           <Link to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </Link>
@@ -586,9 +594,9 @@ Answer concisely for a JEE/NEET student. Return ONLY valid JSON:
 
   // ── Room UI ───────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white flex flex-col">
+    <div className="h-full text-white flex flex-col">
       {/* Room Header */}
-      <div className="sticky top-0 z-20 bg-[#0A0A0F]/95 backdrop-blur border-b border-white/5 px-4 py-3">
+      <div className="sticky top-0 z-20/95 backdrop-blur border-b border-white/5 px-4 py-3">
         <div className="flex items-center gap-3">
           <button onClick={leaveRoom} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
             <LogOut className="w-5 h-5 text-gray-400" />
@@ -604,6 +612,7 @@ Answer concisely for a JEE/NEET student. Return ONLY valid JSON:
               <span className="flex items-center gap-1">
                 <Users className="w-3 h-3" /> {onlineMembers.length} online
               </span>
+              <ConnectionPill status={connStatus} reconnectingLabel="Reconnecting…" />
             </div>
           </div>
           <button
@@ -732,7 +741,7 @@ Answer concisely for a JEE/NEET student. Return ONLY valid JSON:
       </div>
 
       {/* Input */}
-      <div className="sticky bottom-0 bg-[#0A0A0F]/95 backdrop-blur border-t border-white/5 px-4 py-3">
+      <div className="sticky bottom-0/95 backdrop-blur border-t border-white/5 px-4 py-3">
         {activeTab === 'chat' ? (
           <div className="flex gap-2">
             <input

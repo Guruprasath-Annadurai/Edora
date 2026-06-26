@@ -69,7 +69,7 @@ export default function ClassroomCallbackPage() {
     >
       <div
         style={{
-          background:   'rgba(15,20,45,0.85)',
+          background:   'rgba(255,255,255,0.06)',
           borderRadius: '20px',
           padding:      '40px 32px',
           textAlign:    'center',

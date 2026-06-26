@@ -201,9 +201,9 @@ Keep it under 120 words. Be encouraging and conversational.`;
   const q = questions[current];
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
+    <div className="h-full flex flex-col" style={{ background: 'var(--color-bg)' }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3"
+      <div className="flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3 shrink-0"
            style={{ borderBottom: '1px solid var(--color-border)' }}>
         <Link aria-label="Go back" to="/tools">
           <motion.button whileTap={{ scale: 0.92 }}
@@ -217,6 +217,7 @@ Keep it under 120 words. Be encouraging and conversational.`;
         </div>
       </div>
 
+      <div className="flex-1 overflow-y-auto pb-nav">
       <AnimatePresence mode="wait">
         {/* ── Browse Phase ── */}
         {phase === 'browse' && (
@@ -517,6 +518,7 @@ Keep it under 120 words. Be encouraging and conversational.`;
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

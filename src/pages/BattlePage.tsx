@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import { geminiJSON } from '@/lib/gemini';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { ConnectionPill, type ConnStatus } from '@/components/ui/ConnectionPill';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -134,6 +135,8 @@ export default function BattlePage() {
   const [myElo, setMyElo]               = useState(1200);
   const [oppElo, setOppElo]             = useState(1200);
   const [eloDelta, setEloDelta]         = useState<number | null>(null);
+
+  const [connStatus, setConnStatus] = useState<ConnStatus>('connected');
 
   const timerRef        = useRef<ReturnType<typeof setInterval> | null>(null);
   const channelRef      = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -265,7 +268,7 @@ export default function BattlePage() {
   }
 
   function subscribeToInvite(invId: string) {
-    const ch = supabase.channel(`invite:${invId}`)
+    const ch = supabase.channel(`invite:${invId}`, { config: { broadcast: { ack: false } } })
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'battle_invites', filter: `id=eq.${invId}`,
       }, async (payload) => {
@@ -279,7 +282,11 @@ export default function BattlePage() {
           supabase.removeChannel(ch);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED')  setConnStatus('connected');
+        else if (status === 'CLOSED') setConnStatus('disconnected');
+        else                          setConnStatus('reconnecting');
+      });
     channelRef.current = ch;
 
     // After 12s with no real opponent, fall back to Novo AI bot
@@ -360,7 +367,11 @@ export default function BattlePage() {
         const { user_id, score } = payload.payload as BattleScore;
         if (user_id !== user?.id) setOppScore(score);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED')  setConnStatus('connected');
+        else if (status === 'CLOSED') setConnStatus('disconnected');
+        else                          setConnStatus('reconnecting');
+      });
     channelRef.current = ch;
   }
 
@@ -475,6 +486,7 @@ export default function BattlePage() {
       myName={profile?.full_name ?? 'You'} oppName={opponent?.full_name ?? 'Opponent'}
       myAvatar={profile?.avatar_url ?? null} oppAvatar={opponent?.avatar_url ?? null}
       onAnswer={(i) => handleAnswer(i, qIndex, questions)}
+      connStatus={connStatus}
     />
   );
 
@@ -519,7 +531,7 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, profile, myE
 }) {
   const navigate = useNavigate();
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '0 0 80px' }}>
+    <div style={{ height: '100%', overflowY: 'auto', padding: '0 0 80px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
         <button aria-label="Go back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)' }}>
@@ -630,7 +642,7 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, profile, myE
 // ── Searching Screen ──────────────────────────────────────────────────────────
 function SearchingScreen({ subject, isBotFallback }: { subject: string; isBotFallback: boolean }) {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
       <motion.div
         animate={{ scale: [1, 1.1, 1], rotate: [0, 10, -10, 0] }}
         transition={{ repeat: Infinity, duration: 1.5 }}
@@ -664,7 +676,7 @@ function CountdownScreen({ count, opponent, profile }: {
   profile: { full_name?: string | null; avatar_url?: string | null } | null;
 }) {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32, padding: '20px' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32, padding: '20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
         <div style={{ textAlign: 'center' }}>
           <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? 'You'} size={64} />
@@ -693,7 +705,7 @@ function CountdownScreen({ count, opponent, profile }: {
 // ── Question Screen ───────────────────────────────────────────────────────────
 function QuestionScreen({
   question, qIndex, total, timeLeft, selected, phase,
-  myScore, oppScore, myName, oppName, myAvatar, oppAvatar, onAnswer,
+  myScore, oppScore, myName, oppName, myAvatar, oppAvatar, onAnswer, connStatus,
 }: {
   question: BattleQuestion;
   qIndex: number; total: number; timeLeft: number;
@@ -702,12 +714,17 @@ function QuestionScreen({
   myName: string; oppName: string;
   myAvatar: string | null; oppAvatar: string | null;
   onAnswer: (i: number) => void;
+  connStatus: ConnStatus;
 }) {
   const timerPct = (timeLeft / QUESTION_TIME) * 100;
   const timerColor = timeLeft <= 5 ? '#EF4444' : timeLeft <= 10 ? '#F59E0B' : '#10B981';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+      {/* Connection status pill — only renders when degraded */}
+      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8 }}>
+        <ConnectionPill status={connStatus} reconnectingLabel="Syncing scores…" />
+      </div>
       {/* Score bar */}
       <div style={{ padding: '12px 20px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -811,7 +828,7 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
   onRematch: () => void; onHome: () => void;
 }) {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '0 0 80px' }}>
+    <div style={{ height: '100%', overflowY: 'auto', padding: '0 0 80px' }}>
       {/* Banner */}
       <div style={{
         padding: '40px 20px',

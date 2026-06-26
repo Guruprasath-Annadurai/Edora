@@ -115,7 +115,7 @@ export default function ExamSimulatorPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/tools"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -156,7 +156,7 @@ export default function ExamSimulatorPage() {
               <input type="text" placeholder="Subject / Topic (e.g. Organic Chemistry)"
                 value={topic} onChange={e => setTopic(e.target.value)}
                 className="rounded-2xl px-4 h-14 text-white placeholder:text-white/30 outline-none w-full"
-                style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
 
               <div>
                 <p className="text-sm font-semibold text-white mb-2">Questions</p>
@@ -166,7 +166,7 @@ export default function ExamSimulatorPage() {
                       className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all"
                       style={count === n
                         ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: '#fff' }
-                        : { background: 'rgba(15,20,45,0.7)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
                       {n}
                     </button>
                   ))}
@@ -181,7 +181,7 @@ export default function ExamSimulatorPage() {
                       className="flex-1 py-3 rounded-2xl text-xs font-semibold transition-all"
                       style={minutes === m
                         ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: '#fff' }
-                        : { background: 'rgba(15,20,45,0.7)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
                       {m}m
                     </button>
                   ))}
@@ -245,7 +245,7 @@ export default function ExamSimulatorPage() {
               </div>
 
               <div className="rounded-3xl p-5"
-                style={{ background: 'rgba(15,20,45,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#A78BFA' }}>Question {current + 1}</p>
                 <p className="font-heading text-base font-semibold text-white leading-snug">{q.question}</p>
               </div>
@@ -255,7 +255,7 @@ export default function ExamSimulatorPage() {
                   const answered   = answers[current] !== null;
                   const isCorrect  = i === q.correct_answer;
                   const isSelected = i === answers[current];
-                  let optBg = 'rgba(15,20,45,0.7)';
+                  let optBg = 'rgba(255,255,255,0.055)';
                   let optBorder = 'rgba(255,255,255,0.08)';
                   if (answered) {
                     if (isCorrect)       { optBg = 'rgba(16,185,129,0.12)'; optBorder = 'rgba(16,185,129,0.4)'; }

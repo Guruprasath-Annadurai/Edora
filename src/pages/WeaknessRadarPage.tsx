@@ -345,7 +345,7 @@ export default function WeaknessRadarPage() {
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
               className="rounded-3xl p-5 flex flex-col items-center gap-4"
-              style={{ background: 'rgba(15,20,45,0.8)', border: '1.5px solid rgba(91,106,245,0.2)' }}>
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(91,106,245,0.2)' }}>
 
               {radarAxes.length >= 3 ? (
                 <>
@@ -436,7 +436,7 @@ export default function WeaknessRadarPage() {
 
             {/* ── All topics list ── */}
             <div className="rounded-3xl p-5"
-              style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <h2 className="font-heading text-base font-bold text-white mb-3">
                 {selectedSubject ?? 'All Topics'}
               </h2>

@@ -194,7 +194,7 @@ function GenerateSheet({ onClose, onGenerated }: GenerateSheetProps) {
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 380, damping: 36 }}
         className="rounded-t-3xl px-4 pt-5 pb-8 flex flex-col gap-5"
-        style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Handle */}
@@ -368,7 +368,7 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 380, damping: 36 }}
         className="rounded-t-3xl px-4 pt-5 pb-8 flex flex-col gap-4 max-h-[88vh] overflow-y-auto"
-        style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Handle */}
@@ -726,7 +726,7 @@ export default function StreakChallengePage() {
 
       {/* Sticky header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-20"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-xl flex items-center justify-center text-white transition-colors"
@@ -746,7 +746,7 @@ export default function StreakChallengePage() {
 
       {/* Tab bar */}
       <div className="px-4 pt-2 pb-0 flex gap-0 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         {(['active', 'history'] as const).map(t => (
           <button
             key={t}

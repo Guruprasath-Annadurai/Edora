@@ -55,7 +55,7 @@ function CreateGroupSheet({ onClose, onCreated }: {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <motion.div
         className="relative w-full rounded-t-3xl p-5 pb-8 max-h-[90vh] overflow-y-auto"
-        style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
         <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />
@@ -84,18 +84,18 @@ function CreateGroupSheet({ onClose, onCreated }: {
             <input value={name} onChange={e => setName(e.target.value)} maxLength={50}
               placeholder="e.g. JEE 2026 Aspirants"
               className="mt-1 w-full px-4 py-3 rounded-2xl text-sm text-white placeholder:text-muted-foreground outline-none"
-              style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)' }} />
+              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)' }} />
           </div>
           <div>
             <label className="text-xs font-semibold text-white">Description (optional)</label>
             <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} maxLength={200}
               placeholder="What's this group about?"
               className="mt-1 w-full px-4 py-3 rounded-2xl text-sm text-white placeholder:text-muted-foreground outline-none resize-none"
-              style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)' }} />
+              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)' }} />
           </div>
           <button onClick={() => setIsPublic(p => !p)}
             className="flex items-center justify-between px-4 py-3 rounded-2xl"
-            style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div>
               <p className="text-sm font-semibold text-white">Public group</p>
               <p className="text-xs text-muted-foreground">Others can find and join via invite code</p>
@@ -146,7 +146,7 @@ function JoinGroupSheet({ onClose, onJoined }: {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <motion.div
         className="relative w-full rounded-t-3xl p-5 pb-8"
-        style={{ background: 'rgba(10,12,28,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
         <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />
@@ -158,7 +158,7 @@ function JoinGroupSheet({ onClose, onJoined }: {
         <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} maxLength={8}
           placeholder="ABCD1234"
           className="w-full px-4 py-4 rounded-2xl text-xl text-center font-bold tracking-[0.3em] text-white placeholder:text-muted-foreground outline-none mb-4"
-          style={{ background: 'rgba(15,20,45,0.7)', border: '1px solid rgba(255,255,255,0.1)' }} />
+          style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.1)' }} />
         <Button size="lg" className="w-full" onClick={handleJoin}
           disabled={code.trim().length < 4 || loading}>
           {loading ? <RefreshCw size={16} className="animate-spin" /> : 'Join Group →'}
@@ -253,7 +253,7 @@ export default function StudyGroupsPage() {
       {/* Header */}
       <div
         className="px-4 py-3 shrink-0"
-        style={{ background: 'rgba(10,12,28,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}
+        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
       >
         <div className="flex items-center gap-3 mb-3">
           <Link aria-label="Go back" to="/profile"><ChevronLeft size={20} className="text-white" /></Link>
