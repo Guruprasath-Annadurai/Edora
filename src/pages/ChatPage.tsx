@@ -21,6 +21,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { supabase } from '@/lib/supabase';
 import { Events } from '@/lib/analytics';
 import { geminiCall, GeminiRateLimitError, GeminiTimeoutError, GeminiNetworkError } from '@/lib/gemini';
+import { writeSessionCache, getOfflineFallback } from '@/lib/ragCache';
 import { useGeminiStream } from '@/lib/useGeminiStream';
 import { Capacitor } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
@@ -994,6 +995,9 @@ Return ONLY valid JSON (no markdown, no code blocks):
         });
       }
 
+      // Cache response for offline fallback
+      writeSessionCache(content, resolvedReply).catch(() => {});
+
       // Auto-speak
       if (autoSpeak) speak(displayContent, assistantMsg.id);
 
@@ -1011,6 +1015,19 @@ Return ONLY valid JSON (no markdown, no code blocks):
       Events.chatMessageSent({ personality, language, hasNcertContext: !!ncertContext.text });
       await fetchSmartReplies(finalMsgs);
     } catch (err) {
+      // Try offline cache before showing error
+      const offlineHit = await getOfflineFallback(content).catch(() => null);
+      if (offlineHit) {
+        const offlineMsg: Message = {
+          id: (Date.now() + 1).toString(), role: 'assistant',
+          content: offlineHit, displayContent: offlineHit, concepts: [], timestamp: new Date(),
+        };
+        setMessages(prev => [...prev.filter(m => m.id !== `streaming_${Date.now()}`), offlineMsg]);
+        sessionMsgs.current = [...sessionMsgs.current, offlineMsg];
+        setLoading(false);
+        return;
+      }
+
       let msg = 'Connection issue. Please try again.';
       const errMsg = err instanceof Error ? err.message : '';
       if (err instanceof GeminiRateLimitError) msg = '⏳ Too many requests. Please wait a moment.';

@@ -226,6 +226,112 @@ function sentimentInstruction(s: Sentiment): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// RAG — Hybrid retrieval helpers
+// ─────────────────────────────────────────────────────────────────────────────
+interface RagChunk {
+  id: string; subject: string; chapter_title: string; section_title: string | null;
+  content: string; content_type: string; chunk_level: string; rrf_score: number;
+}
+
+// FNV-1a cache key (same algorithm as ncert-ingest for consistency)
+function computeCacheKey(query: string, subj: string, level: string): string {
+  const src = `${query.toLowerCase().trim()}|${subj}|${level}`;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < src.length; i++) {
+    h ^= src.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0') + src.length.toString(16).padStart(8, '0');
+}
+
+// Embed query for retrieval (task=RETRIEVAL_QUERY, opposite of RETRIEVAL_DOCUMENT)
+async function embedQuery(text: string, geminiKey: string): Promise<number[] | null> {
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'models/text-embedding-004',
+          content: { parts: [{ text: text.slice(0, 2000) }] },
+          taskType: 'RETRIEVAL_QUERY',
+        }),
+      }
+    );
+    if (!res.ok) return null;
+    const d = await res.json() as { embedding?: { values?: number[] } };
+    return d.embedding?.values ?? null;
+  } catch { return null; }
+}
+
+// Map study_level → class filter for retrieval
+function classFilter(studyLevel?: string): number | null {
+  if (!studyLevel) return null;
+  if (studyLevel === 'jee_neet' || studyLevel === 'sat_act') return null; // 11+12 both
+  if (studyLevel === 'college') return null;
+  // 'school' → no filter; let subject filter do the work
+  return null;
+}
+
+// Retrieve RAG chunks + fetch parent chapter summary for context breadth
+async function fetchRagChunks(
+  serviceDb: ReturnType<typeof import('https://esm.sh/@supabase/supabase-js@2').createClient>,
+  embedding: number[],
+  queryText: string,
+  subj: string,
+  studyLevel?: string,
+): Promise<RagChunk[]> {
+  const classNum = classFilter(studyLevel);
+  const { data, error } = await serviceDb.rpc('search_ncert_hybrid', {
+    p_embedding:    `[${embedding.join(',')}]`,
+    p_query_text:   queryText,
+    p_filter_class: classNum,
+    p_filter_subj:  subj || null,
+    p_top_k:        6,
+    p_rrf_k:        60,
+  });
+  if (error || !data) return [];
+
+  const chunks = data as RagChunk[];
+
+  // For each section hit, pull its chapter summary (big-picture context)
+  const sectionHits = chunks.filter(c => c.chunk_level === 'section');
+  if (sectionHits.length > 0) {
+    const parentIds = [...new Set(sectionHits.map((c: RagChunk & { parent_id?: string }) => (c as RagChunk & { parent_id?: string }).parent_id).filter(Boolean))];
+    if (parentIds.length > 0) {
+      const { data: parents } = await serviceDb
+        .from('ncert_content')
+        .select('id, content, chapter_title, chunk_level')
+        .in('id', parentIds)
+        .eq('chunk_level', 'chapter');
+      // Prepend unique chapter summaries (don't duplicate if already in results)
+      const existingIds = new Set(chunks.map(c => c.id));
+      for (const p of (parents ?? []) as Array<{ id: string; content: string; chapter_title: string; chunk_level: string }>) {
+        if (!existingIds.has(p.id)) {
+          chunks.unshift({ ...p, subject: '', section_title: null, content_type: 'paragraph', rrf_score: 0 });
+        }
+      }
+    }
+  }
+
+  return chunks.slice(0, 8);
+}
+
+function buildRagBlock(chunks: RagChunk[]): string {
+  if (chunks.length === 0) return '';
+  const lines = chunks.map((c, i) => {
+    const loc = [c.subject, c.chapter_title, c.section_title].filter(Boolean).join(' › ');
+    return `[${i + 1}] ${loc}\n${c.content.trim()}`;
+  });
+  return `═══ NCERT KNOWLEDGE CONTEXT (verified source material) ═══
+Use the following excerpts to ground your answer. Cite the chapter when relevant. Do not contradict these excerpts.
+
+${lines.join('\n\n')}
+══════════════════════════════════════════════════════════`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // L1 — MEMORY CONTEXT BUILDER
 // ─────────────────────────────────────────────────────────────────────────────
 interface NovoMemory {
@@ -447,8 +553,18 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
   if (!prompt || typeof prompt !== 'string') return jsonRes({ error: 'prompt is required' }, 400);
   const safePrompt = prompt.replace(/<[^>]*>/g, '').slice(0, 4000).trim();
 
-  // ── 4. Fetch user profile + memories ─────────────────────────────────────────
-  const [profileResult, memoriesResult] = await Promise.all([
+  const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
+
+  // ── 3.5 Cache check — return instantly if identical query answered before ─────
+  const cacheKey   = computeCacheKey(safePrompt, subject, '');
+  const { data: cacheHit } = await serviceDb.rpc('get_rag_cache', { p_key: cacheKey });
+  if (cacheHit && Array.isArray(cacheHit) && cacheHit.length > 0) {
+    const cached = cacheHit[0] as { response_text: string };
+    return jsonRes({ text: cached.response_text, source: 'cache' });
+  }
+
+  // ── 4. Fetch user profile + memories + RAG (all parallel) ────────────────────
+  const [profileResult, memoriesResult, queryEmbedding] = await Promise.all([
     serviceDb
       .from('profiles')
       .select('full_name, xp, level, streak_count, exam_name, exam_date, study_level, novo_personality')
@@ -461,6 +577,7 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
       .order('importance', { ascending: false })
       .order('created_at',  { ascending: false })
       .limit(20),
+    geminiKey ? embedQuery(safePrompt, geminiKey) : Promise.resolve(null),
   ]);
 
   const profile  = (profileResult.data  ?? {}) as UserProfile;
@@ -472,15 +589,22 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
     serviceDb.from('novo_memories').update({ last_used_at: new Date().toISOString() }).in('id', ids).then(() => {});
   }
 
+  // ── 4.5 RAG retrieval ─────────────────────────────────────────────────────────
+  let ragChunks: RagChunk[] = [];
+  if (queryEmbedding) {
+    ragChunks = await fetchRagChunks(serviceDb, queryEmbedding, safePrompt, subject, profile.study_level).catch(() => []);
+  }
+  const ragBlock = buildRagBlock(ragChunks);
+  const ragChunkIds = ragChunks.map(c => c.id).filter(Boolean);
+
   // ── 5. Detect sentiment ───────────────────────────────────────────────────────
   const sentiment = detectSentiment(safePrompt);
 
   // ── 6. Pick personality block ─────────────────────────────────────────────────
-  // Use personality from request, falling back to profile setting
   const activePersonality = personality || profile.novo_personality || 'dominie';
   const personalityBlock  = activePersonality === 'preceptor' ? PRECEPTOR_BLOCK : DOMINIE_BLOCK;
 
-  // ── 7. Build god-mode brain system prompt ─────────────────────────────────────
+  // ── 7. Build god-mode brain system prompt (RAG injected before personality) ───
   const brainSystemPrompt = [
     GOD_MODE_IDENTITY_LOCK,
     '',
@@ -489,6 +613,8 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
     WORLD_CURRICULUM_KNOWLEDGE,
     '',
     IMAGE_GENERATION_BLOCK,
+    '',
+    ragBlock,   // RAG context — verified NCERT source material
     '',
     buildMemoryContext(profile, memories),
     '',
@@ -606,6 +732,14 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
         if (streamComplete && fullAssistantText) {
           extractAndSaveMemories(serviceDb, user.id, safePrompt, fullAssistantText, apiKey, subject || undefined)
             .catch(() => {});
+          // Write to response cache (TTL 24 h) — only for non-personalised answers
+          if (ragChunks.length > 0) {
+            serviceDb.rpc('set_rag_cache', {
+              p_key: cacheKey, p_query: safePrompt, p_response: fullAssistantText,
+              p_chunk_ids: ragChunkIds, p_subject: subject, p_study_level: profile.study_level ?? '',
+              p_ttl_hours: 24,
+            }).then(undefined, () => {});
+          }
         }
       }
     })();
@@ -630,7 +764,15 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
   if (rawText) {
     extractAndSaveMemories(serviceDb, user.id, safePrompt, rawText, apiKey, subject || undefined)
       .catch(() => {});
+    // Write to response cache (only when RAG grounded the answer)
+    if (ragChunks.length > 0) {
+      serviceDb.rpc('set_rag_cache', {
+        p_key: cacheKey, p_query: safePrompt, p_response: rawText,
+        p_chunk_ids: ragChunkIds, p_subject: subject, p_study_level: profile.study_level ?? '',
+        p_ttl_hours: 24,
+      }).then(undefined, () => {});
+    }
   }
 
-  return jsonRes({ text });
+  return jsonRes({ text, source: ragChunks.length > 0 ? 'rag' : 'llm' });
 }));

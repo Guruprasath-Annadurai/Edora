@@ -7,6 +7,8 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { initAnalytics } from '@/lib/analytics';
 import { runOfflinePrefetch, startConnectivityListener } from '@/lib/offlineStudy';
 import { initStorage } from '@/lib/storage';
+import { seedRagCache } from '@/lib/ragCache';
+import { supabase } from '@/lib/supabase';
 import App from './App';
 
 // ── Sentry — only initialises when DSN is present (skipped in dev without key) ──
@@ -81,6 +83,19 @@ async function bootstrap() {
 
   // Run offline prefetch on startup (WiFi + 6h throttle)
   setTimeout(() => { runOfflinePrefetch().catch(() => {}); }, 3000);
+
+  // Seed RAG offline cache with popular cached Q&A (delayed — non-blocking)
+  setTimeout(() => {
+    seedRagCache(async () => {
+      const { data } = await supabase
+        .from('rag_query_cache')
+        .select('query_text, response_text')
+        .gt('hit_count', 3)            // only well-hit entries worth caching offline
+        .order('hit_count', { ascending: false })
+        .limit(300);
+      return (data ?? []) as Array<{ query_text: string; response_text: string }>;
+    }).catch(() => {});
+  }, 8000);
 }
 
 bootstrap();
