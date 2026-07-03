@@ -1,0 +1,40 @@
+name: Deploy Privacy Policy
+
+# Auto-deploys public/privacy-policy.html to the standalone edora-privacy-policy
+# Vercel project whenever it changes on main. This project is separate from the
+# main app deploy (edora-app) — nothing else redeploys it, which is exactly how
+# it went 28 days stale and shipped an outdated deletion-instructions section to
+# the URL Google Play's Data Safety form links to. This workflow closes that gap.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "public/privacy-policy.html"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-privacy-policy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to edora-privacy-policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage deploy folder
+        run: |
+          mkdir -p /tmp/privacy-deploy
+          cp public/privacy-policy.html /tmp/privacy-deploy/index.html
+
+      - name: Deploy to Vercel
+        working-directory: /tmp/privacy-deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_Fq4L4M4FjLQMkHvW6rLYcnE2
+          VERCEL_PROJECT_ID: prj_4J2XQtw31Z72ds8CaXgxgAiaBpTV
+        run: |
+          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel deploy --prod --token="$VERCEL_TOKEN"
