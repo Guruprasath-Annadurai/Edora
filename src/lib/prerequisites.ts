@@ -215,7 +215,7 @@ Return ONLY valid JSON:
 
   try {
     return await geminiJSON<AIGapAnalysis>(prompt);
-  } catch (_) {
+  } catch {
     return {
       confidence:     0.7,
       key_gaps:       report.gaps.map(g => g.subject),

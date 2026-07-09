@@ -20,7 +20,7 @@ const capacitorStorage = {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: Capacitor.isNativePlatform() ? (capacitorStorage as any) : window.localStorage,
+    storage: Capacitor.isNativePlatform() ? (capacitorStorage as unknown as Storage) : window.localStorage,
     autoRefreshToken: true,
     persistSession: true,
     // On web: detect session tokens passed in URL fragment (used by native→web payment redirect)

@@ -55,8 +55,8 @@ export function nextDifficulty(m: Pick<SubtopicMastery,
   'difficulty_level' | 'mastery_score' | 'consecutive_correct' | 'consecutive_wrong'>
 ): 1 | 2 | 3 | 4 | 5 {
   const { difficulty_level: d, mastery_score, consecutive_correct, consecutive_wrong } = m;
-  if (consecutive_correct >= 3 && mastery_score >= 0.8) return Math.min(5, d + 1) as any;
-  if (consecutive_wrong  >= 2 || mastery_score  < 0.35) return Math.max(1, d - 1) as any;
+  if (consecutive_correct >= 3 && mastery_score >= 0.8) return Math.min(5, d + 1) as 1 | 2 | 3 | 4 | 5;
+  if (consecutive_wrong  >= 2 || mastery_score  < 0.35) return Math.max(1, d - 1) as 1 | 2 | 3 | 4 | 5;
   return d;
 }
 

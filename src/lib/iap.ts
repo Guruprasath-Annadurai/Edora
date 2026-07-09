@@ -110,21 +110,17 @@ async function purchaseNative(planId: PlanId): Promise<{ success: boolean }> {
     const activeEntitlement = customerInfo.entitlements.active['pro'];
     if (!activeEntitlement) throw new Error('Purchase completed but access was not granted. Contact support if this persists.');
 
-    // Server-side verification
+    // Server-side verification — server calls RevenueCat REST API using the user's
+    // JWT to look up the entitlement. No sensitive data passed from client.
     const { data: { session } } = await supabase.auth.getSession();
-    const { error: verifyErr } = await supabase.functions.invoke('novo-subscription', {
-      body: {
-        action:    'verify_revenuecat',
-        plan:      planId,
-        store_id:  product.store_id,
-        platform:  Capacitor.getPlatform(),
-      },
+    const { data: verifyResult, error: verifyErr } = await supabase.functions.invoke('novo-subscription', {
+      body:    { action: 'verify_revenuecat' },
       headers: { Authorization: `Bearer ${session?.access_token}` },
     });
-    if (verifyErr) {
-      // Purchase succeeded in store but server verification failed — still grant access optimistically
-      // and log for manual reconciliation. Do NOT block the user.
-      console.error('[IAP] Server verification failed — will reconcile on next launch:', verifyErr.message);
+    if (verifyErr || !(verifyResult as { pro_active?: boolean })?.pro_active) {
+      // RC entitlement check failed — may be propagation delay (RC can take ~5s after purchase).
+      // The RC webhook will activate Pro when it arrives. Log for reconciliation.
+      console.error('[IAP] Server verification did not confirm Pro:', verifyErr?.message ?? verifyResult);
     }
 
     track('pro_subscribed', { plan: planId, price: product.price_inr, platform: Capacitor.getPlatform() });

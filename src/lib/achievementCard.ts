@@ -87,7 +87,7 @@ export async function renderAchievementCard(data: AchievementCardData): Promise<
 
   // Edora logo (top)
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillStyle = 'var(--ink-900)';
   ctx.font = '700 48px -apple-system, sans-serif';
   ctx.fillText('⚡ Edora', CARD_W / 2, 160);
 
@@ -108,14 +108,14 @@ export async function renderAchievementCard(data: AchievementCardData): Promise<
   wrapText(ctx, data.headline, CARD_W / 2, 980, CARD_W - 160, 80);
 
   // Subtitle
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillStyle = 'var(--ink-600)';
   ctx.font = '500 42px -apple-system, sans-serif';
   ctx.fillText(data.subtitle, CARD_W / 2, 1100);
 
   // Avatar + username card
   const cardY = 1280;
   roundedRect(ctx, CARD_W / 2 - 280, cardY, 560, 140, 30);
-  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fillStyle = 'var(--ink-060)';
   ctx.fill();
 
   const avatarSize = 90;
@@ -152,7 +152,7 @@ export async function renderAchievementCard(data: AchievementCardData): Promise<
 
   // Watermark footer
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillStyle = 'var(--ink-350)';
   ctx.font = '500 38px -apple-system, sans-serif';
   ctx.fillText('Study free at edora.app', CARD_W / 2, CARD_H - 80);
 

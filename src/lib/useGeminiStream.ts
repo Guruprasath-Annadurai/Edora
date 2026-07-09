@@ -15,8 +15,10 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 export interface StreamOptions {
   systemInstruction?: string;
-  history?: GeminiMessage[];
-  personality?: string;
+  history?:           GeminiMessage[];
+  personality?:       string;
+  last_chunk_ids?:    string[];
+  onChunkIds?:        (ids: string[]) => void;
 }
 
 export interface UseGeminiStreamReturn {
@@ -64,6 +66,9 @@ export function useGeminiStream(): UseGeminiStreamReturn {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
+      // Destructure non-serialisable / client-only fields before sending to edge function
+      const { onChunkIds, ...restOpts } = opts;
+
       const res = await fetch(`${SUPABASE_URL}/functions/v1/gemini-chat`, {
         method: 'POST',
         headers: {
@@ -71,7 +76,7 @@ export function useGeminiStream(): UseGeminiStreamReturn {
           Authorization:   `Bearer ${session.access_token}`,
           'apikey':        import.meta.env.VITE_SUPABASE_ANON_KEY as string,
         },
-        body:   JSON.stringify({ prompt, stream: true, ...opts }),
+        body:   JSON.stringify({ prompt, stream: true, ...restOpts }),
         signal: controller.signal,
       });
 
@@ -104,14 +109,15 @@ export function useGeminiStream(): UseGeminiStreamReturn {
           if (!payload || payload === '[DONE]') continue;
 
           try {
-            const parsed = JSON.parse(payload) as { chunk?: string; image_url?: string };
+            const parsed = JSON.parse(payload) as { chunk?: string; image_url?: string; chunk_ids?: string[] };
             if (parsed.chunk) {
               fullText += parsed.chunk;
               setStreamingText(fullText);
             } else if (parsed.image_url) {
-              // Image URL resolved by backend — append as markdown image
               fullText += `\n![diagram](${parsed.image_url})\n`;
               setStreamingText(fullText);
+            } else if (parsed.chunk_ids && onChunkIds) {
+              onChunkIds(parsed.chunk_ids);
             }
           } catch { /* malformed chunk — skip */ }
         }

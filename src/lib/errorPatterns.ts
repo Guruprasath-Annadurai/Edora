@@ -142,7 +142,7 @@ export async function scanAndPersistPatterns(
   let detected: DetectedPattern[];
   try {
     detected = await detectPatterns(wrongs, subject);
-  } catch (_e) {
+  } catch {
     return { patterns: [], newCount: 0, updatedCount: 0 };
   }
 

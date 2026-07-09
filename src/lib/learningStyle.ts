@@ -158,7 +158,7 @@ Return ONLY valid JSON:
       scores.step_by_step    /= total;
     }
     return scores;
-  } catch (_) {
+  } catch {
     return { visual: 0.25, conceptual: 0.25, example_driven: 0.25, step_by_step: 0.25 };
   }
 }
@@ -172,7 +172,7 @@ export async function extractSessionSignals(sessionId: string): Promise<StyleSig
     .eq('message_type', 'user')
     .order('created_at', { ascending: true });
 
-  return (messages ?? []).map((m: any) => ({
+  return (messages ?? []).map((m: { content: string; created_at: string }) => ({
     session_id: sessionId,
     question:   m.content.slice(0, 200),
     context:    classifySignal(m.content),
@@ -229,7 +229,7 @@ export async function updateStyleProfile(
   const dominance = maxEntry[1];
 
   // "mixed" if no clear winner (max < 0.35)
-  const primaryStyle: LearningStyleType = dominance >= 0.35
+  const _primaryStyle: LearningStyleType = dominance >= 0.35
     ? (maxEntry[0].replace('_driven', '') as LearningStyleType)
     : 'mixed';
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sm2, tapToQuality, isDue, daysUntilDue } from './spacedRepetition';
+import {sm2, tapToQuality, isDue} from './spacedRepetition';
 import type { SRCard } from './spacedRepetition';
 
 describe('sm2', () => {
@@ -58,8 +58,7 @@ function makeCard(nextReviewDate: string): SRCard {
     source_type: 'manual', source_id: null, front: 'Q', back: 'A',
     easiness_factor: 2.5, interval_days: 1, repetitions: 0,
     last_quality: null, next_review_date: nextReviewDate, last_reviewed_at: null,
-    total_reviews: 0, correct_reviews: 0, created_at: new Date().toISOString(),
-  };
+    total_reviews: 0, correct_reviews: 0, created_at: new Date().toISOString() };
 }
 
 describe('isDue / daysUntilDue', () => {
