@@ -9,6 +9,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 // ── Confidence scoring formula ────────────────────────────────────────────────
 // fast+correct=100, slow+correct=70, fast+wrong=20(overconfident), slow+wrong=0
 function computeConfidence(correct: boolean, responseMs: number | null): number {
@@ -48,6 +49,9 @@ serve(withSentry('analytics', async (req) => {
   const authHeader = req.headers.get('Authorization') ?? '';
   const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
   if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
+
+  const rl = await checkRateLimit(supabase, user.id, 'analytics', 80, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   const body = await req.json().catch(() => ({}));
   const { action } = body;

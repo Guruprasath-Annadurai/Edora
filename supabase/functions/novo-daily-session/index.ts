@@ -12,6 +12,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 async function geminiJSON<T>(prompt: string): Promise<T> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
@@ -100,6 +101,9 @@ serve(withSentry('novo-daily-session', async (req) => {
 
   const body   = await req.json().catch(() => ({}));
   const action = body.action ?? 'get_content';
+
+  const rl = await checkRateLimit(supabase, user.id, `novo_daily_session_${action}`, 40, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
   const today  = new Date().toISOString().slice(0, 10);
 
   // ── get_progress ────────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@ import { getCors }      from '../_shared/cors.ts';
 import { getValidAccessToken } from '../_shared/classroom-tokens.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const DRIVE_API    = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
 
@@ -127,6 +128,9 @@ serve(withSentry('google-drive', async (req) => {
 
   const { data: { user }, error: authErr } = await userDb.auth.getUser();
   if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
+
+  const rl = await checkRateLimit(serviceDb, user.id, 'google_drive', 30, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   const body   = await req.json().catch(() => ({}));
   const action = body.action as string;

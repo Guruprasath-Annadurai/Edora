@@ -3,18 +3,19 @@
 // DPDP Act 2023 (India) requires portability of personal data on user request.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCors } from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 
 Deno.serve(withSentry('export-user-data', async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCors(req) });
   }
 
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -22,7 +23,7 @@ Deno.serve(withSentry('export-user-data', async (req) => {
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
       status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -36,11 +37,19 @@ Deno.serve(withSentry('export-user-data', async (req) => {
   if (userError || !user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
     });
   }
 
   const uid = user.id;
+
+  const rl = await checkRateLimit(supabaseUser, uid, 'export_user_data', 10, 60);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }), {
+      status: 429,
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
+    });
+  }
 
   // Collect all user data in parallel — only columns that contain personal data
   const [
@@ -117,7 +126,7 @@ Deno.serve(withSentry('export-user-data', async (req) => {
 
   return new Response(json, {
     headers: {
-      ...corsHeaders,
+      ...getCors(req),
       'Content-Type': 'application/json',
       'Content-Disposition': `attachment; filename="${filename}"`,
     },

@@ -34,6 +34,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const PUSH_COOLDOWN_HOURS = 4;
 
 // ── FCM helpers ───────────────────────────────────────────────────────────────
@@ -139,6 +140,15 @@ const COPY: Record<string, Record<Lang, { title: string; body: (vars: Record<str
     kn: { title: '{streak} ದಿನಗಳ streak ಅಪಾಯದಲ್ಲಿ 🔥', body: v => `${v.name}, ಇಂದು ಓದಿಲ್ಲವೇ? 10 ನಿಮಿಷ sprint ನಿಮ್ಮ streak ಉಳಿಸುತ್ತದೆ!` },
     mr: { title: '{streak} दिवसांची streak धोक्यात 🔥', body: v => `${v.name}, आज अभ्यास केला नाही? 10 मिनिटांचा sprint streak वाचवेल!` },
     bn: { title: '{streak} দিনের streak বিপদে 🔥', body: v => `${v.name}, আজ পড়াশোনা হয়নি? ১০ মিনিটের sprint তোমার streak বাঁচাবে!` },
+  },
+  quiz_recap: {
+    en: { title: '{subject} · {topic} needs work 📊', body: v => `${v.name}, your mastery of ${v.topic} is ${v.pct}%. ${v.count} topic${v.count === '1' ? '' : 's'} flagged for review — tackle one tonight?` },
+    hi: { title: '{subject} · {topic} पर ध्यान दें 📊', body: v => `${v.name}, ${v.topic} में आपकी महारत ${v.pct}% है। ${v.count} टॉपिक रिव्यू के लिए तैयार हैं!` },
+    ta: { title: '{subject} · {topic} கவனம் தேவை 📊', body: v => `${v.name}, ${v.topic} mastery ${v.pct}%. ${v.count} topic review-க்கு தயாரா?` },
+    te: { title: '{subject} · {topic} శ్రద్ధ అవసరం 📊', body: v => `${v.name}, ${v.topic} mastery ${v.pct}%. ${v.count} topics review కోసం సిద్ధంగా ఉన్నాయి!` },
+    kn: { title: '{subject} · {topic} ಗಮನ ಅಗತ್ಯ 📊', body: v => `${v.name}, ${v.topic} mastery ${v.pct}%. ${v.count} topics review ಗೆ ಸಿದ್ಧ!` },
+    mr: { title: '{subject} · {topic} लक्ष द्या 📊', body: v => `${v.name}, ${v.topic} mastery ${v.pct}% आहे. ${v.count} topics review साठी तयार!` },
+    bn: { title: '{subject} · {topic} মনোযোগ চাই 📊', body: v => `${v.name}, ${v.topic} mastery ${v.pct}%। ${v.count} topics review-এর জন্য তৈরি!` },
   },
   weak_topic: {
     en: { title: 'Revise {topic} tonight 📚', body: v => `5 min on ${v.topic} (${v.subject}) before bed could change your score, ${v.name}. Quick review?` },
@@ -319,7 +329,37 @@ async function dispatchNotifications(
       }
     }
 
-    // 4. Weak-topic evening nudge (≥ 2 PM UTC ≈ 7:30 PM IST) ─────────────────
+    // 4. Quiz recap — personalized mastery nudge (≥ 13:30 UTC ≈ 7 PM IST) ────
+    if (!notifications.length && utcHour >= 13) {
+      const key = `quiz_recap_${todayISO}`;
+      if (!(await alreadySent(serviceDb, user.id, key, 20))) {
+        const since24h = new Date(now.getTime() - 24 * 3600_000).toISOString();
+        const { data: recentMastery } = await serviceDb
+          .from('subtopic_mastery')
+          .select('subject, subtopic, mastery_score')
+          .eq('user_id', user.id)
+          .lt('mastery_score', 0.65)
+          .gte('updated_at', since24h)
+          .order('mastery_score', { ascending: true })
+          .limit(10);
+
+        if (recentMastery && recentMastery.length > 0) {
+          type MasteryRow = { subject: string; subtopic: string; mastery_score: number };
+          const weakest = recentMastery[0] as MasteryRow;
+          const pct = Math.round(weakest.mastery_score * 100);
+          const c = localise('quiz_recap', lang, {
+            name: firstName,
+            subject: weakest.subject,
+            topic: weakest.subtopic,
+            pct: String(pct),
+            count: String(recentMastery.length),
+          });
+          notifications.push({ type: key, title: c.title, body: c.body, data: { route: '/weakness-radar' } });
+        }
+      }
+    }
+
+    // 5. Weak-topic evening nudge (≥ 2 PM UTC ≈ 7:30 PM IST) ─────────────────
     if (!notifications.length && utcHour >= 14) {
       const key = `weak_topic_${todayISO}`;
       if (!(await alreadySent(serviceDb, user.id, key, 20))) {
@@ -343,7 +383,7 @@ async function dispatchNotifications(
       }
     }
 
-    // 5. Rank drop (runs if nothing else queued; uses rank_snapshots) ──────────
+    // 6. Rank drop (runs if nothing else queued; uses rank_snapshots) ──────────
     if (!notifications.length) {
       const key = `rank_drop_${todayISO}`;
       if (!(await alreadySent(serviceDb, user.id, key, 22))) {
@@ -365,7 +405,7 @@ async function dispatchNotifications(
       }
     }
 
-    // 6. Morning daily challenge push (1:30–2:30 UTC = 7–8 AM IST) ────────────
+    // 7. Morning daily challenge push (1:30–2:30 UTC = 7–8 AM IST) ────────────
     if (!notifications.length && utcHour >= 1 && utcHour < 3) {
       const key = `morning_daily_${todayISO}`;
       if (!(await alreadySent(serviceDb, user.id, key, 20))) {
@@ -374,7 +414,7 @@ async function dispatchNotifications(
       }
     }
 
-    // 7. Referral milestone (friend just hit study_milestone) ──────────────────
+    // 8. Referral milestone (friend just hit study_milestone) ──────────────────
     if (!notifications.length) {
       const { data: milestones } = await serviceDb
         .from('referrals')
@@ -466,6 +506,9 @@ serve(withSentry('novo-push', async (req) => {
   if (authErr || !user) {
     return json({ error: 'Unauthorized. Provide a valid Supabase JWT or the cron secret header.' }, 401);
   }
+
+  const rl = await checkRateLimit(serviceDb, user.id, 'novo-push', 40, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const requestedUserId = typeof body.user_id === 'string' ? body.user_id : undefined;

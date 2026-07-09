@@ -258,6 +258,7 @@ serve(async (req) => {
   if (!isServiceKey && !isCron) {
     return json({ error: 'Unauthorized' }, 401);
   }
+  // No per-user rate limit — internal/cron-triggered only
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,

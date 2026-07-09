@@ -1,10 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCors } from '../_shared/cors.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 
 const GEMINI_API_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
@@ -52,11 +49,11 @@ interface ExtractedMemory {
 }
 
 serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCors(req) });
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+    if (!authHeader) return new Response('Unauthorized', { status: 401, headers: getCors(req) });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -67,16 +64,24 @@ serve(async (req: Request) => {
     });
 
     const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+    if (authError || !user) return new Response('Unauthorized', { status: 401, headers: getCors(req) });
+
+    const rl = await checkRateLimit(userClient, user.id, 'novo-memory-extract', 25, 60);
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }), {
+        status: 429,
+        headers: { ...getCors(req), 'Content-Type': 'application/json' },
+      });
+    }
 
     const body: ExtractRequest = await req.json();
     const { userId, userMessage, assistantResponse, subject } = body;
 
-    if (userId !== user.id) return new Response('Forbidden', { status: 403, headers: corsHeaders });
+    if (userId !== user.id) return new Response('Forbidden', { status: 403, headers: getCors(req) });
     if (!userMessage || !assistantResponse) {
       return new Response(JSON.stringify({ extracted: 0 }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCors(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -98,7 +103,7 @@ serve(async (req: Request) => {
     if (!geminiRes.ok) {
       return new Response(JSON.stringify({ extracted: 0, error: 'gemini_failed' }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCors(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -140,13 +145,13 @@ serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ extracted }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
     });
   } catch (err) {
     console.error('novo-memory-extract error:', err);
     return new Response(JSON.stringify({ extracted: 0, error: String(err) }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
     });
   }
 });

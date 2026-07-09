@@ -19,6 +19,7 @@ import { getCors }      from '../_shared/cors.ts';
 import { getValidAccessToken } from '../_shared/classroom-tokens.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
 
 serve(withSentry('google-calendar', async (req) => {
@@ -42,6 +43,9 @@ serve(withSentry('google-calendar', async (req) => {
 
   const body   = await req.json().catch(() => ({}));
   const action = body.action as string;
+
+  const rl = await checkRateLimit(serviceDb, user.id, `google_calendar_${action}`, 30, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   // ── create_event ─────────────────────────────────────────────────────────
   if (action === 'create_event') {

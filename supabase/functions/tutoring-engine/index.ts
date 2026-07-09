@@ -22,6 +22,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 // ── CORS ─────────────────────────────────────────────────────────────────────
 
 // ── Gemini ───────────────────────────────────────────────────────────────────
@@ -801,6 +802,12 @@ Deno.serve(withSentry('tutoring-engine', async (req: Request): Promise<Response>
   catch (_) { return softError('Invalid JSON body', 'BAD_REQUEST'); }
 
   const action = body.action as string;
+
+  // Single early rate-limit check covering all actions — this is a heavy AI-generation
+  // endpoint (Gemini calls in start/message/request_checkpoint/submit_answer), and auth
+  // resolves once here for all actions, so one check upfront is sufficient and simplest.
+  const rl = await checkRateLimit(adminClient(), user.id, `tutoring_engine_${action}`, 25, 60);
+  if (!rl.allowed) return softError('Too many requests. Try again later.', 'RATE_LIMITED');
 
   try {
     switch (action) {

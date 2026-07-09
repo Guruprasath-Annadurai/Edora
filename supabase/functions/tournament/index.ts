@@ -8,6 +8,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 async function geminiJSON<T>(prompt: string): Promise<T> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
@@ -68,6 +69,9 @@ serve(withSentry('tournament', async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const { action } = body;
+
+  const rl = await checkRateLimit(supabase, user.id, `tournament_${action}`, 40, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   // ── get_active ────────────────────────────────────────────────────────────
   // Auto-bootstraps this week's tournaments if none exist yet.

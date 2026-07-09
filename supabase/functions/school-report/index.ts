@@ -21,6 +21,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 // ── Grade letter helper ────────────────────────────────────────────────────────
 function gradeLabel(score: number): { letter: string; color: string } {
   if (score >= 90) return { letter: 'A+', color: '#10B981' };
@@ -344,6 +345,9 @@ serve(withSentry('school-report', async (req) => {
 
   const { data: { user }, error: authErr } = await userDb.auth.getUser();
   if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
+
+  const rl = await checkRateLimit(serviceDb, user.id, 'school-report', 80, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   const body   = await req.json().catch(() => ({}));
   const action = body.action as string;

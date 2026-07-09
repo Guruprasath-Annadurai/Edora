@@ -10,6 +10,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 serve(withSentry('ocr', async (req) => {
   const CORS = getCors(req);
   const json = (data: unknown, status = 200) =>
@@ -34,6 +35,14 @@ serve(withSentry('ocr', async (req) => {
       return new Response(
         JSON.stringify({ error: 'Unauthorized — valid session required' }),
         { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const rl = await checkRateLimit(supabase, user.id, 'ocr', 25, 60);
+    if (!rl.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }),
+        { status: 429, headers: { ...CORS, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -78,9 +87,9 @@ serve(withSentry('ocr', async (req) => {
     const response = visionData.responses?.[0];
 
     // ── 4. Extract text ──────────────────────────────────────────
-    const fullText = response?.fullTextAnnotation?.text ?? '';
-    const pages    = response?.fullTextAnnotation?.pages ?? [];
-    const blocks   = pages.flatMap((p: any) =>
+    let fullText = response?.fullTextAnnotation?.text ?? '';
+    const pages  = response?.fullTextAnnotation?.pages ?? [];
+    const blocks = pages.flatMap((p: any) =>
       p.blocks?.map((b: any) => ({
         text: b.paragraphs
           ?.flatMap((para: any) =>
@@ -93,6 +102,58 @@ serve(withSentry('ocr', async (req) => {
         boundingBox: b.boundingBox,
       })) ?? []
     );
+
+    const gcvConfidence = response?.fullTextAnnotation?.pages?.[0]?.confidence ?? null;
+    let   finalConfidence = gcvConfidence;
+    let   ocrSource = 'cloud_vision';
+
+    // ── 4.5. Gemini Vision fallback for low-confidence / Indian textbook photos ─
+    // Triggers when: GCV confidence < 0.60 OR no text found at all.
+    // Gemini 1.5 Flash handles printed serif fonts, handwritten Hindi, blurry images.
+    const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY');
+    const needsFallback = GEMINI_KEY && (fullText.trim().length === 0 || (gcvConfidence !== null && gcvConfidence < 0.60));
+
+    if (needsFallback) {
+      try {
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+          {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  {
+                    inline_data: { mime_type: 'image/jpeg', data: image_base64 },
+                  },
+                  {
+                    text: `Extract ALL text from this image exactly as written. This may be an Indian textbook page, handwritten notes, or printed study material in English or Indian languages (Hindi, Tamil, Telugu, Kannada, etc.).
+
+Rules:
+- Preserve all mathematical equations, chemical formulas, and numbered steps exactly
+- Preserve all Hindi/regional language text in its original script (Devanagari, Tamil, etc.)
+- Preserve diagram labels, table content, and footnotes
+- Output ONLY the extracted text — no commentary, no markdown formatting
+- If text is handwritten, transcribe as accurately as possible`,
+                  },
+                ],
+              }],
+              generationConfig: { temperature: 0, maxOutputTokens: 2048 },
+            }),
+          },
+        );
+
+        if (geminiRes.ok) {
+          const gd  = await geminiRes.json();
+          const txt = (gd.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
+          if (txt.length > fullText.length) {
+            fullText      = txt;
+            finalConfidence = 0.82;   // Gemini Vision is reliable — report higher confidence
+            ocrSource     = 'gemini_vision';
+          }
+        }
+      } catch (_) { /* fall through with GCV result */ }
+    }
 
     // ── 5. Save scan record to DB ────────────────────────────────
     const { data: scan } = await supabase
@@ -107,10 +168,11 @@ serve(withSentry('ocr', async (req) => {
 
     return new Response(
       JSON.stringify({
-        scan_id:   scan?.id,
-        full_text: fullText,
+        scan_id:    scan?.id,
+        full_text:  fullText,
         blocks,
-        confidence: response?.fullTextAnnotation?.pages?.[0]?.confidence ?? null,
+        confidence: finalConfidence,
+        ocr_source: ocrSource,
       }),
       { headers: { ...CORS, 'Content-Type': 'application/json' } }
     );

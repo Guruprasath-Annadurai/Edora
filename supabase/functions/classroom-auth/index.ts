@@ -23,6 +23,7 @@ import { getValidAccessToken } from '../_shared/classroom-tokens.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 // Google OAuth scopes — Classroom + Calendar + Gmail (send) + Drive (app files only)
 const CLASSROOM_SCOPES = [
   // Classroom
@@ -71,6 +72,9 @@ serve(withSentry('classroom-auth', async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const { action } = body;
+
+  const rl = await checkRateLimit(serviceDb, user.id, `classroom_auth_${action}`, 10, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   // ── init_oauth — build Google OAuth URL ─────────────────────────────────
   if (action === 'init_oauth') {

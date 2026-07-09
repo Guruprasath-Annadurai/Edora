@@ -8,6 +8,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 async function gemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
@@ -88,6 +89,9 @@ serve(withSentry('story-mode', async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const { action } = body;
+
+  const rl = await checkRateLimit(supabase, user.id, `story_mode_${action}`, 25, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   // ── get_scenarios ─────────────────────────────────────────────────────────
   if (action === 'get_scenarios') {

@@ -21,11 +21,13 @@ import { getCors }      from '../_shared/cors.ts';
 import { withSentry }   from '../_shared/sentry.ts';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const SECTION_MAX_CHARS   = 600;
-const PARA_WORD_WINDOW    = 44;   // ~220 chars
-const CHUNK_OVERLAP_WORDS = 10;
-const EMBED_BATCH         = 5;
-const BATCH_DELAY_MS      = 250;
+const CHAPTER_MAX_CHARS = 4000;   // ~1000 tokens — context framing
+const SECTION_MAX_CHARS = 1200;   // ~300  tokens — primary retrieval unit
+const PARA_MAX_CHARS    = 400;    // ~100  tokens — precision answer snippets
+const OVERLAP_CHARS     = 80;     // rolling overlap between adjacent chunks
+const MIN_CHUNK_CHARS   = 60;
+const EMBED_BATCH       = 5;
+const BATCH_DELAY_MS    = 250;
 
 // ── Gemini embedding ──────────────────────────────────────────────────────────
 async function embedText(text: string, apiKey: string): Promise<number[]> {
@@ -79,37 +81,93 @@ function contentHash(text: string): string {
   return h.toString(16).padStart(8, '0') + text.length.toString(16).padStart(8, '0');
 }
 
-// ── Hierarchical chunker ──────────────────────────────────────────────────────
+// ── Hierarchical chunker — 3 levels ──────────────────────────────────────────
+// Section  ~300 tokens (1200 chars) — primary retrieval unit
+// Paragraph ~100 tokens (400 chars)  — precision answer snippets
+// Chapter chunk is built separately from first CHAPTER_MAX_CHARS of full text.
 interface RawChunk { text: string; level: 'section' | 'paragraph'; sectionIdx: number; }
 
-function hierarchicalChunk(text: string): RawChunk[] {
-  const paras = text
-    .replace(/\r\n/g, '\n')
-    .split(/\n{2,}/)
-    .map(p => p.replace(/\s+/g, ' ').trim())
-    .filter(p => p.length > 30);
+// Equation-aware paragraph splitter — never cuts inside a $$ ... $$ block.
+// LaTeX display math often spans 3–10 lines; splitting mid-equation makes both
+// halves meaningless and unembeddable.
+function splitParagraphsMath(text: string): string[] {
+  const lines   = text.replace(/\r\n/g, '\n').split('\n');
+  const blocks: string[] = [];
+  let   buf     = '';
+  let   inMath  = false;  // true while inside $$...$$
 
-  const sections: string[] = [];
-  let cur = '';
-  const tailWords = (s: string) => s.split(/\s+/).slice(-CHUNK_OVERLAP_WORDS).join(' ');
+  for (const line of lines) {
+    const mathTagCount = (line.match(/\$\$/g) ?? []).length;
+    if (mathTagCount % 2 !== 0) inMath = !inMath;  // odd count flips state
 
-  for (const para of paras) {
-    if ((cur + '\n' + para).length > SECTION_MAX_CHARS) {
-      if (cur.trim()) sections.push(cur.trim());
-      cur = tailWords(cur) + ' ' + para;
+    if (line.trim() === '' && !inMath) {
+      if (buf.trim()) { blocks.push(buf.trim()); buf = ''; }
     } else {
-      cur = cur ? cur + '\n' + para : para;
+      buf = buf ? buf + '\n' + line : line;
     }
   }
-  if (cur.trim()) sections.push(cur.trim());
+  if (buf.trim()) blocks.push(buf.trim());
+  return blocks;
+}
+
+function hierarchicalChunk(text: string): RawChunk[] {
+  // Use math-aware splitter so $$...$$ blocks are never split mid-equation
+  const paras = splitParagraphsMath(text)
+    .map(p => p.replace(/\s+/g, ' ').trim())
+    .filter(p => p.length >= MIN_CHUNK_CHARS / 2);
+
+  // ── Build section windows (~300 tokens / 1200 chars) with rolling overlap ──
+  const sections: string[] = [];
+  let cur = '';
+
+  for (const para of paras) {
+    const joined = cur ? cur + '\n' + para : para;
+    // Never split if current para contains an unclosed $$ block
+    const openMath = (cur.match(/\$\$/g) ?? []).length % 2 !== 0;
+    if (!openMath && joined.length > SECTION_MAX_CHARS && cur.length >= MIN_CHUNK_CHARS) {
+      sections.push(cur.trim());
+      // Carry tail overlap into next section so context doesn't hard-break
+      const words   = cur.split(/\s+/);
+      const overlap = words.slice(-Math.ceil(OVERLAP_CHARS / 5)).join(' ');
+      cur = overlap + ' ' + para;
+    } else {
+      cur = joined;
+    }
+  }
+  if (cur.trim().length >= MIN_CHUNK_CHARS) sections.push(cur.trim());
 
   const chunks: RawChunk[] = [];
+
   sections.forEach((sec, si) => {
     chunks.push({ text: sec, level: 'section', sectionIdx: si });
-    const words = sec.split(/\s+/);
-    for (let wi = 0; wi < words.length; wi += PARA_WORD_WINDOW) {
-      const slice = words.slice(wi, wi + PARA_WORD_WINDOW).join(' ');
-      if (slice.length > 80) chunks.push({ text: slice, level: 'paragraph', sectionIdx: si });
+
+    // ── Build paragraph sub-chunks (~100 tokens / 400 chars) within section ──
+    let pos = 0;
+    while (pos < sec.length) {
+      let end = pos + PARA_MAX_CHARS;
+      if (end < sec.length) {
+        // Never split inside a $$ block — find safe boundary
+        const ahead = sec.slice(pos, end);
+        const mathOpens = (ahead.match(/\$\$/g) ?? []).length % 2 !== 0;
+        if (mathOpens) {
+          // Extend end to closing $$
+          const closeIdx = sec.indexOf('$$', end);
+          end = closeIdx >= 0 ? closeIdx + 2 : sec.length;
+        } else {
+          // Snap to word boundary
+          while (end > pos && sec[end] !== ' ') end--;
+        }
+      } else {
+        end = sec.length;
+      }
+      const slice = sec.slice(pos, end).trim();
+      if (slice.length >= MIN_CHUNK_CHARS) {
+        chunks.push({ text: slice, level: 'paragraph', sectionIdx: si });
+      }
+      const advance = Math.max(1, end - pos - OVERLAP_CHARS);
+      pos += advance;
+      while (pos < sec.length && sec[pos] !== ' ') pos++;
+      pos++;
     }
   });
 
@@ -171,6 +229,15 @@ Deno.serve(withSentry('ncert-ingest', async (req) => {
   if (!geminiKey || !supabaseUrl || !serviceKey)
     return json({ error: 'Missing secrets: GEMINI_API_KEY / SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY' }, 500);
 
+  // Auth guard — requires service-role key or dedicated INGEST_API_KEY
+  const ingestKey  = Deno.env.get('INGEST_API_KEY') ?? serviceKey;
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const callerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+  if (!callerToken || callerToken !== ingestKey) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+  // No per-user rate limit — internal/cron-triggered only
+
   const db   = createClient(supabaseUrl, serviceKey);
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const { action } = body;
@@ -210,7 +277,7 @@ Deno.serve(withSentry('ncert-ingest', async (req) => {
   // Generates chapter-level summary chunks from ncert_chapters metadata.
   // Run once to bootstrap corpus; PDF ingest adds section/paragraph chunks on top.
   if (action === 'bulk_seed') {
-    const { filter_class, filter_subject } = body as { filter_class?: number; filter_subject?: string };
+    const { filter_class, filter_subject, force } = body as { filter_class?: number; filter_subject?: string; force?: boolean };
 
     let q = db.from('ncert_chapters')
       .select('class_num, subject, chapter_num, chapter_title, description, concepts');
@@ -226,9 +293,17 @@ Deno.serve(withSentry('ncert-ingest', async (req) => {
     }>;
 
     const summaryTexts = rows.map(ch => {
-      const concepts = Array.isArray(ch.concepts) ? ch.concepts.join(', ') : '';
-      return `Class ${ch.class_num} ${ch.subject} — Chapter ${ch.chapter_num}: ${ch.chapter_title}. ` +
-             `${ch.description ?? ''}. Key concepts: ${concepts}.`;
+      const concepts = Array.isArray(ch.concepts) ? ch.concepts : [];
+      // Build rich ~1000-token chapter summary for context framing
+      const header      = `Class ${ch.class_num} ${ch.subject} — Chapter ${ch.chapter_num}: ${ch.chapter_title}`;
+      const overview    = ch.description ? `\n\nOverview: ${ch.description}` : '';
+      const conceptList = concepts.length
+        ? `\n\nKey concepts and topics:\n${concepts.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}`
+        : '';
+      const examNote    = `\n\nThis chapter is part of the NCERT Class ${ch.class_num} ${ch.subject} curriculum, ` +
+                          `important for CBSE board exams${ch.class_num >= 11 ? ', JEE, and NEET' : ''}.`;
+      const full        = (header + overview + conceptList + examNote).trim();
+      return full.slice(0, CHAPTER_MAX_CHARS);
     });
 
     const embeddings = await embedBatch(summaryTexts, geminiKey);
@@ -241,7 +316,11 @@ Deno.serve(withSentry('ncert-ingest', async (req) => {
       const { data: existing } = await db.from('ncert_content').select('id')
         .eq('class_num', ch.class_num).eq('subject', ch.subject)
         .eq('chapter_title', ch.chapter_title).eq('chunk_level', 'chapter').limit(1);
-      if (existing?.length) { skipped++; continue; }
+      if (existing?.length) {
+        if (!force) { skipped++; continue; }
+        // force=true: delete old chapter chunk so we insert fresh rich summary
+        await db.from('ncert_content').delete().eq('id', (existing[0] as { id: string }).id);
+      }
 
       const { error: insErr } = await db.from('ncert_content').insert({
         class_num:     ch.class_num,
@@ -299,7 +378,9 @@ Deno.serve(withSentry('ncert-ingest', async (req) => {
     if (existingParent?.length) {
       parentId = (existingParent[0] as { id: string }).id;
     } else {
-      const chapSummary = `Class ${class_num} ${subject} — Chapter ${chapter_num ?? ''}: ${chapter_title}. ${rawText.slice(0, 400)}...`;
+      // Chapter chunk = full beginning of text up to ~1000 tokens (4000 chars)
+      const chapSummary = (`Class ${class_num} ${subject} — Chapter ${chapter_num ?? ''}: ${chapter_title}\n\n` +
+                           rawText).slice(0, CHAPTER_MAX_CHARS);
       const chapEmb     = await embedText(chapSummary, geminiKey).catch(() => null);
       const { data: inserted } = await db.from('ncert_content').insert({
         class_num, subject, chapter_num: chapter_num ?? null, chapter_title,
@@ -312,9 +393,29 @@ Deno.serve(withSentry('ncert-ingest', async (req) => {
       parentId = (inserted as { id: string } | null)?.id ?? null;
     }
 
-    const rawChunks  = hierarchicalChunk(rawText);
-    const texts      = rawChunks.map(c => c.text);
-    const embeddings = await embedBatch(texts, geminiKey);
+    const rawChunks = hierarchicalChunk(rawText);
+    const texts     = rawChunks.map(c => c.text);
+
+    // Build multi-vector text variants for each chunk:
+    //   texts_q → question-form  (embedding_q) — matches question-phrased queries
+    //   texts_c → concept-title  (embedding_c) — matches concept/topic name lookups
+    const texts_q = rawChunks.map((c, i) => {
+      const secLabel = c.level === 'section' ? `Section ${c.sectionIdx + 1}` : null;
+      const loc      = [chapter_title as string, secLabel].filter(Boolean).join(' › ');
+      return `What does ${loc} explain? ${texts[i].slice(0, 200)}`;
+    });
+    const texts_c = rawChunks.map((c) => {
+      const secLabel = c.level === 'section' ? `Section ${c.sectionIdx + 1}` : null;
+      return [subject as string, chapter_title as string, secLabel].filter(Boolean).join(' › ');
+    });
+
+    // Generate all 3 embedding sets in parallel — triples Gemini API calls but
+    // ingestion is a one-time background job, not on the critical response path.
+    const [embeddings, embeddings_q, embeddings_c] = await Promise.all([
+      embedBatch(texts,   geminiKey),
+      embedBatch(texts_q, geminiKey),
+      embedBatch(texts_c, geminiKey),
+    ]);
 
     let stored = 0, skipped = 0;
     const sectionIds: Record<number, string> = {};
@@ -327,8 +428,10 @@ Deno.serve(withSentry('ncert-ingest', async (req) => {
         .select('id').eq('content_hash', hash).limit(1);
       if (dup?.length) { skipped++; continue; }
 
-      const emb          = embeddings[i];
-      const chunkParent  = chunk.level === 'paragraph'
+      const emb   = embeddings[i];
+      const emb_q = embeddings_q[i];
+      const emb_c = embeddings_c[i];
+      const chunkParent = chunk.level === 'paragraph'
         ? (sectionIds[chunk.sectionIdx] ?? parentId)
         : parentId;
 
@@ -341,7 +444,9 @@ Deno.serve(withSentry('ncert-ingest', async (req) => {
         parent_id:     chunkParent,
         content_hash:  hash,
         token_count:   Math.ceil(chunk.text.length / 4),
-        ...(emb ? { embedding: `[${emb.join(',')}]` } : {}),
+        ...(emb   ? { embedding:   `[${emb.join(',')}]`   } : {}),
+        ...(emb_q ? { embedding_q: `[${emb_q.join(',')}]` } : {}),
+        ...(emb_c ? { embedding_c: `[${emb_c.join(',')}]` } : {}),
       }).select('id').single();
 
       if (insErr) { console.error('[ingest] insert:', insErr.message); continue; }
@@ -358,5 +463,94 @@ Deno.serve(withSentry('ncert-ingest', async (req) => {
     });
   }
 
-  return json({ error: 'Unknown action. Use: ingest | bulk_seed | status | purge' }, 400);
+  // ── reembed_missing — backfill embedding_q + embedding_c for existing rows ───
+  // Fetches rows where embedding_q IS NULL in batches, reconstructs the text
+  // variants from stored content/subject/chapter_title/section_title, re-embeds,
+  // and updates. Safe to re-run — skips rows already having both vectors.
+  // Typical runtime: ~2-4h for 15k chunks at Gemini API rate limits.
+  if (action === 'reembed_missing') {
+    const batchSize  = Math.min(Number((body as Record<string,unknown>).batch_size ?? 50), 100);
+    const subjectFil = (body as Record<string,unknown>).subject as string | undefined;
+    const maxBatches = Number((body as Record<string,unknown>).max_batches ?? 999999);
+
+    let totalUpdated = 0;
+    let totalSkipped = 0;
+    let batchNum     = 0;
+    let lastId: string | null = null;
+
+    while (batchNum < maxBatches) {
+      let query = db.from('ncert_content')
+        .select('id, content, subject, chapter_title, section_title, chunk_level')
+        .or('embedding_q.is.null,embedding_c.is.null')
+        .neq('chunk_level', 'chapter')   // chapter chunks don't get q/c embeddings
+        .order('id')
+        .limit(batchSize);
+
+      if (subjectFil) query = query.eq('subject', subjectFil);
+      if (lastId)     query = query.gt('id', lastId);
+
+      const { data: rows, error: fetchErr } = await query;
+      if (fetchErr) {
+        console.error('[reembed_missing] fetch error:', fetchErr.message);
+        break;
+      }
+      if (!rows || rows.length === 0) break;
+
+      const batch = rows as Array<{
+        id: string; content: string; subject: string;
+        chapter_title: string; section_title: string | null; chunk_level: string;
+      }>;
+
+      // Build text variants matching the ingest pipeline
+      const texts_q = batch.map(row => {
+        const loc = [row.chapter_title, row.section_title].filter(Boolean).join(' › ');
+        return `What does ${loc} explain? ${row.content.slice(0, 200)}`;
+      });
+      const texts_c = batch.map(row =>
+        [row.subject, row.chapter_title, row.section_title].filter(Boolean).join(' › ')
+      );
+
+      const [embs_q, embs_c] = await Promise.all([
+        embedBatch(texts_q, geminiKey),
+        embedBatch(texts_c, geminiKey),
+      ]);
+
+      for (let i = 0; i < batch.length; i++) {
+        const eq = embs_q[i];
+        const ec = embs_c[i];
+        if (!eq && !ec) { totalSkipped++; continue; }
+
+        const update: Record<string, string> = {};
+        if (eq) update.embedding_q = `[${eq.join(',')}]`;
+        if (ec) update.embedding_c = `[${ec.join(',')}]`;
+
+        const { error: updErr } = await db.from('ncert_content')
+          .update(update)
+          .eq('id', batch[i].id);
+
+        if (updErr) {
+          console.error('[reembed_missing] update error:', batch[i].id, updErr.message);
+          totalSkipped++;
+        } else {
+          totalUpdated++;
+        }
+      }
+
+      lastId = batch[batch.length - 1].id;
+      batchNum++;
+
+      // Throttle to avoid hammering Gemini API
+      if (rows.length === batchSize) await delay(300);
+    }
+
+    return json({
+      action:  'reembed_missing',
+      batches: batchNum,
+      updated: totalUpdated,
+      skipped: totalSkipped,
+      done:    true,
+    });
+  }
+
+  return json({ error: 'Unknown action. Use: ingest | bulk_seed | status | purge | reembed_missing' }, 400);
 }));

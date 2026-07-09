@@ -94,6 +94,16 @@ serve(withSentry('novo-events', async (req) => {
   const body = await req.json().catch(() => ({}));
   const { action } = body;
 
+  // Admin/cron-only actions — expose BigQuery admin ops and raw analytics
+  // aggregates, so these must never be reachable without the shared secret.
+  if (action === 'setup_bq' || action === 'sync' || action === 'query') {
+    const secret = req.headers.get('x-internal-secret');
+    const expectedSecret = Deno.env.get('CRON_SECRET');
+    if (!expectedSecret || secret !== expectedSecret) {
+      return json({ error: 'Unauthorized' }, 401);
+    }
+  }
+
   // ── setup_bq — one-time dataset + table creation ─────────────────────────
   if (action === 'setup_bq') {
     if (!gcpSaJson) return json({ error: 'GCP_SERVICE_ACCOUNT_JSON required' }, 500);

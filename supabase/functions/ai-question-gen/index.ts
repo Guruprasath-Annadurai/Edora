@@ -9,7 +9,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const GROQ_MODEL    = 'llama-3.3-70b-versatile';
+const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
 
 const LANG_INSTRUCTIONS: Record<string, string> = {
   hi: 'Respond with all explanations and conversational text in Hindi (हिन्दी). Keep technical terms, formulas, and subject names in English.',
@@ -144,33 +145,32 @@ Return ONLY a valid JSON array with NO markdown or preamble:
 Confidence guide: 1.0 = definitively correct from first principles; 0.8–0.99 = high confidence; 0.6–0.79 = moderate, student should verify; <0.6 = set verify_in_textbook=true.
 Flags: use "ambiguous_options" if two options could both be argued correct, "calculation_error_risk" for numerical questions where a slip in calculation changes the answer, "ncert_exception" for edge cases not in standard NCERT.`;
 
-    // ── Call Claude ────────────────────────────────────────────────
-    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!anthropicKey) return jsonResp({ error: 'ANTHROPIC_API_KEY not configured' }, 500);
+    // ── Call Groq ─────────────────────────────────────────────────
+    const groqKey = Deno.env.get('GROQ_API_KEY');
+    if (!groqKey) return jsonResp({ error: 'GROQ_API_KEY not configured' }, 500);
 
-    const claudeResp = await fetch(ANTHROPIC_API_URL, {
+    const groqResp = await fetch(GROQ_API_URL, {
       method: 'POST',
-      headers: {
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
+      headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: GROQ_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.4,
         max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
       }),
     });
 
-    if (!claudeResp.ok) {
-      const errText = await claudeResp.text();
-      console.error('[ai-question-gen] Claude error:', errText);
+    if (!groqResp.ok) {
+      const errText = await groqResp.text();
+      console.error('[ai-question-gen] Groq error:', errText);
       return jsonResp({ error: 'AI generation failed' }, 502);
     }
 
-    const claudeData = await claudeResp.json();
-    const rawText = claudeData.content?.[0]?.text ?? '';
+    const groqData = await groqResp.json();
+    const rawText = groqData.choices?.[0]?.message?.content ?? '';
 
     // Parse JSON from response
     const jsonMatch = rawText.match(/\[[\s\S]*\]/);
@@ -225,7 +225,7 @@ Flags: use "ambiguous_options" if two options could both be argued correct, "cal
           difficulty:        q.difficulty || difficulty,
           ability_target:    ability_score,
           language,
-          generated_by:      'claude-sonnet-4-6',
+          generated_by:      GROQ_MODEL,
           confidence:        q.confidence ?? 0.85,
           verify_in_textbook: q.verify_in_textbook ?? false,
           ncert_reference:   q.ncert_reference ?? null,

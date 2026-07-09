@@ -19,6 +19,8 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { logAdminAction } from '../_shared/auditLog.ts';
 const CLASSROOM_API = 'https://classroom.googleapis.com/v1';
 
 // ── Token helper (shared with classroom-auth) ─────────────────────────────────
@@ -109,6 +111,9 @@ serve(withSentry('classroom-sync', async (req) => {
   const body   = await req.json().catch(() => ({}));
   const action = body.action as string;
 
+  const rl = await checkRateLimit(serviceDb, user.id, `classroom_sync_${action}`, 10, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
+
   // ── create_assignment ────────────────────────────────────────────────────
   if (action === 'create_assignment') {
     const {
@@ -190,6 +195,12 @@ serve(withSentry('classroom-sync', async (req) => {
           .eq('id', assignment.id);
       }
     }
+
+    await logAdminAction(serviceDb, {
+      actorId: user.id, actorRole: 'teacher',
+      action: 'assignment_created', source: 'classroom-sync:create_assignment',
+      targetId: assignment.id, metadata: { subject, class_num, edora_type, course_id },
+    });
 
     return json({
       ok:             true,
@@ -380,6 +391,10 @@ serve(withSentry('classroom-sync', async (req) => {
       .update({ state: 'archived' })
       .eq('id', assignment_id)
       .eq('teacher_id', user.id);
+    await logAdminAction(serviceDb, {
+      actorId: user.id, actorRole: 'teacher',
+      action: 'assignment_archived', source: 'classroom-sync:delete_assignment', targetId: assignment_id,
+    });
 
     return json({ ok: true });
   }

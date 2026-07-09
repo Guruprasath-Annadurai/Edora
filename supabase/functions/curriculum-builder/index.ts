@@ -16,19 +16,21 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const SUPABASE_URL    = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const GEMINI_API_KEY  = Deno.env.get('GEMINI_API_KEY')!;
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY);
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-function ok(data: unknown)   { return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
-function err(msg: string, code = 400) { return new Response(JSON.stringify({ error: msg }), { status: code, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
+// ok() and err() are defined per-request inside the handler (below) so they
+// can use the origin-allowlisted CORS headers from getCors(req). These module-
+// level stubs are never called — they exist only so TypeScript resolves the names
+// before the handler body is parsed. The handler shadows them immediately.
+// deno-lint-ignore no-unused-vars
+function ok(_data: unknown): Response  { throw new Error('unreachable'); }
+// deno-lint-ignore no-unused-vars
+function err(_msg: string, _code = 400): Response { throw new Error('unreachable'); }
 
 // ── Gemini JSON helper ────────────────────────────────────────────────────────
 async function geminiJSON<T>(prompt: string): Promise<T> {
@@ -275,8 +277,11 @@ Deno.serve(withSentry('curriculum-builder', async (req) => {
   const CORS = getCors(req);
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+  // Shadow the unreachable module-level stubs with CORS-correct versions.
+  const ok  = (data: unknown) => json(data, 200);
+  const err = (msg: string, code = 400) => json({ error: msg }, code);
 
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   // Verify JWT
   const authHeader = req.headers.get('Authorization');
@@ -291,6 +296,9 @@ Deno.serve(withSentry('curriculum-builder', async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch (_) {}
   const { action } = body;
+
+  const rl = await checkRateLimit(db, userId, `curriculum_builder_${action}`, 25, 60);
+  if (!rl.allowed) return err('Too many requests. Try again later.', 429);
 
   // ── 1. list_boards ──────────────────────────────────────────────────────────
   if (action === 'list_boards') {

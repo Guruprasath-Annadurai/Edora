@@ -15,6 +15,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 // ── Gemini embedding ──────────────────────────────────────────────────────────
 async function embed(text: string, apiKey: string): Promise<number[]> {
   const res = await fetch(
@@ -221,9 +222,17 @@ serve(withSentry('novo-ncert', async (req) => {
 
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
+  // Auth: all actions require a valid caller token.
+  // `seed` requires INGEST_API_KEY; `status`/`search` accept any authenticated JWT.
+  const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const ingestKey   = Deno.env.get('INGEST_API_KEY') ?? serviceKey;
+  const callerToken = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+
+  if (!callerToken) return json({ error: 'Unauthorized' }, 401);
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    serviceKey,
     { auth: { persistSession: false } },
   );
 
@@ -231,6 +240,21 @@ serve(withSentry('novo-ncert', async (req) => {
   const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? Deno.env.get('GOOGLE_CLOUD_API_KEY') ?? '';
   const body = await req.json().catch(() => ({}));
   const { action } = body;
+
+  // seed writes to the DB — restrict to INGEST_API_KEY holders only
+  if (action === 'seed' && callerToken !== ingestKey) {
+    return json({ error: 'Forbidden' }, 403);
+  }
+
+  // For status/search, validate the JWT is a real Supabase user
+  if (action !== 'seed' && callerToken !== ingestKey) {
+    const anonClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!);
+    const { data: { user }, error: authErr } = await anonClient.auth.getUser(callerToken);
+    if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
+
+    const rl = await checkRateLimit(supabase, user.id, `novo_ncert_${action}`, 40, 60);
+    if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
+  }
 
   // ── status ────────────────────────────────────────────────────────────────
   if (action === 'status') {

@@ -17,6 +17,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const SUPABASE_URL    = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON_KEY        = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -266,6 +267,9 @@ Deno.serve(withSentry('video-companion', async (req) => {
   });
   const { data: { user }, error: authErr } = await userClient.auth.getUser();
   if (authErr || !user) return jsonRes({ error: 'Unauthorized' }, 401);
+
+  const rl = await checkRateLimit(db, user.id, 'video_companion', 25, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   let body: any = {};
   try { body = await req.json(); } catch (_) {}

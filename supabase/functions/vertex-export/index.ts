@@ -114,6 +114,15 @@ serve(withSentry('vertex-export', async (req) => {
 
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
+  // Had ZERO auth — any caller could dump every student's private tutor_chats
+  // (up to 100k rows) or upload them to GCS. Same internal-secret gate as the
+  // other admin/cron-only pipelines.
+  const secret = req.headers.get('x-internal-secret');
+  const expectedSecret = Deno.env.get('CRON_SECRET');
+  if (!expectedSecret || secret !== expectedSecret) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+
   const supabaseUrl  = Deno.env.get('SUPABASE_URL')!;
   const serviceKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });

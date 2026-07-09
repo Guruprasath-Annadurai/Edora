@@ -8,6 +8,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 // ── Gemini text helper ────────────────────────────────────────────────────────
 async function gemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
@@ -53,6 +54,9 @@ serve(withSentry('novo-challenges', async (req) => {
   const authHeader = req.headers.get('Authorization') ?? '';
   const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
   if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
+
+  const rl = await checkRateLimit(supabase, user.id, 'novo_challenges', 40, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   const body = await req.json().catch(() => ({}));
   const { action, subject } = body;

@@ -19,6 +19,7 @@ import { getCors }      from '../_shared/cors.ts';
 import { getValidAccessToken } from '../_shared/classroom-tokens.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1';
 
 // ── XSS guard — escape all DB-sourced strings before HTML interpolation ────────
@@ -153,6 +154,9 @@ serve(withSentry('google-gmail', async (req) => {
 
   const { data: { user }, error: authErr } = await userDb.auth.getUser();
   if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
+
+  const rl = await checkRateLimit(serviceDb, user.id, 'google_gmail', 30, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   const body   = await req.json().catch(() => ({}));
   const action = body.action as string;

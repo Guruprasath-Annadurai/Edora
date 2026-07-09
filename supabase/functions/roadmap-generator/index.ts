@@ -28,6 +28,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
@@ -191,6 +192,62 @@ async function callGemini(systemPrompt: string, userPrompt: string, apiKey: stri
   }
 }
 
+// ── Experimental: Nemotron-powered recalibration ─────────────────────────────
+// Only used for the recalibrate path, only when the caller opts in
+// (body.use_nemotron). Nemotron gets a richer input than Gemini currently
+// does — actual per-topic mastery/decay from sr_cards (easiness factor +
+// repetitions), not just a flat "missed topics" list — so it can reason
+// about which weak topics need more time vs. which just need a touch-up.
+// Any failure (missing key, bad JSON, API error) falls back to callGemini
+// with the original prompt so recalibration never breaks for the user.
+async function callNemotronRecalibrate(
+  system: string,
+  userPrompt: string,
+  masteryContext: string,
+): Promise<GeminiRoadmap> {
+  const key = Deno.env.get('NVIDIA_API_KEY');
+  if (!key) throw new Error('NVIDIA_API_KEY not configured');
+
+  const fullPrompt = `${system}
+
+${userPrompt}
+
+Additional signal — the student's actual per-topic retention data (easiness factor: higher = well-retained, lower = decaying; repetitions = times reviewed):
+${masteryContext}
+
+Use this to decide which weak/decaying topics need MORE time in the redistributed schedule vs. which missed topics were likely easy misses that just need a quick pass.
+
+Respond with ONLY a single JSON object, no markdown fencing, matching exactly this shape:
+{
+  "plan_summary": "string",
+  "subjects": ["string"],
+  "weeks": [ { "week_number": number, "theme": "string", "days": [ { "day": number, "subject": "string", "topic": "string", "description": "string", "duration_minutes": number } ] } ]
+}`;
+
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'nvidia/nemotron-3-ultra-550b-a55b',
+        messages: [{ role: 'user', content: fullPrompt }],
+        temperature: 0.4,
+        max_tokens: 6000,
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!res.ok) throw new Error(`NVIDIA API error: ${res.status}`);
+    const d = await res.json();
+    const raw = d.choices?.[0]?.message?.content ?? '{}';
+    return JSON.parse(raw) as GeminiRoadmap;
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
 // ── Normalise Gemini weeks ────────────────────────────────────────────────────
 // Ensures sequential day numbers, correct week numbers, and caps to maxWeeks.
 function normaliseWeeks(
@@ -329,6 +386,12 @@ serve(withSentry('roadmap-generator', async (req) => {
     const db = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     });
+
+    const rl = await checkRateLimit(db, user.id, 'roadmap-generator', 25, 60);
+    if (!rl.allowed) return new Response(
+      JSON.stringify({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }),
+      { status: 429, headers: { ...CORS, 'Content-Type': 'application/json' } },
+    );
 
     const body = await req.json();
     const mode: 'generate' | 'recalibrate' = body.mode ?? 'generate';
@@ -476,7 +539,37 @@ serve(withSentry('roadmap-generator', async (req) => {
         roadmap.study_level ?? 'school',   // use stored level — never hardcode
       );
 
-      const recalData = await callGemini(system, userPrompt, geminiApiKey);
+      let recalData: GeminiRoadmap;
+      let recalModel = 'gemini-1.5-flash';
+      if (body.use_nemotron) {
+        try {
+          const { data: cards } = await db
+            .from('sr_cards')
+            .select('subject, topic, easiness_factor, repetitions, correct_reviews, total_reviews')
+            .eq('user_id', user.id)
+            .order('easiness_factor', { ascending: true })
+            .limit(40);
+          const masteryContext = (cards ?? [])
+            .map(c => `${c.subject} / ${c.topic}: EF=${c.easiness_factor}, reps=${c.repetitions}, correct=${c.correct_reviews}/${c.total_reviews}`)
+            .join('\n') || '(no spaced-repetition history yet)';
+
+          recalData = await callNemotronRecalibrate(system, userPrompt, masteryContext);
+          recalModel = 'nemotron-3-ultra-550b';
+
+          await db.from('roadmap_reoptimizations').insert({
+            user_id: user.id,
+            roadmap_id,
+            reasoning: `Re-optimized using ${cards?.length ?? 0} tracked topics' retention data alongside ${missedTopics.length} missed topics.`,
+            changes_summary: { missed_topics: missedTopics.length, remaining_weeks: remainingWeeks, mastery_signals_used: cards?.length ?? 0 },
+            model_used: recalModel,
+          });
+        } catch (e) {
+          console.error('Nemotron recalibration failed, falling back to Gemini:', e);
+          recalData = await callGemini(system, userPrompt, geminiApiKey);
+        }
+      } else {
+        recalData = await callGemini(system, userPrompt, geminiApiKey);
+      }
 
       // Normalise regenerated weeks (sequential from startDay, capped to remainingWeeks)
       const { weeks: newWeeks, nextDay } = normaliseWeeks(

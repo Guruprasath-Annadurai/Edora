@@ -1,17 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { logAdminAction } from '../_shared/auditLog.ts';
 Deno.serve(withSentry('delete-account', async (req) => {
   // CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCors(req) });
   }
 
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -19,7 +21,7 @@ Deno.serve(withSentry('delete-account', async (req) => {
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
       status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -34,7 +36,7 @@ Deno.serve(withSentry('delete-account', async (req) => {
   if (userError || !user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -45,17 +47,31 @@ Deno.serve(withSentry('delete-account', async (req) => {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
+  const rl = await checkRateLimit(supabaseAdmin, user.id, 'delete_account', 10, 60);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }), {
+      status: 429,
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
+    });
+  }
+
   // Delete the auth user — cascades to profiles via FK or RLS
   const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
   if (deleteError) {
     console.error('[delete-account] deleteUser failed:', deleteError.message);
     return new Response(JSON.stringify({ error: deleteError.message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCors(req), 'Content-Type': 'application/json' },
     });
   }
 
+  await logAdminAction(supabaseAdmin, {
+    actorId: user.id, actorRole: 'user',
+    action: 'delete_account', source: 'delete-account',
+    targetId: user.id,
+  });
+
   return new Response(JSON.stringify({ success: true }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCors(req), 'Content-Type': 'application/json' },
   });
 }));

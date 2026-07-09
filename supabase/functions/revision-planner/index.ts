@@ -11,6 +11,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const GEMINI_MODEL = 'gemini-1.5-flash';
 
 async function callGemini(prompt: string, apiKey: string): Promise<unknown> {
@@ -46,6 +47,14 @@ serve(withSentry('revision-planner', async (req) => {
 
   const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
   if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: CORS });
+
+  const rl = await checkRateLimit(supabase, user.id, 'revision-planner', 25, 60);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }), {
+      status: 429,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+    });
+  }
 
   const body = await req.json();
   const { action } = body;

@@ -10,6 +10,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 function daysAgo(n: number): string {
   return new Date(Date.now() - n * 86400000).toISOString();
 }
@@ -35,6 +36,9 @@ serve(withSentry('novo-analytics', async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const { action } = body;
+
+  const rl = await checkRateLimit(supabase, user.id, `novo_analytics_${action}`, 80, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   // ── get_preview ───────────────────────────────────────────────────────────
   // Quick teaser stats for free users — no AI, minimal DB queries.

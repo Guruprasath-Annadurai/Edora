@@ -129,36 +129,80 @@ function buildMemoryBlock(
   // deno-lint-ignore no-explicit-any
   summaries: any[],
   explanationStyle: string,
+  // deno-lint-ignore no-explicit-any
+  profile?: any,
+  // deno-lint-ignore no-explicit-any
+  topicStats?: any[],
 ): string {
-  const lines: string[] = [`=== Novo's Memory of ${studentName} ===`];
+  const lines: string[] = [`=== NOVO STUDENT INTELLIGENCE (injected every session) ===`];
 
+  // ── Exam countdown + urgency signal ──────────────────────────────────────
+  if (profile?.exam_name && profile?.exam_date) {
+    const daysLeft = Math.max(0, Math.ceil(
+      (new Date(profile.exam_date).getTime() - Date.now()) / 86400000
+    ));
+    const urgency = daysLeft <= 14 ? '🚨 CRITICAL — EXAM IMMINENT' :
+                    daysLeft <= 30 ? '⚠ HIGH URGENCY — under 30 days' :
+                    daysLeft <= 60 ? 'MODERATE urgency — 2 months out' : 'STANDARD pace';
+    lines.push(`\nEXAM: ${profile.exam_name} in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} [${urgency}]`);
+    lines.push(`Every explanation must factor in this timeline. Prioritise high-weightage topics.`);
+  }
+
+  // ── Live performance snapshot ─────────────────────────────────────────────
+  const streak = profile?.streak_count ?? 0;
+  const xp     = profile?.xp ?? 0;
+  const level  = Math.floor(Math.sqrt(xp / 100));
+  lines.push(`\nSTUDENT: ${studentName} | Level ${level} | ${streak}-day streak | ${xp.toLocaleString()} XP`);
+  if (streak === 0) lines.push(`Note: streak broken — mention the importance of consistency without shaming.`);
+  else if (streak >= 14) lines.push(`Acknowledge their consistency — 14+ day streak shows real commitment.`);
+
+  // ── Topic accuracy from quiz data ─────────────────────────────────────────
+  if (topicStats && topicStats.length > 0) {
+    const struggling = topicStats
+      .filter((t: { struggle_count: number; win_count: number }) => t.struggle_count > t.win_count)
+      .slice(0, 4);
+    if (struggling.length > 0) {
+      lines.push(`\nQUIZ DATA — topics where they lose more than they win:`);
+      struggling.forEach((t: { subject: string; topic: string; struggle_count: number; win_count: number }) => {
+        const accuracy = Math.round((t.win_count / (t.win_count + t.struggle_count)) * 100);
+        lines.push(`• ${t.subject} › ${t.topic}: ${accuracy}% accuracy (${t.win_count}W/${t.struggle_count}L)`);
+      });
+      lines.push(`When these topics arise, activate diagnostic mode: probe exact understanding gaps.`);
+    }
+  }
+
+  // ── Weak spots from memories ──────────────────────────────────────────────
   if (weaknesses.length > 0) {
-    lines.push('\nWEAK SPOTS — revisit these proactively, slow down when they come up:');
+    lines.push('\nWEAK SPOTS (from tutoring history):');
     weaknesses.slice(0, 3).forEach((w: { topic?: string; subject?: string; content: string }) => {
       const tag = w.topic ?? w.subject ?? 'General';
       lines.push(`• [${tag}] ${w.content}`);
     });
+    lines.push(`Slow down and probe deeper when these arise. Never skip past them.`);
   }
 
+  // ── Strengths ─────────────────────────────────────────────────────────────
   if (strengths.length > 0) {
-    lines.push('\nSTRENGTHS — build on these, use them to bridge new concepts:');
-    strengths.slice(0, 3).forEach((s: { topic?: string; content: string }) => {
+    lines.push('\nSTRENGTHS — build bridges from these to new concepts:');
+    strengths.slice(0, 2).forEach((s: { topic?: string; content: string }) => {
       lines.push(`• ${s.content}`);
     });
   }
 
+  // ── Learning style ────────────────────────────────────────────────────────
   const styleDesc = STYLE_DESCRIPTIONS[explanationStyle] ?? STYLE_DESCRIPTIONS.balanced;
   lines.push(`\nLEARNING STYLE: ${styleDesc}`);
 
+  // ── Recent sessions ───────────────────────────────────────────────────────
   if (summaries.length > 0) {
-    lines.push('\nRECENT SESSIONS (most recent first):');
-    summaries.slice(0, 5).forEach((s: { summary: string; topic?: string; created_at: string }) => {
+    lines.push('\nRECENT SESSIONS:');
+    summaries.slice(0, 3).forEach((s: { summary: string; topic?: string; created_at: string }) => {
       const when = new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
       lines.push(`• [${when}] ${s.summary}`);
     });
   }
 
-  lines.push('\nINSTRUCTION: Use these memories naturally — reference weak spots when relevant topics arise. Never recite this list robotically. Make the student feel understood, not analysed.');
+  lines.push('\nUSE THIS INTELLIGENCE: Reference weak spots naturally when relevant. Never recite this list. Make every response feel personalised to THIS specific student.');
 
   return lines.join('\n');
 }
@@ -232,7 +276,7 @@ serve(withSentry('novo-memory', async (req) => {
 
       supabase
         .from('profiles')
-        .select('full_name,explanation_style,exam_name,exam_date')
+        .select('full_name,explanation_style,exam_name,exam_date,streak_count,xp')
         .eq('id', user.id)
         .single(),
 
@@ -287,6 +331,7 @@ serve(withSentry('novo-memory', async (req) => {
 
     const systemPromptBlock = buildMemoryBlock(
       studentName, mergedWeaknesses, strengths, summaries, explanationStyle,
+      profile, topicStats,
     );
 
     return json({

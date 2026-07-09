@@ -383,11 +383,13 @@ Return a JSON array of exactly ${TOTAL_QUESTIONS} objects:
           topic:       assessment.topic,
           importance:  9,
           source:      'system',
-        }).catch(() => {});
+        }).catch(e => console.error('[novo-certifications] milestone memory insert failed:', e?.message));
 
         // Award XP (non-fatal)
         const xpGain = 100 + Math.round((pctScore - PASS_THRESHOLD) * 2);
-        await supabase.rpc('increment_xp', { user_id: user.id, amount: xpGain }).catch(() => {});
+        await supabase.rpc('increment_xp', { user_id: user.id, amount: xpGain }).catch(e =>
+          console.error('[novo-certifications] increment_xp failed:', e?.message)
+        );
       }
     } else {
       // Save struggle memory (non-fatal)
@@ -399,7 +401,7 @@ Return a JSON array of exactly ${TOTAL_QUESTIONS} objects:
         topic:       assessment.topic,
         importance:  7,
         source:      'system',
-      }).catch(() => {});
+      }).catch(e => console.error('[novo-certifications] struggle memory insert failed:', e?.message));
     }
 
     // Mark assessment as complete

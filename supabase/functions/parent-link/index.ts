@@ -18,6 +18,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 import { withSentry }   from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!;
 const ANON_KEY       = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -53,6 +54,9 @@ Deno.serve(withSentry('parent-link', async (req) => {
 
   const { data: { user }, error: authErr } = await userClient.auth.getUser();
   if (authErr || !user) return jsonRes({ error: 'Unauthorized' }, 401);
+
+  const rl = await checkRateLimit(serviceDb, user.id, 'parent-link', 10, 60);
+  if (!rl.allowed) return jsonRes({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   // ── Parse body ───────────────────────────────────────────────────────────────
   let body: Record<string, unknown> = {};

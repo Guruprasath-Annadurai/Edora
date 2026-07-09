@@ -14,6 +14,8 @@
 // Requires Supabase secrets:
 //   RAZORPAY_KEY_ID      — your Razorpay Key ID    (rzp_live_xxx or rzp_test_xxx)
 //   RAZORPAY_KEY_SECRET  — your Razorpay Key Secret
+//   REVENUECAT_SECRET_KEY — RevenueCat secret key (sk_...) for server-side verification
+//                          Set via: supabase secrets set REVENUECAT_SECRET_KEY=sk_...
 // ─────────────────────────────────────────────────────────────────────────────
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -21,6 +23,9 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { pickActiveEntitlement } from '../_shared/rcEntitlement.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { logAdminAction } from '../_shared/auditLog.ts';
 // ── Pricing ───────────────────────────────────────────────────────────────────
 const PLANS: Record<string, { amount_paise: number; label: string; months: number }> = {
   monthly: { amount_paise: 9900,  label: '₹99/month',  months: 1  },
@@ -38,6 +43,42 @@ async function hmacSHA256(secret: string, message: string): Promise<string> {
   );
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
   return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ── RevenueCat server-side entitlement verification ──────────────────────────
+// Returns the active 'pro' entitlement object from RC, or null if not active.
+// Calls https://api.revenuecat.com/v1/subscribers/{userId} with the SECRET key.
+// REVENUECAT_SECRET_KEY must be set in Supabase secrets (starts with sk_).
+interface RCEntitlement {
+  expires_date:         string | null;  // ISO-8601 or null for lifetime
+  product_identifier:   string;
+  store:                string;         // 'app_store' | 'play_store' | 'stripe'
+}
+
+async function verifyRevenueCatEntitlement(
+  userId: string,
+): Promise<RCEntitlement | null> {
+  const rcSecretKey = Deno.env.get('REVENUECAT_SECRET_KEY');
+  if (!rcSecretKey) {
+    console.error('[RC] REVENUECAT_SECRET_KEY not set — cannot verify entitlement');
+    return null;
+  }
+
+  const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
+    headers: {
+      'Authorization': `Bearer ${rcSecretKey}`,
+      'Content-Type':  'application/json',
+      'X-Platform':    'android',
+    },
+  });
+
+  if (!res.ok) {
+    console.error(`[RC] Subscriber lookup failed: ${res.status}`);
+    return null;
+  }
+
+  const body = await res.json();
+  return pickActiveEntitlement(body);
 }
 
 // ── Razorpay API call helper ──────────────────────────────────────────────────
@@ -185,6 +226,11 @@ serve(withSentry('novo-subscription', async (req) => {
         }
 
         console.log(`[webhook] Pro activated for user ${userId} (payment ${paymentId}, expires ${expiresAt.toISOString()})`);
+        await logAdminAction(supabase, {
+          actorId: userId, actorRole: 'service',
+          action: 'subscription_activated', source: 'novo-subscription:razorpay_webhook',
+          targetId: paymentId, metadata: { order_id: orderId, plan, expires_at: expiresAt.toISOString() },
+        });
       }
     }
 
@@ -195,6 +241,142 @@ serve(withSentry('novo-subscription', async (req) => {
     }
 
     // Always return 200 to Razorpay to prevent retries
+    return json({ received: true, event: eventType });
+  }
+
+  // ── RevenueCat Webhook handler (iOS/Android native IAP via StoreKit/Play) ───
+  // RC sends: Authorization: Bearer <RC_WEBHOOK_SECRET>
+  // Events: INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION, BILLING_ISSUE,
+  //         PRODUCT_CHANGE, TRANSFER, UNCANCELLATION
+  // app_user_id must equal the Supabase user.id (set via RC.logIn(userId) on client)
+  const rcAuthHeader = req.headers.get('Authorization') ?? '';
+  const rcSecret     = Deno.env.get('REVENUECAT_WEBHOOK_SECRET') ?? '';
+  if (rcSecret && rcAuthHeader === `Bearer ${rcSecret}`) {
+    let rcBody: Record<string, unknown>;
+    try { rcBody = await req.json(); }
+    catch { return json({ error: 'Invalid RC webhook JSON' }, 400); }
+
+    const rcEvent   = rcBody.event as Record<string, unknown> | undefined;
+    const eventType = (rcEvent?.type ?? '') as string;
+    const userId    = rcEvent?.app_user_id as string | undefined;  // == supabase user.id
+
+    console.log(`[rc_webhook] ${eventType} user=${userId}`);
+
+    if (!userId) return json({ received: true, note: 'no app_user_id — skipped' });
+
+    // Map RC product_id → plan
+    const productId = (rcEvent?.product_id ?? '') as string;
+    const plan      = productId.includes('annual') ? 'annual' : 'monthly';
+    const planDays  = plan === 'annual' ? 365 : 31;
+
+    // expiration_at_ms from RC (milliseconds UTC). Fallback: now + plan days.
+    const expiresAt = rcEvent?.expiration_at_ms
+      ? new Date(rcEvent.expiration_at_ms as number)
+      : (() => { const d = new Date(); d.setDate(d.getDate() + planDays); return d; })();
+
+    if (eventType === 'INITIAL_PURCHASE' || eventType === 'RENEWAL' || eventType === 'UNCANCELLATION') {
+      // Upsert subscription row keyed on (user_id, store) to handle renewals idempotently
+      const store = (rcEvent?.store ?? 'PLAY_STORE') as string;
+      await supabase.from('subscriptions').upsert({
+        user_id:      userId,
+        plan,
+        status:       'active',
+        store,
+        expires_at:   expiresAt.toISOString(),
+        rc_event_id:  rcEvent?.id as string ?? null,
+      }, { onConflict: 'user_id,store' }).catch(e =>
+        console.error('[rc_webhook] sub upsert failed:', e?.message)
+      );
+
+      await supabase.from('profiles').update({
+        is_pro:         true,
+        pro_expires_at: expiresAt.toISOString(),
+      }).eq('id', userId).catch(e =>
+        console.error('[rc_webhook] profile update failed:', e?.message)
+      );
+
+      if (eventType === 'INITIAL_PURCHASE') {
+        await supabase.from('novo_memories').insert({
+          user_id:     userId,
+          memory_type: 'milestone',
+          content:     `Upgraded to Novo Pro (${plan}) via ${store} — now has unlimited AI, voice mode, and advanced analytics`,
+          importance:  8,
+          source:      'system',
+        }).catch(e => console.error('[rc_webhook] milestone memory insert failed:', e?.message));
+      }
+    }
+
+    if (eventType === 'CANCELLATION') {
+      // Mark cancelled but keep Pro until expiry — do NOT revoke is_pro yet
+      await supabase.from('subscriptions')
+        .update({ status: 'cancelled' })
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .catch(e => console.error('[rc_webhook] cancel update failed:', e?.message));
+      await logAdminAction(supabase, {
+        actorId: userId, actorRole: 'service',
+        action: 'subscription_cancelled', source: 'novo-subscription:rc_webhook',
+      });
+    }
+
+    if (eventType === 'EXPIRATION') {
+      // Subscription fully expired — revoke Pro access
+      await supabase.from('subscriptions')
+        .update({ status: 'expired' })
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .catch(e => console.error('[rc_webhook] expire update failed:', e?.message));
+      await logAdminAction(supabase, {
+        actorId: userId, actorRole: 'service',
+        action: 'subscription_expired', source: 'novo-subscription:rc_webhook',
+      });
+
+      await supabase.from('profiles').update({
+        is_pro:         false,
+        pro_expires_at: null,
+      }).eq('id', userId).catch(e =>
+        console.error('[rc_webhook] profile revoke failed:', e?.message)
+      );
+    }
+
+    if (eventType === 'BILLING_ISSUE') {
+      // Grace period: keep Pro active, log for support. RevenueCat retries billing.
+      console.warn(`[rc_webhook] BILLING_ISSUE for user ${userId} — grace period active`);
+      // Keep is_pro true — RevenueCat will send EXPIRATION if billing never resolves
+    }
+
+    if (eventType === 'PRODUCT_CHANGE') {
+      // Plan change (monthly → annual or vice versa) — update plan on active sub
+      await supabase.from('subscriptions')
+        .update({ plan, expires_at: expiresAt.toISOString() })
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .catch(e => console.error('[rc_webhook] product_change update failed:', e?.message));
+
+      await supabase.from('profiles').update({
+        pro_expires_at: expiresAt.toISOString(),
+      }).eq('id', userId).catch(e =>
+        console.error('[rc_webhook] product_change profile update failed:', e?.message)
+      );
+    }
+
+    if (eventType === 'TRANSFER') {
+      // Subscription transferred (e.g. user logged into different account on same device)
+      // transferred_to is the new app_user_id
+      const newUserId = rcEvent?.transferred_to as string | undefined;
+      if (newUserId) {
+        await supabase.from('profiles').update({ is_pro: false, pro_expires_at: null })
+          .eq('id', userId).catch(e =>
+            console.error('[rc_webhook] transfer revoke (old user) failed:', e?.message)
+          );
+        await supabase.from('profiles').update({ is_pro: true, pro_expires_at: expiresAt.toISOString() })
+          .eq('id', newUserId).catch(e =>
+            console.error('[rc_webhook] transfer grant (new user) failed:', e?.message)
+          );
+        console.log(`[rc_webhook] TRANSFER from ${userId} to ${newUserId}`);
+      }
+    }
+
     return json({ received: true, event: eventType });
   }
 
@@ -210,6 +392,13 @@ serve(withSentry('novo-subscription', async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const { action } = body;
+
+  // Money-path abuse guard — tight cap on order creation, looser on read-only actions
+  const rlMax = action === 'create_order' ? 10 : action === 'verify_payment' ? 20 : 60;
+  const rl = await checkRateLimit(supabase, user.id, `novo_subscription_${action}`, rlMax, 60);
+  if (!rl.allowed) {
+    return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
+  }
 
   // ── create_order ──────────────────────────────────────────────────────────
   if (action === 'create_order') {
@@ -344,7 +533,7 @@ serve(withSentry('novo-subscription', async (req) => {
       content:     `Upgraded to Novo Pro (${planDetails.label}) — now has access to voice mode, advanced analytics, and unlimited certifications`,
       importance:  8,
       source:      'system',
-    }).catch(() => {});
+    }).catch(e => console.error('[verify_payment] milestone memory insert failed:', e?.message));
 
     return json({ subscription: sub, pro_active: true, expires_at: expiresAt.toISOString() });
   }
@@ -397,12 +586,100 @@ serve(withSentry('novo-subscription', async (req) => {
     if (!activeSub) return json({ error: 'No active subscription found' }, 404);
 
     await supabase.from('subscriptions').update({ status: 'cancelled' }).eq('id', activeSub.id);
+    await logAdminAction(supabase, {
+      actorId: user.id, actorRole: 'user',
+      action: 'subscription_cancelled', source: 'novo-subscription:cancel', targetId: activeSub.id,
+    });
 
     return json({
       cancelled: true,
       pro_until: activeSub.expires_at,
       message:   `Your Pro access continues until ${new Date(activeSub.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`,
     });
+  }
+
+  // ── verify_revenuecat — client calls after native IAP completes ─────────────
+  // Server verifies the purchase with RevenueCat REST API before granting Pro.
+  // REVENUECAT_SECRET_KEY must be set in Supabase secrets.
+  if (action === 'verify_revenuecat') {
+    const entitlement = await verifyRevenueCatEntitlement(user.id);
+    if (!entitlement) {
+      console.warn(`[verify_revenuecat] No active RC entitlement for user ${user.id}`);
+      return json({ error: 'No active Pro entitlement found. Purchase may still be processing — try again in a few seconds.' }, 402);
+    }
+
+    const plan      = entitlement.product_identifier.includes('annual') ? 'annual' : 'monthly';
+    const expiresAt = entitlement.expires_date
+      ? new Date(entitlement.expires_date)
+      : (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 99); return d; })(); // lifetime
+
+    await supabase.from('subscriptions').upsert({
+      user_id:    user.id,
+      plan,
+      status:     'active',
+      store:      entitlement.store,
+      expires_at: expiresAt.toISOString(),
+    }, { onConflict: 'user_id,store' }).catch(e =>
+      console.error('[verify_revenuecat] subscription upsert failed:', e?.message)
+    );
+
+    await supabase.from('profiles').update({
+      is_pro:         true,
+      pro_expires_at: expiresAt.toISOString(),
+    }).eq('id', user.id);
+
+    return json({ pro_active: true, expires_at: expiresAt.toISOString(), plan });
+  }
+
+  // ── restore_purchases — called on reinstall to re-sync Pro status ──────────
+  // Verifies with RevenueCat REST API before restoring. Falls back to DB if RC
+  // shows no entitlement (covers Razorpay/web subscribers not in RC).
+  if (action === 'restore_purchases') {
+    const entitlement = await verifyRevenueCatEntitlement(user.id);
+
+    if (!entitlement) {
+      // RC shows no active entitlement — check DB (covers Razorpay/web subscribers)
+      const { data: activeSub } = await supabase
+        .from('subscriptions')
+        .select('expires_at, plan, status')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const stillActive = activeSub && new Date(activeSub.expires_at as string) > new Date();
+      return json({
+        pro_active: stillActive,
+        expires_at: activeSub?.expires_at ?? null,
+        source:     'db_fallback',
+      });
+    }
+
+    // RC confirmed active — restore Pro
+    const plan      = entitlement.product_identifier.includes('annual') ? 'annual' : 'monthly';
+    const expiresAt = entitlement.expires_date
+      ? new Date(entitlement.expires_date)
+      : (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 99); return d; })();
+
+    await supabase.from('profiles').update({
+      is_pro:         true,
+      pro_expires_at: expiresAt.toISOString(),
+    }).eq('id', user.id).catch(e =>
+      console.error('[restore_purchases] profile update failed:', e?.message)
+    );
+
+    await supabase.from('subscriptions').upsert({
+      user_id:    user.id,
+      plan,
+      status:     'active',
+      store:      entitlement.store,
+      expires_at: expiresAt.toISOString(),
+    }, { onConflict: 'user_id,store' }).catch(e =>
+      console.error('[restore_purchases] subscription upsert failed:', e?.message)
+    );
+
+    return json({ pro_active: true, expires_at: expiresAt.toISOString(), plan, source: 'revenuecat_restore' });
   }
 
   return json({ error: 'Unknown action' }, 400);

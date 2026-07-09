@@ -20,10 +20,3 @@ export function getCors(req: Request, extra?: Record<string, string>) {
   };
 }
 
-// Legacy export — kept so older functions continue to compile without changes.
-// New functions should use getCors(req) instead.
-export const corsHeaders = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};

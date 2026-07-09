@@ -324,18 +324,25 @@ serve(withSentry('novo-insights', async (req) => {
   const startTime = Date.now();
 
   try {
-    // ── 1. Auth: require a valid JWT (anon or service role) ──────────────────
+    // ── 1. Auth: require the actual service-role key, not just any Bearer-shaped
+    //    string. This job fans out Gemini calls + FCM pushes across ALL active
+    //    users, so an unauthenticated trigger is a real cost/spam DoS vector.
+    const supabaseUrl      = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const authHeader = req.headers.get('Authorization') ?? '';
-    if (!authHeader.startsWith('Bearer ')) {
+    const cronHeader = req.headers.get('x-cron-secret') ?? '';
+    const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
+    const isServiceKey = authHeader === `Bearer ${serviceRoleKey}`;
+    const isCron = !!cronSecret && cronHeader === cronSecret;
+    if (!isServiceKey && !isCron) {
       return new Response(
-        JSON.stringify({ error: 'Missing Authorization header' }),
+        JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } },
       );
     }
 
+    // No per-user rate limit — internal/cron-triggered batch job (processes many users per run)
     // ── 2. Build service-role client for cross-user data access ──────────────
-    const supabaseUrl      = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const geminiApiKey     = Deno.env.get('GEMINI_API_KEY') ?? '';
     const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY') ?? '';
 

@@ -8,6 +8,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 async function gemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
@@ -20,6 +21,51 @@ async function gemini(prompt: string): Promise<string> {
   );
   const d = await res.json();
   return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+}
+
+// ── Experimental: NVIDIA NIM (Nemotron) narrative generator ──────────────────
+// Isolated to this one async, non-latency-critical path (parent report
+// generation). Never used on chat/quiz/OCR — those stay on Gemini.
+// Requires NVIDIA_API_KEY edge function secret to be set; falls back to
+// Gemini automatically if the secret is missing or the call fails.
+async function nemotron(prompt: string, maxTokens = 1024): Promise<string> {
+  const key = Deno.env.get('NVIDIA_API_KEY');
+  if (!key) throw new Error('NVIDIA_API_KEY not configured');
+  const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'nvidia/nemotron-3-ultra-550b-a55b',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: maxTokens,
+    }),
+  });
+  if (!res.ok) throw new Error(`NVIDIA API error: ${res.status}`);
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content ?? '';
+}
+
+// ── Parent digest — a 3-sentence renewal-driving headline distinct from the
+// full narrative: one specific improvement, one specific avoidance pattern,
+// and why it matters. Cheap enough to always generate alongside the full
+// report; falls back to Gemini on any Nemotron failure like everything else.
+async function generateParentDigest(prompt: string): Promise<{ text: string; model: string }> {
+  try {
+    const text = await nemotron(prompt, 200);
+    if (text.trim()) return { text: text.trim(), model: 'nemotron-3-ultra-550b' };
+    throw new Error('empty response');
+  } catch (e) {
+    console.error('Nemotron parent digest failed, falling back to Gemini:', e);
+    const key = Deno.env.get('GEMINI_API_KEY')!;
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
+    );
+    const d = await res.json();
+    return { text: (d.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim(), model: 'gemini-1.5-flash' };
+  }
 }
 
 function getWeekBounds(): { start: string; end: string } {
@@ -125,6 +171,10 @@ serve(withSentry('weekly-report', async (req) => {
   const body = await req.json().catch(() => ({}));
   const { action } = body;
 
+  // weekly-report's "generate" action runs a full Gemini narrative — treat as AI-generation-heavy.
+  const rl = await checkRateLimit(supabase, user.id, `weekly_report_${action}`, 25, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
+
   // ── get_latest ────────────────────────────────────────────────────────────
   if (action === 'get_latest') {
     const { data: reports } = await supabase
@@ -210,12 +260,41 @@ serve(withSentry('weekly-report', async (req) => {
       ? Math.max(0, Math.floor((new Date(examDate).getTime() - Date.now()) / 86400000))
       : null;
 
+    // Week-over-week deltas for the parent digest — pull the most recent prior
+    // report's mastery snapshot so the digest can name a *specific* improved
+    // subject and a *specific* avoided one, not just generic encouragement.
+    const { data: prevReport } = await supabase
+      .from('parent_reports')
+      .select('report_data')
+      .eq('user_id', user.id)
+      .lt('week_start', start)
+      .order('week_start', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const prevMastery = (prevReport?.report_data as { mastery_by_subject?: Record<string, { mastered: number; total: number }> } | null)
+      ?.mastery_by_subject ?? {};
+
+    const studiedSubjectsThisWeek = new Set(completedSprints.map(s => s.subject));
+    let bestSubject: string | null = null;
+    let bestDelta = 0;
+    for (const [sub, m] of Object.entries(masteryBySubject)) {
+      const nowPct = m.total > 0 ? Math.round((m.mastered / m.total) * 100) : 0;
+      const prev = prevMastery[sub];
+      const prevPct = prev && prev.total > 0 ? Math.round((prev.mastered / prev.total) * 100) : 0;
+      const delta = nowPct - prevPct;
+      if (delta > bestDelta) { bestDelta = delta; bestSubject = sub; }
+    }
+    const avoidedSubject = Object.entries(masteryBySubject)
+      .find(([sub, m]) => m.weak_topics.length > 0 && !studiedSubjectsThisWeek.has(sub))?.[0]
+      ?? Object.keys(masteryBySubject).find(sub => !studiedSubjectsThisWeek.has(sub))
+      ?? null;
+
     // Gemini generates the plain-English narrative
     const masteryText = Object.entries(masteryBySubject)
       .map(([sub, m]) => `${sub}: ${m.total > 0 ? Math.round(m.mastered / m.total * 100) : 0}% mastered`)
       .join(', ');
 
-    const reportText = await gemini(`
+    const reportPrompt = `
 You are Novo, an AI tutor writing a weekly progress report for a parent.
 Write in warm, plain English — NO educational jargon. Imagine you are a trusted tutor writing a letter home.
 
@@ -241,7 +320,65 @@ Write 3-4 paragraphs:
 4. One clear actionable suggestion for the parent (e.g. "encourage 15 more minutes on Chemistry this weekend")
 ${daysToExam !== null && daysToExam <= 30 ? `5. Brief exam readiness comment — ${daysToExam} days to go` : ''}
 
-Do NOT use bullet points. Write in natural flowing prose. No headers.`);
+Do NOT use bullet points. Write in natural flowing prose. No headers.`;
+
+    // Experimental narrative backend — request opts in via body.use_nemotron.
+    // Always falls back to Gemini on any failure so report generation never breaks.
+    // Hardened further: if even Gemini fails, fall back to a deterministic
+    // plain-stats sentence rather than 500ing the whole report generation.
+    let reportText: string;
+    let narrativeModel = 'gemini-1.5-flash';
+    try {
+      if (body.use_nemotron) {
+        try {
+          reportText = await nemotron(reportPrompt);
+          narrativeModel = 'nemotron-3-ultra-550b';
+        } catch (e) {
+          console.error('Nemotron generation failed, falling back to Gemini:', e);
+          reportText = await gemini(reportPrompt);
+        }
+      } else {
+        reportText = await gemini(reportPrompt);
+      }
+      if (!reportText || !reportText.trim()) throw new Error('empty narrative response');
+    } catch (e) {
+      console.error('Narrative generation failed entirely, using deterministic fallback:', e);
+      reportText = `${studentName} completed ${completedSprints.length} study session${completedSprints.length === 1 ? '' : 's'} this week and earned ${totalXP} XP. ${masteryText ? `Current mastery: ${masteryText}.` : ''} A full AI summary wasn't available this run — try regenerating in a few minutes.`;
+      narrativeModel = 'fallback-deterministic';
+    }
+
+    // Parent digest — 3-sentence renewal-driving headline, distinct from the
+    // full narrative above. Only worth generating if we have a concrete
+    // improvement or avoidance signal to point to; otherwise skip the model
+    // call entirely and use a plain encouraging default.
+    let digestText: string;
+    let digestModel = 'none';
+    if (bestSubject || avoidedSubject) {
+      const digestPrompt = `You are Novo, writing a 3-sentence headline for a parent about their child ${studentName}'s week — not the full report, just the single most important thing to know.
+
+${bestSubject ? `Biggest improvement: ${bestSubject} mastery rose ${bestDelta} percentage points this week.` : 'No clear week-over-week improvement detected yet.'}
+${avoidedSubject ? `Concerning pattern: ${studentName} has weak topics in ${avoidedSubject} but did not study ${avoidedSubject} at all this week.` : ''}
+
+Write EXACTLY 3 sentences, in this order:
+1. Name the specific improvement (subject + number), or if none, a specific positive fact from their activity.
+2. Name the specific avoidance pattern (subject) and why it matters for the exam, if one exists.
+3. One concrete, encouraging next step for the parent to suggest.
+
+Plain English, warm but direct. No bullet points, no headers, exactly 3 sentences.`;
+
+      try {
+        const { text, model } = await generateParentDigest(digestPrompt);
+        if (text) { digestText = text; digestModel = model; }
+        else throw new Error('empty digest');
+      } catch (e) {
+        console.error('Parent digest generation failed, using deterministic fallback:', e);
+        digestText = `${studentName} put in ${completedSprints.length} study session${completedSprints.length === 1 ? '' : 's'} this week. Keep an eye on consistency across all subjects, especially any marked weak above. A quick check-in this weekend can help keep momentum going.`;
+        digestModel = 'fallback-deterministic';
+      }
+    } else {
+      digestText = `${studentName} completed ${completedSprints.length} study session${completedSprints.length === 1 ? '' : 's'} this week — keep the streak going!`;
+      digestModel = 'fallback-deterministic';
+    }
 
     const stats = {
       sprints_completed: completedSprints.length,
@@ -253,7 +390,11 @@ Do NOT use bullet points. Write in natural flowing prose. No headers.`);
         : null,
     };
 
-    const report_data = { stats, mastery_by_subject: masteryBySubject, student_name: studentName };
+    const report_data = {
+      stats, mastery_by_subject: masteryBySubject, student_name: studentName,
+      narrative: reportText, narrative_model: narrativeModel,
+      digest_summary: digestText, digest_model: digestModel,
+    };
     const report_html = buildReportHTML(studentName, start, reportText, report_data);
 
     // Save

@@ -8,6 +8,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 async function geminiJSON<T>(prompt: string): Promise<T> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
@@ -45,6 +46,9 @@ serve(withSentry('streak-challenges', async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const { action } = body;
+
+  const rl = await checkRateLimit(supabase, user.id, `streak_challenges_${action}`, 40, 60);
+  if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
   // ── get_active ────────────────────────────────────────────────────────────
   if (action === 'get_active') {
@@ -221,7 +225,9 @@ Return JSON:
     await supabase.rpc('increment_xp', { user_id: user.id, amount: total_xp });
 
     // Update profile streak_count if this is the user's longest app streak
-    await supabase.rpc('update_streak_on_challenge', { p_user_id: user.id }).catch(() => {});
+    await supabase.rpc('update_streak_on_challenge', { p_user_id: user.id }).catch(e =>
+      console.error('[streak-challenges] update_streak_on_challenge failed:', e?.message)
+    );
 
     return json({
       day_number,

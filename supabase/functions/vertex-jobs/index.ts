@@ -27,6 +27,7 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const VERTEX_REGION = 'us-central1';
 const BASE_MODEL    = 'gemini-1.5-flash-002';
 const VERTEX_BASE   = `https://${VERTEX_REGION}-aiplatform.googleapis.com/v1`;
@@ -89,6 +90,7 @@ serve(withSentry('vertex-jobs', async (req) => {
 
   if (isCron) {
     // Cron is trusted for read-only actions (list, status) only
+    // No per-user rate limit — internal/cron-triggered only
     callerIsAdmin = true;
   } else {
     // All other callers must provide a valid Supabase JWT
@@ -111,6 +113,9 @@ serve(withSentry('vertex-jobs', async (req) => {
         hint:  'Contact your system administrator to request access.',
       }, 403);
     }
+
+    const rl = await checkRateLimit(serviceDb, user.id, 'vertex_jobs', 25, 60);
+    if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
   }
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;

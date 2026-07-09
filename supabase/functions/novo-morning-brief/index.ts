@@ -20,6 +20,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
 
 async function gemini(prompt: string): Promise<string> {
@@ -165,6 +166,9 @@ serve(withSentry('novo-morning-brief', async (req) => {
     const authHeader = req.headers.get('Authorization') ?? '';
     const { data: { user }, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (error || !user) return json({ error: 'Unauthorized' }, 401);
+
+    const rl = await checkRateLimit(supabase, user.id, 'novo-morning-brief_preview', 40, 60);
+    if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
     const brief = await buildBrief(supabase, user.id);
     if (!brief) return json({ error: 'Could not generate brief' }, 500);
