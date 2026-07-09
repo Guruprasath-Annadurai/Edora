@@ -12,3 +12,9 @@ android/app/src/main/assets/public
 android/app/google-services.json
 ios/App/App/GoogleService-Info.plist
 .vercel
+
+# TS incremental build cache — machine-specific, regenerated on build
+*.tsbuildinfo
+
+# gstack skill tool-local state — not project source
+.gstack/
