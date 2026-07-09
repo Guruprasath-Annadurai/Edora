@@ -14,6 +14,11 @@
             </array>
         </dict>
     </array>
+    <!-- Required for silent/background push delivery (novo-push, morning brief) -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
     <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
