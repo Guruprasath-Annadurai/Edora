@@ -13,6 +13,11 @@ android/app/google-services.json
 ios/App/App/GoogleService-Info.plist
 .vercel
 
+# Android release signing — contains keystore password in plaintext
+android/keystore.properties
+android/*.jks
+android/*.keystore
+
 # TS incremental build cache — machine-specific, regenerated on build
 *.tsbuildinfo
 
