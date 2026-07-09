@@ -36,7 +36,7 @@ export function PageErrorState({
 
       <div>
         <h3 className="font-heading font-bold text-white text-base mb-1">{title}</h3>
-        <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>{body}</p>
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-450)' }}>{body}</p>
       </div>
 
       {onRetry && (

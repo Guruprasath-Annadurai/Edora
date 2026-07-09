@@ -10,13 +10,10 @@
 import { useState, useEffect, useRef } from 'react';
 
 import posthog from 'posthog-js';
-import {
-  type ExperimentKey,
+import {type ExperimentKey,
   type VariantFor,
-  EXPERIMENTS,
   getVariant,
-  trackExposure,
-} from '@/lib/experiments';
+  trackExposure} from '@/lib/experiments';
 
 export function useExperiment<K extends ExperimentKey>(key: K): VariantFor<K> {
   const [variant, setVariant] = useState<VariantFor<K>>(() => getVariant(key));

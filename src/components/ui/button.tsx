@@ -30,24 +30,24 @@ const buttonVariants = cva(
 const VARIANT_STYLES: Record<string, React.CSSProperties> = {
   default: {
     background: 'linear-gradient(145deg, #6373F6 0%, #5B6AF5 45%, #7C3AED 100%)',
-    boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18), 0 4px 20px rgba(91,106,245,0.45), 0 1px 4px rgba(0,0,0,0.3)',
+    boxShadow: 'inset 0 1.5px 0 var(--ink-220), inset 0 -1px 0 rgba(0,0,0,0.18), 0 4px 20px rgba(91,106,245,0.45), 0 1px 4px rgba(0,0,0,0.3)',
   },
   liquid: {
-    background: 'rgba(255,255,255,0.06)',
+    background: 'var(--ink-060)',
     backdropFilter: 'blur(36px) saturate(180%) brightness(1.06)',
     WebkitBackdropFilter: 'blur(36px) saturate(180%) brightness(1.06)',
-    border: '1px solid rgba(255,255,255,0.14)',
-    boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.3)',
+    border: '1px solid var(--ink-140)',
+    boxShadow: 'inset 0 1.5px 0 var(--ink-180), inset 0 -0.5px 0 rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.3)',
   },
   glass: {
     background: 'rgba(91,106,245,0.12)',
     backdropFilter: 'blur(24px) saturate(160%)',
     WebkitBackdropFilter: 'blur(24px) saturate(160%)',
     border: '1px solid rgba(91,106,245,0.22)',
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 16px rgba(91,106,245,0.20)',
+    boxShadow: 'inset 0 1px 0 var(--ink-120), 0 4px 16px rgba(91,106,245,0.20)',
   },
   outline: {
-    background: 'rgba(15,20,45,0.55)',
+    background: 'var(--hdr-b-550)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
   },
@@ -79,7 +79,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             style={{
               position: 'absolute', top: 0, left: '10%', right: '10%',
               height: 1, borderRadius: '50%', pointerEvents: 'none',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.36), transparent)',
+              background: 'linear-gradient(90deg, transparent, var(--ink-360), transparent)',
             }}
           />
         )}

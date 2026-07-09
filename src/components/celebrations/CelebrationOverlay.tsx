@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { spring } from '@/lib/motion';
 import { useState } from 'react';
 import { Trophy, Zap, Star, Flame } from 'lucide-react';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
@@ -95,7 +96,7 @@ function XPBadge({ xp }: { xp: number }) {
     <motion.div
       initial={{ scale: 0, y: 20 }}
       animate={{ scale: 1, y: 0 }}
-      transition={{ delay: 0.4, type: 'spring', stiffness: 300, damping: 18 }}
+      transition={{ ...spring.bounce, delay: 0.4 }}
       className="flex items-center gap-2 px-5 py-2.5 rounded-full"
       style={{
         background: 'linear-gradient(135deg,rgba(234,179,8,0.2),rgba(245,158,11,0.15))',
@@ -171,11 +172,11 @@ export const CelebrationOverlay = forwardRef<CelebrationHandle>((_, ref) => {
             initial={{ scale: 0.5, y: 60, opacity: 0 }}
             animate={{ scale: 1,   y: 0,  opacity: 1 }}
             exit={{ scale: 0.85, y: -30, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 280, damping: 20 }}
+            transition={spring.bounce}
             className="relative z-10 flex flex-col items-center gap-4 px-8 py-8 rounded-3xl mx-6"
             style={{
-              background: 'rgba(8,12,26,0.95)',
-              border: '1.5px solid rgba(255,255,255,0.12)',
+              background: 'var(--surface-scrim)',
+              border: '1.5px solid var(--ink-120)',
               boxShadow: `0 0 80px ${meta.glow}, 0 20px 60px rgba(0,0,0,0.6)`,
               maxWidth: 320,
             }}
@@ -193,7 +194,7 @@ export const CelebrationOverlay = forwardRef<CelebrationHandle>((_, ref) => {
                 className="w-20 h-20 rounded-3xl flex items-center justify-center"
                 initial={{ rotate: -15, scale: 0.8 }}
                 animate={{ rotate: 0, scale: 1 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 15, delay: 0.05 }}
+                transition={{ ...spring.bounce, delay: 0.05 }}
                 style={{ background: meta.gradient, boxShadow: `0 8px 32px ${meta.glow}` }}
               >
                 <Icon size={36} style={{ color: meta.iconColor }} />
@@ -225,14 +226,14 @@ export const CelebrationOverlay = forwardRef<CelebrationHandle>((_, ref) => {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.45, type: 'spring', stiffness: 260 }}
+                transition={{ ...spring.bounce, delay: 0.45 }}
                 className="flex items-center gap-2"
               >
                 <div
                   className="px-4 py-2 rounded-2xl font-heading font-extrabold text-2xl"
                   style={{
                     background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
-                    color: '#fff',
+                    color: 'var(--ink-950)',
                     boxShadow: '0 4px 20px rgba(91,106,245,0.5)',
                   }}
                 >
@@ -245,7 +246,7 @@ export const CelebrationOverlay = forwardRef<CelebrationHandle>((_, ref) => {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.45, type: 'spring', stiffness: 260 }}
+                transition={{ ...spring.bounce, delay: 0.45 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-2xl"
                 style={{ background: 'rgba(249,115,22,0.15)', border: '1.5px solid rgba(249,115,22,0.3)' }}
               >
@@ -256,7 +257,7 @@ export const CelebrationOverlay = forwardRef<CelebrationHandle>((_, ref) => {
               </motion.div>
             )}
 
-            <p className="text-[10px] text-white/25 font-semibold">Tap anywhere to dismiss</p>
+            <p className="text-xs text-white/25 font-semibold">Tap anywhere to dismiss</p>
           </motion.div>
         </motion.div>
       )}

@@ -35,6 +35,28 @@ export const THEMES: ThemeMeta[] = [
 // CSS var overrides per theme
 const THEME_VARS: Record<AppTheme, Record<string, string>> = {
   light: {
+    // ── v2 design system (flat corporate) — namespaced so rebuilt screens
+    // can adopt incrementally without touching legacy --s1/--t1 glass tokens.
+    '--v2-bg':        '#F8FAFC',
+    '--v2-card':       '#FFFFFF',
+    '--v2-elevated':   '#F3F4FA',
+    '--v2-border':     '#E4E7EE',
+    '--v2-border-2':   '#EDEEF3',
+    '--v2-primary':        '#4F5FE4',
+    '--v2-primary-active': '#3E52C9',
+    '--v2-primary-hover':  '#455CDB',
+    '--v2-primary-tint':   'rgba(79,95,228,0.06)',
+    '--v2-primary-tint-2': 'rgba(79,95,228,0.10)',
+    '--v2-accent2':    '#7C3AED',
+    '--v2-text-1': '#0F1222',
+    '--v2-text-2': '#3A4256',
+    '--v2-text-3': '#545B72',
+    '--v2-text-4': '#8890A6',
+    '--v2-chevron': '#B8BECF',
+    '--v2-success': '#10B981', '--v2-success-text': '#059669',
+    '--v2-error':   '#EF4444', '--v2-error-text':   '#DC2626',
+    '--v2-warning': '#F59E0B', '--v2-warning-text': '#B45309',
+    '--v2-info':    '#3B82F6',
     '--background':         '210 40% 98%',
     '--card':               '0 0% 100%',
     '--foreground':         '222 47% 11%',
@@ -53,8 +75,100 @@ const THEME_VARS: Record<AppTheme, Record<string, string>> = {
     '--orb-secondary':      'rgba(139,92,246,0.06)',
     '--primary-hex':        '#4F5FE4',
     '--accent-hex':         '#7C3AED',
+    // Ink tokens — flips every rgba(255,255,255,X) surface/text/border in the app
+    // to a dark-slate ink at the same alpha (see globals.css :root for the dark defaults).
+    '--ink-020': 'rgba(15,23,42,0.02)',  '--ink-030': 'rgba(15,23,42,0.03)',
+    '--ink-035': 'rgba(15,23,42,0.035)', '--ink-040': 'rgba(15,23,42,0.04)',
+    '--ink-045': 'rgba(15,23,42,0.045)', '--ink-050': 'rgba(15,23,42,0.05)',
+    '--ink-055': 'rgba(15,23,42,0.055)', '--ink-060': 'rgba(15,23,42,0.06)',
+    '--ink-070': 'rgba(15,23,42,0.07)',  '--ink-080': 'rgba(15,23,42,0.08)',
+    '--ink-090': 'rgba(15,23,42,0.09)',  '--ink-100': 'rgba(15,23,42,0.1)',
+    '--ink-120': 'rgba(15,23,42,0.12)',  '--ink-140': 'rgba(15,23,42,0.14)',
+    '--ink-150': 'rgba(15,23,42,0.15)',  '--ink-160': 'rgba(15,23,42,0.16)',
+    '--ink-180': 'rgba(15,23,42,0.18)',  '--ink-200': 'rgba(15,23,42,0.2)',
+    '--ink-220': 'rgba(15,23,42,0.22)',  '--ink-240': 'rgba(15,23,42,0.24)',
+    '--ink-250': 'rgba(15,23,42,0.25)',  '--ink-280': 'rgba(15,23,42,0.28)',
+    '--ink-300': 'rgba(15,23,42,0.30)',  '--ink-320': 'rgba(15,23,42,0.32)',
+    '--ink-350': 'rgba(15,23,42,0.35)',  '--ink-360': 'rgba(15,23,42,0.36)',
+    '--ink-380': 'rgba(15,23,42,0.38)',  '--ink-400': 'rgba(15,23,42,0.4)',
+    '--ink-420': 'rgba(15,23,42,0.42)',  '--ink-450': 'rgba(15,23,42,0.45)',
+    '--ink-500': 'rgba(15,23,42,0.5)',   '--ink-550': 'rgba(15,23,42,0.55)',
+    '--ink-600': 'rgba(15,23,42,0.6)',   '--ink-650': 'rgba(15,23,42,0.65)',
+    '--ink-700': 'rgba(15,23,42,0.7)',   '--ink-750': 'rgba(15,23,42,0.75)',
+    '--ink-800': 'rgba(15,23,42,0.8)',   '--ink-820': 'rgba(15,23,42,0.82)',
+    '--ink-850': 'rgba(15,23,42,0.85)',  '--ink-880': 'rgba(15,23,42,0.88)',
+    '--ink-900': 'rgba(15,23,42,0.9)',   '--ink-920': 'rgba(15,23,42,0.92)',
+    '--ink-950': 'rgba(15,23,42,0.95)',
+    '--surface-elev-07':  'rgba(255,255,255,0.7)',
+    '--surface-elev-08':  'rgba(255,255,255,0.8)',
+    '--surface-elev-09':  'rgba(255,255,255,0.92)',
+    '--surface-elev-095': 'rgba(255,255,255,0.97)',
+    '--surface-nav':          'rgba(255,255,255,0.85)',
+    '--surface-nav-solid':    'rgba(255,255,255,0.92)',
+    '--surface-modal':        'rgba(255,255,255,0.90)',
+    '--surface-nav-perf':     'rgba(255,255,255,0.97)',
+    '--surface-panel-perf':   'rgba(255,255,255,0.96)',
+    '--surface-glass-perf':   'rgba(255,255,255,0.93)',
+    '--surface-modal-perf':   'rgba(255,255,255,0.98)',
+    '--grad-purple-header-1': '#EEF2FF',
+    '--grad-purple-header-2': '#E0E7FF',
+    '--grad-purple-header-3': '#C7D2FE',
+    '--grad-pro-header-1':    '#F5F3FF',
+    '--grad-pro-header-2':    '#FFFFFF',
+    '--grad-mood-card-1':     '#FFFFFF',
+    '--grad-mood-card-2':     '#F8FAFC',
+    '--grad-voice-overlay-1': '#F8FAFC',
+    '--grad-voice-overlay-2': '#EEF2FF',
+    '--grad-voice-overlay-3': '#E0E7FF',
+    '--grad-permission-1': '#F8FAFC',
+    '--grad-permission-2': '#EEF2FF',
+    '--grad-fab-1':        '#FFFFFF',
+    '--grad-fab-2':        '#F1F5F9',
+    '--grad-memory-1':     '#FFFFFF',
+    '--grad-memory-2':     '#F8FAFC',
+    '--grad-referral-1':   '#F8FAFC',
+    '--grad-referral-2':   '#EEF2FF',
+    '--grad-home-hero-1':  '#F8FAFC',
+    '--grad-home-hero-2':  '#EEF2FF',
+    '--hdr-a-600': 'rgba(255,255,255,0.6)',
+    '--hdr-a-820': 'rgba(255,255,255,0.82)',
+    '--hdr-a-880': 'rgba(255,255,255,0.88)',
+    '--hdr-a-900': 'rgba(255,255,255,0.90)',
+    '--hdr-a-920': 'rgba(255,255,255,0.92)',
+    '--hdr-a-960': 'rgba(255,255,255,0.96)',
+    '--hdr-b-550': 'rgba(255,255,255,0.55)',
+    '--hdr-b-750': 'rgba(255,255,255,0.75)',
+    '--hdr-b-900': 'rgba(255,255,255,0.9)',
+    '--hdr-b-950': 'rgba(255,255,255,0.95)',
+    '--hdr-b-980': 'rgba(255,255,255,0.98)',
+    '--surface-scrim': 'rgba(255,255,255,0.93)',
+    '--surface-sheet':     '#FFFFFF',
+    '--surface-banner-1':  '#FFFFFF',
+    '--surface-banner-2':  '#EEF2FF',
+    '--grad-curriculum-1': '#F8FAFC',
+    '--grad-curriculum-2': '#EEF2FF',
   },
   default: {
+    '--v2-bg':        '#060918',
+    '--v2-card':       '#10142A',
+    '--v2-elevated':   '#181C36',
+    '--v2-border':     '#1E2444',
+    '--v2-border-2':   '#262C50',
+    '--v2-primary':        '#7C3AED',
+    '--v2-primary-active': '#6D2FD9',
+    '--v2-primary-hover':  '#8A4EF0',
+    '--v2-primary-tint':   'rgba(124,58,237,0.14)',
+    '--v2-primary-tint-2': 'rgba(124,58,237,0.20)',
+    '--v2-accent2':    '#8B93F9',
+    '--v2-text-1': '#F5F7FA',
+    '--v2-text-2': '#C4C9DA',
+    '--v2-text-3': '#A8AFC7',
+    '--v2-text-4': '#6B7280',
+    '--v2-chevron': '#3A4066',
+    '--v2-success': '#10B981', '--v2-success-text': '#34D399',
+    '--v2-error':   '#EF4444', '--v2-error-text':   '#F87171',
+    '--v2-warning': '#F59E0B', '--v2-warning-text': '#FBBF24',
+    '--v2-info':    '#3B82F6',
     '--background':    '226 53% 7%',
     '--card':          '228 47% 11%',
     '--primary':       '234 87% 63%',
@@ -179,6 +293,18 @@ export function ThemeProvider({ children, isPro = false }: { children: ReactNode
   useEffect(() => {
     const root = document.documentElement;
     const vars = THEME_VARS[theme] ?? THEME_VARS.default;
+
+    // Clear every custom property any theme might set before applying the new
+    // theme's map. Without this, switching themes only overwrites keys present
+    // in the NEW theme's object — any key set by a PREVIOUS theme but absent
+    // from the new one (e.g. light-only ink/surface tokens) stays stuck as an
+    // inline override, shadowing the CSS :root dark defaults forever.
+    const allKeys = new Set<string>();
+    Object.values(THEME_VARS).forEach(themeVars => {
+      Object.keys(themeVars).forEach(k => allKeys.add(k));
+    });
+    allKeys.forEach(k => root.style.removeProperty(k));
+
     Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
 
     // Mark light vs dark so components can adapt via [data-theme="light"] selectors

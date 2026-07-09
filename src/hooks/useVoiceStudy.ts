@@ -140,7 +140,6 @@ export function useVoiceStudy(
       cleanupListener();
       clearSilenceTimer();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // True if language requires GCP STT (non-English)
@@ -480,7 +479,6 @@ export function useVoiceStudy(
       void cleanupListener();
     }
     setPhase('idle');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Full reset (new conversation) ───────────────────────────────────────────
@@ -499,7 +497,6 @@ export function useVoiceStudy(
     setTurns([]);
     turnsRef.current = [];
     setError('');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

@@ -64,7 +64,7 @@ function HomeIllustration() {
         </div>
         <div className="text-right">
           <p className="font-heading font-extrabold text-2xl leading-none" style={{ color: '#FBBF24' }}>42</p>
-          <p className="text-[9px] text-white/35">days left</p>
+          <p className="text-xs text-white/35">days left</p>
         </div>
       </motion.div>
 
@@ -77,11 +77,11 @@ function HomeIllustration() {
         <Target size={14} style={{ color: '#F87171', flexShrink: 0 }} />
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-white truncate">Gravitation</p>
-          <p className="text-[10px] text-white/40">Physics · Needs attention</p>
+          <p className="text-xs text-white/40">Physics · Needs attention</p>
         </div>
         <div className="flex gap-1.5 shrink-0">
-          <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ background: 'rgba(248,113,113,0.14)', color: '#F87171' }}>Quiz</span>
-          <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ background: 'rgba(139,92,246,0.14)', color: '#C4B5FD' }}>Chat</span>
+          <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: 'rgba(248,113,113,0.14)', color: '#F87171' }}>Quiz</span>
+          <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: 'rgba(139,92,246,0.14)', color: '#C4B5FD' }}>Chat</span>
         </div>
       </motion.div>
 
@@ -94,7 +94,7 @@ function HomeIllustration() {
           style={{ background: 'linear-gradient(135deg,rgba(91,106,245,0.12),rgba(139,92,246,0.08))', border: '1px solid rgba(91,106,245,0.18)' }}>
           <Zap size={13} style={{ color: '#A0AEFF' }} />
           <div>
-            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider">Level 4</p>
+            <p className="text-xs text-white/40 font-bold uppercase tracking-wider">Level 4</p>
             <p className="text-xs font-extrabold text-white">2,480 XP</p>
           </div>
         </div>
@@ -145,7 +145,7 @@ function ChatIllustration() {
       >
         {['Give me an example', 'Quiz me on this'].map(chip => (
           <div key={chip}
-            className="text-[10px] font-semibold px-3 py-1.5 rounded-xl"
+            className="text-xs font-semibold px-3 py-1.5 rounded-xl"
             style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.2)', color: '#A0AEFF' }}>
             {chip}
           </div>
@@ -169,8 +169,8 @@ function CourseIllustration() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-white">Physics Class 10</p>
-          <p className="text-[10px] text-white/40 mb-1.5">3 of 12 chapters done</p>
-          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <p className="text-xs text-white/40 mb-1.5">3 of 12 chapters done</p>
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
             <motion.div
               className="h-full rounded-full"
               style={{ background: '#C4B5FD' }}
@@ -193,19 +193,19 @@ function CourseIllustration() {
           initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.18 + i * 0.08 }}
           className="flex items-center gap-3 rounded-xl px-3 py-2.5"
           style={{
-            background: l.current ? 'rgba(91,106,245,0.08)' : 'rgba(255,255,255,0.03)',
-            border: `1px solid ${l.current ? 'rgba(91,106,245,0.2)' : 'rgba(255,255,255,0.05)'}`,
+            background: l.current ? 'rgba(91,106,245,0.08)' : 'var(--ink-030)',
+            border: `1px solid ${l.current ? 'rgba(91,106,245,0.2)' : 'var(--ink-050)'}`,
           }}
         >
-          <CheckCircle2 size={13} style={{ color: l.done ? '#10B981' : 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
+          <CheckCircle2 size={13} style={{ color: l.done ? '#10B981' : 'var(--ink-180)', flexShrink: 0 }} />
           <p className="text-xs flex-1 truncate" style={{
-            color: l.done ? 'rgba(255,255,255,0.40)' : 'rgba(255,255,255,0.85)',
+            color: l.done ? 'var(--ink-400)' : 'var(--ink-850)',
             fontWeight: l.current ? 700 : 500,
           }}>
             {l.label}
           </p>
           {l.current && (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0"
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
               style={{ background: 'rgba(91,106,245,0.15)', color: '#A0AEFF' }}>
               Next
             </span>
@@ -254,7 +254,7 @@ export function OnboardingTour({ onDone }: OnboardingTourProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.22 }}
           className="fixed inset-0 z-[9000] flex flex-col"
-          style={{ background: 'rgba(5,4,15,0.88)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'var(--surface-scrim)', backdropFilter: 'blur(8px)' }}
         >
           {/* ── Header: progress dots + skip ── */}
           <div
@@ -267,7 +267,7 @@ export function OnboardingTour({ onDone }: OnboardingTourProps) {
                   key={i}
                   animate={{
                     width:      i === step ? 20 : 6,
-                    background: i === step ? '#A855F7' : 'rgba(255,255,255,0.18)',
+                    background: i === step ? '#A855F7' : 'var(--ink-180)',
                   }}
                   transition={{ duration: 0.28 }}
                   className="h-1.5 rounded-full"
@@ -276,8 +276,8 @@ export function OnboardingTour({ onDone }: OnboardingTourProps) {
             </div>
             <button
               onClick={skip}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold active:scale-90 transition-transform"
-              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid var(--b2)', color: 'var(--t3)' }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-90 transition-transform"
+              style={{ background: 'var(--ink-070)', border: '1px solid var(--b2)', color: 'var(--t3)' }}
             >
               Skip <X size={11} />
             </button>

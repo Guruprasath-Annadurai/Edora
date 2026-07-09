@@ -93,8 +93,8 @@ export function ChatSkeleton() {
 export function SkeletonProfileHero() {
   return (
     <div className="rounded-3xl overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div style={{ height: 2, background: 'rgba(255,255,255,0.05)' }} />
+      style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}>
+      <div style={{ height: 2, background: 'var(--ink-050)' }} />
       <div className="p-5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -112,7 +112,7 @@ export function SkeletonProfileHero() {
           <Skeleton className="w-24 h-3 rounded-md" />
         </div>
       </div>
-      <div className="grid grid-cols-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="grid grid-cols-4" style={{ borderTop: '1px solid var(--ink-060)' }}>
         {[0,1,2,3].map(i => (
           <div key={i} className={`flex flex-col items-center py-3 gap-1.5 ${i < 3 ? 'border-r border-white/5' : ''}`}>
             <Skeleton className="w-8 h-4 rounded-md" />
@@ -127,10 +127,10 @@ export function SkeletonProfileHero() {
 export function SkeletonLeaderboardRows({ count = 5 }: { count?: number }) {
   return (
     <div className="rounded-3xl overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 px-4 py-3"
-          style={{ borderBottom: i < count - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+          style={{ borderBottom: i < count - 1 ? '1px solid var(--ink-040)' : 'none' }}>
           <Skeleton className="w-7 h-7 shrink-0" rounded="full" />
           <Skeleton className="h-4 flex-1" rounded="xl" />
           <Skeleton className="w-14 h-4 shrink-0" rounded="xl" />
@@ -165,7 +165,7 @@ export function SkeletonWeeklyStats() {
     <div className="grid grid-cols-3 gap-3">
       {[0,1,2].map(i => (
         <div key={i} className="flex flex-col items-center gap-1.5 text-center p-3 rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-060)' }}>
           <Skeleton className="w-4 h-4 rounded-sm" />
           <Skeleton className="w-8 h-6" rounded="xl" />
           <Skeleton className="w-12 h-2.5 rounded-md" />
@@ -203,7 +203,7 @@ export function ListPageSkeleton({ count = 5, header = true }: { count?: number;
       )}
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 p-4 rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-060)' }}>
           <Skeleton className="w-10 h-10 shrink-0" rounded="2xl" />
           <div className="flex flex-col gap-1.5 flex-1 min-w-0">
             <Skeleton className="w-3/4 h-4" rounded="xl" />
@@ -226,7 +226,7 @@ export function StatsPageSkeleton() {
       <div className="grid grid-cols-2 gap-3">
         {[1,2,3,4].map(i => (
           <div key={i} className="rounded-3xl p-4 flex flex-col gap-2"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-060)' }}>
             <Skeleton className="w-8 h-8" rounded="xl" />
             <Skeleton className="w-16 h-6" rounded="xl" />
             <Skeleton className="w-24 h-3" rounded="xl" />
@@ -234,7 +234,7 @@ export function StatsPageSkeleton() {
         ))}
       </div>
       <div className="rounded-3xl p-4 flex flex-col gap-3"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-060)' }}>
         <Skeleton className="w-32 h-4" rounded="xl" />
         {[1,2,3].map(i => (
           <div key={i} className="flex items-center gap-3">
@@ -254,7 +254,7 @@ export function SkeletonNcertCards({ count = 3 }: { count?: number }) {
     <div className="flex flex-col gap-3">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="rounded-2xl overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <Skeleton className="w-36 h-3 rounded-md" />

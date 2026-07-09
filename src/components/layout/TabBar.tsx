@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { Home, BookOpen, Swords, User, type LucideIcon } from 'lucide-react';
 import { TeachingIcon } from '@/components/ui/icons';
 import { motion } from 'framer-motion';
+import { ease, dur } from '@/lib/motion';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 const LEFT_TABS: { to: string; icon: LucideIcon; label: string }[] = [
@@ -43,21 +44,21 @@ function TabButton({ to, icon: Icon, label }: { to: string; icon: LucideIcon; la
               opacity: 1,
               background: 'rgba(124,58,237,0.18)',
               border: '1px solid rgba(124,58,237,0.26)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14), 0 2px 10px rgba(124,58,237,0.28)',
+              boxShadow: 'inset 0 1px 0 var(--ink-140), 0 2px 10px rgba(124,58,237,0.28)',
             } : {
               opacity: 0,
               background: 'transparent',
               border: '1px solid transparent',
               boxShadow: 'none',
             }}
-            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ duration: dur.instant, ease: ease.ios }}
           />
 
           <motion.div
             className="flex items-center justify-center"
             style={{ width: 46, height: 36, borderRadius: 14, position: 'relative', zIndex: 1 }}
             animate={isActive ? { scale: 1.06 } : { scale: 1 }}
-            transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ duration: dur.fast, ease: ease.ios }}
           >
             <Icon
               size={20}
@@ -66,7 +67,7 @@ function TabButton({ to, icon: Icon, label }: { to: string; icon: LucideIcon; la
                 color: '#A78BFA',
                 filter: 'drop-shadow(0 0 6px rgba(167,139,250,0.65))',
               } : {
-                color: 'rgba(255,255,255,0.32)',
+                color: 'var(--ink-320)',
               }}
             />
           </motion.div>
@@ -74,11 +75,11 @@ function TabButton({ to, icon: Icon, label }: { to: string; icon: LucideIcon; la
           <motion.span
             className="tab-label"
             animate={isActive
-              ? { color: 'rgba(255,255,255,0.88)', opacity: 1 }
-              : { color: 'rgba(255,255,255,0.28)', opacity: 1 }
+              ? { color: 'var(--ink-880)', opacity: 1 }
+              : { color: 'var(--ink-280)', opacity: 1 }
             }
-            transition={{ duration: 0.2 }}
-            style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1 }}
+            transition={{ duration: dur.fast }}
+            style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1 }}
           >
             {label}
           </motion.span>
@@ -148,12 +149,12 @@ function NovoCenterButton() {
           boxShadow: '0 0 0 1.5px rgba(168,85,247,0.28), 0 4px 22px rgba(124,58,237,0.60), 0 0 40px rgba(139,92,246,0.20)',
         }}
         whileTap={{ scale: 0.90 }}
-        transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+        transition={{ duration: dur.instant, ease: ease.ios }}
       >
         {/* Specular highlight — Vision Pro inner shine */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: '50%',
-          background: 'radial-gradient(ellipse 70% 45% at 38% 28%, rgba(255,255,255,0.28), transparent 65%)',
+          background: 'radial-gradient(ellipse 70% 45% at 38% 28%, var(--ink-280), transparent 65%)',
           pointerEvents: 'none',
         }} />
         {/* Bottom depth shadow layer */}
@@ -168,11 +169,11 @@ function NovoCenterButton() {
       <motion.span
         className="tab-label"
         animate={isActive
-          ? { color: 'rgba(255,255,255,0.92)', textShadow: '0 0 10px rgba(168,85,247,0.55)' }
-          : { color: 'rgba(255,255,255,0.28)', textShadow: 'none' }
+          ? { color: 'var(--ink-920)', textShadow: '0 0 10px rgba(168,85,247,0.55)' }
+          : { color: 'var(--ink-280)', textShadow: 'none' }
         }
         transition={{ duration: 0.2 }}
-        style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', marginTop: 4 }}
+        style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', marginTop: 4 }}
       >
         Novo
       </motion.span>
@@ -182,36 +183,21 @@ function NovoCenterButton() {
 
 export function TabBar() {
   return (
-    <div
-      className="absolute bottom-0 left-0 right-0 pointer-events-none"
-      style={{
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        paddingLeft: 12, paddingRight: 12,
-        zIndex: 50,
-      }}
+    <nav
+      className="nav-island"
+      role="navigation"
+      aria-label="Main navigation"
     >
-      <nav
-        className="liquid-glass-nav pointer-events-auto flex items-stretch"
-        role="navigation"
-        aria-label="Main navigation"
-        style={{
-          height: 'var(--nav-pill-height)',
-          borderRadius: 28,
-          marginBottom: 'var(--nav-bottom-offset)',
-          overflow: 'visible',
-        }}
-      >
-        {/* Inner prismatic top edge */}
-        <div style={{
-          position: 'absolute', top: 0, left: '8%', right: '8%',
-          height: 1, borderRadius: '50%', pointerEvents: 'none', zIndex: 1,
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.22), rgba(167,139,250,0.3), rgba(255,255,255,0.22), transparent)',
-        }} />
+      {/* Inner prismatic top edge */}
+      <div style={{
+        position: 'absolute', top: 0, left: '8%', right: '8%',
+        height: 1, borderRadius: '50%', pointerEvents: 'none', zIndex: 1,
+        background: 'linear-gradient(90deg, transparent, var(--ink-220), rgba(167,139,250,0.3), var(--ink-220), transparent)',
+      }} />
 
-        {LEFT_TABS.map(tab  => <TabButton key={tab.to} {...tab} />)}
-        <NovoCenterButton />
-        {RIGHT_TABS.map(tab => <TabButton key={tab.to} {...tab} />)}
-      </nav>
-    </div>
+      {LEFT_TABS.map(tab  => <TabButton key={tab.to} {...tab} />)}
+      <NovoCenterButton />
+      {RIGHT_TABS.map(tab => <TabButton key={tab.to} {...tab} />)}
+    </nav>
   );
 }

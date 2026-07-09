@@ -69,14 +69,14 @@ export function DailyPowerRing({ className = '' }: Props) {
           {loading ? (
             <div
               className="w-full h-full rounded-full animate-pulse"
-              style={{ background: 'rgba(255,255,255,0.06)' }}
+              style={{ background: 'var(--ink-060)' }}
             />
           ) : (
             <>
               <svg width={size} height={size} className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }}>
                 <circle
                   cx={size / 2} cy={size / 2} r={r}
-                  fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke}
+                  fill="none" stroke="var(--ink-060)" strokeWidth={stroke}
                 />
                 <motion.circle
                   cx={size / 2} cy={size / 2} r={r}
@@ -100,7 +100,7 @@ export function DailyPowerRing({ className = '' }: Props) {
                     >
                       {progress}
                     </span>
-                    <span className="text-[9px] text-white/35 font-semibold">/{MAX}</span>
+                    <span className="text-xs text-white/35 font-semibold">/{MAX}</span>
                   </>
                 )}
               </div>
@@ -112,13 +112,13 @@ export function DailyPowerRing({ className = '' }: Props) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
             <Zap size={12} style={{ color: completed ? '#10B981' : '#5B6AF5' }} />
-            <p className="text-[10px] font-bold uppercase tracking-widest"
+            <p className="text-xs font-bold uppercase tracking-widest"
               style={{ color: completed ? 'rgba(16,185,129,0.7)' : 'rgba(91,106,245,0.7)' }}>
               Daily Power Session
             </p>
           </div>
           {loading ? (
-            <div className="h-4 w-32 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="h-4 w-32 rounded-full animate-pulse" style={{ background: 'var(--ink-080)' }} />
           ) : completed ? (
             <p className="text-sm font-bold text-white">Completed! +{xpAwarded} XP</p>
           ) : (
@@ -126,7 +126,7 @@ export function DailyPowerRing({ className = '' }: Props) {
               {progress === 0 ? 'Start your 10-min session' : `${MAX - progress} items left`}
             </p>
           )}
-          <p className="text-[11px] text-white/35 mt-0.5">
+          <p className="text-xs text-white/35 mt-0.5">
             {completed
               ? 'See you tomorrow'
               : '3 flashcards · 2 PYQ · 1 concept'}

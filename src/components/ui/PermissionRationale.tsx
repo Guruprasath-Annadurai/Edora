@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
+import { spring } from '@/lib/motion';
 import { Button } from '@/components/ui/button';
 
 interface PermissionRationaleProps {
@@ -31,14 +32,14 @@ export function PermissionRationale({
           <motion.div
             key="perm-rationale-sheet"
             initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+            transition={spring.entrance}
             onClick={e => e.stopPropagation()}
             className="w-full max-w-sm rounded-3xl p-6 flex flex-col gap-5"
-            style={{ background: 'linear-gradient(160deg,#0E1330,#10152B)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'linear-gradient(160deg,var(--grad-permission-1),var(--grad-permission-2))', border: '1px solid var(--ink-100)' }}
           >
             <button onClick={onDeny} aria-label="Close"
               className="self-end w-8 h-8 rounded-full flex items-center justify-center active:scale-90"
-              style={{ background: 'rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--ink-070)' }}>
               <X size={15} className="text-white/60" />
             </button>
 

@@ -51,9 +51,9 @@ export function NovoEmptyState({
   firstName,
   examName,
   streak,
-  personality,
+  personality: _personality,
   personalityLabel,
-  personalityGradient,
+  personalityGradient: _personalityGradient,
   studyCtx,
   memCtx,
   chips,
@@ -100,7 +100,7 @@ export function NovoEmptyState({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.22 }}
             className="text-xs mt-0.5"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--ink-400)' }}
           >
             {personalityLabel} · Ready to study
           </motion.p>
@@ -163,7 +163,7 @@ export function NovoEmptyState({
                   style={{ background: '#A0AEFF' }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{subject}</p>
-                  <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <p className="text-xs truncate" style={{ color: 'var(--ink-400)' }}>
                     {detail} · {timeStr}
                   </p>
                 </div>
@@ -178,7 +178,7 @@ export function NovoEmptyState({
             return (
               <div className="flex items-center gap-2 mt-2">
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: colour }} />
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
                   Last quiz: <span className="font-semibold text-white">{q.topic}</span>
                   {' '}<span style={{ color: colour }}>{pct}%</span>
                 </p>
@@ -206,7 +206,7 @@ export function NovoEmptyState({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold" style={{ color: '#F87171' }}>Needs attention</p>
-            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <p className="text-xs truncate" style={{ color: 'var(--ink-450)' }}>
               {weakTopics.join(' · ')}
             </p>
           </div>
@@ -222,7 +222,7 @@ export function NovoEmptyState({
           className="w-full"
         >
           <p className="text-xs font-bold uppercase tracking-widest mb-2.5"
-            style={{ color: 'rgba(255,255,255,0.25)' }}>
+            style={{ color: 'var(--ink-250)' }}>
             Ask me
           </p>
           <div className="flex flex-col gap-2">
@@ -235,9 +235,9 @@ export function NovoEmptyState({
                 onClick={() => onChipSelect(chip)}
                 className="w-full text-left px-4 py-3 rounded-2xl text-sm leading-snug"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.07)',
-                  color: 'rgba(255,255,255,0.75)',
+                  background: 'var(--ink-060)',
+                  border: '1px solid var(--ink-070)',
+                  color: 'var(--ink-750)',
                 }}
                 whileTap={{ scale: 0.97 }}
               >
@@ -256,7 +256,7 @@ export function NovoEmptyState({
         className="w-full"
       >
         <p className="text-xs font-bold uppercase tracking-widest mb-2.5"
-          style={{ color: 'rgba(255,255,255,0.25)' }}>
+          style={{ color: 'var(--ink-250)' }}>
           What I can do
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -270,7 +270,7 @@ export function NovoEmptyState({
                 <Icon size={15} style={{ color }} strokeWidth={1.75} />
               </div>
               <p className="text-[10px] font-semibold leading-tight"
-                style={{ color: 'rgba(255,255,255,0.6)' }}>{label}</p>
+                style={{ color: 'var(--ink-600)' }}>{label}</p>
             </div>
           ))}
         </div>
@@ -283,7 +283,7 @@ export function NovoEmptyState({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.75 }}
           className="text-[11px] text-center pb-2"
-          style={{ color: 'rgba(255,255,255,0.2)' }}
+          style={{ color: 'var(--ink-200)' }}
         >
           Preparing for {examName}
         </motion.p>

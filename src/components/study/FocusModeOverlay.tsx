@@ -12,7 +12,7 @@ interface Props {
 }
 
 const NOVO_MESSAGES = [
-  "You're doing great — stay locked in! 🧠",
+  "You're doing great — stay locked in.",
   "10 minutes of deep focus > 1 hour of distraction.",
   "Every minute counts. Novo believes in you.",
   "The best students are consistent, not perfect.",
@@ -79,13 +79,13 @@ export function FocusModeOverlay({ open, onClose, durationMin = DEFAULT_MIN }: P
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-[800] flex flex-col items-center justify-center"
-          style={{ background: 'rgba(5,3,15,0.97)', backdropFilter: 'blur(24px)' }}
+          style={{ background: 'var(--surface-scrim)', backdropFilter: 'blur(24px)' }}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
 
           {/* Close */}
           <button onClick={onClose} aria-label="Close focus mode"
             className="absolute top-14 right-5 w-11 h-11 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.06)' }}>
+            style={{ background: 'var(--ink-060)' }}>
             <X size={18} className="text-white" />
           </button>
 
@@ -119,7 +119,7 @@ export function FocusModeOverlay({ open, onClose, durationMin = DEFAULT_MIN }: P
                 <p className="font-mono text-3xl font-bold text-white tabular-nums">
                   {formatTime(remaining)}
                 </p>
-                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--ink-400)' }}>
                   {done ? 'Complete!' : 'Focus'}
                 </p>
               </div>
@@ -130,8 +130,8 @@ export function FocusModeOverlay({ open, onClose, durationMin = DEFAULT_MIN }: P
               <motion.p key={done ? 'done' : msgIdx}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
                 className="text-center text-sm max-w-xs"
-                style={{ color: 'rgba(255,255,255,0.65)' }}>
-                {done ? '🎉 Focus session complete! Take a short break.' : NOVO_MESSAGES[msgIdx]}
+                style={{ color: 'var(--ink-650)' }}>
+                {done ? 'Focus session complete — take a short break.' : NOVO_MESSAGES[msgIdx]}
               </motion.p>
             </AnimatePresence>
 
@@ -139,7 +139,7 @@ export function FocusModeOverlay({ open, onClose, durationMin = DEFAULT_MIN }: P
             <div className="flex gap-4">
               <motion.button whileTap={{ scale: 0.92 }} onClick={reset}
                 className="w-12 h-12 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                 <RotateCcw size={18} className="text-white" />
               </motion.button>
 
@@ -154,7 +154,7 @@ export function FocusModeOverlay({ open, onClose, durationMin = DEFAULT_MIN }: P
               </motion.button>
             </div>
 
-            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            <p className="text-xs text-center" style={{ color: 'var(--ink-250)' }}>
               Phone calls still work · Tap × to exit early
             </p>
           </motion.div>

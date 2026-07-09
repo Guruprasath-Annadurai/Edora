@@ -19,7 +19,7 @@ export function ConceptOfDayCard() {
   const [card, setCard]       = useState<ConceptCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [flipped, setFlipped] = useState(false);
-  const [phase, setPhase]     = useState<'concept' | 'question'>('concept');
+  const [_phase, setPhase]     = useState<'concept' | 'question'>('concept');
   const [revealed, setRevealed] = useState(false);
   const [sharing, setSharing]   = useState(false);
 
@@ -53,7 +53,7 @@ export function ConceptOfDayCard() {
   async function handleShare() {
     if (!card || sharing) return;
     setSharing(true);
-    const text = `💡 Today's Concept: ${card.concept}\n\n${card.description}${card.example ? `\n\nExample: ${card.example}` : ''}\n\n— via Edora`;
+    const text = `Today's Concept: ${card.concept}\n\n${card.description}${card.example ? `\n\nExample: ${card.example}` : ''}\n\n— via Edora`;
     try {
       await Share.share({ text, dialogTitle: 'Share Concept' });
     } catch {
@@ -80,7 +80,7 @@ export function ConceptOfDayCard() {
     <div>
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-heading text-base font-bold text-white">Concept of the Day</h2>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-400/50">Daily</span>
+        <span className="text-xs font-bold uppercase tracking-widest text-yellow-400/50">Daily</span>
       </div>
 
       <div style={{ perspective: 1000 }}>
@@ -112,7 +112,7 @@ export function ConceptOfDayCard() {
                     <Lightbulb size={14} className="text-white" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-400/60 mb-0">
+                    <p className="text-xs font-bold uppercase tracking-widest text-yellow-400/60 mb-0">
                       {card.subject ?? 'Science'}
                     </p>
                     <p className="text-base font-extrabold text-white leading-tight">{card.concept}</p>
@@ -135,7 +135,7 @@ export function ConceptOfDayCard() {
                   className="px-3 py-2 rounded-xl mb-3"
                   style={{ background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.1)' }}
                 >
-                  <p className="text-[11px] text-yellow-300/70 font-semibold leading-snug">{card.example}</p>
+                  <p className="text-xs text-yellow-300/70 font-semibold leading-snug">{card.example}</p>
                 </div>
               )}
 
@@ -165,7 +165,7 @@ export function ConceptOfDayCard() {
             >
               <div style={{ height: 2, background: 'linear-gradient(90deg,#EAB308,#FBBF24,#F59E0B)' }} />
               <div className="p-4 flex flex-col flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-400/60 mb-2">Quick Check</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-yellow-400/60 mb-2">Quick Check</p>
                 <p className="text-sm font-semibold text-white leading-snug mb-4">{card.question}</p>
 
                 <AnimatePresence>
@@ -197,7 +197,7 @@ export function ConceptOfDayCard() {
                       className="py-3 rounded-2xl text-sm font-bold"
                       style={{
                         background: 'linear-gradient(135deg,#CA8A04,#EAB308)',
-                        color: '#fff',
+                        color: 'var(--ink-950)',
                         boxShadow: '0 4px 16px rgba(234,179,8,0.3)',
                       }}
                     >

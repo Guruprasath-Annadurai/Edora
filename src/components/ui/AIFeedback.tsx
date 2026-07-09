@@ -8,7 +8,7 @@
 // Also tracks dwell time (time from mount to rating click) as a quality signal.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useRef } from 'react';
+import {useState, useRef} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThumbsUp, ThumbsDown, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -34,8 +34,7 @@ export function AIFeedback({ interactionId, subject, topic, compact = false }: P
     try {
       await supabase.rpc('rate_ai_interaction', {
         p_interaction_id: interactionId,
-        p_thumbs:         thumbs,
-      });
+        p_thumbs:         thumbs });
       // Also update dwell time
       await supabase
         .from('ai_interactions')
@@ -55,20 +54,20 @@ export function AIFeedback({ interactionId, subject, topic, compact = false }: P
         <AnimatePresence mode="wait">
           {done ? (
             <motion.span key="done" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1 text-[10px] text-green-400">
+              className="flex items-center gap-1 text-xs text-green-400">
               <Check size={10} /> Thanks!
             </motion.span>
           ) : (
             <motion.div key="btns" className="flex items-center gap-1">
               <button onClick={() => rate(1)} disabled={saving}
                 className="w-6 h-6 rounded-lg flex items-center justify-center transition-colors"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <ThumbsUp size={11} style={{ color: rating === 1 ? '#34D399' : 'rgba(255,255,255,0.4)' }} />
+                style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
+                <ThumbsUp size={11} style={{ color: rating === 1 ? '#34D399' : 'var(--ink-400)' }} />
               </button>
               <button onClick={() => rate(-1)} disabled={saving}
                 className="w-6 h-6 rounded-lg flex items-center justify-center transition-colors"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <ThumbsDown size={11} style={{ color: rating === -1 ? '#F87171' : 'rgba(255,255,255,0.4)' }} />
+                style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
+                <ThumbsDown size={11} style={{ color: rating === -1 ? '#F87171' : 'var(--ink-400)' }} />
               </button>
             </motion.div>
           )}
@@ -79,13 +78,13 @@ export function AIFeedback({ interactionId, subject, topic, compact = false }: P
 
   return (
     <div className="flex items-center gap-2 mt-2">
-      <span className="text-[10px] text-white/30 font-semibold uppercase tracking-wide">
+      <span className="text-xs text-white/30 font-semibold uppercase tracking-wide">
         Was this helpful?
       </span>
       <AnimatePresence mode="wait">
         {done ? (
           <motion.span key="done" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-            className="text-[10px] text-green-400 flex items-center gap-1">
+            className="text-xs text-green-400 flex items-center gap-1">
             <Check size={10} /> Thanks for the feedback!
           </motion.span>
         ) : (
@@ -93,23 +92,21 @@ export function AIFeedback({ interactionId, subject, topic, compact = false }: P
             <motion.button whileTap={{ scale: 0.85 }}
               onClick={() => rate(1)}
               disabled={saving}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all"
               style={{
-                background: rating === 1 ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${rating === 1 ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                color: rating === 1 ? '#34D399' : 'rgba(255,255,255,0.4)',
-              }}>
+                background: rating === 1 ? 'rgba(52,211,153,0.12)' : 'var(--ink-050)',
+                border: `1px solid ${rating === 1 ? 'rgba(52,211,153,0.3)' : 'var(--ink-080)'}`,
+                color: rating === 1 ? '#34D399' : 'var(--ink-400)' }}>
               <ThumbsUp size={11} /> Yes
             </motion.button>
             <motion.button whileTap={{ scale: 0.85 }}
               onClick={() => rate(-1)}
               disabled={saving}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all"
               style={{
-                background: rating === -1 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${rating === -1 ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.08)'}`,
-                color: rating === -1 ? '#F87171' : 'rgba(255,255,255,0.4)',
-              }}>
+                background: rating === -1 ? 'rgba(239,68,68,0.1)' : 'var(--ink-050)',
+                border: `1px solid ${rating === -1 ? 'rgba(239,68,68,0.25)' : 'var(--ink-080)'}`,
+                color: rating === -1 ? '#F87171' : 'var(--ink-400)' }}>
               <ThumbsDown size={11} /> No
             </motion.button>
           </motion.div>
@@ -148,8 +145,7 @@ export async function logAIInteraction(params: {
         model_used:      params.modelUsed ?? null,
         response_ms:     params.responseMs ?? null,
         language:        params.language ?? 'en',
-        memory_snapshot: params.memorySnapshot ?? null,
-      })
+        memory_snapshot: params.memorySnapshot ?? null })
       .select('id')
       .single();
     if (error) return null;

@@ -56,6 +56,7 @@ export function useOfflineSync() {
       listenerPromise.then(l => l.remove()).catch(() => {});
       if (flushTimer.current) clearTimeout(flushTimer.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { isOnline, queueSize, isSyncing, lastSyncAt, flush };

@@ -16,9 +16,9 @@ const MOOD_COLORS: Record<string, string> = {
   anxious:    '#EF4444',
 };
 
-const MOOD_EMOJI: Record<string, string> = {
-  focused: '🔥', determined: '😤', good: '😊',
-  okay: '😐', low: '😔', anxious: '😰',
+const MOOD_LABELS: Record<string, string> = {
+  focused: 'Focused', determined: 'Determined', good: 'Good',
+  okay: 'Okay', low: 'Low', anxious: 'Anxious',
 };
 
 function getLast30Days(): Date[] {
@@ -71,12 +71,12 @@ export function MoodHeatmap({ userId }: { userId: string }) {
   return (
     <div style={{
       borderRadius: 22, padding: 20,
-      background: 'rgba(15,17,23,0.8)',
+      background: 'var(--surface-elev-08)',
       border: '1px solid rgba(124,58,237,0.15)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: '#7C3AED', textTransform: 'uppercase', marginBottom: 2 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', color: '#7C3AED', textTransform: 'uppercase', marginBottom: 2 }}>
             Mood History
           </div>
           <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 15, fontWeight: 700, color: '#F4F6FA' }}>
@@ -90,8 +90,8 @@ export function MoodHeatmap({ userId }: { userId: string }) {
             background: `rgba(${hexToRgb(MOOD_COLORS[topMood] ?? '#7C3AED')}, 0.12)`,
             border: `1px solid rgba(${hexToRgb(MOOD_COLORS[topMood] ?? '#7C3AED')}, 0.25)`,
           }}>
-            <span style={{ fontSize: 14 }}>{MOOD_EMOJI[topMood]}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: MOOD_COLORS[topMood] ?? '#7C3AED', textTransform: 'capitalize' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: MOOD_COLORS[topMood] ?? '#7C3AED', display: 'inline-block' }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: MOOD_COLORS[topMood] ?? '#7C3AED', textTransform: 'capitalize' }}>
               Usually {topMood}
             </span>
           </div>
@@ -114,12 +114,12 @@ export function MoodHeatmap({ userId }: { userId: string }) {
               style={{
                 width: '100%', aspectRatio: '1',
                 borderRadius: 6,
-                background: color ? `rgba(${hexToRgb(color)}, 0.25)` : 'rgba(255,255,255,0.04)',
+                background: color ? `rgba(${hexToRgb(color)}, 0.25)` : 'var(--ink-040)',
                 border: isToday
                   ? '1.5px solid rgba(124,58,237,0.6)'
                   : isSelected
-                  ? `1.5px solid ${color ?? 'rgba(255,255,255,0.2)'}`
-                  : '1px solid rgba(255,255,255,0.04)',
+                  ? `1.5px solid ${color ?? 'var(--ink-200)'}`
+                  : '1px solid var(--ink-040)',
                 cursor: mood ? 'pointer' : 'default',
                 minHeight: 28,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -130,7 +130,6 @@ export function MoodHeatmap({ userId }: { userId: string }) {
               whileTap={mood ? { scale: 0.88 } : {}}
               aria-label={mood ? `${key}: ${mood}` : key}
             >
-              {mood && <span style={{ fontSize: 10 }}>{MOOD_EMOJI[mood]}</span>}
             </motion.button>
           );
         })}
@@ -148,12 +147,12 @@ export function MoodHeatmap({ userId }: { userId: string }) {
             display: 'flex', alignItems: 'center', gap: 8,
           }}
         >
-          <span style={{ fontSize: 18 }}>{MOOD_EMOJI[selected.mood]}</span>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: MOOD_COLORS[selected.mood] ?? '#7C3AED', display: 'inline-block' }} />
           <div>
             <span style={{ fontSize: 12, fontWeight: 700, color: MOOD_COLORS[selected.mood], textTransform: 'capitalize' }}>
               {selected.mood}
             </span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginLeft: 6 }}>
+            <span style={{ fontSize: 12, color: 'var(--ink-400)', marginLeft: 6 }}>
               {new Date(selected.date).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
           </div>
@@ -162,10 +161,10 @@ export function MoodHeatmap({ userId }: { userId: string }) {
 
       {/* Legend */}
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        {Object.entries(MOOD_EMOJI).map(([mood, emoji]) => (
-          <div key={mood} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ fontSize: 10 }}>{emoji}</span>
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'capitalize' }}>{mood}</span>
+        {Object.entries(MOOD_LABELS).map(([mood, label]) => (
+          <div key={mood} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: MOOD_COLORS[mood], display: 'inline-block' }} />
+            <span style={{ fontSize: 12, color: 'var(--ink-350)' }}>{label}</span>
           </div>
         ))}
       </div>

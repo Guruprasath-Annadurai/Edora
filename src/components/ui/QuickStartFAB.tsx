@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, X, BookOpen, Atom, Calculator, FlaskConical, Microscope, Code2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
 
 const SUBJECTS = [
   { label: 'Math',     value: 'Mathematics',        Icon: Calculator,   color: '#93C5FD', bg: 'rgba(59,130,246,0.15)'  },
@@ -20,10 +19,20 @@ export function QuickStartFAB() {
   const [open, setOpen]     = useState(false);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [hiddenByOverlay, setHiddenByOverlay] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
+  }, []);
+
+  // Full-screen sheets (e.g. the study break player) dispatch this so the FAB
+  // doesn't float over their controls — it lives in a separate stacking
+  // context (AppShell) that z-index alone can't reliably order against.
+  useEffect(() => {
+    const onOverlay = (e: Event) => setHiddenByOverlay(!!(e as CustomEvent<boolean>).detail);
+    window.addEventListener('novo:overlay-open', onOverlay);
+    return () => window.removeEventListener('novo:overlay-open', onOverlay);
   }, []);
 
   async function startQuiz(subject: string) {
@@ -45,7 +54,7 @@ export function QuickStartFAB() {
     }
   }
 
-  if (!user) return null;
+  if (!user || hiddenByOverlay) return null;
 
   return (
     <>
@@ -74,15 +83,15 @@ export function QuickStartFAB() {
             className="fixed left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
             style={{
               bottom: 0,
-              background: 'linear-gradient(180deg,#0F1535 0%,#0A0D20 100%)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'linear-gradient(180deg,var(--grad-fab-1) 0%,var(--grad-fab-2) 100%)',
+              border: '1px solid var(--ink-080)',
               borderBottom: 'none',
               paddingBottom: 'calc(env(safe-area-inset-bottom) + 100px)',
             }}
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }} />
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--ink-150)' }} />
             </div>
 
             <div className="px-5 pb-2">
@@ -95,7 +104,7 @@ export function QuickStartFAB() {
                   onClick={() => setOpen(false)}
                   aria-label="Close quick start"
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-080)' }}
                 >
                   <X size={14} className="text-white/50" />
                 </button>
@@ -150,7 +159,7 @@ export function QuickStartFAB() {
           bottom: 'calc(env(safe-area-inset-bottom) + 88px)',
           right: 20,
           background: open
-            ? 'rgba(30,35,70,0.95)'
+            ? 'var(--surface-scrim)'
             : 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
           border: open ? '1.5px solid rgba(91,106,245,0.4)' : 'none',
           boxShadow: open

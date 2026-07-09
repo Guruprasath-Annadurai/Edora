@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { spring } from '@/lib/motion';
 import { Snowflake, X, ShoppingBag, CheckCircle2, Zap, Shield, Gift, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -144,18 +145,18 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 32 }}
+            transition={spring.smooth}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
             style={{
-              background: 'linear-gradient(180deg,#0F1535 0%,#0A0D20 100%)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'linear-gradient(180deg,var(--grad-fab-1) 0%,var(--grad-fab-2) 100%)',
+              border: '1px solid var(--ink-060)',
               borderBottom: 'none',
               paddingBottom: 'env(safe-area-inset-bottom)',
             }}
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }} />
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--ink-150)' }} />
             </div>
 
             {/* Header */}
@@ -168,7 +169,7 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
                 aria-label="Close"
                 onClick={onClose}
                 className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-080)' }}
               >
                 <X size={14} className="text-white/50" />
               </button>
@@ -221,7 +222,7 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
 
               {/* Purchase plans */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-white/35 mb-3">Buy Freezes</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-white/35 mb-3">Buy Freezes</p>
                 <div className="flex flex-col gap-2.5">
                   {PLANS.map((plan) => {
                     const Icon = plan.icon;
@@ -233,8 +234,8 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
                         disabled={state === 'purchasing' || freezeCount >= 10}
                         className="flex items-center gap-3 p-4 rounded-2xl text-left disabled:opacity-50"
                         style={{
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.07)',
+                          background: 'var(--ink-040)',
+                          border: '1px solid var(--ink-070)',
                         }}
                       >
                         <div
@@ -248,14 +249,14 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
                             <span className="font-bold text-sm text-white">{plan.label}</span>
                             {'badge' in plan && plan.badge && (
                               <span
-                                className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase"
+                                className="px-1.5 py-0.5 rounded-full text-xs font-extrabold uppercase"
                                 style={{ background: 'rgba(234,179,8,0.15)', color: '#EAB308' }}
                               >
                                 {plan.badge}
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-white/40">{plan.subLabel}</span>
+                          <span className="text-xs text-white/40">{plan.subLabel}</span>
                         </div>
                         <div className="shrink-0">
                           {state === 'purchasing' ? (
@@ -263,7 +264,7 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
                           ) : (
                             <div
                               className="px-3 py-1.5 rounded-xl text-sm font-extrabold"
-                              style={{ background: plan.gradient, color: '#fff' }}
+                              style={{ background: plan.gradient, color: 'var(--ink-950)' }}
                             >
                               ₹{plan.price}
                             </div>
@@ -277,7 +278,7 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
 
               {/* Earn milestones */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-white/35 mb-3">Earn for Free</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-white/35 mb-3">Earn for Free</p>
                 <div className="flex flex-col gap-2">
                   {MILESTONES.map(({ days, reward, label }) => {
                     const unlocked = streak >= days;
@@ -286,20 +287,20 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
                         key={days}
                         className="flex items-center justify-between px-4 py-3 rounded-2xl"
                         style={{
-                          background: unlocked ? 'rgba(234,179,8,0.08)' : 'rgba(255,255,255,0.03)',
-                          border: `1px solid ${unlocked ? 'rgba(234,179,8,0.18)' : 'rgba(255,255,255,0.05)'}`,
+                          background: unlocked ? 'rgba(234,179,8,0.08)' : 'var(--ink-030)',
+                          border: `1px solid ${unlocked ? 'rgba(234,179,8,0.18)' : 'var(--ink-050)'}`,
                         }}
                       >
                         <div className="flex items-center gap-2.5">
-                          <Zap size={14} style={{ color: unlocked ? '#EAB308' : 'rgba(255,255,255,0.2)' }} />
+                          <Zap size={14} style={{ color: unlocked ? '#EAB308' : 'var(--ink-200)' }} />
                           <div>
                             <p className={`text-sm font-semibold ${unlocked ? 'text-white' : 'text-white/30'}`}>{label}</p>
-                            <p className="text-[10px] text-white/25">+{reward} freeze{reward > 1 ? 's' : ''}</p>
+                            <p className="text-xs text-white/25">+{reward} freeze{reward > 1 ? 's' : ''}</p>
                           </div>
                         </div>
                         {unlocked && <CheckCircle2 size={14} style={{ color: '#EAB308' }} />}
                         {!unlocked && (
-                          <span className="text-[10px] text-white/25 font-semibold">{days - streak}d away</span>
+                          <span className="text-xs text-white/25 font-semibold">{days - streak}d away</span>
                         )}
                       </div>
                     );
@@ -309,8 +310,8 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
 
               {/* Gift a Freeze */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-white/35 mb-3">Gift a Freeze</p>
-                <div className="flex flex-col gap-2.5 p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="text-xs font-bold uppercase tracking-widest text-white/35 mb-3">Gift a Freeze</p>
+                <div className="flex flex-col gap-2.5 p-4 rounded-2xl" style={{ background: 'var(--ink-030)', border: '1px solid var(--ink-070)' }}>
                   <div className="flex items-center gap-2 text-xs text-white/40">
                     <Gift size={13} style={{ color: '#A78BFA' }} />
                     <span>Costs <strong className="text-violet-300">100 XP</strong> · adds 1 freeze to a friend</span>
@@ -324,7 +325,7 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
                       onChange={e => handleGiftSearchChange(e.target.value)}
                       placeholder="Search friend by name…"
                       className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-white/25 outline-none"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                      style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
                     />
                     {giftState === 'searching' && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 animate-spin" />}
                   </div>
@@ -338,7 +339,7 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
                             key={f.id}
                             onClick={() => { setGiftTarget(f); setGiftResults([]); }}
                             className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors hover:bg-white/5"
-                            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                            style={{ background: 'var(--ink-030)', border: '1px solid var(--ink-060)' }}
                           >
                             <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg,#7C3AED,#A78BFA)' }}>
                               {(f.full_name ?? '?').charAt(0).toUpperCase()}
@@ -394,7 +395,7 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
               {/* Info */}
               <div className="flex items-start gap-2">
                 <ShoppingBag size={12} className="text-white/25 mt-0.5 shrink-0" />
-                <p className="text-[11px] text-white/25 leading-relaxed">
+                <p className="text-xs text-white/25 leading-relaxed">
                   Freezes are applied automatically when you miss a day. Max 10 stored. Non-refundable.
                 </p>
               </div>

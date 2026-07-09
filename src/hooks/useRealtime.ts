@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { RealtimeChannel, RealtimeChannelSendResponse } from '@supabase/supabase-js';
+import type {RealtimeChannel} from '@supabase/supabase-js';
 import { supabase }                 from '@/lib/supabase';
 
 // ── Connection state ──────────────────────────────────────────────────────────
@@ -20,62 +20,6 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'of
 
 const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 16000]; // exponential backoff
 
-// ── Generic resilient channel factory ────────────────────────────────────────
-function useResilientChannel(
-  channelName: string | null,
-  onSubscribe: (channel: RealtimeChannel) => void,
-  deps: unknown[],
-): { status: ConnectionStatus } {
-  const channelRef    = useRef<RealtimeChannel | null>(null);
-  const attemptRef    = useRef(0);
-  const timersRef     = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const [status, setStatus] = useState<ConnectionStatus>('connecting');
-
-  const cleanup = useCallback(() => {
-    timersRef.current.forEach(t => clearTimeout(t));
-    timersRef.current = [];
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-  }, []);
-
-  const connect = useCallback(() => {
-    if (!channelName) return;
-    cleanup();
-    setStatus(attemptRef.current === 0 ? 'connecting' : 'reconnecting');
-
-    const ch = supabase.channel(channelName);
-    channelRef.current = ch;
-    onSubscribe(ch);
-
-    ch.subscribe((subStatus) => {
-      if (subStatus === 'SUBSCRIBED') {
-        attemptRef.current = 0;
-        setStatus('connected');
-      } else if (subStatus === 'CHANNEL_ERROR' || subStatus === 'TIMED_OUT' || subStatus === 'CLOSED') {
-        setStatus('reconnecting');
-        const delay = RECONNECT_DELAYS_MS[Math.min(attemptRef.current, RECONNECT_DELAYS_MS.length - 1)];
-        attemptRef.current++;
-        if (attemptRef.current > RECONNECT_DELAYS_MS.length) {
-          setStatus('offline');
-          return;
-        }
-        const t = setTimeout(connect, delay);
-        timersRef.current.push(t);
-      }
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelName, ...deps]);
-
-  useEffect(() => {
-    attemptRef.current = 0;
-    connect();
-    return cleanup;
-  }, [connect, cleanup]);
-
-  return { status };
-}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -131,8 +75,7 @@ export function useLiveLeaderboard(classroomId: string | null) {
               full_name:  r.profile.full_name,
               avatar_url: r.profile.avatar_url,
               xp:         r.profile.xp,
-              rank:       i + 1,
-            }))
+              rank:       i + 1 }))
         );
       });
 
@@ -185,8 +128,7 @@ export function useStudyCirclePresence(
     if (!circleId || !currentUser) return;
 
     channelRef.current = supabase.channel(`circle:${circleId}`, {
-      config: { presence: { key: currentUser.id } },
-    });
+      config: { presence: { key: currentUser.id } } });
 
     channelRef.current
       .on('presence', { event: 'sync' }, () => {
@@ -202,8 +144,7 @@ export function useStudyCirclePresence(
             user_id:   currentUser.id,
             full_name: currentUser.full_name,
             status:    currentStatus,
-            joined_at: new Date().toISOString(),
-          });
+            joined_at: new Date().toISOString() });
         }
       });
 
@@ -213,6 +154,7 @@ export function useStudyCirclePresence(
         channelRef.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [circleId, currentUser?.id, currentStatus]);
 
   // Update status without rejoining
@@ -222,8 +164,8 @@ export function useStudyCirclePresence(
       user_id:   currentUser.id,
       full_name: currentUser.full_name,
       status,
-      joined_at: new Date().toISOString(),
-    });
+      joined_at: new Date().toISOString() });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
 
   return { onlineUsers, updateStatus };
@@ -273,9 +215,7 @@ export async function sendTeacherBroadcast(
     payload: {
       ...payload,
       id:      `msg_${Date.now()}`,
-      sent_at: new Date().toISOString(),
-    },
-  });
+      sent_at: new Date().toISOString() } });
   supabase.removeChannel(channel);
 }
 
@@ -301,8 +241,7 @@ export function use1v1BattleSync(battleId: string | null, myUserId: string | nul
     try {
       await channelRef.current.send({
         type: 'broadcast', event: 'score_update',
-        payload: { user_id: myUserId, ...pendingRef.current },
-      });
+        payload: { user_id: myUserId, ...pendingRef.current } });
       pendingRef.current = null;
     } catch { /* will retry on next pushScore */ }
   }, [myUserId]);
@@ -360,8 +299,7 @@ export function use1v1BattleSync(battleId: string | null, myUserId: string | nul
     try {
       await channelRef.current.send({
         type: 'broadcast', event: 'score_update',
-        payload: { user_id: myUserId, score, done },
-      });
+        payload: { user_id: myUserId, score, done } });
       pendingRef.current = null;
     } catch { /* pending will flush on reconnect */ }
   }, [myUserId, connStatus]);

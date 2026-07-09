@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { spring } from '@/lib/motion';
 import { X, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -91,7 +92,7 @@ export function SpacedReviewInterrupt() {
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0,  opacity: 1 }}
           exit={{ y: 80,    opacity: 0 }}
-          transition={{ type: 'spring', damping: 22, stiffness: 280 }}>
+          transition={spring.lazy}>
 
           {/* Top bar */}
           <div className="flex items-center justify-between px-4 py-2.5"
@@ -108,7 +109,7 @@ export function SpacedReviewInterrupt() {
 
           {/* Card body */}
           <div className="px-4 py-4" style={{
-            background: 'rgba(255,255,255,0.04)',
+            background: 'var(--ink-040)',
             backdropFilter: 'blur(36px)',
             WebkitBackdropFilter: 'blur(36px)',
             border: '1px solid rgba(124,58,237,0.22)',
@@ -122,7 +123,7 @@ export function SpacedReviewInterrupt() {
             <AnimatePresence>
               {revealed ? (
                 <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                  className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  className="mt-3 pt-3" style={{ borderTop: '1px solid var(--ink-080)' }}>
                   <p className="text-sm text-white/80 leading-snug mb-4">{card.back}</p>
                   <div className="flex gap-2">
                     <button onClick={dismiss}

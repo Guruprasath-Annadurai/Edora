@@ -105,6 +105,7 @@ export function useAuth() {
       subscription.unsubscribe();
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchProfile(userId: string, attempt = 0): Promise<Profile | null> {

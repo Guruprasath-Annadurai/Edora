@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {spring} from '@/lib/motion';
 import { Search, Clock, X, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,8 +8,7 @@ import {
   CATEGORY_ORDER,
   searchFeatures,
   getRecentFeatures,
-  recordRecentFeature,
-} from '@/lib/featureRegistry';
+  recordRecentFeature } from '@/lib/featureRegistry';
 import { useHaptic } from '@/hooks/useHaptic';
 
 interface Props {
@@ -106,21 +106,20 @@ export function CommandPalette({ open, onClose }: Props) {
             style={{
               top: 'max(env(safe-area-inset-top, 0px) + 16px, 60px)',
               maxHeight: 'calc(100dvh - 140px)',
-              background: 'rgba(8,6,20,0.88)',
+              background: 'var(--hdr-a-880)',
               backdropFilter: 'blur(72px) saturate(220%) brightness(1.04)',
               WebkitBackdropFilter: 'blur(72px) saturate(220%) brightness(1.04)',
               border: '1px solid rgba(124,58,237,0.28)',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(124,58,237,0.18)',
-            }}
+              boxShadow: '0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(124,58,237,0.18)' }}
             initial={{ y: -24, opacity: 0, scale: 0.97 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -16, opacity: 0, scale: 0.97 }}
-            transition={{ type: 'spring', damping: 26, stiffness: 340 }}
+            transition={spring.snappy}
             onKeyDown={onKeyDown}
           >
             {/* Search bar */}
             <div className="flex items-center gap-3 px-4 py-3.5"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ borderBottom: '1px solid var(--ink-070)' }}>
               <Search size={16} style={{ color: '#A855F7', flexShrink: 0 }} />
               <input
                 ref={inputRef}
@@ -142,7 +141,7 @@ export function CommandPalette({ open, onClose }: Props) {
               )}
               <button onClick={onClose}
                 className="flex items-center justify-center rounded-lg text-xs font-medium px-2 py-1"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                style={{ background: 'var(--ink-060)', color: 'var(--ink-400)', border: '1px solid var(--ink-080)' }}>
                 esc
               </button>
             </div>
@@ -153,8 +152,8 @@ export function CommandPalette({ open, onClose }: Props) {
               {/* Recent items */}
               {showRecents && (
                 <section>
-                  <p className="px-4 pt-3 pb-1.5 text-[10px] font-bold tracking-widest uppercase"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <p className="px-4 pt-3 pb-1.5 text-xs font-bold tracking-widest uppercase"
+                    style={{ color: 'var(--ink-250)' }}>
                     Recent
                   </p>
                   {recents.map((f, i) => {
@@ -180,8 +179,8 @@ export function CommandPalette({ open, onClose }: Props) {
                 runningIdx += items.length;
                 return (
                   <section key={cat}>
-                    <p className="px-4 pt-3 pb-1.5 text-[10px] font-bold tracking-widest uppercase"
-                      style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    <p className="px-4 pt-3 pb-1.5 text-xs font-bold tracking-widest uppercase"
+                      style={{ color: 'var(--ink-250)' }}>
                       {cat}
                     </p>
                     {items.map((f, j) => {
@@ -203,8 +202,8 @@ export function CommandPalette({ open, onClose }: Props) {
               {/* Empty state */}
               {query.trim() && results.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-10 gap-2">
-                  <span className="text-3xl">🔍</span>
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <Search size={28} className="text-white/25" strokeWidth={1.6} />
+                  <p className="text-sm" style={{ color: 'var(--ink-350)' }}>
                     No results for <span className="text-white/60">"{query}"</span>
                   </p>
                 </div>
@@ -214,7 +213,7 @@ export function CommandPalette({ open, onClose }: Props) {
               {!query.trim() && recents.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-10 gap-2">
                   <span className="text-3xl">✨</span>
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <p className="text-sm" style={{ color: 'var(--ink-350)' }}>
                     Start typing to explore Edora
                   </p>
                 </div>
@@ -223,8 +222,8 @@ export function CommandPalette({ open, onClose }: Props) {
 
             {/* Footer hint */}
             <div className="flex items-center gap-3 px-4 py-2.5"
-              style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.2)' }}>
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              style={{ borderTop: '1px solid var(--ink-050)', background: 'rgba(0,0,0,0.2)' }}>
+              <span className="text-xs" style={{ color: 'var(--ink-200)' }}>
                 ↑↓ navigate · ↵ open · esc dismiss
               </span>
             </div>
@@ -253,8 +252,7 @@ function FeatureRow({ feature: f, active, icon, onSelect, onHover }: RowProps) {
       style={{
         minHeight: 52,
         background: active ? 'rgba(124,58,237,0.18)' : 'transparent',
-        borderLeft: active ? '2px solid #7C3AED' : '2px solid transparent',
-      }}
+        borderLeft: active ? '2px solid #7C3AED' : '2px solid transparent' }}
     >
       <span className="text-lg flex-shrink-0 w-7 text-center" aria-hidden>
         {f.emoji}
@@ -262,14 +260,14 @@ function FeatureRow({ feature: f, active, icon, onSelect, onHover }: RowProps) {
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-semibold text-white truncate">{f.label}</span>
         {f.desc && (
-          <span className="block text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <span className="block text-xs truncate" style={{ color: 'var(--ink-400)' }}>
             {f.desc}
           </span>
         )}
       </span>
       {icon
-        ? <span style={{ color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{icon}</span>
-        : <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+        ? <span style={{ color: 'var(--ink-250)', flexShrink: 0 }}>{icon}</span>
+        : <ChevronRight size={13} style={{ color: 'var(--ink-200)', flexShrink: 0 }} />
       }
     </button>
   );

@@ -103,7 +103,6 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
   const {
     phase,
     transcript,
-    currentResponse,
     turns,
     error,
     isAvailable,
@@ -146,7 +145,7 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
           exit={{ opacity: 0, y: '100%' }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           className="fixed inset-0 z-50 flex flex-col"
-          style={{ background: 'linear-gradient(160deg, #0F0F1A 0%, #1A0F2E 40%, #0F1A2E 100%)' }}
+          style={{ background: 'linear-gradient(160deg, var(--grad-voice-overlay-1) 0%, var(--grad-voice-overlay-2) 40%, var(--grad-voice-overlay-3) 100%)' }}
         >
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-5 pt-12 pb-3 shrink-0">
@@ -161,7 +160,7 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
                 <p className="text-white font-heading font-bold text-sm">
                   {voiceMode === 'quiz' ? 'Voice Quiz' : 'Voice Study'}
                 </p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
                   {voiceMode === 'quiz' ? 'Explain it aloud — Novo evaluates' : mode === 'teacher' ? 'Teacher Mode' : 'Friend Mode'}
                 </p>
               </div>
@@ -169,7 +168,7 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
             <button
               onClick={handleClose}
               className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90"
-              style={{ background: 'rgba(255,255,255,0.1)' }}>
+              style={{ background: 'var(--ink-100)' }}>
               <X size={18} className="text-white" />
             </button>
           </div>
@@ -185,11 +184,11 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
                   color: m === 'quiz' ? '#FBBF24' : '#A0AEFF',
                   border: `1.5px solid ${m === 'quiz' ? 'rgba(245,158,11,0.4)' : 'rgba(91,106,245,0.4)'}`,
                 } : {
-                  background: 'rgba(255,255,255,0.05)',
-                  color: 'rgba(255,255,255,0.35)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--ink-050)',
+                  color: 'var(--ink-350)',
+                  border: '1px solid var(--ink-080)',
                 }}>
-                {m === 'study' ? '📖 Study' : '🎯 Quiz Me'}
+                {m === 'study' ? 'Study' : 'Quiz Me'}
               </button>
             ))}
           </div>
@@ -205,15 +204,15 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
                 onChange={e => setQuizTopic(e.target.value)}
                 className="w-full h-11 px-4 rounded-2xl text-white text-sm outline-none"
                 style={{
-                  background: 'rgba(255,255,255,0.07)',
-                  border: '1.5px solid rgba(255,255,255,0.15)',
+                  background: 'var(--ink-070)',
+                  border: '1.5px solid var(--ink-150)',
                   WebkitUserSelect: 'text', userSelect: 'text',
                 }}
               />
               <div className="flex gap-2 flex-wrap">
                 {VOICE_QUIZ_PROMPTS.slice(0, 3).map(p => (
                   <button key={p} onClick={() => setQuizTopic(p)}
-                    className="text-[11px] px-3 py-1.5 rounded-full font-medium"
+                    className="text-xs px-3 py-1.5 rounded-full font-medium"
                     style={{ background: 'rgba(245,158,11,0.1)', color: '#FBBF24', border: '1px solid rgba(245,158,11,0.2)' }}>
                     {p.slice(0, 28)}…
                   </button>
@@ -250,7 +249,7 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
                         : 'Start talking to Novo'
                       : 'Voice not supported on this device'}
                   </p>
-                  <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  <p className="text-sm mt-1" style={{ color: 'var(--ink-450)' }}>
                     {isAvailable
                       ? voiceMode === 'quiz' && quizStarted
                         ? 'Speak for 30 seconds — Novo will evaluate your answer'
@@ -272,8 +271,8 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
                   className="max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed"
                   style={
                     turn.role === 'user'
-                      ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: '#fff', borderRadius: '18px 18px 4px 18px' }
-                      : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.90)', borderRadius: '18px 18px 18px 4px', border: '1px solid rgba(255,255,255,0.1)' }
+                      ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: 'var(--ink-950)', borderRadius: '18px 18px 4px 18px' }
+                      : { background: 'var(--ink-080)', color: 'var(--ink-900)', borderRadius: '18px 18px 18px 4px', border: '1px solid var(--ink-100)' }
                   }>
                   {turn.content}
                 </div>
@@ -286,7 +285,7 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
 
           {/* ── Bottom panel ── */}
           <div className="shrink-0 px-5 pb-10 pt-4 flex flex-col items-center gap-5"
-            style={{ background: 'rgba(0,0,0,0.3)', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'rgba(0,0,0,0.3)', borderTop: '1px solid var(--ink-070)' }}>
 
             {/* Live transcript / response preview */}
             <AnimatePresence mode="wait">
@@ -295,7 +294,7 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
                   key="transcript"
                   initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className="text-sm text-center px-4 font-medium"
-                  style={{ color: 'rgba(255,255,255,0.75)' }}>
+                  style={{ color: 'var(--ink-750)' }}>
                   "{transcript}"
                 </motion.p>
               )}

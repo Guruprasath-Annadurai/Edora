@@ -1,76 +1,52 @@
 import { motion } from 'framer-motion';
-import { Check, Lock } from 'lucide-react';
-import { useTheme, THEMES, AppTheme } from '@/contexts/ThemeContext';
+import { Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Props {
   className?: string;
 }
 
+// Simple binary dark/light switch. 'default' (dark violet) <-> 'light' (white).
+// The accent-color grid (blue/green/red/gold/midnight/sakura) still exists in
+// ThemeContext for anyone who wants it, just not surfaced in this simplified control.
 export function ThemePicker({ className = '' }: Props) {
-  const { theme, setTheme, isPro } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const isLight = theme === 'light';
 
   return (
     <div className={className}>
-      <h3 className="text-sm font-bold text-white/60 uppercase tracking-widest mb-3">App Theme</h3>
-      <div className="grid grid-cols-4 gap-3">
-        {THEMES.map((t) => {
-          const active   = theme === t.id;
-          const locked   = t.pro && !isPro;
-          return (
-            <motion.button
-              key={t.id}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => !locked && setTheme(t.id as AppTheme)}
-              aria-pressed={active}
-              aria-label={`${t.label} theme${locked ? ' (Pro)' : ''}`}
-              disabled={locked}
-              className="flex flex-col items-center gap-2 relative"
-            >
-              {/* Swatch */}
-              <div
-                className="w-14 h-14 rounded-2xl relative overflow-hidden transition-all duration-200"
-                style={{
-                  background: `linear-gradient(135deg,${t.preview[0]},${t.preview[1]})`,
-                  boxShadow: active
-                    ? `0 0 0 2.5px white, 0 0 20px ${t.preview[0]}80`
-                    : '0 2px 8px rgba(0,0,0,0.3)',
-                }}
-              >
-                {active && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute inset-0 flex items-center justify-center"
-                    style={{ background: 'rgba(0,0,0,0.35)' }}
-                  >
-                    <Check size={20} className="text-white" strokeWidth={2.5} />
-                  </motion.div>
-                )}
-                {locked && (
-                  <div className="absolute inset-0 flex items-center justify-center"
-                    style={{ background: 'rgba(0,0,0,0.55)' }}>
-                    <Lock size={14} className="text-white/70" />
-                  </div>
-                )}
-              </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-foreground">Appearance</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {isLight ? 'Light mode' : 'Dark mode'}
+          </p>
+        </div>
 
-              {/* Label */}
-              <div className="text-center">
-                <p className="text-[10px] font-bold text-white/70 leading-tight">{t.label}</p>
-                {t.pro && !isPro && (
-                  <p className="text-[9px] font-bold" style={{ color: '#EAB308' }}>PRO</p>
-                )}
-              </div>
-            </motion.button>
-          );
-        })}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isLight}
+          aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+          onClick={() => setTheme(isLight ? 'default' : 'light')}
+          className="relative w-16 h-9 rounded-full flex items-center px-1 transition-colors duration-200"
+          style={{
+            background: isLight ? 'rgba(15,23,42,0.12)' : 'rgba(124,58,237,0.35)',
+            justifyContent: isLight ? 'flex-end' : 'flex-start',
+          }}
+        >
+          <motion.div
+            layout
+            transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+            className="w-7 h-7 rounded-full flex items-center justify-center shadow-md"
+            style={{ background: isLight ? '#FFFFFF' : '#7C3AED' }}
+          >
+            {isLight
+              ? <Sun size={15} color="#F59E0B" strokeWidth={2.5} />
+              : <Moon size={15} color="#FFFFFF" strokeWidth={2.5} />}
+          </motion.div>
+        </button>
       </div>
-
-      {!isPro && (
-        <p className="text-[11px] text-white/30 mt-3 text-center">
-          Unlock Midnight Blue & Sakura Pink with Pro
-        </p>
-      )}
     </div>
   );
 }

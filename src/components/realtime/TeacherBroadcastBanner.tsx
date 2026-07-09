@@ -1,5 +1,6 @@
 // Teacher broadcast overlay — renders above page content when teacher sends a message
 import { AnimatePresence, motion } from 'framer-motion';
+import { spring } from '@/lib/motion';
 import { X, Megaphone, AlertTriangle, Zap } from 'lucide-react';
 import type { TeacherBroadcastMessage } from '@/hooks/useRealtime';
 
@@ -26,7 +27,7 @@ export function TeacherBroadcastBanner({ message, onDismiss }: Props) {
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0,   opacity: 1 }}
         exit={{    y: -80, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+        transition={spring.tight}
         className="fixed top-0 left-0 right-0 z-[9000] mx-3 mt-3"
       >
         <div

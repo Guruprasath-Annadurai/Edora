@@ -58,7 +58,7 @@ export function PeerPercentile({ topic, userScore, className }: Props) {
           <span style={{ color }}>{percentile}%</span>{' '}
           of students
         </p>
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <p className="text-xs" style={{ color: 'var(--ink-450)' }}>
           who attempted {topic} today
         </p>
       </div>

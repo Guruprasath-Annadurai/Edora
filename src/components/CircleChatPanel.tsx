@@ -4,8 +4,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import {motion} from 'framer-motion';
+import { spring } from '@/lib/motion';
+import { X, Send, Image as ImageIcon, ChevronDown, MessageCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -25,15 +26,15 @@ interface ChatMessage {
 const QUICK_EMOJIS = ['🔥', '👏', '😂', '❤️', '🤯'];
 
 function Avatar({ url, name, size = 28 }: { url: string | null | undefined; name: string; size?: number }) {
-  if (url) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />;
+  const [imgError, setImgError] = useState(false);
+  if (url && !imgError) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} onError={() => setImgError(true)} />;
   const initials = (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.4, fontWeight: 700, color: '#fff', flexShrink: 0,
-    }}>{initials}</div>
+      fontSize: size * 0.4, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0 }}>{initials}</div>
   );
 }
 
@@ -50,8 +51,7 @@ function timeAgo(iso: string): string {
 // Memoized bubble — circle chats can scroll back through 100+ messages;
 // without memo, every new message triggers a full re-render of the list.
 const ChatMessageBubble = memo(function ChatMessageBubble({
-  message, isMine, onToggleReaction,
-}: {
+  message, isMine, onToggleReaction }: {
   message: ChatMessage; isMine: boolean; onToggleReaction: (messageId: string, emoji: string, current?: string) => void;
 }) {
   return (
@@ -60,12 +60,12 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
       <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-[75%]`}>
         {!isMine && <span className="text-xs text-white/40 mb-0.5 px-1">{message.sender_name}</span>}
         {message.photo_url ? (
-          <img src={message.photo_url} alt="shared problem" className="rounded-2xl max-w-full" style={{ maxHeight: 220 }} />
+          <img src={message.photo_url} alt="shared problem" className="rounded-2xl max-w-full" style={{ maxHeight: 220 }} onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }} />
         ) : (
           <div className="px-3.5 py-2.5 rounded-2xl text-sm"
             style={isMine
-              ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: '#fff' }
-              : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.9)' }}>
+              ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: 'var(--ink-950)' }
+              : { background: 'var(--ink-060)', color: 'var(--ink-900)' }}>
             {message.message}
           </div>
         )}
@@ -74,7 +74,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
           {Object.entries(message.reactions).map(([emoji, count]) => (
             <button key={emoji} onClick={() => onToggleReaction(message.id, emoji, message.my_reaction)}
               className="text-xs px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
-              style={{ background: message.my_reaction === emoji ? 'rgba(91,106,245,0.25)' : 'rgba(255,255,255,0.06)' }}>
+              style={{ background: message.my_reaction === emoji ? 'rgba(91,106,245,0.25)' : 'var(--ink-060)' }}>
               {emoji} {count}
             </button>
           ))}
@@ -91,7 +91,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
 });
 
 export default function CircleChatPanel({ circleId, onClose }: { circleId: string; onClose: () => void }) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput]       = useState('');
   const [sending, setSending]   = useState(false);
@@ -130,8 +130,7 @@ export default function CircleChatPanel({ circleId, onClose }: { circleId: strin
       });
       return {
         ...m, sender_name: pMap[m.user_id]?.full_name ?? 'Student',
-        sender_avatar: pMap[m.user_id]?.avatar_url, reactions: counts, my_reaction: mine,
-      };
+        sender_avatar: pMap[m.user_id]?.avatar_url, reactions: counts, my_reaction: mine };
     }));
     setLoading(false);
   }, [circleId, user?.id]);
@@ -198,17 +197,17 @@ export default function CircleChatPanel({ circleId, onClose }: { circleId: strin
   return (
     <motion.div
       initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+      transition={spring.sheet}
       className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-3xl"
-      style={{ height: '85vh', background: '#0B0E1F', border: '1px solid rgba(255,255,255,0.08)' }}
+      style={{ height: '85vh', background: 'var(--surface-sheet)', border: '1px solid var(--ink-080)' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-        <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center justify-between px-4 py-3.5 border-b" style={{ borderColor: 'var(--ink-060)' }}>
+        <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--ink-060)' }}>
           <ChevronDown className="w-4.5 h-4.5 text-white" />
         </button>
         <h3 className="font-heading text-sm font-bold text-white">Circle Chat</h3>
-        <button aria-label="Close" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <button aria-label="Close" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--ink-060)' }}>
           <X className="w-4 h-4 text-white" />
         </button>
       </div>
@@ -219,7 +218,7 @@ export default function CircleChatPanel({ circleId, onClose }: { circleId: strin
           <div className="flex justify-center py-10"><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 text-center gap-2">
-            <div className="text-3xl">💬</div>
+            <MessageCircle size={32} className="text-white/25" strokeWidth={1.6} />
             <p className="text-sm text-white/40">No messages yet. Say hi!</p>
           </div>
         ) : (
@@ -233,15 +232,15 @@ export default function CircleChatPanel({ circleId, onClose }: { circleId: strin
       <div className="flex gap-2 px-4 pb-2">
         {QUICK_EMOJIS.map(e => (
           <button key={e} onClick={() => messages.length && toggleReaction(messages[messages.length - 1].id, e, messages[messages.length - 1].my_reaction)}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-base" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            className="w-8 h-8 rounded-full flex items-center justify-center text-base" style={{ background: 'var(--ink-050)' }}>
             {e}
           </button>
         ))}
       </div>
 
       {/* Input */}
-      <div className="flex items-center gap-2 px-4 py-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-        <label className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center gap-2 px-4 py-3 border-t" style={{ borderColor: 'var(--ink-060)' }}>
+        <label className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer" style={{ background: 'var(--ink-060)' }}>
           <ImageIcon className="w-4.5 h-4.5 text-white/60" />
           <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); }} />
         </label>

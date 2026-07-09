@@ -13,6 +13,7 @@
  */
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { BookOpen } from 'lucide-react';
 
 // ── Animation presets ─────────────────────────────────────────────────────────
 // Each preset defines `animate` keyframes + `transition` for the outer wrapper.
@@ -63,8 +64,8 @@ export type CharacterAnim = keyof typeof PRESETS;
 interface CharacterImageProps {
   /** Illustration slug — resolves to /illustrations/{slug}.webp (PNG fallback) */
   slug: string;
-  /** Emoji shown if both WebP and PNG fail to load */
-  fallbackEmoji?: string;
+  /** Icon shown if both WebP and PNG fail to load */
+  fallbackIcon?: React.ReactNode;
   /** Height in px. Omit (or pair with fillParent) to use CSS fluid sizing */
   height?: number;
   /** If true, img fills parent container (100% width+height). Use with a sized parent. */
@@ -82,7 +83,7 @@ interface CharacterImageProps {
 
 export function CharacterImage({
   slug,
-  fallbackEmoji = '📚',
+  fallbackIcon = <BookOpen size={32} style={{ color: '#818CF8' }} strokeWidth={1.6} />,
   height = 160,
   fillParent = false,
   objectPosition = 'center bottom',
@@ -115,7 +116,7 @@ export function CharacterImage({
           ...style,
         }}
       >
-        {fallbackEmoji}
+        {fallbackIcon}
       </div>
     );
   }

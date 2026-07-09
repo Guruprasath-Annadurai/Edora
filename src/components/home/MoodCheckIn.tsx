@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { spring, dur } from '@/lib/motion';
+import { X, Flame, Zap, Smile, Meh, Frown, CloudRain, Brain } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
@@ -10,12 +11,12 @@ interface MoodCheckInProps {
 }
 
 const MOODS = [
-  { emoji: '🔥', label: 'Focused',    value: 'focused',    color: '#F97316' },
-  { emoji: '😤', label: 'Determined', value: 'determined', color: '#7C3AED' },
-  { emoji: '😊', label: 'Good',       value: 'good',       color: '#10B981' },
-  { emoji: '😐', label: 'Okay',       value: 'okay',       color: '#F59E0B' },
-  { emoji: '😔', label: 'Low',        value: 'low',        color: '#6B7280' },
-  { emoji: '😰', label: 'Anxious',    value: 'anxious',    color: '#EF4444' },
+  { icon: Flame,     label: 'Focused',    value: 'focused',    color: '#F97316' },
+  { icon: Zap,       label: 'Determined', value: 'determined', color: '#7C3AED' },
+  { icon: Smile,     label: 'Good',       value: 'good',       color: '#10B981' },
+  { icon: Meh,       label: 'Okay',       value: 'okay',       color: '#F59E0B' },
+  { icon: Frown,     label: 'Low',        value: 'low',        color: '#6B7280' },
+  { icon: CloudRain, label: 'Anxious',    value: 'anxious',    color: '#EF4444' },
 ];
 
 const MOOD_MESSAGES: Record<string, string> = {
@@ -58,12 +59,12 @@ export function MoodCheckIn({ userId, onClose }: MoodCheckInProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: dur.fast }}
     >
       <motion.div
         style={{
           width: '100%', maxWidth: 480,
-          background: 'linear-gradient(180deg, #0F1117 0%, #0A0A0F 100%)',
+          background: 'linear-gradient(180deg, var(--grad-mood-card-1) 0%, var(--grad-mood-card-2) 100%)',
           borderRadius: '28px 28px 0 0',
           border: '1px solid rgba(124,58,237,0.2)',
           borderBottom: 'none',
@@ -73,13 +74,13 @@ export function MoodCheckIn({ userId, onClose }: MoodCheckInProps) {
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
-        transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+        transition={spring.gentle}
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
             <div style={{
-              fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+              fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
               color: '#7C3AED', marginBottom: 4, textTransform: 'uppercase',
             }}>
               Daily Check-In
@@ -92,13 +93,13 @@ export function MoodCheckIn({ userId, onClose }: MoodCheckInProps) {
             onClick={() => onClose(null)}
             style={{
               width: 36, height: 36, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--ink-060)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--ink-080)',
             }}
             aria-label="Close"
           >
-            <X size={16} style={{ color: 'rgba(255,255,255,0.5)' }} />
+            <X size={16} style={{ color: 'var(--ink-500)' }} />
           </button>
         </div>
 
@@ -115,10 +116,10 @@ export function MoodCheckIn({ userId, onClose }: MoodCheckInProps) {
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                 background: selected === m.value
                   ? `rgba(${hexToRgb(m.color)}, 0.15)`
-                  : 'rgba(255,255,255,0.04)',
+                  : 'var(--ink-040)',
                 border: selected === m.value
                   ? `1.5px solid ${m.color}60`
-                  : '1.5px solid rgba(255,255,255,0.06)',
+                  : '1.5px solid var(--ink-060)',
                 boxShadow: selected === m.value
                   ? `0 0 16px rgba(${hexToRgb(m.color)}, 0.2)`
                   : 'none',
@@ -129,10 +130,10 @@ export function MoodCheckIn({ userId, onClose }: MoodCheckInProps) {
               animate={selected === m.value ? { scale: [1, 1.06, 1] } : { scale: 1 }}
               transition={{ duration: 0.3 }}
             >
-              <span style={{ fontSize: 28 }}>{m.emoji}</span>
+              <m.icon size={24} style={{ color: m.color }} strokeWidth={1.8} />
               <span style={{
-                fontSize: 11, fontWeight: 700,
-                color: selected === m.value ? m.color : 'rgba(255,255,255,0.6)',
+                fontSize: 12, fontWeight: 700,
+                color: selected === m.value ? m.color : 'var(--ink-600)',
               }}>
                 {m.label}
               </span>
@@ -155,8 +156,8 @@ export function MoodCheckIn({ userId, onClose }: MoodCheckInProps) {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <span style={{ fontSize: 20 }}>🧠</span>
-                <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>
+                <Brain size={18} style={{ color: '#8B5CF6', flexShrink: 0 }} strokeWidth={1.7} />
+                <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-850)', lineHeight: 1.5 }}>
                   {MOOD_MESSAGES[selected]}
                 </p>
               </div>

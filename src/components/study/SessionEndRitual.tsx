@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { spring } from '@/lib/motion';
 import { BookOpen, Brain, Clock, Flame, ChevronRight, X } from 'lucide-react';
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
 import { useSessionTimer } from '@/hooks/useSessionTimer';
@@ -62,20 +63,20 @@ export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nex
 
           <motion.div className="relative w-full rounded-t-[32px] px-5 pt-6 pb-10 flex flex-col gap-5"
             style={{
-              background: 'rgba(10,8,24,0.92)',
+              background: 'var(--surface-scrim)',
               backdropFilter: 'blur(72px) saturate(220%) brightness(1.04)',
               WebkitBackdropFilter: 'blur(72px) saturate(220%) brightness(1.04)',
               borderTop: '1px solid rgba(124,58,237,0.32)',
               boxShadow: 'inset 0 1px 0 rgba(124,58,237,0.2)',
             }}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 26, stiffness: 260 }}>
+            transition={spring.sheet}>
 
             {/* Handle + close */}
             <div className="flex items-center justify-between">
-              <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.12)' }} />
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--ink-120)' }} />
               <button onClick={handleClose} className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.06)' }}>
+                style={{ background: 'var(--ink-060)' }}>
                 <X size={14} className="text-white" />
               </button>
             </div>
@@ -99,10 +100,10 @@ export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nex
                 { icon: Flame,   value: String(streak),                         label: 'Streak' },
               ].map(({ icon: Icon, value, label }) => (
                 <div key={label} className="rounded-2xl p-3 text-center"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-060)' }}>
                   <Icon size={16} className="mx-auto mb-1" style={{ color: '#A855F7' }} />
                   <p className="font-heading font-bold text-white text-lg leading-none">{value}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--ink-400)' }}>{label}</p>
                 </div>
               ))}
             </div>
@@ -110,7 +111,7 @@ export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nex
             {/* Topics covered */}
             {topics.length > 0 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ink-350)' }}>
                   Covered today
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -127,11 +128,11 @@ export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nex
             {/* Struggled + next */}
             {(struggledWith || nextSuggestion) && (
               <div className="rounded-2xl p-4 flex flex-col gap-2"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                style={{ background: 'var(--ink-030)', border: '1px solid var(--ink-060)' }}>
                 {struggledWith && (
                   <div className="flex items-start gap-2">
                     <Brain size={14} style={{ color: '#F59E0B' }} className="shrink-0 mt-0.5" />
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    <p className="text-xs" style={{ color: 'var(--ink-600)' }}>
                       <span className="font-semibold text-white">Novo noticed:</span> you struggled with {struggledWith}
                     </p>
                   </div>
@@ -139,7 +140,7 @@ export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nex
                 {nextSuggestion && (
                   <div className="flex items-start gap-2">
                     <ChevronRight size={14} style={{ color: '#10B981' }} className="shrink-0 mt-0.5" />
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    <p className="text-xs" style={{ color: 'var(--ink-600)' }}>
                       <span className="font-semibold text-white">Tomorrow:</span> try {nextSuggestion} first
                     </p>
                   </div>
@@ -150,7 +151,7 @@ export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nex
             <motion.button whileTap={{ scale: 0.97 }} onClick={handleClose}
               className="w-full h-12 rounded-2xl font-heading font-bold text-white"
               style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}>
-              Done for today 🌙
+              Done for today
             </motion.button>
           </motion.div>
         </motion.div>

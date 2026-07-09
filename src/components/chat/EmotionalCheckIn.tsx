@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Target, Flame, Moon, CloudRain, Brain, Wind, type LucideIcon } from 'lucide-react';
+import { spring, stagger } from '@/lib/motion';
 import { supabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
 
@@ -151,7 +153,8 @@ function BreathingExercise({ onDone }: { onDone: () => void }) {
 
 const MOODS: Array<{
   key: CheckInMood;
-  emoji: string;
+  icon: LucideIcon;
+  color: string;
   label: string;
   sublabel: string;
   gradient: string;
@@ -159,7 +162,8 @@ const MOODS: Array<{
 }> = [
   {
     key: 'focused',
-    emoji: '🎯',
+    icon: Target,
+    color: '#818CF8',
     label: "Focused",
     sublabel: "Ready to deep-dive",
     gradient: 'linear-gradient(135deg, #5B6AF5, #4F46E5)',
@@ -167,7 +171,8 @@ const MOODS: Array<{
   },
   {
     key: 'motivated',
-    emoji: '🔥',
+    icon: Flame,
+    color: '#FBBF24',
     label: "Motivated",
     sublabel: "Let's crush it",
     gradient: 'linear-gradient(135deg, #F59E0B, #EF4444)',
@@ -175,7 +180,8 @@ const MOODS: Array<{
   },
   {
     key: 'tired',
-    emoji: '😴',
+    icon: Moon,
+    color: '#94A3B8',
     label: "Tired",
     sublabel: "Need lighter sessions",
     gradient: 'linear-gradient(135deg, #64748B, #475569)',
@@ -183,7 +189,8 @@ const MOODS: Array<{
   },
   {
     key: 'stressed',
-    emoji: '😰',
+    icon: CloudRain,
+    color: '#A78BFA',
     label: "Stressed",
     sublabel: "Need to calm down",
     gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
@@ -201,7 +208,7 @@ interface EmotionalCheckInProps {
 }
 
 export function EmotionalCheckIn({ userId, firstName, onComplete, onSkip }: EmotionalCheckInProps) {
-  const [selected, setSelected] = useState<CheckInMood | null>(null);
+  const [_selected, setSelected] = useState<CheckInMood | null>(null);
   const [phase, setPhase] = useState<'pick' | 'breathing' | 'done'>('pick');
 
   async function handleMoodSelect(mood: CheckInMood) {
@@ -229,7 +236,7 @@ export function EmotionalCheckIn({ userId, firstName, onComplete, onSkip }: Emot
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex flex-col"
       style={{
-        background: 'radial-gradient(ellipse at 50% 20%, rgba(91,106,245,0.15) 0%, rgba(8,6,20,0.88) 60%)',
+        background: 'radial-gradient(ellipse at 50% 20%, rgba(91,106,245,0.15) 0%, var(--surface-modal-perf) 60%)',
         backdropFilter: 'blur(20px)',
       }}>
 
@@ -247,10 +254,10 @@ export function EmotionalCheckIn({ userId, firstName, onComplete, onSkip }: Emot
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
+                transition={{ ...spring.bounce, delay: 0.1 }}
                 className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
                 style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', boxShadow: '0 8px 32px rgba(91,106,245,0.4)' }}>
-                <span className="text-3xl">🧠</span>
+                <Brain size={30} className="text-white" strokeWidth={1.8} />
               </motion.div>
               <h2 className="font-heading font-extrabold text-white text-2xl leading-tight mb-2">
                 Hey {firstName}, how are you feeling?
@@ -267,17 +274,17 @@ export function EmotionalCheckIn({ userId, firstName, onComplete, onSkip }: Emot
                   key={m.key}
                   initial={{ opacity: 0, scale: 0.8, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: 0.15 + i * 0.07, type: 'spring', stiffness: 300, damping: 22 }}
+                  transition={{ ...spring.entrance, delay: stagger.normal(i, 0.15) }}
                   whileTap={{ scale: 0.93 }}
                   onClick={() => handleMoodSelect(m.key)}
                   className="flex flex-col items-start justify-between rounded-3xl p-5 relative overflow-hidden"
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'var(--ink-040)',
+                    border: '1px solid var(--ink-080)',
                     minHeight: 120,
                   }}>
                   {/* Background gradient on hover is handled via the border glow */}
-                  <span className="text-4xl">{m.emoji}</span>
+                  <m.icon size={32} strokeWidth={1.7} style={{ color: m.color }} />
                   <div className="mt-auto">
                     <p className="font-bold text-white text-base leading-tight">{m.label}</p>
                     <p className="text-white/40 text-xs mt-0.5">{m.sublabel}</p>
@@ -307,7 +314,7 @@ export function EmotionalCheckIn({ userId, firstName, onComplete, onSkip }: Emot
             exit={{ opacity: 0 }}
             className="flex flex-col flex-1 items-center justify-center px-5">
             <div className="text-center mb-8">
-              <span className="text-4xl">🌬️</span>
+              <Wind size={32} className="mx-auto" style={{ color: '#A78BFA' }} strokeWidth={1.7} />
               <h2 className="font-heading font-extrabold text-white text-xl mt-3 mb-1">
                 Let's calm your mind first
               </h2>

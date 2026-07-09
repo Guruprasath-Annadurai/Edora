@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Brain, Zap, Clock, Target, TrendingUp } from 'lucide-react';
+import {Zap, Clock, Target, TrendingUp} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface DNAData {
@@ -17,8 +17,7 @@ const STYLE_LABELS = {
   marathon:    { label: 'The Marathon',    desc: 'Long focused sessions', color: '#7C3AED' },
   'night-owl': { label: 'The Night Owl',   desc: 'Peak performance after 10pm', color: '#A855F7' },
   'early-bird':{ label: 'The Early Bird',  desc: 'Best performance before noon', color: '#F59E0B' },
-  consistent:  { label: 'The Consistent',  desc: 'Steady daily progress', color: '#10B981' },
-};
+  consistent:  { label: 'The Consistent',  desc: 'Steady daily progress', color: '#10B981' } };
 
 function Helix({ color }: { color: string }) {
   return (
@@ -94,8 +93,7 @@ export function StudyDNA({ userId }: { userId: string }) {
         avgSessionMin,
         accuracyPct,
         streakMax: (profile.data as { streak_count: number } | null)?.streak_count ?? 0,
-        studyStyle,
-      });
+        studyStyle });
       setLoading(false);
     })();
   }, [userId]);
@@ -125,19 +123,18 @@ export function StudyDNA({ userId }: { userId: string }) {
         padding: 20,
         background: 'linear-gradient(135deg, rgba(124,58,237,0.1), rgba(168,85,247,0.06))',
         border: '1px solid rgba(124,58,237,0.2)',
-        boxShadow: '0 4px 24px rgba(124,58,237,0.1)',
-      }}
+        boxShadow: '0 4px 24px rgba(124,58,237,0.1)' }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16 }}>
         <Helix color={style.color} />
         <div>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: '#7C3AED', textTransform: 'uppercase', marginBottom: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', color: '#7C3AED', textTransform: 'uppercase', marginBottom: 4 }}>
             Study DNA
           </div>
           <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 18, fontWeight: 800, color: '#F4F6FA', lineHeight: 1.2 }}>
             {style.label}
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 2 }}>
             {style.desc}
             {dna.topSubject && ` · ${dna.topSubject} specialist`}
           </div>
@@ -149,13 +146,12 @@ export function StudyDNA({ userId }: { userId: string }) {
           <div key={label} style={{
             padding: '10px 6px',
             borderRadius: 14,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-          }}>
+            background: 'var(--ink-040)',
+            border: '1px solid var(--ink-060)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <Icon size={14} style={{ color }} />
             <span style={{ fontSize: 13, fontWeight: 800, color: '#F4F6FA' }}>{value}</span>
-            <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>{label}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-400)', textAlign: 'center' }}>{label}</span>
           </div>
         ))}
       </div>

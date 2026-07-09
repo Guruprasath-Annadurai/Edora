@@ -43,6 +43,7 @@ export function InlineQuizEmbed({ questions, topic, onComplete }: Props) {
       });
     }, 1000);
     return () => clearInterval(timerRef.current!);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, done, revealed]);
 
   function handleReveal(idx: number | null) {
@@ -70,20 +71,20 @@ export function InlineQuizEmbed({ questions, topic, onComplete }: Props) {
 
   if (done) {
     const pct = Math.round((score / questions.length) * 100);
-    const msg = pct >= 80 ? 'Excellent! 🔥' : pct >= 60 ? 'Good effort!' : 'Keep practising!';
+    const msg = pct >= 80 ? 'Excellent!' : pct >= 60 ? 'Good effort!' : 'Keep practising!';
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: '20px 18px', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--ink-040)', borderRadius: 16, padding: '20px 18px', border: '1px solid var(--ink-080)' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <Trophy size={22} color="#F59E0B" />
-          <span style={{ fontWeight: 700, fontSize: 16, color: '#fff' }}>Quiz Complete</span>
+          <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink-950)' }}>Quiz Complete</span>
         </div>
         <div style={{ fontSize: 36, fontWeight: 800, color: pct >= 60 ? '#10B981' : '#F87171', marginBottom: 4 }}>{pct}%</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>{score} / {questions.length} correct · {msg}</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Topic: {topic}</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-600)', marginBottom: 4 }}>{score} / {questions.length} correct · {msg}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-350)', marginTop: 8 }}>Topic: {topic}</div>
       </motion.div>
     );
   }
@@ -96,11 +97,11 @@ export function InlineQuizEmbed({ questions, topic, onComplete }: Props) {
       key={current}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: '18px 16px', border: '1px solid rgba(255,255,255,0.08)' }}
+      style={{ background: 'var(--ink-040)', borderRadius: 16, padding: '18px 16px', border: '1px solid var(--ink-080)' }}
     >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.5 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-350)', letterSpacing: 0.5 }}>
           Q {current + 1} / {questions.length} · {topic}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -110,7 +111,7 @@ export function InlineQuizEmbed({ questions, topic, onComplete }: Props) {
       </div>
 
       {/* Timer bar */}
-      <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, marginBottom: 14, overflow: 'hidden' }}>
+      <div style={{ height: 3, background: 'var(--ink-080)', borderRadius: 2, marginBottom: 14, overflow: 'hidden' }}>
         <motion.div
           animate={{ width: `${timerPct}%` }}
           transition={{ duration: 0.4 }}
@@ -119,14 +120,14 @@ export function InlineQuizEmbed({ questions, topic, onComplete }: Props) {
       </div>
 
       {/* Question */}
-      <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', lineHeight: 1.55, marginBottom: 14 }}>{q.question}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-950)', lineHeight: 1.55, marginBottom: 14 }}>{q.question}</div>
 
       {/* Options */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {q.options.map((opt, i) => {
-          let bg = 'rgba(255,255,255,0.05)';
-          let border = 'rgba(255,255,255,0.1)';
-          let textColor = 'rgba(255,255,255,0.8)';
+          let bg = 'var(--ink-050)';
+          let border = 'var(--ink-100)';
+          let textColor = 'var(--ink-800)';
           if (revealed) {
             if (i === q.correctIndex) { bg = 'rgba(16,185,129,0.15)'; border = '#10B981'; textColor = '#10B981'; }
             else if (i === selected)  { bg = 'rgba(248,113,113,0.15)'; border = '#F87171'; textColor = '#F87171'; }
@@ -144,7 +145,7 @@ export function InlineQuizEmbed({ questions, topic, onComplete }: Props) {
                 color: textColor, fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s',
               }}
             >
-              <span style={{ minWidth: 20, height: 20, borderRadius: 6, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+              <span style={{ minWidth: 20, height: 20, borderRadius: 6, background: 'var(--ink-080)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
                 {String.fromCharCode(65 + i)}
               </span>
               <span style={{ flex: 1 }}>{opt}</span>
@@ -164,12 +165,12 @@ export function InlineQuizEmbed({ questions, topic, onComplete }: Props) {
             exit={{ opacity: 0, height: 0 }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
+            <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--ink-040)', borderRadius: 10, fontSize: 12, color: 'var(--ink-600)', lineHeight: 1.6 }}>
               {q.explanation}
             </div>
             <button
               onClick={next}
-              style={{ marginTop: 12, width: '100%', padding: '11px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#5B6AF5,#818CF8)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              style={{ marginTop: 12, width: '100%', padding: '11px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#5B6AF5,#818CF8)', color: 'var(--ink-950)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
             >
               {current + 1 >= questions.length ? 'See Results' : 'Next Question'}
               <ChevronRight size={14} />

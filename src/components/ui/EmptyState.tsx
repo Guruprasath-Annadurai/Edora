@@ -62,11 +62,11 @@ export function EmptyState({
 
       {/* Text */}
       <div className="flex flex-col gap-1.5 max-w-[260px]">
-        <h3 className="font-heading text-lg font-bold" style={{ color: 'rgba(255,255,255,0.88)' }}>
+        <h3 className="font-heading text-lg font-bold" style={{ color: 'var(--ink-880)' }}>
           {title}
         </h3>
         {subtitle && (
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-450)' }}>
             {subtitle}
           </p>
         )}

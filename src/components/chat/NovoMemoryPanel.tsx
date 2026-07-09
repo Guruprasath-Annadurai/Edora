@@ -1,22 +1,21 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Brain, Trash2, ChevronRight, Zap, BookOpen, Calendar } from 'lucide-react';
+import {motion} from 'framer-motion';
+import { spring } from '@/lib/motion';
+import { X, Brain, Trash2, ChevronRight, Zap, BookOpen, Calendar, Puzzle, Scale, Microscope, HelpCircle, type LucideIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { NovoMemoryContext, ExplanationStyle } from '@/types';
 
-const STYLE_CONFIG: Record<ExplanationStyle, { emoji: string; label: string; desc: string }> = {
-  simple:   { emoji: '🧸', label: 'Simple',   desc: 'Analogies & tiny steps' },
-  balanced: { emoji: '⚖️', label: 'Balanced', desc: 'Clear + some depth' },
-  deep:     { emoji: '🔬', label: 'Deep',      desc: 'Rigour, proofs, WHY' },
-  socratic: { emoji: '❓', label: 'Socratic',  desc: 'Questions-first' },
-};
+const STYLE_CONFIG: Record<ExplanationStyle, { icon: LucideIcon; label: string; desc: string }> = {
+  simple:   { icon: Puzzle,     label: 'Simple',   desc: 'Analogies & tiny steps' },
+  balanced: { icon: Scale,      label: 'Balanced', desc: 'Clear + some depth' },
+  deep:     { icon: Microscope, label: 'Deep',      desc: 'Rigour, proofs, WHY' },
+  socratic: { icon: HelpCircle, label: 'Socratic',  desc: 'Questions-first' } };
 
 const SOURCE_ICON: Record<string, React.ReactNode> = {
   quiz:     <Zap      size={11} />,
   tutoring: <Brain    size={11} />,
   chat:     <Brain    size={11} />,
-  sprint:   <BookOpen size={11} />,
-};
+  sprint:   <BookOpen size={11} /> };
 
 interface Props {
   context:   NovoMemoryContext;
@@ -36,8 +35,7 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
       const { data: { session } } = await supabase.auth.getSession();
       await supabase.functions.invoke('novo-memory', {
         body: { action: 'delete', memory_id: id },
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-      });
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {} });
       onRefresh();
     } finally {
       setDeletingId(null);
@@ -51,8 +49,7 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
       const { data: { session } } = await supabase.auth.getSession();
       await supabase.functions.invoke('novo-memory', {
         body: { action: 'update_explanation_style', style },
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-      });
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {} });
       onRefresh();
     } finally {
       setUpdating(false);
@@ -75,17 +72,16 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        transition={spring.sheet}
         className="w-full rounded-t-3xl flex flex-col"
         style={{
-          background: 'linear-gradient(180deg,#0D1229 0%,#090C1C 100%)',
-          border: '1px solid rgba(255,255,255,0.07)',
-          maxHeight: '80vh',
-        }}
+          background: 'linear-gradient(180deg,var(--grad-memory-1) 0%,var(--grad-memory-2) 100%)',
+          border: '1px solid var(--ink-070)',
+          maxHeight: '80vh' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-1" style={{ background: 'rgba(255,255,255,0.15)' }} />
+        <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-1" style={{ background: 'var(--ink-150)' }} />
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3 shrink-0">
@@ -95,13 +91,13 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
           </div>
           <div className="flex-1">
             <p className="font-bold text-white text-base leading-tight">Novo's Memory</p>
-            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-xs" style={{ color: 'var(--ink-400)' }}>
               {context.top_weaknesses.length} weak spots · {context.session_summaries.length} sessions
             </p>
           </div>
           <button aria-label="Close" onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.07)' }}>
+            style={{ background: 'var(--ink-070)' }}>
             <X size={15} className="text-white/60" />
           </button>
         </div>
@@ -113,9 +109,9 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
               className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
               style={tab === t
                 ? { background: 'rgba(91,106,245,0.2)', color: '#A0AEFF', border: '1px solid rgba(91,106,245,0.4)' }
-                : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: '1px solid transparent' }
+                : { background: 'var(--ink-050)', color: 'var(--ink-400)', border: '1px solid transparent' }
               }>
-              {t === 'weaknesses' ? '⚠️ Weak Spots' : t === 'sessions' ? '📋 Sessions' : '🎯 Style'}
+              {t === 'weaknesses' ? 'Weak Spots' : t === 'sessions' ? 'Sessions' : 'Style'}
             </button>
           ))}
         </div>
@@ -128,7 +124,7 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
             <div className="flex flex-col gap-2">
               {!hasWeaknesses ? (
                 <div className="text-center py-8">
-                  <p className="text-4xl mb-3">🎉</p>
+                  <Zap size={32} className="mx-auto mb-3" style={{ color: '#34D399' }} strokeWidth={1.6} />
                   <p className="text-white/60 text-sm">No weak spots recorded yet.</p>
                   <p className="text-white/30 text-xs mt-1">Novo learns as you study.</p>
                 </div>
@@ -142,7 +138,7 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white/85 leading-snug">{w.content}</p>
                         {(w.topic || w.subject) && (
-                          <p className="text-[11px] mt-1" style={{ color: 'rgba(248,113,113,0.7)' }}>
+                          <p className="text-xs mt-1" style={{ color: 'rgba(248,113,113,0.7)' }}>
                             {[w.subject, w.topic].filter(Boolean).join(' › ')}
                           </p>
                         )}
@@ -151,14 +147,14 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
                         <div className="flex gap-0.5">
                           {Array.from({ length: 5 }).map((_, i) => (
                             <div key={i} className="w-1 h-3 rounded-full"
-                              style={{ background: i < Math.round(w.importance / 2) ? '#EF4444' : 'rgba(255,255,255,0.1)' }} />
+                              style={{ background: i < Math.round(w.importance / 2) ? '#EF4444' : 'var(--ink-100)' }} />
                           ))}
                         </div>
                         <button
                           onClick={() => w.id && deleteMemory(w.id)}
                           disabled={deletingId === w.id}
                           className="w-7 h-7 rounded-xl flex items-center justify-center transition-all active:scale-90"
-                          style={{ background: 'rgba(255,255,255,0.06)' }}>
+                          style={{ background: 'var(--ink-060)' }}>
                           <Trash2 size={12} className={deletingId === w.id ? 'text-white/20' : 'text-white/40'} />
                         </button>
                       </div>
@@ -188,19 +184,19 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
             <div className="flex flex-col gap-2">
               {!hasSessions ? (
                 <div className="text-center py-8">
-                  <p className="text-4xl mb-3">📚</p>
+                  <BookOpen size={32} className="mx-auto mb-3 text-white/25" strokeWidth={1.6} />
                   <p className="text-white/60 text-sm">No sessions recorded yet.</p>
                   <p className="text-white/30 text-xs mt-1">Complete a quiz, tutoring session, or chat to build history.</p>
                 </div>
               ) : context.session_summaries.map((s, i) => (
                 <div key={i}
                   className="rounded-2xl p-3"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-primary/70">{SOURCE_ICON[s.source] ?? <Calendar size={11} />}</span>
-                    <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">{s.source}</span>
-                    {s.topic && <span className="text-[10px] text-white/30">· {s.topic}</span>}
-                    <span className="ml-auto text-[10px] text-white/25">
+                    <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">{s.source}</span>
+                    {s.topic && <span className="text-xs text-white/30">· {s.topic}</span>}
+                    <span className="ml-auto text-xs text-white/25">
                       {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                     </span>
                   </div>
@@ -208,7 +204,7 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
                   {s.struggles && s.struggles.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {s.struggles.slice(0, 3).map((st, j) => (
-                        <span key={j} className="text-[10px] px-2 py-0.5 rounded-full"
+                        <span key={j} className="text-xs px-2 py-0.5 rounded-full"
                           style={{ background: 'rgba(239,68,68,0.12)', color: '#FCA5A5' }}>
                           ⚠ {st.length > 40 ? st.slice(0, 40) + '…' : st}
                         </span>
@@ -218,7 +214,7 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
                   {s.wins && s.wins.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {s.wins.slice(0, 2).map((w, j) => (
-                        <span key={j} className="text-[10px] px-2 py-0.5 rounded-full"
+                        <span key={j} className="text-xs px-2 py-0.5 rounded-full"
                           style={{ background: 'rgba(34,197,94,0.12)', color: '#86EFAC' }}>
                           ✓ {w}
                         </span>
@@ -239,12 +235,12 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
                   className="flex items-center gap-3 rounded-2xl p-4 text-left transition-all active:scale-98"
                   style={activeStyle === key
                     ? { background: 'rgba(91,106,245,0.15)', border: '1.5px solid rgba(91,106,245,0.45)' }
-                    : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }
+                    : { background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }
                   }>
-                  <span className="text-2xl">{cfg.emoji}</span>
+                  <cfg.icon size={22} style={{ color: '#A0AEFF' }} strokeWidth={1.7} />
                   <div className="flex-1">
                     <p className="font-semibold text-sm text-white">{cfg.label}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{cfg.desc}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--ink-400)' }}>{cfg.desc}</p>
                   </div>
                   {activeStyle === key && (
                     <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
@@ -254,7 +250,7 @@ export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
                   )}
                 </button>
               ))}
-              <p className="text-[11px] text-center mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <p className="text-xs text-center mt-1" style={{ color: 'var(--ink-250)' }}>
                 {updatingStyle ? 'Saving…' : 'Novo will adapt immediately in your next message.'}
               </p>
             </div>

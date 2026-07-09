@@ -10,10 +10,9 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Shield, ChevronRight, Check, X, ExternalLink,
-  User, Users, Lock, Trash2, Download, AlertTriangle,
-} from 'lucide-react';
+import { spring } from '@/lib/motion';
+import {Shield, ChevronRight, Check,
+  User, Users, Lock, AlertTriangle} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import { Link } from 'react-router-dom';
@@ -43,8 +42,7 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
     try {
       await supabase.from('profiles').update({
         dpdp_consent_at:      new Date().toISOString(),
-        dpdp_consent_version: CONSENT_VERSION,
-      }).eq('id', userId);
+        dpdp_consent_version: CONSENT_VERSION }).eq('id', userId);
       track('dpdp_consent_given', { version: CONSENT_VERSION, is_minor: isMinor });
       onAccepted();
     } finally {
@@ -59,8 +57,7 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
       // Store parent email for verification — edge function will send OTP email
       // Send parental consent email via existing parent-link function
       await supabase.functions.invoke('parent-link', {
-        body: { action: 'request_consent', parent_email: parentEmail.trim() },
-      });
+        body: { action: 'request_consent', parent_email: parentEmail.trim() } });
       setParentSent(true);
       track('parental_consent_requested', { parent_email_domain: parentEmail.split('@')[1] });
     } catch { /* fire and forget */ }
@@ -71,13 +68,13 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
     <div className="fixed inset-0 z-[200] flex items-end justify-center"
       style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
       <motion.div
-        initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        initial={{ y: '100%' }} animate={{ y: 0 }} transition={spring.sheet}
         className="w-full max-w-md rounded-t-3xl overflow-hidden"
-        style={{ background: '#0D0B1E', border: '1px solid rgba(255,255,255,0.08)', maxHeight: '92vh' }}>
+        style={{ background: 'var(--surface-sheet)', border: '1px solid var(--ink-080)', maxHeight: '92vh' }}>
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 pt-5 pb-4"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ borderBottom: '1px solid var(--ink-070)' }}>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
             style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)' }}>
             <Shield size={20} style={{ color: '#5B6AF5' }} />
@@ -107,18 +104,18 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
                   <motion.button whileTap={{ scale: 0.97 }}
                     onClick={() => { setIsMinor(false); setStep('consent'); }}
                     className="py-4 rounded-2xl flex flex-col items-center gap-2"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                     <User size={24} className="text-white/60" />
                     <span className="font-bold text-white text-sm">18 or older</span>
-                    <span className="text-[10px] text-white/40">Adult user</span>
+                    <span className="text-xs text-white/40">Adult user</span>
                   </motion.button>
                   <motion.button whileTap={{ scale: 0.97 }}
                     onClick={() => { setIsMinor(true); setStep('consent'); }}
                     className="py-4 rounded-2xl flex flex-col items-center gap-2"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                     <Users size={24} className="text-white/60" />
                     <span className="font-bold text-white text-sm">Under 18</span>
-                    <span className="text-[10px] text-white/40">Minor student</span>
+                    <span className="text-xs text-white/40">Minor student</span>
                   </motion.button>
                 </div>
 
@@ -194,10 +191,9 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
                   disabled={!allChecked || saving}
                   className="w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
                   style={{
-                    background: allChecked ? 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' : 'rgba(255,255,255,0.06)',
-                    color: allChecked ? '#fff' : 'rgba(255,255,255,0.25)',
-                    transition: 'all 0.2s',
-                  }}>
+                    background: allChecked ? 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' : 'var(--ink-060)',
+                    color: allChecked ? '#fff' : 'var(--ink-250)',
+                    transition: 'all 0.2s' }}>
                   {saving ? 'Saving…' : isMinor ? <>Next <ChevronRight size={16} /></> : <>Accept & Continue <ChevronRight size={16} /></>}
                 </motion.button>
               </motion.div>
@@ -225,16 +221,15 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
                       onChange={e => setParentEmail(e.target.value)}
                       placeholder="parent@example.com"
                       className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none"
-                      style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+                      style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-120)' }}
                     />
                     <motion.button whileTap={{ scale: 0.97 }}
                       onClick={sendParentalConsent}
                       disabled={!parentEmail.trim() || saving}
                       className="w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
                       style={{
-                        background: parentEmail.trim() ? 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' : 'rgba(255,255,255,0.06)',
-                        color: parentEmail.trim() ? '#fff' : 'rgba(255,255,255,0.25)',
-                      }}>
+                        background: parentEmail.trim() ? 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' : 'var(--ink-060)',
+                        color: parentEmail.trim() ? '#fff' : 'var(--ink-250)' }}>
                       {saving ? 'Sending…' : 'Send Consent Request'}
                     </motion.button>
                     <button onClick={acceptConsent}
@@ -269,8 +264,7 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
 }
 
 function ConsentItem({
-  checked, onChange, icon: Icon, title, body,
-}: {
+  checked, onChange, icon: Icon, title, body }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   icon: React.ElementType;
@@ -282,19 +276,18 @@ function ConsentItem({
       onClick={() => onChange(!checked)}
       className="flex items-start gap-3 text-left p-4 rounded-2xl transition-all w-full"
       style={{
-        background: checked ? 'rgba(91,106,245,0.1)' : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${checked ? 'rgba(91,106,245,0.35)' : 'rgba(255,255,255,0.08)'}`,
-      }}>
+        background: checked ? 'rgba(91,106,245,0.1)' : 'var(--ink-040)',
+        border: `1px solid ${checked ? 'rgba(91,106,245,0.35)' : 'var(--ink-080)'}` }}>
       <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-all"
-        style={{ background: checked ? '#5B6AF5' : 'rgba(255,255,255,0.1)', border: `1px solid ${checked ? '#5B6AF5' : 'rgba(255,255,255,0.2)'}` }}>
+        style={{ background: checked ? '#5B6AF5' : 'var(--ink-100)', border: `1px solid ${checked ? '#5B6AF5' : 'var(--ink-200)'}` }}>
         {checked && <Check size={12} className="text-white" />}
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-1.5 mb-1">
-          <Icon size={13} style={{ color: checked ? '#A0AEFF' : 'rgba(255,255,255,0.4)' }} />
+          <Icon size={13} style={{ color: checked ? '#A0AEFF' : 'var(--ink-400)' }} />
           <span className="text-xs font-bold text-white">{title}</span>
         </div>
-        <p className="text-[11px] text-white/40 leading-relaxed">{body}</p>
+        <p className="text-xs text-white/40 leading-relaxed">{body}</p>
       </div>
     </button>
   );

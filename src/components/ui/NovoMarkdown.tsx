@@ -72,12 +72,12 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
               width: '100%',
               maxWidth: '440px',
               borderRadius: '12px',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--ink-080)',
               display: 'block',
             }}
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
-          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '4px', display: 'block' }}>
+          <span style={{ fontSize: '10px', color: 'var(--ink-280)', marginTop: '4px', display: 'block' }}>
             AI-generated diagram
           </span>
         </span>
@@ -93,13 +93,13 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
             style={{
               display: 'block',
               background: 'rgba(0,0,0,0.35)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid var(--ink-060)',
               borderRadius: '8px',
               padding: '10px 14px',
               fontSize: '12px',
               fontFamily: 'var(--font-mono)',
               overflowX: 'auto',
-              color: 'rgba(255,255,255,0.82)',
+              color: 'var(--ink-820)',
               lineHeight: 1.6,
               margin: '8px 0',
               whiteSpace: 'pre',
@@ -113,7 +113,7 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
       return (
         <code
           style={{
-            background: 'rgba(255,255,255,0.08)',
+            background: 'var(--ink-080)',
             borderRadius: '4px',
             padding: '1px 5px',
             fontSize: '12px',
@@ -139,12 +139,12 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
 
     // ── Bold ────────────────────────────────────────────────────────────────
     strong({ children }) {
-      return <strong style={{ fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>{children}</strong>;
+      return <strong style={{ fontWeight: 600, color: 'var(--ink-950)' }}>{children}</strong>;
     },
 
     // ── Italic ──────────────────────────────────────────────────────────────
     em({ children }) {
-      return <em style={{ color: 'rgba(255,255,255,0.65)', fontStyle: 'italic' }}>{children}</em>;
+      return <em style={{ color: 'var(--ink-650)', fontStyle: 'italic' }}>{children}</em>;
     },
 
     // ── Lists ────────────────────────────────────────────────────────────────
@@ -168,13 +168,13 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
 
     // ── Headings ────────────────────────────────────────────────────────────
     h1({ children }) {
-      return <span style={{ display: 'block', fontSize: '15px', fontWeight: 600, margin: '12px 0 6px', color: 'rgba(255,255,255,0.95)' }}>{children}</span>;
+      return <span style={{ display: 'block', fontSize: '15px', fontWeight: 600, margin: '12px 0 6px', color: 'var(--ink-950)' }}>{children}</span>;
     },
     h2({ children }) {
-      return <span style={{ display: 'block', fontSize: '14px', fontWeight: 600, margin: '10px 0 5px', color: 'rgba(255,255,255,0.95)' }}>{children}</span>;
+      return <span style={{ display: 'block', fontSize: '14px', fontWeight: 600, margin: '10px 0 5px', color: 'var(--ink-950)' }}>{children}</span>;
     },
     h3({ children }) {
-      return <span style={{ display: 'block', fontSize: '13px', fontWeight: 600, margin: '8px 0 4px', color: 'rgba(255,255,255,0.90)' }}>{children}</span>;
+      return <span style={{ display: 'block', fontSize: '13px', fontWeight: 600, margin: '8px 0 4px', color: 'var(--ink-900)' }}>{children}</span>;
     },
 
     // ── Blockquote ───────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
             borderLeft: '3px solid rgba(91,106,245,0.6)',
             paddingLeft: '12px',
             margin: '8px 0',
-            color: 'rgba(255,255,255,0.6)',
+            color: 'var(--ink-600)',
             fontStyle: 'italic',
           }}
         >
@@ -197,7 +197,7 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
 
     // ── Horizontal rule ──────────────────────────────────────────────────────
     hr() {
-      return <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '10px 0' }} />;
+      return <hr style={{ border: 'none', borderTop: '1px solid var(--ink-080)', margin: '10px 0' }} />;
     },
 
     // ── Table ────────────────────────────────────────────────────────────────
@@ -212,14 +212,14 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
     },
     th({ children }) {
       return (
-        <th style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.15)', textAlign: 'left', fontWeight: 600, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.05)' }}>
+        <th style={{ padding: '6px 10px', borderBottom: '1px solid var(--ink-150)', textAlign: 'left', fontWeight: 600, color: 'var(--ink-850)', background: 'var(--ink-050)' }}>
           {children}
         </th>
       );
     },
     td({ children }) {
       return (
-        <td style={{ padding: '5px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)' }}>
+        <td style={{ padding: '5px 10px', borderBottom: '1px solid var(--ink-060)', color: 'var(--ink-750)' }}>
           {children}
         </td>
       );
@@ -232,7 +232,7 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
         display: 'block',
         fontSize: '13.5px',
         lineHeight: 1.7,
-        color: 'rgba(255,255,255,0.85)',
+        color: 'var(--ink-850)',
         // KaTeX overrides
       }}
       className="novo-markdown"

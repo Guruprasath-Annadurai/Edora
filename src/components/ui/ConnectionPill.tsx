@@ -2,7 +2,8 @@
 // Renders nothing when connected (no noise). Only surfaces when degraded.
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import {spring} from '@/lib/motion';
+import {WifiOff, RefreshCw} from 'lucide-react';
 
 export type ConnStatus = 'connected' | 'reconnecting' | 'disconnected';
 
@@ -22,15 +23,14 @@ export function ConnectionPill({ status, onRetry, reconnectingLabel }: Props) {
           initial={{ opacity: 0, y: -6, scale: 0.92 }}
           animate={{ opacity: 1, y: 0,  scale: 1     }}
           exit={{    opacity: 0, y: -6, scale: 0.92   }}
-          transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold"
+          transition={spring.snappy}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold"
           style={{
             background: status === 'reconnecting'
               ? 'rgba(251,191,36,0.12)'
               : 'rgba(239,68,68,0.12)',
             border: `1px solid ${status === 'reconnecting' ? 'rgba(251,191,36,0.3)' : 'rgba(239,68,68,0.3)'}`,
-            color: status === 'reconnecting' ? '#FBBF24' : '#F87171',
-          }}
+            color: status === 'reconnecting' ? '#FBBF24' : '#F87171' }}
         >
           {status === 'reconnecting' ? (
             <>
@@ -68,8 +68,7 @@ export function ConnectionDot({ status }: { status: ConnStatus }) {
       style={{
         background:  color,
         boxShadow:   `0 0 6px ${color}`,
-        animation:   status === 'reconnecting' ? 'pulse 1s infinite' : undefined,
-      }}
+        animation:   status === 'reconnecting' ? 'pulse 1s infinite' : undefined }}
     />
   );
 }

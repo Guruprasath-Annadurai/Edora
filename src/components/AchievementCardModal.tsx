@@ -31,7 +31,7 @@ export default function AchievementCardModal({ data, onClose }: { data: Achievem
         const result = await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Cache });
         await Share.share({
           title: data.headline,
-          text: `${data.headline} on Edora! Study free at edora.app 🔥`,
+          text: `${data.headline} on Edora! Study free at edora.app`,
           url: result.uri,
           dialogTitle: 'Share your achievement',
         });
@@ -64,7 +64,7 @@ export default function AchievementCardModal({ data, onClose }: { data: Achievem
         style={{ background: 'rgba(0,0,0,0.85)' }}
         onClick={onClose}
       >
-        <button aria-label="Close" onClick={onClose} className="absolute top-6 right-6 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
+        <button aria-label="Close" onClick={onClose} className="absolute top-6 right-6 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'var(--ink-100)' }}>
           <X className="w-5 h-5 text-white" />
         </button>
 
@@ -72,7 +72,7 @@ export default function AchievementCardModal({ data, onClose }: { data: Achievem
           initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           onClick={e => e.stopPropagation()}
           className="rounded-3xl overflow-hidden mb-6"
-          style={{ width: '100%', maxWidth: 320, aspectRatio: '9/16', background: 'rgba(255,255,255,0.03)' }}
+          style={{ width: '100%', maxWidth: 320, aspectRatio: '9/16', background: 'var(--ink-030)' }}
         >
           {dataUrl ? (
             <img src={dataUrl} alt="Achievement card" className="w-full h-full object-cover" />
@@ -86,7 +86,7 @@ export default function AchievementCardModal({ data, onClose }: { data: Achievem
         <div className="flex gap-3 w-full max-w-xs" onClick={e => e.stopPropagation()}>
           <button onClick={downloadImage} disabled={!dataUrl}
             className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold text-white disabled:opacity-40"
-            style={{ background: 'rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-100)' }}>
             <Download className="w-4 h-4" /> Save
           </button>
           <button onClick={handleShare} disabled={!dataUrl || sharing}

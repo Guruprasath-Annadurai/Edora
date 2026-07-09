@@ -288,7 +288,7 @@ export function NovoAvatar({ state = 'idle', size = 'md', className, showLabel }
 
       {showLabel && (
         <span style={{
-          fontSize: 9,
+          fontSize: 12,
           fontWeight: 800,
           letterSpacing: '0.12em',
           color: '#C87C52',

@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { spring } from '@/lib/motion';
 import { Crown, X, Zap, Mic, BarChart3, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,9 +34,9 @@ function InlinePaywall({ featureName, featureDesc }: { featureName: string; feat
   const navigate = useNavigate();
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center"
-      style={{ background: '#0A0A0F' }}>
+      style={{ background: 'var(--color-base)' }}>
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', damping: 22, stiffness: 260 }}
+        transition={spring.lazy}
         className="flex flex-col items-center gap-5 max-w-xs">
         <NovoAvatar state="concerned" size="lg" />
         <div>
@@ -46,13 +47,13 @@ function InlinePaywall({ featureName, featureDesc }: { featureName: string; feat
             </span>
           </div>
           <h3 className="font-heading text-xl font-bold text-white mb-1">{featureName}</h3>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="text-sm" style={{ color: 'var(--ink-500)' }}>
             {featureDesc ?? 'Upgrade to Edora Pro to unlock this feature.'}
           </p>
         </div>
 
         <div className="w-full rounded-2xl p-4 flex flex-col gap-2.5"
-          style={{ background: 'rgba(8,6,20,0.92)', border: '1px solid rgba(124,58,237,0.18)' }}>
+          style={{ background: 'var(--hdr-a-920)', border: '1px solid rgba(124,58,237,0.18)' }}>
           {TEASER_FEATURES.map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-3">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
@@ -71,7 +72,7 @@ function InlinePaywall({ featureName, featureDesc }: { featureName: string; feat
           <Crown size={16} /> Upgrade to Pro
         </motion.button>
 
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <p className="text-xs" style={{ color: 'var(--ink-300)' }}>
           From ₹58/month · Cancel anytime
         </p>
       </motion.div>
@@ -93,17 +94,17 @@ function SheetPaywall({
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <div className="absolute inset-0 bg-black/60" onClick={onClose} />
           <motion.div className="relative w-full rounded-t-3xl px-5 pt-5 pb-8 flex flex-col gap-5"
-            style={{ background: 'rgba(8,6,20,0.92)', borderTop: '1px solid rgba(124,58,237,0.25)' }}
+            style={{ background: 'var(--hdr-a-920)', borderTop: '1px solid rgba(124,58,237,0.25)' }}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
+            transition={spring.sheet}>
             {/* Handle */}
-            <div className="w-10 h-1 rounded-full mx-auto" style={{ background: 'rgba(255,255,255,0.1)' }} />
+            <div className="w-10 h-1 rounded-full mx-auto" style={{ background: 'var(--ink-100)' }} />
 
             {/* Dismiss */}
             {onClose && (
               <button onClick={onClose}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.06)' }}>
+                style={{ background: 'var(--ink-060)' }}>
                 <X size={15} className="text-white" />
               </button>
             )}
@@ -119,7 +120,7 @@ function SheetPaywall({
                   </span>
                 </div>
                 <h3 className="font-heading text-lg font-bold text-white leading-tight">{featureName}</h3>
-                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-xs mt-1" style={{ color: 'var(--ink-500)' }}>
                   {featureDesc ?? 'Upgrade to unlock this and more.'}
                 </p>
               </div>
@@ -144,7 +145,7 @@ function SheetPaywall({
               <Crown size={15} /> Upgrade to Pro
             </motion.button>
 
-            <p className="text-center text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-center text-xs" style={{ color: 'var(--ink-300)' }}>
               From ₹58/month · Cancel anytime
             </p>
           </motion.div>
@@ -175,6 +176,12 @@ export function ProGate({ featureName, featureDesc, children, sheet, open, onClo
     !profile.pro_expires_at || new Date(profile.pro_expires_at) > new Date()
   ));
 
+  // Exam final-sprint bypass: free access when exam is ≤ 30 days away
+  const examDate = (profile as { exam_date?: string } | null)?.exam_date ? new Date((profile as { exam_date?: string }).exam_date!) : null;
+  const daysToExam = examDate ? Math.ceil((examDate.getTime() - Date.now()) / 86_400_000) : null;
+  const isExamSprint = typeof daysToExam === 'number' && daysToExam >= 0 && daysToExam <= 30;
+  const effectivelyPro = isPro || isExamSprint;
+
   // Always render children; overlay the sheet on top when needed
   if (sheet) {
     return (
@@ -183,7 +190,7 @@ export function ProGate({ featureName, featureDesc, children, sheet, open, onClo
         <SheetPaywall
           featureName={featureName}
           featureDesc={featureDesc}
-          open={!isPro && (open ?? false)}
+          open={!effectivelyPro && (open ?? false)}
           onClose={onClose}
         />
       </>
@@ -191,9 +198,19 @@ export function ProGate({ featureName, featureDesc, children, sheet, open, onClo
   }
 
   // Inline: swap children for paywall
-  if (!isPro) {
+  if (!effectivelyPro) {
     return <InlinePaywall featureName={featureName} featureDesc={featureDesc} />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {isExamSprint && !isPro && (
+        <div className="px-4 py-2 text-center text-xs font-semibold rounded-xl mx-4 mb-2"
+          style={{ background: 'rgba(16,185,129,0.1)', color: '#6EE7B7', border: '1px solid rgba(16,185,129,0.2)' }}>
+          Free for your final sprint — we want you to pass.
+        </div>
+      )}
+      {children}
+    </>
+  );
 }
