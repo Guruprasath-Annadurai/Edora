@@ -70,7 +70,8 @@ const NovoProactivePage     = lazy(() => import('@/pages/NovoProactivePage'));
 const StudyGroupsPage        = lazy(() => import('@/pages/StudyGroupsPage'));
 const GroupDetailPage        = lazy(() => import('@/pages/GroupDetailPage'));
 const AnalyticsDashboardPage = lazy(() => import('@/pages/AnalyticsDashboardPage'));
-const ProSubscriptionPage    = lazy(() => import('@/pages/ProSubscriptionPage'));
+const EvalDashboardPage      = lazy(() => import('@/pages/EvalDashboardPage'));
+const _ProSubscriptionPage    = lazy(() => import('@/pages/ProSubscriptionPage'));
 // Tier 3 — Voice & Multimodal (lazy-loaded — heavy canvas/camera/video deps)
 const NovoLivePage        = lazy(() => import('@/pages/NovoLivePage'));
 const WhiteboardPage      = lazy(() => import('@/pages/WhiteboardPage'));
@@ -93,6 +94,7 @@ const WeaknessRadarPage   = lazy(() => import('@/pages/WeaknessRadarPage'));
 // Enterprise Pack 2 — NCERT · PYQ · Mock Tests · Concept Videos · AI Questions
 const PYQBankPage         = lazy(() => import('@/pages/PYQBankPage'));
 const MockTestPage        = lazy(() => import('@/pages/MockTestPage'));
+const UPSCMainsPage       = lazy(() => import('@/pages/UPSCMainsPage'));
 const ConceptVideosPage   = lazy(() => import('@/pages/ConceptVideosPage'));
 const NCERTChaptersPage   = lazy(() => import('@/pages/NCERTChaptersPage'));
 const AIQuizBankPage      = lazy(() => import('@/pages/AIQuizBankPage'));
@@ -120,6 +122,7 @@ const LiveEventPage         = lazy(() => import('@/pages/LiveEventPage'));
 // Tier 3 B2B — Google Classroom + School Dashboards
 const SchoolAdminPage        = lazy(() => import('@/pages/SchoolAdminPage'));
 const TeacherDashboardPage   = lazy(() => import('@/pages/teacher/TeacherDashboardPage'));
+const AdminConsolePage       = lazy(() => import('@/pages/admin/AdminConsolePage'));
 const ClassroomCallbackPage  = lazy(() => import('@/pages/auth/ClassroomCallbackPage'));
 // Phase 2 — Core Features
 const ExamWarRoomPage    = lazy(() => import('@/pages/ExamWarRoomPage'));
@@ -188,7 +191,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   if (loading || profileLoading) return (
     <div className="flex flex-col items-center justify-center h-full gap-4 bg-gradient-page">
       <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-      <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.30)' }}>
+      <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--ink-300)' }}>
         Loading…
       </p>
     </div>
@@ -205,7 +208,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       </div>
       <div className="text-center">
         <h2 className="font-heading text-xl font-bold text-white mb-2">Connection Error</h2>
-        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Could not load your profile. Check your internet and try again.</p>
+        <p className="text-sm" style={{ color: 'var(--ink-450)' }}>Could not load your profile. Check your internet and try again.</p>
       </div>
       <button onClick={() => refetchProfile()}
         className="px-6 py-3 rounded-2xl text-sm font-semibold text-white"
@@ -264,14 +267,14 @@ function SessionExpiredModal() {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-6">
       <div className="rounded-3xl p-6 w-full max-w-xs flex flex-col items-center gap-4 text-center"
-        style={{ background: 'rgba(10,12,28,0.95)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+        style={{ background: 'var(--surface-scrim)', border: '1px solid var(--ink-080)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
           style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)' }}>
           <LockIcon size={26} style={{ color: '#A0AEFF' }} strokeWidth={1.75} />
         </div>
         <div>
           <h3 className="font-heading text-lg font-bold text-white mb-1">Session Expired</h3>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Your session has expired. Please sign in again to continue.</p>
+          <p className="text-sm" style={{ color: 'var(--ink-450)' }}>Your session has expired. Please sign in again to continue.</p>
         </div>
         <button
           onClick={() => { clearSessionExpired(); window.location.href = '/login'; }}
@@ -306,6 +309,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
     });
     // Track app open on first auth
     Events.appOpened({ source: 'cold_start' });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // Teacher broadcast — only in classroom contexts (profile.classroom_id if set)
@@ -376,6 +380,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
           <Route path="/weakness-radar"   element={<RouteErrorBoundary label="weakness-radar"><WeaknessRadarPage /></RouteErrorBoundary>} />
           <Route path="/pyq-bank"        element={<RouteErrorBoundary label="pyq-bank"><PYQBankPage /></RouteErrorBoundary>} />
           <Route path="/mock-test"       element={<RouteErrorBoundary label="mock-test"><MockTestPage /></RouteErrorBoundary>} />
+          <Route path="/upsc-mains"      element={<RouteErrorBoundary label="upsc-mains"><UPSCMainsPage /></RouteErrorBoundary>} />
           <Route path="/concept-videos"  element={<RouteErrorBoundary label="concept-videos"><ConceptVideosPage /></RouteErrorBoundary>} />
           <Route path="/ncert-chapters"  element={<RouteErrorBoundary label="ncert-chapters"><NCERTChaptersPage /></RouteErrorBoundary>} />
           <Route path="/ai-quiz"         element={<RouteErrorBoundary label="ai-quiz"><AIQuizBankPage /></RouteErrorBoundary>} />
@@ -448,6 +453,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
           <Route path="/study-buddy"    element={<RouteErrorBoundary label="study-buddy"><StudyBuddyPage /></RouteErrorBoundary>} />
           <Route path="/live-event"     element={<RouteErrorBoundary label="live-event"><LiveEventPage /></RouteErrorBoundary>} />
           <Route path="/analytics"             element={<RouteErrorBoundary label="analytics"><AnalyticsDashboardPage /></RouteErrorBoundary>} />
+          <Route path="/eval"                  element={<RouteErrorBoundary label="eval"><EvalDashboardPage /></RouteErrorBoundary>} />
           <Route path="/referral"              element={<RouteErrorBoundary label="referral"><ReferralPage /></RouteErrorBoundary>} />
           <Route path="/school-admin"          element={<RouteErrorBoundary label="school-admin"><SchoolAdminPage /></RouteErrorBoundary>} />
           <Route path="/pro"                   element={<Navigate to="/profile" replace />} />
@@ -457,8 +463,19 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
         <Route path="/teacher" element={
           <AuthGuard>
             <RouteErrorBoundary label="teacher">
-              <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'#0F172A'}}><div style={{width:'32px',height:'32px',borderRadius:'50%',border:'3px solid #5B6AF5',borderTopColor:'transparent',animation:'spin 0.8s linear infinite'}}/></div>}>
+              <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'var(--page-bg-start)'}}><div style={{width:'32px',height:'32px',borderRadius:'50%',border:'3px solid #5B6AF5',borderTopColor:'transparent',animation:'spin 0.8s linear infinite'}}/></div>}>
                 <TeacherDashboardPage />
+              </Suspense>
+            </RouteErrorBoundary>
+          </AuthGuard>
+        } />
+
+        {/* Staff-only admin console — server-side gated by has_role(uid,'admin') */}
+        <Route path="/admin" element={
+          <AuthGuard>
+            <RouteErrorBoundary label="admin">
+              <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'var(--page-bg-start)'}}><div style={{width:'32px',height:'32px',borderRadius:'50%',border:'3px solid #5B6AF5',borderTopColor:'transparent',animation:'spin 0.8s linear infinite'}}/></div>}>
+                <AdminConsolePage />
               </Suspense>
             </RouteErrorBoundary>
           </AuthGuard>
@@ -468,7 +485,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
         <Route path="/auth/classroom/callback" element={
           <AuthGuard>
             <RouteErrorBoundary label="classroom-callback">
-              <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'#0F172A'}}/>}>
+              <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'var(--page-bg-start)'}}/>}>
                 <ClassroomCallbackPage />
               </Suspense>
             </RouteErrorBoundary>
@@ -478,7 +495,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
         {/* Public school leaderboard — no auth required, shareable link */}
         <Route path="/school/:schoolName" element={
           <RouteErrorBoundary label="school-leaderboard">
-            <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'#05060F'}}/>}>
+            <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'var(--page-bg-start)'}}/>}>
               <SchoolLeaderboardPage />
             </Suspense>
           </RouteErrorBoundary>
@@ -494,6 +511,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
 export default function App() {
   const deepLinkNavigateRef = useOAuthDeepLink();
   usePerformanceTier();
+  const { profile } = useAuth();
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -505,7 +523,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
+        <ThemeProvider isPro={profile?.is_pro ?? false}>
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <ConnectionGuard>
               <AppRoutes deepLinkNavigateRef={deepLinkNavigateRef} />

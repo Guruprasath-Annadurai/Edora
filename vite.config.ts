@@ -82,7 +82,7 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    target: ['es2020', 'safari13', 'chrome80'],
+    target: ['es2020', 'safari14', 'chrome80'],
     chunkSizeWarningLimit: 1000,
   },
   server: { port: 8100, host: true },

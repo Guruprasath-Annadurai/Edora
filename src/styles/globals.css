@@ -2,10 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────
+   EDORA V2 DESIGN SYSTEM — flat corporate surfaces, single accent, tabular
+   numerals. Namespaced --v2-* tokens defined per-theme in ThemeContext.tsx.
+   Additive: legacy --s1/--t1/glass classes stay until all screens migrate.
+   ───────────────────────────────────────────────────────────────────────── */
+.v2-tnum { font-variant-numeric: tabular-nums; }
+
+.v2-card {
+  background: var(--v2-card);
+  border: 1px solid var(--v2-border);
+  border-radius: 16px;
+}
+
+.v2-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.v2-row + .v2-row { border-top: 1px solid var(--v2-border); }
+
+.v2-btn-primary {
+  background: var(--v2-primary);
+  color: #fff;
+  border-radius: 16px;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), background 0.15s;
+}
+.v2-btn-primary:hover   { background: var(--v2-primary-hover); }
+.v2-btn-primary:active  { transform: scale(0.97); background: var(--v2-primary-active); }
+
+.v2-nav-island {
+  position: fixed;
+  bottom: calc(var(--nav-bottom-offset, 34px) + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 48px), 300px);
+  height: 64px;
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 50;
+}
+[data-theme="light"] .v2-nav-island {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 8px 24px rgba(15,20,45,0.12);
+}
+[data-theme="dark"] .v2-nav-island {
+  background: rgba(30,36,68,0.55);
+  backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+@keyframes v2-underline-fill { 0%{width:0%;} 100%{width:100%;} }
+.v2-underline-fill { animation: v2-underline-fill 0.9s ease forwards; }
+
 /* KaTeX math rendering overrides — adapt to dark chat theme */
 .novo-markdown .katex {
   font-size: 1em;
-  color: rgba(255,255,255,0.90);
+  color: var(--ink-900);
 }
 .novo-markdown .katex-display {
   margin: 10px 0;
@@ -69,6 +128,129 @@
     --nav-height:         72px;
     --nav-pill-height:    68px;
     --nav-bottom-offset:  16px;
+
+    /* ── On-accent text (dark overlay on coloured buttons) ───── */
+    --color-on-accent:    #0A0A0F;
+
+    /* ── Ink tokens — theme-aware foreground/surface alpha scale.
+         Dark themes: white ink. Light theme: dark-slate ink (see ThemeContext THEME_VARS.light).
+         Generated from the app's actual rgba(255,255,255,X) usage — do not hand-edit values,
+         regenerate from the sed migration if new opacities are introduced. ────── */
+    --ink-020: rgba(255,255,255,0.02);
+    --ink-030: rgba(255,255,255,0.03);
+    --ink-035: rgba(255,255,255,0.035);
+    --ink-040: rgba(255,255,255,0.04);
+    --ink-045: rgba(255,255,255,0.045);
+    --ink-050: rgba(255,255,255,0.05);
+    --ink-055: rgba(255,255,255,0.055);
+    --ink-060: rgba(255,255,255,0.06);
+    --ink-070: rgba(255,255,255,0.07);
+    --ink-080: rgba(255,255,255,0.08);
+    --ink-090: rgba(255,255,255,0.09);
+    --ink-100: rgba(255,255,255,0.1);
+    --ink-120: rgba(255,255,255,0.12);
+    --ink-140: rgba(255,255,255,0.14);
+    --ink-150: rgba(255,255,255,0.15);
+    --ink-160: rgba(255,255,255,0.16);
+    --ink-180: rgba(255,255,255,0.18);
+    --ink-200: rgba(255,255,255,0.2);
+    --ink-220: rgba(255,255,255,0.22);
+    --ink-240: rgba(255,255,255,0.24);
+    --ink-250: rgba(255,255,255,0.25);
+    --ink-280: rgba(255,255,255,0.28);
+    --ink-300: rgba(255,255,255,0.30);
+    --ink-320: rgba(255,255,255,0.32);
+    --ink-350: rgba(255,255,255,0.35);
+    --ink-360: rgba(255,255,255,0.36);
+    --ink-380: rgba(255,255,255,0.38);
+    --ink-400: rgba(255,255,255,0.4);
+    --ink-420: rgba(255,255,255,0.42);
+    --ink-450: rgba(255,255,255,0.45);
+    --ink-500: rgba(255,255,255,0.5);
+    --ink-550: rgba(255,255,255,0.55);
+    --ink-600: rgba(255,255,255,0.6);
+    --ink-650: rgba(255,255,255,0.65);
+    --ink-700: rgba(255,255,255,0.7);
+    --ink-750: rgba(255,255,255,0.75);
+    --ink-800: rgba(255,255,255,0.8);
+    --ink-820: rgba(255,255,255,0.82);
+    --ink-850: rgba(255,255,255,0.85);
+    --ink-880: rgba(255,255,255,0.88);
+    --ink-900: rgba(255,255,255,0.9);
+    --ink-920: rgba(255,255,255,0.92);
+    --ink-950: rgba(255,255,255,0.95);
+
+    /* ── Elevated card surface (near-black slate, distinct from the white-ink scale) ── */
+    --surface-elev-07:  rgba(15,17,23,0.7);
+    --surface-elev-08:  rgba(15,17,23,0.8);
+    --surface-elev-09:  rgba(15,17,23,0.9);
+    --surface-elev-095: rgba(15,17,23,0.95);
+
+    /* ── Nav/modal scrim surfaces — distinct near-black chrome for the bottom
+         nav pill and modal backdrops. Light theme flips these to a light
+         translucent white scrim instead of dark glass. ────────────────── */
+    --surface-nav:          rgba(6,8,22,0.72);
+    --surface-nav-solid:    rgba(8,6,20,0.82);
+    --surface-modal:        rgba(8,10,26,0.60);
+    --surface-nav-perf:     rgba(8,6,22,0.97);
+    --surface-panel-perf:   rgba(16,14,36,0.96);
+    --surface-glass-perf:   rgba(22,20,44,0.93);
+    --surface-modal-perf:   rgba(6,4,18,0.98);
+
+    /* ── One-off page/overlay gradient stops — each pair belongs to a single
+         screen's hero/header background (Roadmap, NovoInsights, ProSubscription,
+         MoodCheckIn, VoiceStudyOverlay). Named per-screen since the colour
+         combinations aren't reused elsewhere. ─────────────────────────── */
+    --grad-purple-header-1: #1A1144;
+    --grad-purple-header-2: #2D1B7E;
+    --grad-purple-header-3: #3B1FA0;
+    --grad-pro-header-1:    #1A0A3E;
+    --grad-pro-header-2:    #0A0A0F;
+    --grad-mood-card-1:     #0F1117;
+    --grad-mood-card-2:     #0A0A0F;
+    --grad-voice-overlay-1: #0F0F1A;
+    --grad-voice-overlay-2: #1A0F2E;
+    --grad-voice-overlay-3: #0F1A2E;
+    --grad-permission-1: #0E1330;
+    --grad-permission-2: #10152B;
+    --grad-fab-1:        #0F1535;
+    --grad-fab-2:        #0A0D20;
+    --grad-memory-1:     #0D1229;
+    --grad-memory-2:     #090C1C;
+    --grad-referral-1:   #0A0A1F;
+    --grad-referral-2:   #1A0A3E;
+    --grad-home-hero-1:  #0D0A2A;
+    --grad-home-hero-2:  #12103A;
+
+    /* ── Sticky page-header bar surfaces — the app-wide standard header
+         treatment (used across ~50 pages). Two base tones, several alphas. ── */
+    --hdr-a-600: rgba(8,6,20,0.6);
+    --hdr-a-820: rgba(8,6,20,0.82);
+    --hdr-a-880: rgba(8,6,20,0.88);
+    --hdr-a-900: rgba(8,6,20,0.90);
+    --hdr-a-920: rgba(8,6,20,0.92);
+    --hdr-a-960: rgba(8,6,20,0.96);
+    --hdr-b-550: rgba(15,20,45,0.55);
+    --hdr-b-750: rgba(15,20,45,0.75);
+    --hdr-b-900: rgba(15,20,45,0.9);
+    --hdr-b-950: rgba(15,20,45,0.95);
+    --hdr-b-980: rgba(15,20,45,0.98);
+
+    /* ── Consolidated full-screen modal/overlay scrim — replaces ~20 near-
+         duplicate one-off dark backdrop colours (celebration overlay, focus
+         mode, session-end ritual, onboarding tour, photo solver, etc). One
+         consistent value in dark theme, flips to light in light theme. ── */
+    --surface-scrim: rgba(8,8,20,0.93);
+
+    /* ── Final sweep: one-off page/sheet/banner surfaces found by an exhaustive
+         repo-wide scan. Consolidated to a small set of reused tokens rather
+         than one var per literal, since they're all the same "neutral dark
+         chrome" semantic (sheet, banner, loading-screen). ─────────────────── */
+    --surface-sheet:     #0D0A1A;
+    --surface-banner-1:  #1E293B;
+    --surface-banner-2:  #1E1B4B;
+    --grad-curriculum-1: #1E2440;
+    --grad-curriculum-2: #141829;
   }
 }
 
@@ -93,11 +275,11 @@
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="color"]),
   textarea,
   select {
-    background: rgba(255,255,255,0.07);
+    background: var(--ink-070);
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.14);
-    color: rgba(255,255,255,0.92);
+    border: 1px solid var(--ink-140);
+    color: var(--ink-920);
     outline: none;
     transition: border-color 0.18s, box-shadow 0.18s;
   }
@@ -110,12 +292,12 @@
   }
 
   ::placeholder {
-    color: rgba(255,255,255,0.30);
+    color: var(--ink-300);
   }
 
   option {
     background: #080614;
-    color: rgba(255,255,255,0.88);
+    color: var(--ink-880);
   }
 
   /* WCAG 2.5.5 — minimum tap target height.
@@ -134,7 +316,7 @@
     padding: 0;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    background-color: #0A0A0F;
+    background-color: hsl(var(--background));
   }
 
   #root {
@@ -172,34 +354,34 @@
 
   /* ── Glass surfaces — updated to Liquid Glass spec ────────── */
   .glass {
-    background: rgba(255,255,255,0.05);
+    background: var(--ink-050);
     backdrop-filter: blur(28px) saturate(170%) brightness(1.04);
     -webkit-backdrop-filter: blur(28px) saturate(170%) brightness(1.04);
-    border: 1px solid rgba(255,255,255,0.10);
+    border: 1px solid var(--ink-100);
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.12),
+      inset 0 1px 0 var(--ink-120),
       0 4px 20px rgba(0,0,0,0.38);
   }
 
   .glass-strong {
-    background: rgba(255,255,255,0.04);
+    background: var(--ink-040);
     backdrop-filter: blur(40px) saturate(190%) brightness(1.06);
     -webkit-backdrop-filter: blur(40px) saturate(190%) brightness(1.06);
-    border: 1px solid rgba(255,255,255,0.11);
+    border: 1px solid var(--ink-110);
     box-shadow:
-      inset 0 1.5px 0 rgba(255,255,255,0.15),
+      inset 0 1.5px 0 var(--ink-150),
       0 6px 28px rgba(0,0,0,0.45);
   }
 
   .card-surface {
-    background: rgba(255,255,255,0.04);
+    background: var(--ink-040);
     backdrop-filter: blur(28px) saturate(160%);
     -webkit-backdrop-filter: blur(28px) saturate(160%);
     border-radius: 20px;
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.10),
+      inset 0 1px 0 var(--ink-100),
       0 4px 24px rgba(0,0,0,0.38);
-    border: 1px solid rgba(255,255,255,0.09);
+    border: 1px solid var(--ink-090);
   }
 
   .card-ai {
@@ -322,15 +504,15 @@
   --s3: rgba(10, 12, 30, 0.70);   /* deepest surface (overlays, illustration panes) */
 
   /* Default card border */
-  --b0: rgba(255,255,255,0.04);   /* ultra-subtle */
-  --b1: rgba(255,255,255,0.06);   /* standard card border  ← use this everywhere */
-  --b2: rgba(255,255,255,0.10);   /* emphasis */
+  --b0: var(--ink-040);   /* ultra-subtle */
+  --b1: var(--ink-060);   /* standard card border  ← use this everywhere */
+  --b2: var(--ink-100);   /* emphasis */
 
   /* Text hierarchy (white on dark) */
-  --t1: rgba(255,255,255,0.95);   /* headings / numbers */
-  --t2: rgba(255,255,255,0.65);   /* body */
-  --t3: rgba(255,255,255,0.40);   /* secondary / meta */
-  --t4: rgba(255,255,255,0.25);   /* muted / eyebrow */
+  --t1: var(--ink-950);   /* headings / numbers */
+  --t2: var(--ink-650);   /* body */
+  --t3: var(--ink-400);   /* secondary / meta */
+  --t4: var(--ink-250);   /* muted / eyebrow */
 }
 
 /* Utility: eyebrow / section label
@@ -467,12 +649,100 @@
 .bg-gradient-success { background: linear-gradient(135deg, #10B981, #059669); }
 .bg-gradient-page    { background: transparent; }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Feature Mesh Gradient Hero System
+   Usage: add data-feature="X" to page root, page-hero to the header section.
+   The mesh is a subtle radial overlay — base color stays #060918.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.page-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shared pseudo shimmer layer — primes the canvas */
+.page-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: inherit;
+}
+
+/* All content inside page-hero sits above the pseudo layer */
+.page-hero > * { position: relative; z-index: 1; }
+
+/* ── Chat (indigo-violet) ── */
+[data-feature="chat"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(91,106,245,0.22)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(139,92,246,0.18)  0%, transparent 60%),
+    #060918;
+}
+
+/* ── Flashcards (emerald-cyan) ── */
+[data-feature="flashcards"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(16,185,129,0.20)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(6,182,212,0.15)   0%, transparent 60%),
+    #060918;
+}
+
+/* ── Sprint / Quiz (amber-red) ── */
+[data-feature="sprint"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(245,158,11,0.20)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(239,68,68,0.15)   0%, transparent 60%),
+    #060918;
+}
+
+/* ── Leaderboard (gold) ── */
+[data-feature="leaderboard"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(245,158,11,0.22)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(234,179,8,0.16)   0%, transparent 60%),
+    #060918;
+}
+
+/* ── Reads / Notes (cyan-blue) ── */
+[data-feature="reads"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(6,182,212,0.20)   0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(59,130,246,0.15)  0%, transparent 60%),
+    #060918;
+}
+
+/* ── Scanner (purple-pink) ── */
+[data-feature="scanner"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(168,85,247,0.20)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(236,72,153,0.15)  0%, transparent 60%),
+    #060918;
+}
+
+/* ── Battle (red-orange) ── */
+[data-feature="battle"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(239,68,68,0.22)   0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(249,115,22,0.16)  0%, transparent 60%),
+    #060918;
+}
+
+/* ── Profile (indigo-lavender) ── */
+[data-feature="profile"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(107,123,247,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(167,139,250,0.14) 0%, transparent 60%),
+    #060918;
+}
+
 /* ── Dark skeleton shimmer ──────────────────────────────────────── */
 .skeleton-dark {
   background: linear-gradient(90deg,
-    rgba(255,255,255,0.05) 0%,
-    rgba(255,255,255,0.12) 50%,
-    rgba(255,255,255,0.05) 100%
+    var(--ink-050) 0%,
+    var(--ink-120) 50%,
+    var(--ink-050) 100%
   );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
@@ -595,9 +865,9 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
 }
 
 /* ── High-contrast text helpers (WCAG AA) ────────────────────────────────────── */
-.text-contrast-high  { color: rgba(255,255,255,0.95) !important; }
-.text-contrast-med   { color: rgba(255,255,255,0.75) !important; }
-.text-contrast-low   { color: rgba(255,255,255,0.50) !important; }
+.text-contrast-high  { color: var(--ink-950) !important; }
+.text-contrast-med   { color: var(--ink-750) !important; }
+.text-contrast-low   { color: var(--ink-500) !important; }
 
 /* ── Reduce motion (respects OS setting) ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
@@ -635,12 +905,12 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
 
 /* Tier 1 — light cards, nested surfaces */
 .liquid-glass {
-  background: rgba(255,255,255,0.055);
+  background: var(--ink-055);
   backdrop-filter: blur(36px) saturate(180%) brightness(1.06);
   -webkit-backdrop-filter: blur(36px) saturate(180%) brightness(1.06);
-  border: 1px solid rgba(255,255,255,0.11);
+  border: 1px solid var(--ink-110);
   box-shadow:
-    inset 0 1.5px 0 rgba(255,255,255,0.16),
+    inset 0 1.5px 0 var(--ink-160),
     inset 0 -0.5px 0 rgba(0,0,0,0.2),
     0 6px 32px rgba(0,0,0,0.42),
     0 1px 8px rgba(91,106,245,0.08);
@@ -648,41 +918,71 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
 
 /* Tier 2 — hero panels, drawers, sheet cards */
 .liquid-glass-panel {
-  background: rgba(255,255,255,0.04);
+  background: var(--ink-040);
   backdrop-filter: blur(52px) saturate(200%) brightness(1.08);
   -webkit-backdrop-filter: blur(52px) saturate(200%) brightness(1.08);
-  border: 1px solid rgba(255,255,255,0.13);
+  border: 1px solid var(--ink-130);
   box-shadow:
-    inset 0 2px 0 rgba(255,255,255,0.20),
+    inset 0 2px 0 var(--ink-200),
     inset 0 -1px 0 rgba(0,0,0,0.12),
     0 12px 48px rgba(0,0,0,0.52),
     0 2px 12px rgba(91,106,245,0.12),
-    0 0 0 0.5px rgba(255,255,255,0.04);
+    0 0 0 0.5px var(--ink-040);
 }
 
 /* Tier 3 — navigation pill, modal backdrops */
 .liquid-glass-nav {
-  background: rgba(6,8,22,0.72);
+  background: var(--surface-nav);
   backdrop-filter: blur(64px) saturate(220%) brightness(1.05);
   -webkit-backdrop-filter: blur(64px) saturate(220%) brightness(1.05);
-  border: 1px solid rgba(255,255,255,0.10);
+  border: 1px solid var(--ink-100);
   box-shadow:
-    inset 0 1.5px 0 rgba(255,255,255,0.14),
+    inset 0 1.5px 0 var(--ink-140),
     inset 0 -0.5px 0 rgba(0,0,0,0.4),
     0 -8px 48px rgba(0,0,0,0.55),
     0 -2px 16px rgba(0,0,0,0.35),
     0 0 60px rgba(91,106,245,0.07);
 }
 
+/* Floating island nav pill */
+.nav-island {
+  position: fixed;
+  bottom: calc(var(--nav-bottom-offset) + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 24px), 400px);
+  height: var(--nav-pill-height);
+  border-radius: 28px;
+  background: var(--surface-nav-solid);
+  backdrop-filter: blur(48px) saturate(200%);
+  -webkit-backdrop-filter: blur(48px) saturate(200%);
+  border: 1px solid var(--ink-100);
+  box-shadow:
+    inset 0 1px 0 var(--ink-120),
+    0 8px 40px rgba(0,0,0,0.65),
+    0 2px 12px rgba(91,106,245,0.20);
+  overflow: visible;
+  display: flex;
+  align-items: stretch;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+html.perf-low .nav-island {
+  background: var(--surface-nav-perf);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 /* Tier 4 — modal / overlay sheets */
 .liquid-glass-modal {
-  background: rgba(8,10,26,0.60);
+  background: var(--surface-modal);
   backdrop-filter: blur(72px) saturate(240%) brightness(1.10);
   -webkit-backdrop-filter: blur(72px) saturate(240%) brightness(1.10);
-  border: 1px solid rgba(255,255,255,0.16);
+  border: 1px solid var(--ink-160);
   box-shadow:
-    inset 0 2px 0 rgba(255,255,255,0.24),
-    inset 0 -1px 0 rgba(255,255,255,0.04),
+    inset 0 2px 0 var(--ink-240),
+    inset 0 -1px 0 var(--ink-040),
     0 24px 80px rgba(0,0,0,0.70),
     0 8px 24px rgba(91,106,245,0.16),
     0 0 120px rgba(139,92,246,0.08);
@@ -695,7 +995,7 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgba(124,58,237,0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 1px 0 var(--ink-140),
     0 2px 10px rgba(124,58,237,0.30);
 }
 
@@ -714,24 +1014,24 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
 .bento-cell {
   border-radius: 22px;
   overflow: hidden;
-  background: rgba(255,255,255,0.038);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--ink-038);
+  border: 1px solid var(--ink-080);
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.10),
+    inset 0 1px 0 var(--ink-100),
     0 4px 24px rgba(0,0,0,0.30);
 }
 
 .bento-cell-elevated {
   border-radius: 22px;
   overflow: hidden;
-  background: rgba(255,255,255,0.052);
-  border: 1px solid rgba(255,255,255,0.11);
+  background: var(--ink-052);
+  border: 1px solid var(--ink-110);
   backdrop-filter: blur(36px) saturate(170%) brightness(1.05);
   -webkit-backdrop-filter: blur(36px) saturate(170%) brightness(1.05);
   box-shadow:
-    inset 0 1.5px 0 rgba(255,255,255,0.15),
+    inset 0 1.5px 0 var(--ink-150),
     inset 0 -0.5px 0 rgba(0,0,0,0.15),
     0 6px 30px rgba(0,0,0,0.38);
 }
@@ -746,7 +1046,7 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
   position: absolute;
   top: 0; left: 12%; right: 12%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.40), transparent);
+  background: linear-gradient(90deg, transparent, var(--ink-400), transparent);
   border-radius: 50%;
   pointer-events: none;
   z-index: 1;
@@ -764,6 +1064,16 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
     linear-gradient(180deg, #060918 0%, #040610 100%);
 }
 
+/* Light theme: same brand-colour glow accents, light page canvas instead of deep-space navy. */
+[data-theme="light"] .bg-deep-space {
+  background:
+    radial-gradient(ellipse 130% 55% at 50% -5%,  rgba(91,106,245,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 80%  50% at -8%  45%,  rgba(139,92,246,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 70%  40% at 108% 75%,  rgba(6,182,212,0.06)  0%, transparent 55%),
+    radial-gradient(ellipse 60%  35% at 55%  90%,  rgba(91,106,245,0.05) 0%, transparent 50%),
+    linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 100%);
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    LIQUID SHIMMER — premium hover / loading animation
    ════════════════════════════════════════════════════════════════════════════ */
@@ -773,11 +1083,11 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
 }
 .liquid-shimmer {
   background: linear-gradient(90deg,
-    rgba(255,255,255,0)    0%,
-    rgba(255,255,255,0.05) 40%,
-    rgba(255,255,255,0.10) 50%,
-    rgba(255,255,255,0.05) 60%,
-    rgba(255,255,255,0)    100%
+    var(--ink-000)    0%,
+    var(--ink-050) 40%,
+    var(--ink-100) 50%,
+    var(--ink-050) 60%,
+    var(--ink-000)    100%
   );
   background-size: 200% 100%;
   animation: liquid-shimmer 2.4s ease-in-out infinite;
@@ -786,12 +1096,12 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
 /* ════════════════════════════════════════════════════════════════════════════
    COLOUR-TINTED LIQUID GLASS VARIANTS (for subject/status cards)
    ════════════════════════════════════════════════════════════════════════════ */
-.lg-indigo  { background: rgba(91,106,245,0.15);  border-color: rgba(91,106,245,0.26);  border-left: 3px solid rgba(91,106,245,0.60)  !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 24px rgba(91,106,245,0.22); }
-.lg-violet  { background: rgba(139,92,246,0.15);  border-color: rgba(139,92,246,0.26);  border-left: 3px solid rgba(139,92,246,0.60) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 24px rgba(139,92,246,0.22); }
-.lg-cyan    { background: rgba(6,182,212,0.13);   border-color: rgba(6,182,212,0.24);   border-left: 3px solid rgba(6,182,212,0.56)   !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 20px rgba(6,182,212,0.18); }
-.lg-green   { background: rgba(16,185,129,0.13);  border-color: rgba(16,185,129,0.24);  border-left: 3px solid rgba(16,185,129,0.56)  !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 20px rgba(16,185,129,0.18); }
-.lg-amber   { background: rgba(251,191,36,0.12);  border-color: rgba(251,191,36,0.24);  border-left: 3px solid rgba(251,191,36,0.56)  !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 20px rgba(251,191,36,0.15); }
-.lg-red     { background: rgba(239,68,68,0.13);   border-color: rgba(239,68,68,0.26);   border-left: 3px solid rgba(239,68,68,0.56)   !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 20px rgba(239,68,68,0.18); }
+.lg-indigo  { background: rgba(91,106,245,0.15);  border-color: rgba(91,106,245,0.26);  border-left: 3px solid rgba(91,106,245,0.60)  !important; box-shadow: inset 0 1px 0 var(--ink-120), 0 4px 24px rgba(91,106,245,0.22); }
+.lg-violet  { background: rgba(139,92,246,0.15);  border-color: rgba(139,92,246,0.26);  border-left: 3px solid rgba(139,92,246,0.60) !important; box-shadow: inset 0 1px 0 var(--ink-120), 0 4px 24px rgba(139,92,246,0.22); }
+.lg-cyan    { background: rgba(6,182,212,0.13);   border-color: rgba(6,182,212,0.24);   border-left: 3px solid rgba(6,182,212,0.56)   !important; box-shadow: inset 0 1px 0 var(--ink-100), 0 4px 20px rgba(6,182,212,0.18); }
+.lg-green   { background: rgba(16,185,129,0.13);  border-color: rgba(16,185,129,0.24);  border-left: 3px solid rgba(16,185,129,0.56)  !important; box-shadow: inset 0 1px 0 var(--ink-100), 0 4px 20px rgba(16,185,129,0.18); }
+.lg-amber   { background: rgba(251,191,36,0.12);  border-color: rgba(251,191,36,0.24);  border-left: 3px solid rgba(251,191,36,0.56)  !important; box-shadow: inset 0 1px 0 var(--ink-100), 0 4px 20px rgba(251,191,36,0.15); }
+.lg-red     { background: rgba(239,68,68,0.13);   border-color: rgba(239,68,68,0.26);   border-left: 3px solid rgba(239,68,68,0.56)   !important; box-shadow: inset 0 1px 0 var(--ink-100), 0 4px 20px rgba(239,68,68,0.18); }
 
 /* ════════════════════════════════════════════════════════════════════════════
    GRADIENT ACCENT BORDERS — iridescent / prismatic edges
@@ -837,14 +1147,31 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
 
   /* Legacy CSS var tokens — resolved to deep space palette */
   --color-bg:             transparent;
-  --color-surface:        rgba(255,255,255,0.055);
-  --color-border:         rgba(255,255,255,0.10);
+  --color-surface:        var(--ink-055);
+  --color-border:         var(--ink-100);
   /* Typography tiers: heading(0.95) body(0.80) support(0.55) muted(0.35) */
-  --color-text:           rgba(255,255,255,0.88);
-  --color-text-body:      rgba(255,255,255,0.80);
-  --color-text-support:   rgba(255,255,255,0.55);
-  --color-text-muted:     rgba(255,255,255,0.45);
-  --color-text-secondary: rgba(255,255,255,0.45);
+  --color-text:           var(--ink-880);
+  --color-text-body:      var(--ink-800);
+  --color-text-support:   var(--ink-550);
+  --color-text-muted:     var(--ink-450);
+  --color-text-secondary: var(--ink-450);
+
+  /* ── DESIGN.md v3.6 tokens ─────────────────────────────────── */
+  --color-base:           #06070D;
+  --color-surface-1:      #0D0F18;
+  --color-surface-2:      #141822;
+  --color-surface-3:      #1A2030;
+  --color-border-em:      var(--ink-130);
+  --color-text-primary:   #F0F2F8;
+  --color-text-tertiary:  #4A5270;
+  --color-novo:           #7C3AED;
+  --color-novo-light:     #9B5CF6;
+  --color-novo-dim:       rgba(124,58,237,0.15);
+  --color-novo-glow:      rgba(124,58,237,0.35);
+  --color-success:        #10B981;
+  --color-warning:        #F59E0B;
+  --color-danger:         #EF4444;
+  --color-info:           #3B82F6;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -857,13 +1184,13 @@ html[style*="--eye-strain-active: 1"] .eye-strain-exempt {
 
 /* Browsers that don't support backdrop-filter at all (old Android WebView) */
 @supports not (backdrop-filter: blur(1px)) {
-  .liquid-glass, .glass         { background: rgba(22,20,44,0.93); }
-  .liquid-glass-panel           { background: rgba(16,14,36,0.96); }
-  .liquid-glass-nav             { background: rgba(8,6,22,0.97);   }
-  .liquid-glass-modal           { background: rgba(6,4,18,0.98);   }
+  .liquid-glass, .glass         { background: var(--surface-glass-perf); }
+  .liquid-glass-panel           { background: var(--surface-panel-perf); }
+  .liquid-glass-nav             { background: var(--surface-nav-perf);   }
+  .liquid-glass-modal           { background: var(--surface-modal-perf);   }
   .glass-strong, .card-surface  { background: rgba(14,12,32,0.95); }
   .bento-cell                   { background: rgba(20,18,40,0.91); }
-  .bento-cell-elevated          { background: rgba(22,20,44,0.93); }
+  .bento-cell-elevated          { background: var(--surface-glass-perf); }
 }
 
 /* JS-detected low-end: disable ALL backdrop-filter including inline styles */
@@ -873,19 +1200,19 @@ html.perf-low * {
 }
 
 /* Solid fallback backgrounds for glass CSS classes */
-html.perf-low .liquid-glass        { background: rgba(22,20,44,0.93) !important; }
-html.perf-low .liquid-glass-panel  { background: rgba(16,14,36,0.96) !important; }
-html.perf-low .liquid-glass-nav    { background: rgba(8,6,22,0.97)   !important; }
-html.perf-low .liquid-glass-modal  { background: rgba(6,4,18,0.98)   !important; }
-html.perf-low .glass               { background: rgba(22,20,44,0.93) !important; }
+html.perf-low .liquid-glass        { background: var(--surface-glass-perf) !important; }
+html.perf-low .liquid-glass-panel  { background: var(--surface-panel-perf) !important; }
+html.perf-low .liquid-glass-nav    { background: var(--surface-nav-perf)   !important; }
+html.perf-low .liquid-glass-modal  { background: var(--surface-modal-perf)   !important; }
+html.perf-low .glass               { background: var(--surface-glass-perf) !important; }
 html.perf-low .glass-strong        { background: rgba(14,12,32,0.95) !important; }
 html.perf-low .card-surface        { background: rgba(14,12,32,0.95) !important; }
 html.perf-low .bento-cell          { background: rgba(20,18,40,0.91) !important; }
-html.perf-low .bento-cell-elevated { background: rgba(22,20,44,0.93) !important; }
+html.perf-low .bento-cell-elevated { background: var(--surface-glass-perf) !important; }
 
-/* Inline-style glass cards (e.g. rgba(255,255,255,0.055) panels) stay
+/* Inline-style glass cards (e.g. var(--ink-055) panels) stay
    semi-transparent — that's fine on a dark bg without blur. Nav bars with
-   rgba(8,6,20,0.82) are opaque enough to read without blur. No extra fix needed. */
+   var(--surface-nav-solid) are opaque enough to read without blur. No extra fix needed. */
 
 /* Reduce Framer Motion on low-end — keep tap feedback, skip layout animations */
 html.perf-low [data-framer-motion-layout-id],
@@ -899,10 +1226,10 @@ html.perf-low [style*="will-change"] {
    Four semantic opacity tiers. Use these instead of arbitrary rgba(255,255,255,X)
    heading (0.95) > body (0.80) > support (0.55) > muted (0.35)
    ════════════════════════════════════════════════════════════════════════════ */
-.text-heading  { color: rgba(255,255,255,0.95); }
-.text-body     { color: rgba(255,255,255,0.80); }
-.text-support  { color: rgba(255,255,255,0.55); }
-.text-muted-ui { color: rgba(255,255,255,0.35); }
+.text-heading  { color: var(--ink-950); }
+.text-body     { color: var(--ink-800); }
+.text-support  { color: var(--ink-550); }
+.text-muted-ui { color: var(--ink-350); }
 
 /* ════════════════════════════════════════════════════════════════════════════
    CARD VISUAL HIERARCHY — Issue 5
@@ -913,19 +1240,69 @@ html.perf-low [style*="will-change"] {
      • .bento-cell          → secondary / metadata chip
    ════════════════════════════════════════════════════════════════════════════ */
 .card-hero {
-  background: rgba(255,255,255,0.068);
-  border: 1px solid rgba(255,255,255,0.14);
+  background: var(--ink-068);
+  border: 1px solid var(--ink-140);
   backdrop-filter: blur(44px) saturate(190%) brightness(1.09);
   -webkit-backdrop-filter: blur(44px) saturate(190%) brightness(1.09);
   box-shadow:
-    inset 0 2px 0 rgba(255,255,255,0.20),
+    inset 0 2px 0 var(--ink-200),
     inset 0 -1px 0 rgba(0,0,0,0.18),
     0 12px 48px rgba(0,0,0,0.50),
     0 3px 16px rgba(91,106,245,0.18),
-    0 0 0 0.5px rgba(255,255,255,0.06);
+    0 0 0 0.5px var(--ink-060);
   border-radius: 28px;
 }
 html.perf-low .card-hero { background: rgba(24,22,46,0.94) !important; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CARD ELEVATION — 3 strict levels (v3.6.0)
+   ─────────────────────────────────────────────────────────────────────────
+   L0 — ghost / metadata chip     (1 per list row, filter pills, stat chips)
+   L1 — standard content card     (default for all interactive cards)
+   L2 — hero / KPI / featured     (max 1–2 per screen; never adjacent L0↔L2)
+
+   Rule: card-l2 owns the depth budget. card-l0 is nearly invisible.
+         Never place two card-l2 cards side-by-side.
+         Never place card-l0 directly next to card-l2.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* L0 — ghost / metadata chip */
+.card-l0 {
+  background:    var(--ink-030);
+  border:        1px solid var(--ink-050);
+  border-radius: 16px;
+}
+
+/* L1 — standard content card */
+.card-l1 {
+  background:    var(--ink-055);
+  border:        1px solid var(--ink-080);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 var(--ink-100),
+    0 4px 20px rgba(0,0,0,0.35);
+}
+
+/* L2 — hero / KPI / featured card */
+.card-l2 {
+  background:    var(--ink-070);
+  border:        1px solid var(--ink-120);
+  border-radius: 24px;
+  box-shadow:
+    inset 0 1.5px 0 var(--ink-180),
+    inset 0 -1px 0 rgba(0,0,0,0.15),
+    0 8px 32px rgba(0,0,0,0.50),
+    0 0 80px rgba(91,106,245,0.12);
+}
+
+/* Backward-compat aliases — old class names still work but map to new levels */
+.bento-cell          { background: var(--ink-030);  border-color: var(--ink-050); }
+.bento-cell-elevated { background: var(--ink-055); border-color: var(--ink-080); }
+
+/* perf-low overrides — strip blur, flatten to solid equivalents */
+html.perf-low .card-l0 { background: rgba(18,16,38,0.92)  !important; }
+html.perf-low .card-l1 { background: rgba(20,18,42,0.93)  !important; box-shadow: none !important; }
+html.perf-low .card-l2 { background: rgba(24,22,46,0.95)  !important; box-shadow: none !important; }
 
 /* ════════════════════════════════════════════════════════════════════════════
    AVATAR GROUNDING SHADOW — Issue 10
@@ -1057,6 +1434,69 @@ html.perf-low .avatar-grounded { filter: none !important; }
 .text-fluid-base    { font-size: var(--fluid-base);    font-weight: 400; }
 .text-fluid-body    { font-size: var(--fluid-body);    font-weight: 400; }
 .text-fluid-caption { font-size: var(--fluid-caption); font-weight: 500; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SEMANTIC TYPOGRAPHY SCALE (v3.6.0)
+   ─────────────────────────────────────────────────────────────────────────
+   Replace ALL inline style={{ fontSize: ... }} with these classes.
+   Each class owns: size + family + weight + color — no split responsibility.
+
+   Hierarchy:
+     text-display  → screen titles, hero numbers          (Space Grotesk 800)
+     text-title    → section headings, card titles        (Space Grotesk 700)
+     text-body-lg  → primary body copy, descriptions      (Plus Jakarta Sans)
+     text-body-sm  → secondary copy, meta text            (Plus Jakarta Sans)
+     text-eyebrow  → labels, tags, ALL-CAPS overlines     (Plus Jakarta Sans)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.text-display {
+  font-size:    var(--fluid-h1);
+  font-family:  'Space Grotesk', system-ui, sans-serif;
+  font-weight:  800;
+  color:        var(--t1);
+  letter-spacing: -0.03em;
+  line-height:  1.1;
+}
+
+.text-title {
+  font-size:    var(--fluid-h2);
+  font-family:  'Space Grotesk', system-ui, sans-serif;
+  font-weight:  700;
+  color:        var(--t1);
+  letter-spacing: -0.02em;
+  line-height:  1.25;
+}
+
+.text-body-lg {
+  font-size:   var(--fluid-body);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 400;
+  color:       var(--t2);
+  line-height: 1.55;
+}
+
+.text-body-sm {
+  font-size:   var(--fluid-caption);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 400;
+  color:       var(--t3);
+  line-height: 1.4;
+}
+
+.text-eyebrow {
+  font-size:      10px;
+  font-family:    'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight:    700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          var(--t4);
+  line-height:    1;
+}
+
+/* Modifier — override color to feature accent when inside a colored context */
+.text-display.text-accent,
+.text-title.text-accent    { color: var(--accent-fg, var(--t1)); }
+.text-eyebrow.text-accent  { color: var(--accent-fg, var(--t4)); }
 
 /* ── Fluid spacing utilities ────────────────────────────────────────────── */
 .px-fluid  { padding-left: var(--fluid-px);  padding-right: var(--fluid-px);  }
@@ -1230,4 +1670,90 @@ html.perf-low .avatar-grounded { filter: none !important; }
   .grid-cols-2-to-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
+}
+/* ── Light theme overrides for Tailwind white-utility classes ──────────────
+   Un-layered on purpose: Tailwind utilities live in @layer utilities, and
+   unlayered CSS always wins over layered CSS regardless of source order —
+   no !important needed. Only active when [data-theme="light"] is set. ── */
+[data-theme="light"] .text-white { color: rgba(15,23,42,1.0); }
+[data-theme="light"] .text-white\/15 { color: rgba(15,23,42,0.15); }
+[data-theme="light"] .text-white\/20 { color: rgba(15,23,42,0.2); }
+[data-theme="light"] .text-white\/25 { color: rgba(15,23,42,0.25); }
+[data-theme="light"] .text-white\/30 { color: rgba(15,23,42,0.3); }
+[data-theme="light"] .text-white\/35 { color: rgba(15,23,42,0.35); }
+[data-theme="light"] .text-white\/40 { color: rgba(15,23,42,0.4); }
+[data-theme="light"] .text-white\/45 { color: rgba(15,23,42,0.45); }
+[data-theme="light"] .text-white\/50 { color: rgba(15,23,42,0.5); }
+[data-theme="light"] .text-white\/55 { color: rgba(15,23,42,0.55); }
+[data-theme="light"] .text-white\/60 { color: rgba(15,23,42,0.6); }
+[data-theme="light"] .text-white\/65 { color: rgba(15,23,42,0.65); }
+[data-theme="light"] .text-white\/70 { color: rgba(15,23,42,0.7); }
+[data-theme="light"] .text-white\/75 { color: rgba(15,23,42,0.75); }
+[data-theme="light"] .text-white\/80 { color: rgba(15,23,42,0.8); }
+[data-theme="light"] .text-white\/85 { color: rgba(15,23,42,0.85); }
+[data-theme="light"] .text-white\/90 { color: rgba(15,23,42,0.9); }
+[data-theme="light"] .bg-white\/08 { background-color: rgba(15,23,42,0.08); }
+[data-theme="light"] .bg-white\/10 { background-color: rgba(15,23,42,0.1); }
+[data-theme="light"] .bg-white\/20 { background-color: rgba(15,23,42,0.2); }
+[data-theme="light"] .bg-white\/30 { background-color: rgba(15,23,42,0.3); }
+[data-theme="light"] .bg-white\/4 { background-color: rgba(15,23,42,0.04); }
+[data-theme="light"] .bg-white\/5 { background-color: rgba(15,23,42,0.05); }
+[data-theme="light"] .bg-white\/50 { background-color: rgba(15,23,42,0.5); }
+[data-theme="light"] .bg-white\/70 { background-color: rgba(15,23,42,0.7); }
+[data-theme="light"] .bg-white\/8 { background-color: rgba(15,23,42,0.08); }
+[data-theme="light"] .border-white\/10 { border-color: rgba(15,23,42,0.1); }
+[data-theme="light"] .border-white\/20 { border-color: rgba(15,23,42,0.2); }
+[data-theme="light"] .border-white\/30 { border-color: rgba(15,23,42,0.3); }
+[data-theme="light"] .border-white\/40 { border-color: rgba(15,23,42,0.4); }
+[data-theme="light"] .border-white\/5 { border-color: rgba(15,23,42,0.05); }
+[data-theme="light"] .border-white\/60 { border-color: rgba(15,23,42,0.6); }
+[data-theme="light"] .border-white\/8 { border-color: rgba(15,23,42,0.08); }
+/* ── Light theme: same brand-tinted glows, light page-hero base instead of #060918 ── */
+[data-theme="light"] [data-feature="chat"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(91,106,245,0.11)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(139,92,246,0.09)  0%, transparent 60%),
+    #F8FAFC;
+}
+[data-theme="light"] [data-feature="flashcards"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(16,185,129,0.1)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(6,182,212,0.075)  0%, transparent 60%),
+    #F8FAFC;
+}
+[data-theme="light"] [data-feature="sprint"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(245,158,11,0.1)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(239,68,68,0.075)  0%, transparent 60%),
+    #F8FAFC;
+}
+[data-theme="light"] [data-feature="leaderboard"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(245,158,11,0.11)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(234,179,8,0.08)  0%, transparent 60%),
+    #F8FAFC;
+}
+[data-theme="light"] [data-feature="reads"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(6,182,212,0.1)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(59,130,246,0.075)  0%, transparent 60%),
+    #F8FAFC;
+}
+[data-theme="light"] [data-feature="scanner"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(168,85,247,0.1)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(236,72,153,0.075)  0%, transparent 60%),
+    #F8FAFC;
+}
+[data-theme="light"] [data-feature="battle"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(239,68,68,0.11)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(249,115,22,0.08)  0%, transparent 60%),
+    #F8FAFC;
+}
+[data-theme="light"] [data-feature="profile"] .page-hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 20%   0%, rgba(107,123,247,0.09)  0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80%  10%, rgba(167,139,250,0.07)  0%, transparent 60%),
+    #F8FAFC;
 }
