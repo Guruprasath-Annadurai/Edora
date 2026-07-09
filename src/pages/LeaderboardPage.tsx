@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Globe, MapPin, Building2, School, Users, Trophy, TrendingUp, TrendingDown, Minus, Sword, Crown, Zap } from 'lucide-react';
+import { ChevronLeft, Globe, MapPin, Building2, School, Users, Trophy, TrendingUp, TrendingDown, Minus, Sword, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { SkeletonLeaderboardRows } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
@@ -93,7 +92,7 @@ const LeaderboardRow = memo(function LeaderboardRow({ entry, index, color }: { e
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text)' }}>
           {entry.full_name} {entry.is_me && <span style={{ color }}>(you)</span>}
-          {entry.is_rival && <span style={{ color: '#F87171' }}> ⚔️</span>}
+          {entry.is_rival && <span className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--v2-error-text)' }}>rival</span>}
         </p>
         <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
           {entry.xp.toLocaleString()} XP {entry.school_name ? `· ${entry.school_name}` : ''}
@@ -115,6 +114,7 @@ export default function LeaderboardPage() {
   const [showHoF, setShowHoF] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadLeaderboard(); }, [scope, profile]);
 
   useEffect(() => {
@@ -295,12 +295,12 @@ export default function LeaderboardPage() {
               className="rounded-2xl overflow-hidden"
               style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}>
               <div className="p-3">
-                <p className="text-xs font-bold mb-2" style={{ color: '#FBBF24' }}>🏆 Hall of Fame — This Week</p>
+                <p className="text-xs font-bold mb-2" style={{ color: '#FBBF24' }}>Hall of Fame — This Week</p>
                 {hallOfFame.length === 0 ? (
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>No entries yet — top 3 appear Sunday night.</p>
                 ) : hallOfFame.map(h => (
                   <div key={h.user_id} className="flex items-center gap-2 py-1.5">
-                    <span className="text-base">{h.rank_pos === 1 ? '🥇' : h.rank_pos === 2 ? '🥈' : '🥉'}</span>
+                    <span className="text-xs font-extrabold w-5 text-center v2-tnum" style={{ color: '#FBBF24' }}>{h.rank_pos}</span>
                     <span className="text-sm font-semibold flex-1" style={{ color: 'var(--color-text)' }}>{h.full_name}</span>
                     <span className="text-xs font-bold" style={{ color: '#FBBF24' }}>{h.xp_earned.toLocaleString()} XP</span>
                   </div>
@@ -334,8 +334,8 @@ export default function LeaderboardPage() {
                   <p className="text-xs font-semibold text-center truncate w-full" style={{ color: 'var(--color-text)' }}>{top3[1].full_name}</p>
                   <div className="w-full rounded-t-xl py-4 text-center"
                        style={{ background: 'rgba(192,192,192,0.15)', border: '1px solid rgba(192,192,192,0.3)' }}>
-                    <span className="text-xl">🥈</span>
-                    <p className="text-xs font-bold mt-1" style={{ color: '#C0C0C0' }}>{top3[1].xp.toLocaleString()}</p>
+                    <span className="text-lg font-extrabold v2-tnum" style={{ color: '#C0C0C0' }}>2</span>
+                    <p className="text-xs font-bold mt-1 v2-tnum" style={{ color: '#C0C0C0' }}>{top3[1].xp.toLocaleString()}</p>
                   </div>
                 </motion.div>
                 {/* 1st */}
@@ -346,8 +346,8 @@ export default function LeaderboardPage() {
                   <p className="text-xs font-semibold text-center truncate w-full" style={{ color: 'var(--color-text)' }}>{top3[0].full_name}</p>
                   <div className="w-full rounded-t-xl py-6 text-center"
                        style={{ background: 'rgba(251,191,36,0.15)', border: `1px solid rgba(251,191,36,0.4)` }}>
-                    <span className="text-2xl">🥇</span>
-                    <p className="text-xs font-bold mt-1" style={{ color: '#FBBF24' }}>{top3[0].xp.toLocaleString()}</p>
+                    <span className="text-2xl font-extrabold v2-tnum" style={{ color: '#FBBF24' }}>1</span>
+                    <p className="text-xs font-bold mt-1 v2-tnum" style={{ color: '#FBBF24' }}>{top3[0].xp.toLocaleString()}</p>
                   </div>
                 </motion.div>
                 {/* 3rd */}
@@ -357,8 +357,8 @@ export default function LeaderboardPage() {
                   <p className="text-xs font-semibold text-center truncate w-full" style={{ color: 'var(--color-text)' }}>{top3[2].full_name}</p>
                   <div className="w-full rounded-t-xl py-3 text-center"
                        style={{ background: 'rgba(205,127,50,0.15)', border: '1px solid rgba(205,127,50,0.3)' }}>
-                    <span className="text-xl">🥉</span>
-                    <p className="text-xs font-bold mt-1" style={{ color: '#CD7F32' }}>{top3[2].xp.toLocaleString()}</p>
+                    <span className="text-lg font-extrabold v2-tnum" style={{ color: '#CD7F32' }}>3</span>
+                    <p className="text-xs font-bold mt-1 v2-tnum" style={{ color: '#CD7F32' }}>{top3[2].xp.toLocaleString()}</p>
                   </div>
                 </motion.div>
               </div>

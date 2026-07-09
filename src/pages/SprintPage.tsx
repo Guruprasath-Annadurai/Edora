@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, User, Clock, ChevronRight, X, CheckCircle, Pause, Play } from 'lucide-react';
+import { Zap, User, Clock, X, Pause, Play, Medal } from 'lucide-react';
 import { AddTeamIcon, TrophyIcon } from '@/components/ui/icons';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { formatDuration } from '@/lib/utils';
@@ -185,13 +184,13 @@ export default function SprintPage() {
                     className="py-3 px-4 rounded-2xl text-sm font-semibold transition-all text-left active:scale-95"
                     style={subject === s ? {
                       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
-                      color: '#fff',
+                      color: 'var(--ink-950)',
                       boxShadow: '0 4px 20px rgba(91,106,245,0.4)',
                       border: '1px solid transparent',
                     } : {
-                      background: 'rgba(255,255,255,0.055)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      color: 'rgba(255,255,255,0.6)',
+                      background: 'var(--ink-055)',
+                      border: '1px solid var(--ink-060)',
+                      color: 'var(--ink-600)',
                     }}
                   >
                     {s}
@@ -211,13 +210,13 @@ export default function SprintPage() {
                     className="flex flex-col items-center py-2.5 rounded-2xl text-[11px] font-bold transition-all active:scale-95 min-w-0"
                     style={duration === value ? {
                       background: 'linear-gradient(135deg,#F59E0B,#EF4444)',
-                      color: '#fff',
+                      color: 'var(--ink-950)',
                       boxShadow: '0 4px 16px rgba(245,158,11,0.35)',
                       border: '1px solid transparent',
                     } : {
-                      background: 'rgba(255,255,255,0.055)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      color: 'rgba(255,255,255,0.55)',
+                      background: 'var(--ink-055)',
+                      border: '1px solid var(--ink-060)',
+                      color: 'var(--ink-550)',
                     }}
                   >
                     <span>{label}</span>
@@ -231,7 +230,7 @@ export default function SprintPage() {
             <div
               className="flex items-center px-4 h-14 rounded-2xl"
               style={{
-                background: 'rgba(255,255,255,0.055)',
+                background: 'var(--ink-055)',
                 border: '1.5px solid rgba(91,106,245,0.2)',
               }}
             >
@@ -254,7 +253,7 @@ export default function SprintPage() {
                 background: 'linear-gradient(135deg,#F59E0B,#EF4444)',
                 boxShadow: '0 6px 28px rgba(245,158,11,0.4)',
               } : {
-                background: 'rgba(255,255,255,0.06)',
+                background: 'var(--ink-060)',
               }}
             >
               <Zap size={18} className="fill-white" />
@@ -301,7 +300,7 @@ export default function SprintPage() {
               }}
             >
               <svg className="w-56 h-56 -rotate-90 absolute inset-0">
-                <circle cx="112" cy="112" r="88" stroke="rgba(255,255,255,0.05)" strokeWidth="10" fill="none" />
+                <circle cx="112" cy="112" r="88" stroke="var(--ink-050)" strokeWidth="10" fill="none" />
                 <motion.circle
                   cx="112" cy="112" r="88"
                   stroke={paused ? 'url(#pauseGrad)' : 'url(#sprintGrad)'}
@@ -352,7 +351,7 @@ export default function SprintPage() {
                 className="flex-1 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-98 transition-all"
                 style={paused ? {
                   background: 'linear-gradient(135deg,#10B981,#059669)',
-                  color: '#fff',
+                  color: 'var(--ink-950)',
                   boxShadow: '0 4px 20px rgba(16,185,129,0.4)',
                   border: '1px solid transparent',
                 } : {
@@ -390,10 +389,10 @@ export default function SprintPage() {
             transition={{ type: 'spring', stiffness: 220, damping: 18 }}
             className="flex flex-col items-center justify-center h-full gap-6"
           >
-            <div className="text-7xl">🏅</div>
+            <Medal size={64} style={{ color: '#FBBF24' }} strokeWidth={1.4} />
 
             <div className="text-center">
-              <h2 className="font-heading text-3xl font-bold text-white">Sprint Complete!</h2>
+              <h2 className="font-heading text-3xl font-bold text-white">Sprint Complete</h2>
               <p className="text-white/45 mt-1">Outstanding focus session.</p>
             </div>
 
@@ -407,8 +406,8 @@ export default function SprintPage() {
                   key={label}
                   className="rounded-2xl p-4 text-center"
                   style={{
-                    background: 'rgba(255,255,255,0.055)',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'var(--ink-055)',
+                    border: '1px solid var(--ink-060)',
                     boxShadow: `0 4px 16px ${color}22`,
                   }}
                 >

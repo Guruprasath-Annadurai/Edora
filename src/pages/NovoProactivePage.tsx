@@ -1,11 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronLeft, Sparkles, RefreshCw, Bell, CalendarClock, Flame,
+import {ChevronLeft, Sparkles, RefreshCw, Bell, CalendarClock, Flame,
   Trophy, BookOpen, Brain, Target, MessageSquarePlus,
-  Heart, RotateCcw, Zap,
-  type LucideIcon,
-} from 'lucide-react';
+  Heart, RotateCcw, Zap} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,8 +32,7 @@ const TYPE_STYLES: Record<ProactiveMessageType, TypeStyle> = {
   // New emotional intelligence types
   encouragement:   { icon: Heart,            color: '#F472B6', bg: 'rgba(244,114,182,0.15)', label: 'Encouragement' },
   comeback:        { icon: RotateCcw,        color: '#A78BFA', bg: 'rgba(167,139,250,0.15)', label: 'We Miss You'  },
-  revision_mode:   { icon: Zap,              color: '#EF4444', bg: 'rgba(239,68,68,0.18)',   label: 'REVISION MODE' },
-};
+  revision_mode:   { icon: Zap,              color: '#EF4444', bg: 'rgba(239,68,68,0.18)',   label: 'REVISION MODE' } };
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -67,8 +63,8 @@ function MessageCard({ msg, onMarkRead, onCTA }: {
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl overflow-hidden"
       style={unread
-        ? { background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)', borderLeft: `3px solid ${style.color}` }
-        : { background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        ? { background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)', borderLeft: `3px solid ${style.color}` }
+        : { background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
       <div className="px-4 py-4">
         <div className="flex items-start gap-3">
           {/* Novo avatar */}
@@ -102,7 +98,7 @@ function MessageCard({ msg, onMarkRead, onCTA }: {
               {unread && (
                 <button onClick={() => onMarkRead(msg.id)}
                   className="text-xs text-muted-foreground px-2 py-1.5 rounded-xl active:scale-95 transition-all"
-                  style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                  style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-100)' }}>
                   Mark read
                 </button>
               )}
@@ -117,7 +113,7 @@ function MessageCard({ msg, onMarkRead, onCTA }: {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function NovoProactivePage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [messages, setMessages]   = useState<NovoProactiveMessage[]>([]);
@@ -134,8 +130,7 @@ export default function NovoProactivePage() {
     const { data: { session } } = await supabase.auth.getSession();
     return supabase.functions.invoke('novo-proactive', {
       body,
-      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-    });
+      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {} });
   }
 
   async function loadHistory() {
@@ -212,11 +207,11 @@ export default function NovoProactivePage() {
 
       {/* ── Header ── */}
       <div className="px-4 py-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <div className="flex items-center gap-3 mb-3">
           <Link aria-label="Go back" to="/home"
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
+            style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-100)' }}>
             <ChevronLeft size={18} className="text-white" />
           </Link>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -238,11 +233,11 @@ export default function NovoProactivePage() {
             onClick={generateCheckin}
             disabled={generating || cooldownSecs > 0}
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors relative"
-            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
+            style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-100)' }}>
             {generating
               ? <RefreshCw size={15} className="text-primary animate-spin" />
               : cooldownSecs > 0
-                ? <span className="text-[10px] font-bold text-muted-foreground">{cooldownSecs}s</span>
+                ? <span className="text-xs font-bold text-muted-foreground">{cooldownSecs}s</span>
                 : <MessageSquarePlus size={15} className="text-primary" />}
           </button>
         </div>
@@ -254,7 +249,7 @@ export default function NovoProactivePage() {
               className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                 filter === f ? 'text-white' : 'text-muted-foreground'
               }`}
-              style={filter === f ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' } : { background: 'rgba(255,255,255,0.06)' }}>
+              style={filter === f ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' } : { background: 'var(--ink-060)' }}>
               {f === 'all' ? `All (${messages.length})` : `Unread (${unreadCount})`}
             </button>
           ))}
@@ -321,7 +316,7 @@ export default function NovoProactivePage() {
       {/* ── Generate CTA at bottom (persistent) ── */}
       {!loading && messages.length > 0 && (
         <div className="px-4 py-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.88)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}>
+          style={{ background: 'var(--hdr-a-880)', backdropFilter: 'blur(20px)', borderTop: '1px solid var(--ink-080)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}>
           <button onClick={generateCheckin} disabled={generating || cooldownSecs > 0}
             className="w-full py-3 rounded-2xl border border-dashed border-primary/30 text-sm font-semibold text-primary text-center active:bg-primary/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
             {generating

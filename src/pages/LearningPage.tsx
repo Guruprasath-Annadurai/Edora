@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { SkeletonWeeklyStats } from '@/components/ui/skeleton';
-import {
-  Map, Calendar, Users, Target, ChevronRight, BookOpen,
-  Calculator, Atom, FlaskConical, Microscope,
+import {Map, Calendar, Users, Target, ChevronRight, BookOpen,
   BarChart3, Zap, Globe, Play, Sigma, CalendarCheck, Search,
-  GraduationCap, ArrowRight,
-} from 'lucide-react';
+  GraduationCap, ArrowRight} from 'lucide-react';
 import { BookIcon } from '@/components/ui/icons';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -22,8 +19,7 @@ const sections = [
     glow: 'rgba(91,106,245,0.25)',
     iconBg: 'rgba(91,106,245,0.14)',
     badge: 'DUE_COUNT',
-    live: true,
-  },
+    live: true },
   {
     title: 'AI Quiz',
     desc: 'Generate MCQs on any topic',
@@ -33,8 +29,7 @@ const sections = [
     glow: 'rgba(236,72,153,0.22)',
     iconBg: 'rgba(236,72,153,0.12)',
     badge: null,
-    live: true,
-  },
+    live: true },
   {
     title: 'Knowledge Map',
     desc: 'Visual concept relationships',
@@ -44,8 +39,7 @@ const sections = [
     glow: 'rgba(6,182,212,0.22)',
     iconBg: 'rgba(6,182,212,0.12)',
     badge: null,
-    live: true,
-  },
+    live: true },
   {
     title: 'Study Plan',
     desc: 'AI roadmap to your exam',
@@ -55,8 +49,7 @@ const sections = [
     glow: 'rgba(16,185,129,0.22)',
     iconBg: 'rgba(16,185,129,0.12)',
     badge: null,
-    live: true,
-  },
+    live: true },
   {
     title: 'Study Rooms',
     desc: 'Collaborate with peers',
@@ -66,8 +59,7 @@ const sections = [
     glow: 'rgba(245,158,11,0.22)',
     iconBg: 'rgba(245,158,11,0.12)',
     badge: null,
-    live: true,
-  },
+    live: true },
 ];
 
 // Content Moat features — shown as a separate section
@@ -95,8 +87,7 @@ const SUBJECT_COLORS: Record<string, string> = {
   history:     '#FDE68A',
   english:     '#FCA5A5',
   geography:   '#A7F3D0',
-  economics:   '#A5F3FC',
-};
+  economics:   '#A5F3FC' };
 
 function subjectColor(name: string) {
   return SUBJECT_COLORS[name.toLowerCase()] ?? '#A0AEFF';
@@ -136,8 +127,7 @@ export default function LearningPage() {
       setSubjects(Object.keys(totals).sort().map(name => ({
         name,
         progress: Math.round((doneMap[name] / totals[name]) * 100),
-        color: subjectColor(name),
-      })));
+        color: subjectColor(name) })));
     }).catch(err => console.error('[LearningPage] stats load error:', err));
   }, [user]);
 
@@ -150,20 +140,19 @@ export default function LearningPage() {
           className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
           style={{
             background: 'linear-gradient(135deg,#10B981,#06B6D4)',
-            boxShadow: '0 0 16px rgba(16,185,129,0.45)',
-          }}
+            boxShadow: '0 0 16px rgba(16,185,129,0.45)' }}
         >
           <BookOpen size={20} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/40">Your Courses</p>
+          <p className="text-xs font-extrabold uppercase tracking-widest text-white/40">Your Courses</p>
           <h1 className="font-heading text-2xl font-extrabold text-white leading-tight">Learning Hub</h1>
         </div>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('edora:open-command-palette'))}
           aria-label="Search features"
           className="flex items-center justify-center rounded-2xl shrink-0"
-          style={{ width: 44, height: 44, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ width: 44, height: 44, background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
         >
           <Search size={18} className="text-white/70" />
         </button>
@@ -173,12 +162,11 @@ export default function LearningPage() {
       <div
         className="rounded-2xl p-1 flex gap-1"
         style={{
-          background: 'rgba(255,255,255,0.055)',
+          background: 'var(--ink-055)',
           backdropFilter: 'blur(28px) saturate(160%)',
           WebkitBackdropFilter: 'blur(28px) saturate(160%)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
-        }}
+          border: '1px solid var(--ink-100)',
+          boxShadow: 'inset 0 1px 0 var(--ink-080)' }}
       >
         {(['tools','progress'] as const).map(t => (
           <button
@@ -187,11 +175,9 @@ export default function LearningPage() {
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
             style={activeTab === t ? {
               background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
-              color: '#fff',
-              boxShadow: '0 2px 12px rgba(91,106,245,0.35)',
-            } : {
-              color: 'rgba(255,255,255,0.35)',
-            }}
+              color: 'var(--ink-950)',
+              boxShadow: '0 2px 12px rgba(91,106,245,0.35)' } : {
+              color: 'var(--ink-350)' }}
           >
             {t === 'tools' ? 'Study Tools' : 'My Progress'}
           </button>
@@ -209,8 +195,7 @@ export default function LearningPage() {
                 backdropFilter: 'blur(36px) saturate(180%) brightness(1.08)',
                 WebkitBackdropFilter: 'blur(36px) saturate(180%) brightness(1.08)',
                 border: '1.5px solid rgba(91,106,245,0.3)',
-                boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.18), 0 4px 24px rgba(91,106,245,0.22)',
-              }}>
+                boxShadow: 'inset 0 1.5px 0 var(--ink-180), 0 4px 24px rgba(91,106,245,0.22)' }}>
               {/* Ambient orb */}
               <div className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none"
                 style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.3), transparent 70%)', transform: 'translate(30%, -30%)' }} />
@@ -223,10 +208,10 @@ export default function LearningPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-heading font-bold text-white text-sm">My Courses</p>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
                     style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}>NEW</span>
                 </div>
-                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>
                   NCERT Classes 9–12 · Chapter-by-chapter
                 </p>
               </div>
@@ -263,7 +248,7 @@ export default function LearningPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold text-white text-sm">{title}</p>
                         {badge === 'DUE_COUNT' && dueCount !== null && dueCount > 0 && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
                             style={{ background: color }}>
                             Due: {dueCount}
                           </span>
@@ -271,7 +256,7 @@ export default function LearningPage() {
                         {(() => {
                           const lbl = activityLabel(title, weeklyStats);
                           return lbl ? (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                               style={{ background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.2)' }}>
                               {lbl}
                             </span>
@@ -287,9 +272,8 @@ export default function LearningPage() {
                 <div
                   className="rounded-3xl p-4 flex items-center gap-4 opacity-30"
                   style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
+                    background: 'var(--ink-030)',
+                    border: '1px solid var(--ink-050)' }}
                 >
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: iconBg }}>
                     <Icon size={22} style={{ color }} strokeWidth={1.75} />
@@ -309,22 +293,22 @@ export default function LearningPage() {
       {activeTab === 'tools' && (
         <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} className="flex flex-col gap-3">
           <div className="flex items-center gap-2 mb-0.5">
-            <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.07)' }} />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Content Moat</p>
-            <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.07)' }} />
+            <div className="h-px flex-1" style={{ background: 'var(--ink-070)' }} />
+            <p className="text-xs font-bold uppercase tracking-widest text-white/30">Content Moat</p>
+            <div className="h-px flex-1" style={{ background: 'var(--ink-070)' }} />
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             {CONTENT_MOAT.map(({ title, desc, icon: Icon, to, color, iconBg }, i) => (
               <motion.div key={to} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay: i*0.04 }}>
                 <Link to={to}>
                   <div className="rounded-2xl p-3.5 flex flex-col gap-2.5 active:scale-97 transition-transform h-full"
-                    style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.06)' }}>
+                    style={{ background:'var(--ink-060)', border:'1px solid var(--ink-060)' }}>
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: iconBg }}>
                       <Icon size={17} style={{ color }} strokeWidth={1.75} />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-white leading-tight">{title}</p>
-                      <p className="text-[10px] text-white/35 mt-0.5 leading-snug">{desc}</p>
+                      <p className="text-xs text-white/35 mt-0.5 leading-snug">{desc}</p>
                     </div>
                   </div>
                 </Link>
@@ -340,9 +324,9 @@ export default function LearningPage() {
           {/* Subject progress */}
           <div
             className="rounded-3xl overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}
           >
-            <div className="px-5 pt-5 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="px-5 pt-5 pb-3" style={{ borderBottom: '1px solid var(--ink-050)' }}>
               <h3 className="font-heading font-semibold text-white">Subject Progress</h3>
             </div>
             <div className="px-5 pb-5 pt-4 flex flex-col gap-4">
@@ -356,7 +340,7 @@ export default function LearningPage() {
                     <span className="font-medium text-white/80">{name}</span>
                     <span style={{ color }}>{progress}%</span>
                   </div>
-                  <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-050)' }}>
                     <motion.div
                       className="h-full rounded-full"
                       style={{ background: color, boxShadow: `0 0 6px ${color}60` }}
@@ -373,9 +357,9 @@ export default function LearningPage() {
           {/* Weekly summary */}
           <div
             className="rounded-3xl overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}
           >
-            <div className="px-5 pt-5 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="px-5 pt-5 pb-3" style={{ borderBottom: '1px solid var(--ink-050)' }}>
               <h3 className="font-heading font-semibold text-white">Weekly Summary</h3>
             </div>
             <div className="px-5 pb-5 pt-4">
@@ -389,11 +373,11 @@ export default function LearningPage() {
                     { label: 'Quizzes', value: weeklyStats.quizzes, sub: 'completed', icon: Target,   color: '#F9A8D4' },
                   ].map(({ label, value, sub, icon: Icon, color }) => (
                     <div key={label} className="text-center p-3 rounded-2xl"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-060)' }}>
                       <Icon size={16} style={{ color }} className="mx-auto mb-1.5" />
                       <p className="font-heading text-xl font-bold text-white">{value}</p>
-                      <p className="text-[10px] text-white/40 mt-0.5">{label}</p>
-                      <p className="text-[10px] text-white/30">{sub}</p>
+                      <p className="text-xs text-white/40 mt-0.5">{label}</p>
+                      <p className="text-xs text-white/30">{sub}</p>
                     </div>
                   ))}
                 </div>

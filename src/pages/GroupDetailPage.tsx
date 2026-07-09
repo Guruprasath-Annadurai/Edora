@@ -24,11 +24,11 @@ function rankLabel(rank: number): { text: string; color: string } {
   if (rank === 1) return { text: '1st', color: '#FFD700' };
   if (rank === 2) return { text: '2nd', color: '#C0C0C0' };
   if (rank === 3) return { text: '3rd', color: '#CD7F32' };
-  return { text: `#${rank}`, color: 'rgba(255,255,255,0.4)' };
+  return { text: `#${rank}`, color: 'var(--ink-400)' };
 }
 
 // ── Leaderboard tab ───────────────────────────────────────────────────────────
-function LeaderboardTab({ groupId, userId }: { groupId: string; userId: string }) {
+function LeaderboardTab({ groupId }: { groupId: string; userId?: string }) {
   const [board, setBoard]         = useState<GroupLeaderboardEntry[]>([]);
   const [weekStart, setWeekStart] = useState('');
   const [loading, setLoading]     = useState(true);
@@ -53,7 +53,7 @@ function LeaderboardTab({ groupId, userId }: { groupId: string; userId: string }
 
   if (board.length === 0) return (
     <div className="text-center py-12 px-6">
-      <Trophy size={40} className="mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.25)' }} />
+      <Trophy size={40} className="mx-auto mb-3" style={{ color: 'var(--ink-250)' }} />
       <p className="font-heading font-bold text-white">No activity yet</p>
       <p className="text-sm text-muted-foreground mt-1">Complete sprints this week to appear on the leaderboard!</p>
     </div>
@@ -74,7 +74,7 @@ function LeaderboardTab({ groupId, userId }: { groupId: string; userId: string }
           className="rounded-2xl overflow-hidden"
           style={entry.is_current_user
             ? { background: 'rgba(91,106,245,0.12)', border: '1px solid #5B6AF5' }
-            : { background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            : { background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
           <div className="px-4 py-3 flex items-center gap-3">
             {(() => { const r = rankLabel(entry.rank); return <span className="w-9 text-center shrink-0 text-sm font-bold" style={{ color: r.color }}>{r.text}</span>; })()}
 
@@ -107,11 +107,11 @@ function LeaderboardTab({ groupId, userId }: { groupId: string; userId: string }
 
           {/* Progress bar (relative to leader) */}
           {board.length > 0 && (
-            <div className="h-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-1" style={{ background: 'var(--ink-060)' }}>
               <div className="h-full rounded-r-full transition-all"
                 style={{
                   width: `${board[0].weekly_xp > 0 ? (entry.weekly_xp / board[0].weekly_xp) * 100 : 0}%`,
-                  background: entry.is_current_user ? 'linear-gradient(90deg, #5B6AF5, #8B5CF6)' : 'rgba(255,255,255,0.2)',
+                  background: entry.is_current_user ? 'linear-gradient(90deg, #5B6AF5, #8B5CF6)' : 'var(--ink-200)',
                 }} />
             </div>
           )}
@@ -126,13 +126,11 @@ function LeaderboardTab({ groupId, userId }: { groupId: string; userId: string }
 }
 
 // ── Members tab ───────────────────────────────────────────────────────────────
-function MembersTab({ members, myRole, groupId }: {
+function MembersTab({ members }: {
   members: StudyGroupMember[];
-  myRole: 'admin' | 'member';
-  groupId: string;
+  myRole?: 'admin' | 'member';
+  groupId?: string;
 }) {
-  const [copiedCode, setCopiedCode] = useState(false);
-
   return (
     <div className="flex flex-col gap-3 px-4 py-4">
       <p className="text-xs text-muted-foreground font-semibold">{members.length} member{members.length !== 1 ? 's' : ''}</p>
@@ -141,7 +139,7 @@ function MembersTab({ members, myRole, groupId }: {
         <motion.div key={m.user_id}
           initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
           className="rounded-2xl px-4 py-3 flex items-center gap-3"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 font-bold text-white text-sm"
             style={{ background: m.role === 'admin' ? 'linear-gradient(135deg, #F59E0B, #EF4444)' : 'linear-gradient(135deg, #94a3b8, #64748b)' }}>
             {(m.full_name ?? 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
@@ -247,7 +245,7 @@ export default function GroupDetailPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="px-4 py-3 shrink-0 sticky top-0 z-20"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <div className="flex items-center gap-3 mb-3">
           <button aria-label="Go back" onClick={() => navigate('/study-groups')} className="text-white">
             <ChevronLeft size={20} />
@@ -276,7 +274,7 @@ export default function GroupDetailPage() {
           ) : (
             <button onClick={() => setShowLeave(true)}
               className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
               <LogOut size={14} className="text-muted-foreground" />
             </button>
           )}
@@ -288,8 +286,8 @@ export default function GroupDetailPage() {
             <button key={t} onClick={() => setTab(t)}
               className="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all"
               style={tab === t
-                ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'white' }
-                : { background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
+                ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'var(--ink-950)' }
+                : { background: 'var(--ink-055)', border: '1px solid var(--ink-080)', color: 'var(--ink-500)' }}>
               {t === 'leaderboard' ? <><Trophy size={11} className="inline mr-1" />Leaderboard</> : <><Users size={11} className="inline mr-1" />Members</>}
             </button>
           ))}
@@ -309,10 +307,10 @@ export default function GroupDetailPage() {
           <motion.div className="fixed inset-0 z-50 flex items-end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/40" onClick={() => { setShowLeave(false); setShowDelete(false); }} />
             <motion.div className="relative w-full rounded-t-3xl p-6 pb-10"
-              style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+              style={{ background: 'var(--hdr-a-880)', border: '1px solid var(--ink-100)', borderBottom: 'none' }}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />
+              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'var(--ink-200)' }} />
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                   style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>

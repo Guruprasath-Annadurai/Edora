@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ArrowLeft, Check } from 'lucide-react';
+import { ChevronDown, ArrowLeft, Check, ShieldCheck, FileText, Target, Lock, Scale } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CharacterImage } from '@/components/ui/CharacterImage';
 
@@ -13,22 +13,22 @@ const PURPLE = 'linear-gradient(135deg,#5B6AF5,#8B5CF6)';
 const SECTIONS = [
   {
     title: 'Information We Collect',
-    icon: '📋',
+    icon: FileText,
     content: `We collect information you provide when creating an account (name, email address, study level) and information generated through your use of EDORA (quiz results, chat history, learning progress, and session summaries). We also collect device information such as device type, operating system, and app version for performance optimization.`,
   },
   {
     title: 'How We Use Information',
-    icon: '🎯',
+    icon: Target,
     content: `Your information is used to personalize your learning experience, power Novo AI's memory and tutoring capabilities, track your progress and streaks, send study reminders (with your permission), and improve our services. We do not sell your personal data to third parties. AI session summaries are stored to help Novo remember your learning history and weak spots.`,
   },
   {
     title: 'Data Protection',
-    icon: '🔒',
+    icon: Lock,
     content: `All data is encrypted in transit (TLS 1.3) and at rest. We use Supabase for secure data storage with Row Level Security (RLS), ensuring only you can access your own data. Authentication is handled via Supabase Auth with support for OAuth (Google, Apple). We retain your data for as long as your account is active.`,
   },
   {
     title: 'Your Rights',
-    icon: '⚖️',
+    icon: Scale,
     content: `You have the right to access, correct, or delete your personal data at any time from your Profile settings. You can request a full data export or account deletion by contacting us at privacy@edora.app. For users under 18, parental consent may be required. You may opt out of analytics tracking from Account Settings.`,
   },
 ];
@@ -53,7 +53,7 @@ function AccordionSection({
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-4 py-4 text-left"
       >
-        <span className="text-xl shrink-0">{section.icon}</span>
+        <section.icon size={20} className="shrink-0" style={{ color: '#5B6AF5' }} strokeWidth={1.7} />
         <span className="flex-1 font-semibold text-sm" style={{ color: DARK }}>{section.title}</span>
         <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronDown size={18} color={isOpen ? '#5B6AF5' : GRAY} />
@@ -121,7 +121,7 @@ export default function PrivacyPolicyPage() {
 
       {/* ── Illustration ── */}
       <div className="flex items-center justify-center shrink-0 py-2">
-        <CharacterImage slug="privacy-character" anim="sway" height={160} fallbackEmoji="🛡️" />
+        <CharacterImage slug="privacy-character" anim="sway" height={160} fallbackIcon={<ShieldCheck size={40} style={{ color: '#818CF8' }} strokeWidth={1.6} />} />
       </div>
 
       {/* ── Scrollable content ── */}

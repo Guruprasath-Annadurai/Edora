@@ -168,8 +168,8 @@ function MasteryArc({ pct, size = 120 }: { pct: number; size?: number }) {
   // 180° arc: start at left (180°) → end at right (0°), going through top
   // In SVG angles: start = Math.PI (left), sweep counter-clockwise to 0 (right)
   // We draw background arc then foreground arc
-  const startAngle = Math.PI;   // left
-  const endAngle   = 0;         // right (going counter-clockwise = up through top)
+  const _startAngle = Math.PI;   // left
+  const _endAngle   = 0;         // right (going counter-clockwise = up through top)
 
   function polarToXY(angle: number): [number, number] {
     return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
@@ -193,7 +193,7 @@ function MasteryArc({ pct, size = 120 }: { pct: number; size?: number }) {
         <path
           d={`M ${bgX1} ${bgY1} A ${r} ${r} 0 0 1 ${bgX2} ${bgY2}`}
           fill="none"
-          stroke="rgba(255,255,255,0.15)"
+          stroke="var(--ink-150)"
           strokeWidth={stroke}
           strokeLinecap="round"
         />
@@ -295,21 +295,21 @@ function DetailPanel({
       {/* Sheet */}
       <motion.div
         className="relative w-full rounded-t-3xl px-5 pt-5 pb-10"
-        style={{ maxHeight: '80vh', overflowY: 'auto', background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ maxHeight: '80vh', overflowY: 'auto', background: 'var(--hdr-a-880)', border: '1px solid var(--ink-100)', borderBottom: 'none' }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
       >
         {/* Drag handle */}
-        <div className="w-10 h-1.5 rounded-full mx-auto mb-4" style={{ background: 'rgba(255,255,255,0.2)' }} />
+        <div className="w-10 h-1.5 rounded-full mx-auto mb-4" style={{ background: 'var(--ink-200)' }} />
 
         {/* Close button */}
         <button
           aria-label="Close"
           onClick={onClose}
           className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--ink-080)' }}
         >
           <X size={16} className="text-muted-foreground" />
         </button>
@@ -394,11 +394,11 @@ function StatCard({
   return (
     <div
       className="rounded-xl p-3 flex flex-col items-center gap-1"
-      style={{ background: 'rgba(255,255,255,0.06)' }}
+      style={{ background: 'var(--ink-060)' }}
     >
       <div style={{ color }}>{icon}</div>
       <span className="text-base font-bold text-white">{value}</span>
-      <span className="text-[10px] text-muted-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
     </div>
   );
 }
@@ -734,9 +734,9 @@ function ConceptGraph({ nodes, edges, activeSubject, onNodeTap, lockedNodeIds = 
             const isInChain = chainNodeIds.has(node.id);
             const isSelected = selectedNodeId === node.id;
             const color     = isLocked ? '#6B7280' : masteryColor(node.mastery_pct);
-            const fillColor = isSelected ? `${color}35` : isLocked ? 'rgba(107,114,128,0.08)' : isInChain ? 'rgba(251,191,36,0.12)' : isActive ? `${color}22` : 'rgba(255,255,255,0.04)';
-            const stroke    = isSelected ? color : isLocked ? 'rgba(107,114,128,0.4)' : isInChain ? '#FBBF24' : isActive ? color : 'rgba(255,255,255,0.15)';
-            const textColor = isLocked ? 'rgba(255,255,255,0.3)' : isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)';
+            const fillColor = isSelected ? `${color}35` : isLocked ? 'rgba(107,114,128,0.08)' : isInChain ? 'rgba(251,191,36,0.12)' : isActive ? `${color}22` : 'var(--ink-040)';
+            const stroke    = isSelected ? color : isLocked ? 'rgba(107,114,128,0.4)' : isInChain ? '#FBBF24' : isActive ? color : 'var(--ink-150)';
+            const textColor = isLocked ? 'var(--ink-300)' : isActive ? 'var(--ink-900)' : 'var(--ink-300)';
 
             return (
               <g
@@ -768,7 +768,7 @@ function ConceptGraph({ nodes, edges, activeSubject, onNodeTap, lockedNodeIds = 
                       x={10} y={NODE_H - 8}
                       width={NODE_W - 20} height={4}
                       rx={2}
-                      fill="rgba(255,255,255,0.1)"
+                      fill="var(--ink-100)"
                     />
                     <rect
                       x={10} y={NODE_H - 8}
@@ -793,15 +793,10 @@ function ConceptGraph({ nodes, edges, activeSubject, onNodeTap, lockedNodeIds = 
                 </text>
                 {/* Mastery pct or lock icon */}
                 {isLocked ? (
-                  <text
-                    x={NODE_W / 2}
-                    y={38}
-                    textAnchor="middle"
-                    fontSize={13}
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    🔒
-                  </text>
+                  <g transform={`translate(${NODE_W / 2 - 6}, 30)`} style={{ pointerEvents: 'none' }}>
+                    <rect x="1" y="5" width="10" height="7" rx="1.5" fill="none" stroke={textColor} strokeWidth="1.3" />
+                    <path d="M3 5V3.5a3 3 0 0 1 6 0V5" fill="none" stroke={textColor} strokeWidth="1.3" />
+                  </g>
                 ) : isActive && (
                   <text
                     x={NODE_W / 2}
@@ -981,7 +976,7 @@ export default function ConceptMapPage() {
         <Link
           to="/tools"
           className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
         >
           <ArrowLeft size={18} className="text-white" />
         </Link>
@@ -1061,7 +1056,7 @@ export default function ConceptMapPage() {
       {/* ── Hint ────────────────────────────────────────────────────────── */}
       {!loading && nodes.length > 0 && (
         <div
-          className="shrink-0 text-center text-[11px] text-muted-foreground pb-safe"
+          className="shrink-0 text-center text-xs text-muted-foreground pb-safe"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)', paddingTop: 4 }}
         >
           Drag to pan · Pinch or scroll to zoom · Double-tap to fit
@@ -1104,9 +1099,9 @@ function FilterPill({
       onClick={onClick}
       className="shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
       style={{
-        background: active ? 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' : 'rgba(255,255,255,0.055)',
-        color:      active ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
-        border:     active ? 'none' : '1px solid rgba(255,255,255,0.1)',
+        background: active ? 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' : 'var(--ink-055)',
+        color:      active ? '#FFFFFF' : 'var(--ink-500)',
+        border:     active ? 'none' : '1px solid var(--ink-100)',
         boxShadow:  active ? '0 2px 8px rgba(91,106,245,0.3)' : 'none',
       }}
     >

@@ -54,10 +54,10 @@ Return ONLY valid JSON (no markdown): {
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/tools"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
           <ChevronLeft size={18} className="text-white" />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -71,7 +71,7 @@ Return ONLY valid JSON (no markdown): {
         {phase === 'result' && (
           <button onClick={() => { setPhase('idle'); setResult(null); }}
             className="p-2 rounded-xl"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <RotateCcw size={15} className="text-muted-foreground" />
           </button>
         )}
@@ -97,12 +97,12 @@ Return ONLY valid JSON (no markdown): {
               <input type="text" placeholder="Concept / Formula / Fact (e.g. Krebs Cycle)"
                 value={topic} onChange={e => setTopic(e.target.value)}
                 className="rounded-2xl px-4 h-14 text-white placeholder:text-white/30 outline-none w-full"
-                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+                style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
 
               <input type="text" placeholder="Context (optional — e.g. Biology chapter 5)"
                 value={context} onChange={e => setContext(e.target.value)}
                 className="rounded-2xl px-4 h-11 text-white placeholder:text-white/30 outline-none w-full text-sm"
-                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+                style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
 
               {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
@@ -123,7 +123,7 @@ Return ONLY valid JSON (no markdown): {
                 <motion.div key={key}
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="rounded-3xl overflow-hidden"
-                  style={{ border: `1px solid ${color}30`, background: 'rgba(15,20,45,0.75)' }}>
+                  style={{ border: `1px solid ${color}30`, background: 'var(--hdr-b-750)' }}>
                   <div className="flex items-center justify-between px-4 py-3"
                     style={{ background: bg, borderBottom: `1px solid ${color}20` }}>
                     <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ Return ONLY valid JSON (no markdown): {
                     </div>
                     <button onClick={() => copyText(result[key])}
                       className="p-1.5 rounded-lg"
-                      style={{ background: 'rgba(255,255,255,0.08)', border: `1px solid ${color}30` }}>
+                      style={{ background: 'var(--ink-080)', border: `1px solid ${color}30` }}>
                       <Copy size={12} style={{ color }} />
                     </button>
                   </div>

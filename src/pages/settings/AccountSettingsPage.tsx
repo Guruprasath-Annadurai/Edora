@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, ChevronLeft, Save, Trash2, AlertTriangle, ExternalLink, Sparkles, Languages, BarChart2, Download } from 'lucide-react';
+import { User, ChevronLeft, Save, Trash2, AlertTriangle, ExternalLink, Sparkles, Languages, BarChart2, Download, RefreshCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,6 +9,7 @@ import { Toast } from '@capacitor/toast';
 import { Browser } from '@capacitor/browser';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import posthog from 'posthog-js';
+import { reindexAllUserContent, getUserIndexStatus } from '@/lib/userContentIndex';
 
 const STUDY_LEVELS = [
   { value: 'school',   label: 'School (Class 6–12)' },
@@ -29,9 +30,15 @@ export default function AccountSettingsPage() {
   const [showDelete,   setShowDelete]   = useState(false);
   const [deleting,     setDeleting]     = useState(false);
   const [exporting,    setExporting]    = useState(false);
+  const [syncing,      setSyncing]      = useState(false);
+  const [indexStatus,  setIndexStatus]  = useState<{ flashcards_total: number; notes_total: number; indexed_total: number } | null>(null);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(
     () => localStorage.getItem('edora_analytics_opt_out') !== 'true'
   );
+
+  useEffect(() => {
+    getUserIndexStatus().then(setIndexStatus).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (analyticsEnabled) {
@@ -52,8 +59,7 @@ export default function AccountSettingsPage() {
         full_name:  name.trim(),
         study_level: level,
         exam_name:  examName.trim() || null,
-        exam_date:  examDate || null,
-      })
+        exam_date:  examDate || null })
       .eq('id', profile.id);
     if (error) {
       await Toast.show({ text: 'Failed to save changes', duration: 'short', position: 'bottom' });
@@ -70,8 +76,7 @@ export default function AccountSettingsPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke('export-user-data', {
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-      });
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {} });
       if (res.error) throw res.error;
       // Trigger browser / native file save
       const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
@@ -84,11 +89,23 @@ export default function AccountSettingsPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       await Toast.show({ text: 'Your data export has been downloaded.', duration: 'long', position: 'bottom' });
-    } catch (err) {
-      console.error('[exportData]', err);
-      await Toast.show({ text: 'Export failed. Please try again.', duration: 'short', position: 'bottom' });
+    } catch {
+      await Toast.show({ text: 'Export failed. Please try again.', duration: 'short', position: 'bottom'});
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function syncNotes() {
+    setSyncing(true);
+    try {
+      const result = await reindexAllUserContent();
+      setIndexStatus(await getUserIndexStatus().catch(() => null) ?? indexStatus);
+      await Toast.show({ text: `Synced ${result.indexed} items (${result.embedded} embedded).`, duration: 'long', position: 'bottom' });
+    } catch {
+      await Toast.show({ text: 'Sync failed. Please try again.', duration: 'short', position: 'bottom' });
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -102,14 +119,12 @@ export default function AccountSettingsPage() {
       const res = await supabase.functions.invoke('delete-account', {
         headers: session?.access_token
           ? { Authorization: `Bearer ${session.access_token}` }
-          : {},
-      });
+          : {} });
       if (res.error) throw res.error;
       await signOut();
       navigate('/login', { replace: true });
-    } catch (err) {
-      console.error('[deleteAccount]', err);
-      await Toast.show({ text: 'Failed to delete account. Please try again.', duration: 'short', position: 'bottom' });
+    } catch {
+      await Toast.show({ text: 'Failed to delete account. Please try again.', duration: 'short', position: 'bottom'});
       setDeleting(false);
       setShowDelete(false);
     }
@@ -118,10 +133,10 @@ export default function AccountSettingsPage() {
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/profile"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
           <ChevronLeft size={18} className="text-white" />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -151,7 +166,7 @@ export default function AccountSettingsPage() {
           <input type="text" value={name} onChange={e => setName(e.target.value)}
             placeholder="Your full name"
             className="rounded-2xl px-4 h-12 text-white placeholder:text-white/30 outline-none w-full text-sm"
-            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+            style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
         </motion.div>
 
         {/* Study level */}
@@ -163,7 +178,7 @@ export default function AccountSettingsPage() {
                 className="flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left"
                 style={level === value
                   ? { background: 'rgba(91,106,245,0.15)', borderColor: 'rgba(91,106,245,0.5)' }
-                  : { background: 'rgba(255,255,255,0.055)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                  : { background: 'var(--ink-055)', borderColor: 'var(--ink-080)' }}>
                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all
                   ${level === value ? 'border-primary' : 'border-border'}`}>
                   {level === value && <div className="w-2 h-2 rounded-full bg-primary" />}
@@ -181,12 +196,12 @@ export default function AccountSettingsPage() {
             <input type="text" value={examName} onChange={e => setExamName(e.target.value)}
               placeholder="Exam name (e.g. JEE Main, NEET, SAT)"
               className="rounded-2xl px-4 h-12 text-white placeholder:text-white/30 outline-none w-full text-sm"
-              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+              style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
             <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)}
               min={new Date().toISOString().slice(0, 10)}
               max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
               className="rounded-2xl px-4 h-12 text-white outline-none w-full text-sm"
-              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', colorScheme: 'dark' }} />
+              style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', colorScheme: 'dark' }} />
             <p className="text-xs text-muted-foreground px-1">Shows a countdown on your home screen</p>
           </div>
         </motion.div>
@@ -210,7 +225,7 @@ export default function AccountSettingsPage() {
         {/* About & Legal */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}
           className="rounded-3xl overflow-hidden"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
           <div className="px-4 pt-4 pb-2 flex items-center gap-2">
             <Sparkles size={15} className="text-primary" />
             <p className="font-semibold text-white text-sm">About Edora</p>
@@ -226,19 +241,19 @@ export default function AccountSettingsPage() {
           <button
             onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
             className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ borderTop: '1px solid var(--ink-070)' }}>
             <span className="text-sm font-medium text-white/80">Privacy Policy</span>
             <ExternalLink size={15} className="text-muted-foreground" />
           </button>
           <Link to="/data-rights"
             className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ borderTop: '1px solid var(--ink-070)' }}>
             <span className="text-sm font-medium text-white/80">Data & Privacy Rights (DPDP)</span>
             <ExternalLink size={15} className="text-muted-foreground" />
           </Link>
           <div
             className="w-full flex items-center justify-between px-4 py-3"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ borderTop: '1px solid var(--ink-070)' }}>
             <div className="flex items-center gap-2">
               <BarChart2 size={15} className="text-muted-foreground" />
               <span className="text-sm font-medium text-white/80">Analytics & Crash Reporting</span>
@@ -246,7 +261,7 @@ export default function AccountSettingsPage() {
             <button
               onClick={() => setAnalyticsEnabled(v => !v)}
               className="relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none"
-              style={{ background: analyticsEnabled ? '#5B6AF5' : 'rgba(255,255,255,0.15)' }}
+              style={{ background: analyticsEnabled ? '#5B6AF5' : 'var(--ink-150)' }}
               aria-label={analyticsEnabled ? 'Disable analytics' : 'Enable analytics'}
             >
               <span
@@ -258,7 +273,7 @@ export default function AccountSettingsPage() {
           <button
             onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' })}
             className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ borderTop: '1px solid var(--ink-070)' }}>
             <span className="text-sm font-medium text-white/80">Terms of Service</span>
             <ExternalLink size={15} className="text-muted-foreground" />
           </button>
@@ -267,7 +282,7 @@ export default function AccountSettingsPage() {
         {/* Data export — DPDP Act 2023 right to portability */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.155 }}
           className="rounded-3xl overflow-hidden"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
           <div className="px-4 pt-4 pb-2 flex items-center gap-2">
             <Download size={15} className="text-primary" />
             <p className="font-semibold text-white text-sm">Your Data</p>
@@ -282,6 +297,32 @@ export default function AccountSettingsPage() {
               style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}>
               <Download size={15} />
               {exporting ? 'Preparing export…' : 'Export my data'}
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Novo AI index — sync notes + flashcards */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
+          className="rounded-3xl overflow-hidden"
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
+          <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+            <RefreshCw size={15} className="text-emerald-400" />
+            <p className="font-semibold text-white text-sm">Novo AI Index</p>
+          </div>
+          <div className="px-4 pb-4">
+            <p className="text-xs text-muted-foreground mb-1 leading-relaxed">
+              Keeps Novo's memory of your notes and flashcards fresh so it can reference them in chat.
+            </p>
+            {indexStatus && (
+              <p className="text-xs text-white/40 mb-3">
+                {indexStatus.indexed_total} / {indexStatus.flashcards_total + indexStatus.notes_total} items indexed
+              </p>
+            )}
+            <button onClick={syncNotes} disabled={syncing}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-emerald-400 active:opacity-70 disabled:opacity-50 transition-opacity"
+              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
+              {syncing ? 'Syncing…' : 'Sync my notes'}
             </button>
           </div>
         </motion.div>

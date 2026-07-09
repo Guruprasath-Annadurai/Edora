@@ -64,19 +64,19 @@ export default function ClassroomCallbackPage() {
         alignItems:     'center',
         justifyContent: 'center',
         padding:        '24px',
-        background: 'linear-gradient(180deg, #0A0F25 0%, #080C1A 100%)',
+        background: 'linear-gradient(180deg, var(--page-bg-start) 0%, var(--page-bg-end) 100%)',
       }}
     >
       <div
         style={{
-          background:   'rgba(255,255,255,0.06)',
+          background:   'var(--ink-060)',
           borderRadius: '20px',
           padding:      '40px 32px',
           textAlign:    'center',
           maxWidth:     '380px',
           width:        '100%',
           boxShadow:    '0 25px 50px rgba(0,0,0,0.5)',
-          border:       '1px solid rgba(255,255,255,0.08)',
+          border:       '1px solid var(--ink-080)',
         }}
       >
         {/* Icon */}
@@ -96,7 +96,7 @@ export default function ClassroomCallbackPage() {
         </div>
 
         {/* Logo */}
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '12px', fontWeight: 600 }}>
+        <div style={{ fontSize: '13px', color: 'var(--ink-500)', marginBottom: '12px', fontWeight: 600 }}>
           EDORA × GOOGLE CLASSROOM
         </div>
 
@@ -105,7 +105,7 @@ export default function ClassroomCallbackPage() {
           style={{
             fontSize:     '20px',
             fontWeight:   '800',
-            color:        'white',
+            color: 'var(--ink-950)',
             marginBottom: '8px',
           }}
         >
@@ -114,7 +114,7 @@ export default function ClassroomCallbackPage() {
           {status === 'error'      && 'Connection Failed'}
         </h2>
 
-        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '14px', color: 'var(--ink-600)', lineHeight: 1.6 }}>
           {message}
         </p>
 
@@ -136,7 +136,7 @@ export default function ClassroomCallbackPage() {
         )}
 
         {status === 'success' && (
-          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '12px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--ink-400)', marginTop: '12px' }}>
             Redirecting to Teacher Dashboard…
           </p>
         )}
@@ -147,7 +147,7 @@ export default function ClassroomCallbackPage() {
             style={{
               marginTop:    '20px',
               background:   'linear-gradient(135deg, #5B6AF5, #8B5CF6)',
-              color:        '#fff',
+              color: 'var(--ink-950)',
               border:       'none',
               borderRadius: '12px',
               padding:      '12px 28px',

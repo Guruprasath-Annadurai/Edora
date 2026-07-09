@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Flame, Star, Bell, Play, CalendarClock, X, ChevronRight,
-  Sparkles, Zap, Bot, BookMarked, Target, Clock,
+import {Flame, Star, Bell, Play, CalendarClock, X, ChevronRight,
+  Sparkles, Zap, Bot, BookMarked, Target,
   Calculator, Atom, FlaskConical, Microscope, BookOpen,
   BarChart3, Code2, AlertTriangle, Snowflake, ArrowRight,
-  Trophy, TrendingUp, CheckCircle2, Circle, Gift, Music, Timer,
-  GraduationCap, TrendingDown, Siren, BookCheck,
-} from 'lucide-react';
+  Trophy, TrendingUp, CheckCircle2, Circle, Music, Timer,
+  GraduationCap, TrendingDown, Siren, BookCheck} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -24,7 +22,7 @@ import { updateHomeWidget } from '@/plugins/EdoraWidgetPlugin';
 import { MoodCheckIn } from '@/components/home/MoodCheckIn';
 import { WarRoomBanner } from '@/components/home/WarRoomBanner';
 import { FocusModeOverlay } from '@/components/study/FocusModeOverlay';
-import { SpotifyBreakPlayer } from '@/components/study/SpotifyBreakPlayer';
+import { StudyBreakPlayer } from '@/components/study/StudyBreakPlayer';
 import { lessonIdToLabel } from '@/hooks/useStudyContext';
 import { OnboardingTour } from '@/components/onboarding/OnboardingTour';
 import type { NovoProactiveMessage, SprintSession } from '@/types';
@@ -49,13 +47,11 @@ function getGreeting() {
 const SUBJECT_ICON: Record<string, React.ComponentType<{ size?: number | string; className?: string; style?: React.CSSProperties }>> = {
   Mathematics: Calculator, Physics: Atom, Chemistry: FlaskConical, Biology: Microscope,
   English: BookOpen, History: BarChart3, Economics: BarChart3, 'Computer Science': Code2,
-  Science: Atom,
-};
+  Science: Atom };
 const SUBJECT_COLOR: Record<string, string> = {
   Mathematics: '#93C5FD', Physics: '#C4B5FD', Chemistry: '#6EE7B7', Biology: '#86EFAC',
   English: '#FCA5A5', History: '#FDE68A', Economics: '#A5F3FC', 'Computer Science': '#DDD6FE',
-  Science: '#C4B5FD',
-};
+  Science: '#C4B5FD' };
 
 function todayKey(uid: string) { return `challenges_${uid}_${new Date().toISOString().slice(0, 10)}`; }
 function getAwardedSet(uid: string): Set<string> { try { return new Set<string>(JSON.parse(localStorage.getItem(todayKey(uid)) ?? '[]')); } catch { return new Set<string>(); } }
@@ -67,14 +63,14 @@ function XPRing({ progress, size = 56 }: { progress: number; size?: number }) {
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--ink-080)" strokeWidth={stroke} />
         <motion.circle cx={size/2} cy={size/2} r={r} fill="none" stroke="white" strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circ}
           initial={{ strokeDashoffset: circ }}
           animate={{ strokeDashoffset: circ - (progress / 100) * circ }}
           transition={{ duration: 1, ease: 'easeOut' }}
-          style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} />
+          style={{ filter: 'drop-shadow(0 0 4px var(--ink-600))' }} />
       </svg>
       <Play size={10} className="fill-white text-white ml-0.5" />
     </div>
@@ -85,8 +81,8 @@ function XPRing({ progress, size = 56 }: { progress: number; size?: number }) {
 function RivalBadge({ userId }: { userId: string }) {
   const [rivalName, setRivalName] = useState<string | null>(null);
   const [delta, setDelta]         = useState<number | null>(null);
-  const [myXP, setMyXP]           = useState(0);
-  const [rivalXP, setRivalXP]     = useState(0);
+  const [_myXP, setMyXP]           = useState(0);
+  const [_rivalXP, setRivalXP]     = useState(0);
   const [loaded, setLoaded]       = useState(false);
 
   useEffect(() => {
@@ -112,12 +108,11 @@ function RivalBadge({ userId }: { userId: string }) {
       className="flex items-center gap-2 px-3 py-2 rounded-2xl"
       style={{
         background: ahead ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-        border: `1px solid ${ahead ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
-      }}
+        border: `1px solid ${ahead ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}
     >
       <Trophy size={12} style={{ color: ahead ? '#10B981' : '#EF4444' }} />
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ahead ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.6)' }}>
+        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: ahead ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.6)' }}>
           vs {rivalName}
         </p>
         <p className="text-xs font-bold text-white leading-none">
@@ -139,52 +134,44 @@ function ContinueCard({ hero, loading }: { hero: ContinueHero | null; loading: b
     sprint:    ['#F59E0B','#EF4444'],
     quiz:      ['#EC4899','#8B5CF6'],
     flashcard: ['#10B981','#06B6D4'],
-    chat:      ['#5B6AF5','#8B5CF6'],
-  };
-  const [c1, c2] = hero ? typeColor[hero.type] : ['#5B6AF5','#8B5CF6'];
+    chat:      ['#5B6AF5','#8B5CF6'] };
+  const [c1] = hero ? typeColor[hero.type] : ['#5B6AF5','#8B5CF6'];
 
   return (
     <div
-      className="rounded-3xl overflow-hidden active:scale-98 transition-transform cursor-pointer"
+      className="rounded-3xl overflow-hidden active:scale-98 transition-transform cursor-pointer v2-card"
       onClick={() => hero && navigate(hero.to)}
-      style={{
-        background: 'linear-gradient(135deg,#1A1350 0%,#0E0C2A 100%)',
-        border: '1px solid rgba(91,106,245,0.25)',
-        boxShadow: '0 8px 40px rgba(91,106,245,0.2), inset 0 1px 0 rgba(255,255,255,0.06)',
-      }}
     >
-      <div style={{ height: 2, background: `linear-gradient(90deg,${c1},${c2})` }} />
+      <div style={{ height: 2, background: c1 }} />
       <div className="p-5">
         {loading ? (
           <div className="animate-pulse space-y-3">
-            <div className="h-3 w-28 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
-            <div className="h-6 w-52 rounded-lg" style={{ background: 'rgba(255,255,255,0.1)' }} />
-            <div className="h-3 w-36 rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }} />
+            <div className="h-3 w-28 rounded-full" style={{ background: 'var(--v2-border)' }} />
+            <div className="h-6 w-52 rounded-lg" style={{ background: 'var(--v2-border)' }} />
+            <div className="h-3 w-36 rounded-full" style={{ background: 'var(--v2-border)' }} />
           </div>
         ) : hero ? (
           <>
             <div className="flex items-center gap-1.5 mb-2">
               {(() => { const Icon = SUBJECT_ICON[hero.subject] ?? Sparkles; return <Icon size={11} style={{ color: SUBJECT_COLOR[hero.subject] ?? '#A0AEFF' }} />; })()}
-              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: SUBJECT_COLOR[hero.subject] ?? '#A0AEFF' }}>{hero.subject}</p>
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: SUBJECT_COLOR[hero.subject] ?? '#A0AEFF' }}>{hero.subject}</p>
             </div>
-            <h2 className="font-heading text-xl font-extrabold text-white leading-tight mb-1">{hero.topic}</h2>
-            <p className="text-xs text-white/40 mb-4">{hero.meta}</p>
+            <h2 className="font-heading text-xl font-extrabold leading-tight mb-1" style={{ color: 'var(--v2-text-1)' }}>{hero.topic}</h2>
+            <p className="text-xs mb-4" style={{ color: 'var(--v2-text-4)' }}>{hero.meta}</p>
           </>
         ) : (
           <>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2">Ready to start</p>
-            <h2 className="font-heading text-xl font-extrabold text-white leading-tight mb-1">Begin your first session</h2>
-            <p className="text-xs text-white/40 mb-4">Pick a subject and start earning XP</p>
+            <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--v2-text-4)' }}>Ready to start</p>
+            <h2 className="font-heading text-xl font-extrabold leading-tight mb-1" style={{ color: 'var(--v2-text-1)' }}>Begin your first session</h2>
+            <p className="text-xs mb-4" style={{ color: 'var(--v2-text-4)' }}>Pick a subject and start earning XP</p>
           </>
         )}
 
         <div
-          className="flex items-center justify-between px-4 py-3 rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.07)' }}
+          className="flex items-center justify-between px-4 py-3 rounded-2xl v2-btn-primary"
         >
-          <span className="text-white text-sm font-bold">{hero ? typeLabel[hero.type] : 'Start Learning'}</span>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: `linear-gradient(135deg,${c1},${c2})` }}>
+          <span className="text-sm font-bold">{hero ? typeLabel[hero.type] : 'Start Learning'}</span>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
             <Play size={12} className="text-white fill-white ml-0.5" />
           </div>
         </div>
@@ -194,14 +181,13 @@ function ContinueCard({ hero, loading }: { hero: ContinueHero | null; loading: b
 }
 
 // ── Exam Countdown Hero Card ──────────────────────────────────────────────────
-function ExamCountdownHeroCard({ examName, days }: { examName: string; days: number }) {
+function ExamCountdownHeroCard({ examName, days, coveragePct }: { examName: string; days: number; coveragePct?: number }) {
   const tier = days <= 3 ? 'war' : days <= 14 ? 'danger' : days <= 45 ? 'caution' : 'safe';
   const TIER = {
     war:     { color: '#EF4444', glow: 'rgba(239,68,68,0.3)',    bg: 'rgba(239,68,68,0.09)',    border: 'rgba(239,68,68,0.28)',    label: 'War Mode',       tagline: 'Every hour matters. Zero distractions now.',  Icon: Siren },
     danger:  { color: '#F97316', glow: 'rgba(249,115,22,0.22)',  bg: 'rgba(249,115,22,0.08)',   border: 'rgba(249,115,22,0.22)',   label: 'Final Push',     tagline: 'Crunch time. Hammer your weak areas first.',  Icon: AlertTriangle },
     caution: { color: '#FBBF24', glow: 'rgba(251,191,36,0.18)',  bg: 'rgba(251,191,36,0.07)',   border: 'rgba(251,191,36,0.2)',    label: 'Build Momentum', tagline: 'Consistency now will pay off on exam day.',    Icon: Target },
-    safe:    { color: '#A0AEFF', glow: 'rgba(160,174,255,0.14)', bg: 'rgba(91,106,245,0.07)',   border: 'rgba(91,106,245,0.16)',   label: 'On Track',       tagline: 'Steady preparation wins the race.',           Icon: CalendarClock },
-  }[tier];
+    safe:    { color: '#A0AEFF', glow: 'rgba(160,174,255,0.14)', bg: 'rgba(91,106,245,0.07)',   border: 'rgba(91,106,245,0.16)',   label: 'On Track',       tagline: 'Steady preparation wins the race.',           Icon: CalendarClock } }[tier];
   const { Icon } = TIER;
 
   return (
@@ -217,12 +203,12 @@ function ExamCountdownHeroCard({ examName, days }: { examName: string; days: num
               <div className="flex-1 min-w-0 pr-4">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <Icon size={11} style={{ color: TIER.color }} />
-                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: TIER.color }}>
+                  <p className="text-xs font-bold uppercase tracking-widest" style={{ color: TIER.color }}>
                     {TIER.label}
                   </p>
                 </div>
                 <p className="text-sm font-bold text-white truncate">{examName}</p>
-                <p className="text-xs mt-1.5 leading-snug" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                <p className="text-xs mt-1.5 leading-snug" style={{ color: 'var(--ink-450)' }}>
                   {TIER.tagline}
                 </p>
               </div>
@@ -233,9 +219,26 @@ function ExamCountdownHeroCard({ examName, days }: { examName: string; days: num
                 >
                   {days}
                 </p>
-                <p className="text-[11px] font-semibold -mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>days left</p>
+                <p className="text-xs font-semibold -mt-1" style={{ color: 'var(--ink-350)' }}>days left</p>
               </div>
             </div>
+            {coveragePct !== undefined && (
+              <div className="mt-3 mb-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold" style={{ color: 'var(--ink-450)' }}>Syllabus covered</span>
+                  <span className="text-xs font-bold" style={{ color: TIER.color }}>{coveragePct}%</span>
+                </div>
+                <div className="w-full rounded-full overflow-hidden" style={{ height: 4, background: 'var(--ink-080)' }}>
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: TIER.color }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${coveragePct}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                  />
+                </div>
+              </div>
+            )}
             <div
               className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl mt-3"
               style={{ background: `${TIER.color}12`, border: `1px solid ${TIER.color}22` }}
@@ -247,6 +250,124 @@ function ExamCountdownHeroCard({ examName, days }: { examName: string; days: num
         </div>
       </Link>
     </motion.div>
+  );
+}
+
+// ── Day 7 "First Result" Modal ────────────────────────────────────────────────
+interface Day7Stats { masteredCount: number; topSubject: string; topPct: number; totalTopics: number; }
+
+function Day7FirstResultModal({ stats, onClose }: { stats: Day7Stats; onClose: () => void }) {
+  const navigate = useNavigate();
+  const bar = Math.min(100, Math.round((stats.masteredCount / Math.max(stats.totalTopics, 1)) * 100));
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 flex items-end justify-center"
+        style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(12px)' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="w-full max-w-md rounded-t-[32px] px-6 pt-6 pb-10"
+          style={{
+            background: 'linear-gradient(160deg,var(--grad-home-hero-1) 0%,var(--grad-home-hero-2) 100%)',
+            border: '1px solid rgba(91,106,245,0.22)',
+            boxShadow: '0 -24px 80px rgba(91,106,245,0.22)' }}
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', stiffness: 340, damping: 34 }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Drag handle */}
+          <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: 'var(--ink-150)' }} />
+
+          {/* Trophy */}
+          <motion.div
+            className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'linear-gradient(135deg,#F59E0B,#EF4444)', boxShadow: '0 8px 32px rgba(245,158,11,0.4)' }}
+            initial={{ scale: 0.5, rotate: -10 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 20, delay: 0.15 }}
+          >
+            <Trophy size={36} className="text-white fill-white" />
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <p className="text-center text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#F59E0B' }}>
+              Week 1 complete
+            </p>
+            <h2 className="font-heading text-2xl font-extrabold text-white text-center leading-tight mb-1">
+              Your first results are in
+            </h2>
+            <p className="text-center text-sm mb-6" style={{ color: 'var(--ink-450)' }}>
+              Here's what you built in 7 days
+            </p>
+          </motion.div>
+
+          {/* Stats row */}
+          <motion.div
+            className="flex gap-3 mb-5"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 }}
+          >
+            <div className="flex-1 rounded-2xl p-4 text-center" style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.2)' }}>
+              <p className="font-heading text-3xl font-extrabold text-white">{stats.masteredCount}</p>
+              <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--ink-400)' }}>topics mastered</p>
+            </div>
+            <div className="flex-1 rounded-2xl p-4 text-center" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.18)' }}>
+              <p className="font-heading text-3xl font-extrabold" style={{ color: '#10B981' }}>{stats.topPct}%</p>
+              <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--ink-400)' }}>best: {stats.topSubject}</p>
+            </div>
+          </motion.div>
+
+          {/* Coverage bar */}
+          <motion.div
+            className="mb-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35 }}
+          >
+            <div className="flex justify-between mb-1.5">
+              <span className="text-xs font-semibold" style={{ color: 'var(--ink-450)' }}>Syllabus coverage</span>
+              <span className="text-xs font-bold" style={{ color: '#A0AEFF' }}>{bar}% of syllabus</span>
+            </div>
+            <div className="w-full rounded-full overflow-hidden" style={{ height: 6, background: 'var(--ink-070)' }}>
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg,#5B6AF5,#8B5CF6)' }}
+                initial={{ width: 0 }}
+                animate={{ width: `${bar}%` }}
+                transition={{ duration: 1, ease: 'easeOut', delay: 0.4 }}
+              />
+            </div>
+          </motion.div>
+
+          {/* CTA */}
+          <motion.button
+            className="w-full py-4 rounded-2xl font-bold text-white text-base active:scale-98 transition-transform"
+            style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', boxShadow: '0 8px 24px rgba(91,106,245,0.38)' }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.42 }}
+            onClick={() => { onClose(); navigate('/weakness-radar'); }}
+          >
+            Keep the momentum going →
+          </motion.button>
+          <button
+            className="w-full mt-3 py-3 text-sm font-medium active:opacity-70"
+            style={{ color: 'var(--ink-350)' }}
+            onClick={onClose}
+          >
+            Dismiss
+          </button>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -282,19 +403,19 @@ function WeakTopicsSection({ topics, delay = 0.1 }: { topics: { topic: string; s
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-white truncate">{t.topic}</p>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{t.subject}</p>
+                <p className="text-xs" style={{ color: 'var(--ink-400)' }}>{t.subject}</p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={() => navigate(`/quiz?subject=${encodeURIComponent(t.subject)}&topic=${encodeURIComponent(t.topic)}`)}
-                  className="text-[11px] font-bold px-2.5 py-1.5 rounded-xl active:scale-90 transition-transform"
+                  className="text-xs font-bold px-2.5 py-1.5 rounded-xl active:scale-90 transition-transform"
                   style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.22)', color: '#F87171' }}
                 >
                   Quiz
                 </button>
                 <button
                   onClick={() => navigate(`/chat?q=${encodeURIComponent(`Help me understand ${t.topic} in ${t.subject}`)}`)}
-                  className="text-[11px] font-bold px-2.5 py-1.5 rounded-xl active:scale-90 transition-transform"
+                  className="text-xs font-bold px-2.5 py-1.5 rounded-xl active:scale-90 transition-transform"
                   style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.22)', color: '#C4B5FD' }}
                 >
                   Chat
@@ -323,9 +444,8 @@ function CourseResumeCard({ resume, delay = 0.11 }: { resume: ResumeLesson | nul
         <div
           className="rounded-3xl p-4 flex items-center gap-4 active:scale-98 transition-transform"
           style={{
-            background: 'linear-gradient(135deg,rgba(15,20,45,0.9),rgba(20,15,50,0.9))',
-            border: '1px solid rgba(255,255,255,0.07)',
-          }}
+            background: 'linear-gradient(135deg,var(--hdr-b-900),var(--surface-scrim))',
+            border: '1px solid var(--ink-070)' }}
         >
           <div
             className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
@@ -334,11 +454,11 @@ function CourseResumeCard({ resume, delay = 0.11 }: { resume: ResumeLesson | nul
             <Icon size={22} style={{ color }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.32)' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--ink-320)' }}>
               Continue Course
             </p>
             <p className="text-sm font-bold text-white leading-snug truncate">{mainLabel}</p>
-            {detail && <p className="text-[11px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>{detail}</p>}
+            {detail && <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--ink-400)' }}>{detail}</p>}
           </div>
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
@@ -367,17 +487,16 @@ function RecommendedActions({ actions }: { actions: Action[] }) {
             transition={{ delay: 0.1 + i * 0.06, type: 'spring', stiffness: 300, damping: 26 }}
           >
             <Link to={a.to}>
-              <div className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl active:scale-97 transition-transform"
-                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl active:scale-97 transition-transform v2-card">
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: `${a.color}18`, border: `1px solid ${a.color}28` }}>
                   {a.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white leading-tight">{a.label}</p>
-                  <p className="text-[11px] text-white/40 mt-0.5">{a.sub}</p>
+                  <p className="text-sm font-bold leading-tight" style={{ color: 'var(--v2-text-1)' }}>{a.label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--v2-text-4)' }}>{a.sub}</p>
                 </div>
-                <ChevronRight size={14} className="text-white/25 shrink-0" />
+                <ChevronRight size={14} style={{ color: 'var(--v2-chevron)' }} className="shrink-0" />
               </div>
             </Link>
           </motion.div>
@@ -422,8 +541,7 @@ function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: (
         const s: Record<string, boolean> = {
           quiz: data.quiz_done,
           cards: data.cards_done,
-          chat: data.chat_done,
-        };
+          chat: data.chat_done };
         setDone(s);
         localStorage.setItem(missionKey(userId), JSON.stringify(s));
       });
@@ -460,15 +578,12 @@ function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: (
       transition={{ delay: 0.08 }}
       className="rounded-3xl overflow-hidden"
       style={{
-        background: allDone
-          ? 'linear-gradient(135deg,rgba(16,185,129,0.12),rgba(5,150,105,0.08))'
-          : 'rgba(255,255,255,0.06)',
-        border: allDone ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(91,106,245,0.18)',
-      }}
+        background: allDone ? 'rgba(16,185,129,0.08)' : 'var(--v2-card)',
+        border: allDone ? '1px solid rgba(16,185,129,0.3)' : '1px solid var(--v2-border)' }}
     >
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Daily</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-white/40">Daily</p>
           <h2 className="font-heading text-base font-extrabold text-white">Today's Mission</h2>
         </div>
         <div className="flex items-center gap-1.5">
@@ -482,18 +597,18 @@ function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: (
                 style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}
               >
                 <Star size={11} style={{ color: '#10B981', fill: '#10B981' }} />
-                <span className="text-[10px] font-extrabold" style={{ color: '#10B981' }}>+50 XP Bonus!</span>
+                <span className="text-xs font-extrabold" style={{ color: '#10B981' }}>+50 XP Bonus!</span>
               </motion.div>
             </AnimatePresence>
           ) : (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--ink-060)', color: 'var(--ink-400)' }}>
               {completedCount}/3
             </span>
           )}
         </div>
       </div>
 
-      <div className="mx-4 mb-3 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+      <div className="mx-4 mb-3 h-1 rounded-full overflow-hidden" style={{ background: 'var(--ink-070)' }}>
         <motion.div
           className="h-full rounded-full"
           style={{ background: allDone ? '#10B981' : 'linear-gradient(90deg,#5B6AF5,#8B5CF6)' }}
@@ -513,10 +628,9 @@ function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: (
               onClick={() => isDone ? undefined : handleTaskTap(task)}
               className="flex items-center gap-3 px-3 py-3 rounded-2xl cursor-pointer active:scale-97 transition-transform"
               style={{
-                background: isDone ? 'rgba(16,185,129,0.07)' : 'rgba(255,255,255,0.04)',
-                border: isDone ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.06)',
-                opacity: isDone ? 0.75 : 1,
-              }}
+                background: isDone ? 'rgba(16,185,129,0.07)' : 'var(--ink-040)',
+                border: isDone ? '1px solid rgba(16,185,129,0.2)' : '1px solid var(--ink-060)',
+                opacity: isDone ? 0.75 : 1 }}
             >
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: `${task.color}18`, border: `1px solid ${task.color}28` }}>
@@ -524,7 +638,7 @@ function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: (
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-white leading-tight">{task.label}</p>
-                <p className="text-[10px] text-white/35 mt-0.5">{task.sub}</p>
+                <p className="text-xs text-white/35 mt-0.5">{task.sub}</p>
               </div>
               {isDone
                 ? <CheckCircle2 size={18} style={{ color: '#10B981' }} className="shrink-0" />
@@ -541,8 +655,8 @@ function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: (
             <button
               key={task.id}
               onClick={(e) => { e.stopPropagation(); markDoneOptimistic(task.id); }}
-              className="text-[10px] font-semibold px-2.5 py-1 rounded-full active:scale-95 transition-transform"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.35)' }}
+              className="text-xs font-semibold px-2.5 py-1 rounded-full active:scale-95 transition-transform"
+              style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)', color: 'var(--ink-350)' }}
             >
               Mark {task.id} done ✓
             </button>
@@ -569,8 +683,7 @@ function NovoProactiveBanner() {
         const { data: { session } } = await supabase.auth.getSession();
         const res = await supabase.functions.invoke('novo-proactive', {
           body: { action: 'get_pending', limit: 1 },
-          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-        });
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {} });
         const m: NovoProactiveMessage | null = res.data?.messages?.[0] ?? null;
         if (!cancelled && m) { setMsg(m); setVisible(true); }
       } catch { /* non-critical */ }
@@ -584,8 +697,7 @@ function NovoProactiveBanner() {
       const { data: { session } } = await supabase.auth.getSession();
       supabase.functions.invoke('novo-proactive', {
         body: { action: 'mark_read', message_id: msg.id },
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-      }).catch(() => {});
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {} }).catch(() => {});
     }
   }
 
@@ -604,7 +716,7 @@ function NovoProactiveBanner() {
               <TeachingIcon size={16} className="text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-0.5">Novo reached out</p>
+              <p className="text-xs font-bold text-primary uppercase tracking-wider mb-0.5">Novo reached out</p>
               <p className="text-sm text-foreground leading-snug">{msg.message}</p>
               {msg.cta_label && msg.cta_route && (
                 <button onClick={() => { dismiss(); navigate(msg.cta_route!); }} className="mt-2 flex items-center gap-1 text-xs font-bold text-primary">
@@ -682,8 +794,7 @@ function SocialFeedCard({ userId, userXP }: { userId: string; userXP: number }) 
     })();
   }, [userId, userXP]);
 
-  const RANK_LABELS: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
-  const rankLabel = rank !== null ? (RANK_LABELS[rank] ?? `#${rank}`) : '—';
+  const rankLabel = rank !== null ? `#${rank}` : '—';
 
   return (
     <motion.div
@@ -694,19 +805,18 @@ function SocialFeedCard({ userId, userXP }: { userId: string; userXP: number }) 
       style={{
         background: 'linear-gradient(135deg,rgba(91,106,245,0.1),rgba(139,92,246,0.08))',
         border: '1px solid rgba(91,106,245,0.2)',
-        boxShadow: '0 4px 24px rgba(91,106,245,0.12)',
-      }}
+        boxShadow: '0 4px 24px rgba(91,106,245,0.12)' }}
     >
       {/* Header */}
       <div className="px-4 pt-4 pb-3 flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>Leaderboard</p>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--ink-400)' }}>Leaderboard</p>
           <h2 className="font-heading text-base font-extrabold text-white">Your Rank</h2>
         </div>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
           style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[10px] font-bold" style={{ color: '#10B981' }}>
+          <span className="text-xs font-bold" style={{ color: '#10B981' }}>
             {loaded ? `${onlineCount} online` : '…'}
           </span>
         </div>
@@ -718,16 +828,16 @@ function SocialFeedCard({ userId, userXP }: { userId: string; userXP: number }) 
         {above && (
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl"
             style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.12)' }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-[11px] font-bold text-white"
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold text-white"
               style={{ background: 'linear-gradient(135deg,#EF4444,#F97316)' }}>
               {above.initials}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-white">{above.name}</p>
-              <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.38)' }}>{above.xp.toLocaleString()} XP</p>
+              <p className="text-xs" style={{ color: 'var(--ink-380)' }}>{above.xp.toLocaleString()} XP</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-[10px] font-bold" style={{ color: '#F87171' }}>+{(above.xp - userXP).toLocaleString()} XP ahead</p>
+              <p className="text-xs font-bold" style={{ color: '#F87171' }}>+{(above.xp - userXP).toLocaleString()} XP ahead</p>
             </div>
           </div>
         )}
@@ -741,9 +851,9 @@ function SocialFeedCard({ userId, userXP }: { userId: string; userXP: number }) 
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-white">You</p>
-            <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{userXP.toLocaleString()} XP</p>
+            <p className="text-xs" style={{ color: 'var(--ink-400)' }}>{userXP.toLocaleString()} XP</p>
           </div>
-          <p className="text-[10px] font-extrabold text-primary shrink-0">
+          <p className="text-xs font-extrabold text-primary shrink-0">
             {loaded ? `Rank ${rankLabel}` : '…'}
           </p>
         </div>
@@ -752,16 +862,16 @@ function SocialFeedCard({ userId, userXP }: { userId: string; userXP: number }) 
         {below && (
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl"
             style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.12)' }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-[11px] font-bold text-white"
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold text-white"
               style={{ background: 'linear-gradient(135deg,#10B981,#059669)' }}>
               {below.initials}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-white">{below.name}</p>
-              <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.38)' }}>{below.xp.toLocaleString()} XP</p>
+              <p className="text-xs" style={{ color: 'var(--ink-380)' }}>{below.xp.toLocaleString()} XP</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-[10px] font-bold" style={{ color: '#34D399' }}>{(userXP - below.xp).toLocaleString()} XP ahead</p>
+              <p className="text-xs font-bold" style={{ color: '#34D399' }}>{(userXP - below.xp).toLocaleString()} XP ahead</p>
             </div>
           </div>
         )}
@@ -783,10 +893,60 @@ function SocialFeedCard({ userId, userXP }: { userId: string; userXP: number }) 
   );
 }
 
+// ── Primary Action Grid (Zone 3) ─────────────────────────────────────────────
+const PRIMARY_TOOLS = [
+  { id: 'pyq',       label: 'PYQ Bank',    sub: 'Past papers',     to: '/pyq',        gradient: 'linear-gradient(135deg,#3B82F6,#1D4ED8)',  glow: 'rgba(59,130,246,0.35)',  Icon: BookOpen },
+  { id: 'mock',      label: 'Mock Test',   sub: 'Full syllabus',   to: '/mock-test',  gradient: 'linear-gradient(135deg,#EF4444,#B91C1C)',  glow: 'rgba(239,68,68,0.30)',   Icon: GraduationCap },
+  { id: 'flashcard', label: 'Flashcards',  sub: 'Spaced review',   to: '/flashcard',  gradient: 'linear-gradient(135deg,#10B981,#047857)',  glow: 'rgba(16,185,129,0.30)',  Icon: BookMarked },
+  { id: 'quiz',      label: 'AI Quiz',     sub: 'Adaptive test',   to: '/quiz',       gradient: 'linear-gradient(135deg,#8B5CF6,#6D28D9)',  glow: 'rgba(139,92,246,0.35)', Icon: Zap },
+] as const;
+
+function PrimaryActionGrid({ dueCards }: { dueCards: number }) {
+  const navigate = useNavigate();
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}>
+      <div className="grid grid-cols-2 gap-3">
+        {PRIMARY_TOOLS.map((tool, i) => {
+          const { Icon } = tool;
+          const badge = tool.id === 'flashcard' && dueCards > 0 ? dueCards : null;
+          return (
+            <motion.button
+              key={tool.id}
+              onClick={() => navigate(tool.to)}
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.06 + i * 0.04, type: 'spring', stiffness: 340, damping: 28 }}
+              className="card-l1 p-4 flex flex-col gap-3 text-left active:scale-[0.97] transition-transform relative"
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: tool.gradient, boxShadow: `0 4px 16px ${tool.glow}` }}
+              >
+                <Icon size={18} className="text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white leading-tight">{tool.label}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--ink-400)' }}>{tool.sub}</p>
+              </div>
+              {badge !== null && (
+                <div
+                  className="absolute top-3 right-3 min-w-[20px] h-5 rounded-full flex items-center justify-center px-1.5 text-xs font-extrabold text-white"
+                  style={{ background: 'linear-gradient(135deg,#10B981,#047857)', fontSize: 12 }}
+                >
+                  {badge > 99 ? '99+' : badge}
+                </div>
+              )}
+            </motion.button>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const { user, profile, loading } = useAuth();
-  const navigate = useNavigate();
 
   const [hero, setHero]             = useState<ContinueHero | null>(null);
   const [heroLoading, setHeroLoading] = useState(true);
@@ -802,6 +962,9 @@ export default function HomePage() {
   const [focusModeOpen, setFocusModeOpen]   = useState(false);
   const [musicOpen, setMusicOpen]           = useState(false);
   const [showTour, setShowTour]             = useState(false);
+  const [masteredCount, setMasteredCount]   = useState(0);
+  const [showDay7Modal, setShowDay7Modal]   = useState(false);
+  const [day7Stats, setDay7Stats]           = useState<Day7Stats | null>(null);
 
   const d30Variant = useD30RetentionVariant();
   const isEvening = new Date().getHours() >= 21;
@@ -818,16 +981,70 @@ export default function HomePage() {
       const t = setTimeout(() => setShowTour(true), 1000);
       return () => clearTimeout(t);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Show mood check-in once per day
+  // Show mood check-in once per day; hydrate todayMood from a prior check-in
   useEffect(() => {
     if (!user) return;
     const key = `edora_mood_${user.id}_${new Date().toISOString().slice(0, 10)}`;
-    if (!localStorage.getItem(key)) {
-      setTimeout(() => setMoodOpen(true), 800);
-    }
+    const existing = localStorage.getItem(key);
+    if (existing) setTodayMood(existing);
+    else setTimeout(() => setMoodOpen(true), 800);
   }, [user]);
+
+  // Day 7 "first result" moment
+  useEffect(() => {
+    if (!user || !profile) return;
+    const seenKey = `edora_day7_shown_${user.id}`;
+    if (localStorage.getItem(seenKey)) return;
+
+    const createdAt = new Date(profile.created_at ?? Date.now());
+    const daysOld = Math.floor((Date.now() - createdAt.getTime()) / 86_400_000);
+    if (daysOld < 7 || daysOld > 10) return;
+
+    // Fetch mastery stats for the modal
+    Promise.all([
+      supabase
+        .from('subtopic_mastery')
+        .select('subject, mastery_score', { count: 'exact' })
+        .eq('user_id', user.id)
+        .gte('mastery_score', 0.7),
+      supabase
+        .from('subtopic_mastery')
+        .select('subject, mastery_score')
+        .eq('user_id', user.id)
+        .order('mastery_score', { ascending: false })
+        .limit(5),
+    ]).then(([masteredRes, topRes]) => {
+      const count = masteredRes.count ?? 0;
+      if (count === 0) return; // nothing to show yet
+
+      type MRow = { subject: string; mastery_score: number };
+      const topRows = (topRes.data ?? []) as MRow[];
+      const subjectAvg: Record<string, { sum: number; n: number }> = {};
+      for (const r of topRows) {
+        const s = subjectAvg[r.subject] ?? { sum: 0, n: 0 };
+        s.sum += r.mastery_score; s.n++;
+        subjectAvg[r.subject] = s;
+      }
+      const best = Object.entries(subjectAvg)
+        .map(([subj, { sum, n }]) => ({ subj, avg: sum / n }))
+        .sort((a, b) => b.avg - a.avg)[0];
+
+      const examName = profile.exam_name ?? '';
+      const totalSubtopics = examName.toLowerCase().includes('neet') ? 750
+        : examName.toLowerCase().includes('jee') ? 850 : 800;
+
+      setDay7Stats({
+        masteredCount: count,
+        topSubject: best?.subj ?? 'Physics',
+        topPct: best ? Math.round(best.avg * 100) : 0,
+        totalTopics: totalSubtopics });
+      localStorage.setItem(seenKey, '1');
+      setTimeout(() => setShowDay7Modal(true), 1500);
+    }).catch(() => {});
+  }, [user, profile]);
 
   useEffect(() => {
     if (!user) return;
@@ -852,7 +1069,9 @@ export default function HomePage() {
       supabase.from('flashcards').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gt('repetitions', 0).gte('updated_at', todayISO),
       // Last completed lesson for course resume
       supabase.from('lesson_progress').select('lesson_id,completed_at').eq('user_id', user.id).eq('completed', true).order('completed_at', { ascending: false }).limit(1),
-    ]).then(([sprintRes, weakRes, cardsRes, sessionRes, freezeRes, sprintCountRes, flashCountRes, lessonRes]) => {
+      // Mastered subtopics count (mastery_score >= 0.7)
+      supabase.from('subtopic_mastery').select('subject, mastery_score', { count: 'exact' }).eq('user_id', user.id).gte('mastery_score', 0.7),
+    ]).then(([sprintRes, weakRes, cardsRes, sessionRes, freezeRes, sprintCountRes, flashCountRes, lessonRes, masteryRes]) => {
       // Hero card
       if (sprintRes.data?.[0]) {
         const s = sprintRes.data[0] as SprintSession & { topic: string };
@@ -893,6 +1112,10 @@ export default function HomePage() {
         }
       }
 
+      // Mastered subtopics
+      const mastered = masteryRes.count ?? 0;
+      setMasteredCount(mastered);
+
       // Course resume card
       const lastLesson = lessonRes.data?.[0] as { lesson_id: string } | undefined;
       if (lastLesson) {
@@ -904,16 +1127,14 @@ export default function HomePage() {
         const chapterId = `${subjCode}-${chapPart}`;
         const subjectMap: Record<string, string> = {
           sc: 'Science', ma: 'Mathematics', ph: 'Physics',
-          ch: 'Chemistry', bi: 'Biology', en: 'English',
-        };
+          ch: 'Chemistry', bi: 'Biology', en: 'English' };
         const code        = subjCode.replace(/\d+/g, '');
         const subjectName = subjectMap[code] ?? 'Science';
         setResumeLesson({
           lessonId: lastLesson.lesson_id,
           label,
           subject: subjectName,
-          to: `/course?class=${classNum}&subject=${subjCode}&chapter=${chapterId}`,
-        });
+          to: `/course?class=${classNum}&subject=${subjCode}&chapter=${chapterId}` });
       }
     }).catch(() => setHeroLoading(false));
   }, [user]);
@@ -934,6 +1155,7 @@ export default function HomePage() {
       checkLevel(currentLevel);
       localStorage.setItem(seenKey, JSON.stringify([...seen, 2000 + currentLevel]));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, profile?.streak_count, profile?.xp]);
 
   useEffect(() => {
@@ -954,8 +1176,8 @@ export default function HomePage() {
       xpGoal: xpGoalThisLvl,
       nextCardMin: dueCards > 0 ? 0 : undefined,
       examName: profile.exam_name ?? undefined,
-      examDays: examDaysLeft !== undefined && examDaysLeft > 0 ? examDaysLeft : undefined,
-    });
+      examDays: examDaysLeft !== undefined && examDaysLeft > 0 ? examDaysLeft : undefined });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.streak_count, profile?.xp, profile?.exam_date, profile?.exam_name, weakTopics, sessionDone, dueCards]);
 
   if (loading) return <HomePageSkeleton />;
@@ -968,6 +1190,12 @@ export default function HomePage() {
   const streak         = profile?.streak_count ?? 0;
   const firstName      = profile?.full_name?.split(' ')[0] ?? 'Explorer';
   const initials       = (profile?.full_name ?? 'E').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+
+  // Syllabus coverage %
+  const examName4cov  = profile?.exam_name ?? '';
+  const totalSubtopics = examName4cov.toLowerCase().includes('neet') ? 750
+    : examName4cov.toLowerCase().includes('jee') ? 850 : 800;
+  const coveragePct = Math.min(100, Math.round((masteredCount / totalSubtopics) * 100));
 
   // Exam urgency
   const examDays   = profile?.exam_date ? daysUntil(profile.exam_date) : null;
@@ -982,8 +1210,7 @@ export default function HomePage() {
       id: 'session', label: '10-min Power Session',
       sub: sessionProgress > 0 ? `${sessionProgress}/6 done — keep going` : 'Start today\'s curated session',
       to: '/daily-session', color: '#5B6AF5',
-      icon: <Zap size={18} style={{ color: '#A0AEFF' }} />,
-    });
+      icon: <Zap size={18} style={{ color: '#A0AEFF' }} /> });
   }
   if (weakTopics[0]) {
     actions.push({
@@ -991,24 +1218,21 @@ export default function HomePage() {
       sub: `Your weakest area in ${weakTopics[0].subject}`,
       to: `/quiz?subject=${encodeURIComponent(weakTopics[0].subject)}&topic=${encodeURIComponent(weakTopics[0].topic)}`,
       color: '#EF4444',
-      icon: <Target size={18} style={{ color: '#FCA5A5' }} />,
-    });
+      icon: <Target size={18} style={{ color: '#FCA5A5' }} /> });
   }
   if (dueCards > 0) {
     actions.push({
       id: 'cards', label: `Review ${Math.min(dueCards, 10)} Flashcards`,
       sub: `${dueCards} card${dueCards > 1 ? 's' : ''} due for spaced repetition`,
       to: '/flashcard', color: '#10B981',
-      icon: <BookMarked size={18} style={{ color: '#6EE7B7' }} />,
-    });
+      icon: <BookMarked size={18} style={{ color: '#6EE7B7' }} /> });
   }
   if (actions.length < 3) {
     actions.push({
       id: 'chat', label: 'Ask Novo a question',
       sub: 'AI tutor available 24/7',
       to: '/chat', color: '#8B5CF6',
-      icon: <Bot size={18} style={{ color: '#C4B5FD' }} />,
-    });
+      icon: <Bot size={18} style={{ color: '#C4B5FD' }} /> });
   }
   const top3 = actions.slice(0, 3);
 
@@ -1016,160 +1240,118 @@ export default function HomePage() {
     <div className="h-full native-scroll pb-nav" style={{ background: 'transparent' }}>
       <div className="px-4 pt-5 flex flex-col gap-3">
 
-        {/* ── HEADER — Liquid Glass floating bar ──────────────────── */}
+        {/* ── ZONE 1: STATUS BAR — header + streak/XP strip ───────── */}
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
-          className="liquid-glass specular rounded-3xl px-4 py-3 flex items-center justify-between">
+          className="v2-card rounded-3xl px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Avatar with prismatic glow */}
             <div
-              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 text-sm font-bold text-white relative"
-              style={{
-                background: 'linear-gradient(145deg, #6373F6, #7C3AED)',
-                boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.22), 0 0 20px rgba(91,106,245,0.55), 0 4px 12px rgba(0,0,0,0.35)',
-              }}
+              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 text-sm font-bold text-white"
+              style={{ background: 'var(--v2-primary)' }}
               aria-label={`${firstName}'s avatar`}
             >
-              <span style={{ position:'relative', zIndex:1 }}>{initials}</span>
-              <div style={{ position:'absolute', inset:0, borderRadius:14, background:'radial-gradient(ellipse 65% 40% at 35% 28%, rgba(255,255,255,0.24), transparent 65%)', pointerEvents:'none' }} />
+              {initials}
             </div>
             <div>
-              <p className="text-[11px] font-semibold" style={{ color:'rgba(255,255,255,0.42)' }}>{getGreeting()}</p>
-              <h1 className="font-heading text-xl font-extrabold text-white leading-tight">{firstName}</h1>
+              <p className="text-xs font-semibold" style={{ color: 'var(--v2-text-4)' }}>{getGreeting()}</p>
+              <h1 className="font-heading text-xl font-extrabold leading-tight" style={{ color: 'var(--v2-text-1)' }}>{firstName}</h1>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
             <button onClick={() => setFreezeShopOpen(true)}
               aria-label={`${freezeCount} streak freeze${freezeCount !== 1 ? 's' : ''}`}
               className="flex items-center gap-1.5 px-2.5 rounded-full active:scale-90 transition-transform min-h-[44px]"
-              style={{ background:'rgba(56,189,248,0.10)', border:'1px solid rgba(56,189,248,0.22)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.1)' }}>
-              <Snowflake size={12} style={{ color:'#38BDF8' }} />
-              <span className="text-xs font-bold" style={{ color:'#38BDF8' }}>{freezeCount}</span>
+              style={{ background: 'rgba(56,189,248,0.10)', border: '1px solid rgba(56,189,248,0.22)' }}>
+              <Snowflake size={12} style={{ color: '#38BDF8' }} />
+              <span className="text-xs font-bold v2-tnum" style={{ color: '#38BDF8' }}>{freezeCount}</span>
             </button>
             <button onClick={() => window.dispatchEvent(new CustomEvent('edora:open-session-ritual'))}
               className="flex items-center gap-1.5 px-3 rounded-full active:scale-90 transition-transform min-h-[44px]"
-              style={{ background:'rgba(251,113,33,0.12)', border:'1px solid rgba(251,113,33,0.28)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.08)' }}
-              aria-label={`${streak} day streak — tap to see session summary`}>
+              style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.28)' }}
+              aria-label={`${streak} day streak`}>
               <Flame size={13}
                 className={isEvening && streak > 0 ? 'streak-heartbeat' : ''}
-                style={{ color:'#FB923C', filter:'drop-shadow(0 0 5px rgba(251,113,33,0.7))' }} />
-              <span className="text-xs font-extrabold" style={{ color:'#FB923C' }}>{streak}</span>
+                style={{ color: 'var(--v2-warning)' }} />
+              <span className="text-xs font-extrabold v2-tnum" style={{ color: 'var(--v2-warning)' }}>{streak}</span>
             </button>
             <Link to="/reminders" aria-label="Reminders">
               <button className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-                style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.09)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.08)' }}>
-                <Bell size={15} className="text-white/50" strokeWidth={1.75} />
+                style={{ background: 'var(--v2-elevated)', border: '1px solid var(--v2-border)' }}>
+                <Bell size={15} style={{ color: 'var(--v2-text-4)' }} strokeWidth={1.75} />
               </button>
             </Link>
           </div>
         </motion.div>
 
-        {/* ── URGENT: exam ≤14 days — show at top ─────────────────── */}
+        {/* Compact XP progress strip */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.03 }}
+          className="flex items-center gap-3 px-4 py-2.5 rounded-2xl v2-card">
+          <XPRing progress={levelProgress} size={36} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-bold v2-tnum" style={{ color: 'var(--v2-text-1)' }}>Lv.{level} · {xp.toLocaleString()} XP</p>
+              <p className="text-xs v2-tnum" style={{ color: 'var(--v2-text-4)' }}>{levelProgress}% to Lv.{level + 1}</p>
+            </div>
+            <div className="w-full rounded-full overflow-hidden" style={{ height: 3, background: 'var(--v2-border)' }}>
+              <motion.div className="h-full rounded-full"
+                style={{ background: 'var(--v2-primary)' }}
+                initial={{ width: 0 }}
+                animate={{ width: `${levelProgress}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
+              />
+            </div>
+          </div>
+          {user && <RivalBadge userId={user.id} />}
+        </motion.div>
+
+        {/* ── URGENT: exam ≤14 days ────────────────────────────────── */}
         {isUrgent && profile?.exam_date && examDays !== null && examDays >= 0 && (
-          <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} className="flex flex-col gap-3">
-            <ExamCountdownHeroCard examName={profile.exam_name ?? 'Your Exam'} days={examDays} />
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
+            <ExamCountdownHeroCard examName={profile.exam_name ?? 'Your Exam'} days={examDays} coveragePct={coveragePct} />
             {weakTopics.length > 0 && <WeakTopicsSection topics={weakTopics} delay={0.08} />}
           </motion.div>
         )}
 
         {/* ── WAR ROOM — exam <48h ─────────────────────────────────── */}
         {isWarMode && profile?.exam_date && hoursLeft !== null && (
-          <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.05 }}>
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
             <WarRoomBanner examName={profile.exam_name ?? 'Exam'} hoursLeft={Math.round(hoursLeft)} />
           </motion.div>
         )}
 
-        {/* ── NOVO PROACTIVE BANNER ────────────────────────────────── */}
+        {/* ── Proactive banner ─────────────────────────────────────── */}
         <NovoProactiveBanner />
 
-        {/* ── BENTO GRID ROW 1: Continue Hero (full) ───────────────── */}
-        <motion.div initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.04 }}>
+        {/* ── ZONE 2: HERO ACTION — continue or start ──────────────── */}
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}>
           <ContinueCard hero={hero} loading={heroLoading} />
         </motion.div>
 
-        {/* ── BENTO GRID ROW 2: XP Cell | Stats Cell ───────────────── */}
-        <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.07 }}
-          className="bento-grid">
-          {/* XP bento cell */}
-          <div className="bento-cell-elevated flex items-center gap-3 p-4">
-            <XPRing progress={levelProgress} size={48} />
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color:'rgba(255,255,255,0.38)' }}>Level {level}</p>
-              <p className="text-sm font-extrabold text-white truncate">{xp.toLocaleString()} XP</p>
-              <p className="text-[10px]" style={{ color:'rgba(255,255,255,0.32)' }}>{levelProgress}% to Lv.{level+1}</p>
-            </div>
-          </div>
-          {/* Rival OR streak bento cell */}
-          <div className="bento-cell-elevated flex items-center justify-center p-3">
-            {user
-              ? <RivalBadge userId={user.id} />
-              : <div className="flex flex-col items-center gap-1">
-                  <Flame size={24} style={{ color:'#FB923C', filter:'drop-shadow(0 0 6px rgba(251,113,33,0.7))' }} />
-                  <p className="text-xs font-extrabold text-white">{streak}</p>
-                  <p className="text-[10px]" style={{ color:'rgba(255,255,255,0.35)' }}>Day streak</p>
-                </div>
-            }
-          </div>
+        {/* ── ZONE 3: PRIMARY TOOLS GRID ───────────────────────────── */}
+        <PrimaryActionGrid dueCards={dueCards} />
+
+        {/* ── ZONE 4: QUICK STATS — today's session progress ───────── */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }}>
+          <DailyPowerRing />
         </motion.div>
 
-        {/* ── NON-URGENT exam countdown ────────────────────────────── */}
+        {/* ── ZONE 5: SECONDARY CONTENT ────────────────────────────── */}
+
+        {/* Non-urgent exam countdown */}
         {!isUrgent && profile?.exam_date && examDays !== null && examDays >= 0 && (
-          <ExamCountdownHeroCard examName={profile.exam_name ?? 'Your Exam'} days={examDays} />
+          <ExamCountdownHeroCard examName={profile.exam_name ?? 'Your Exam'} days={examDays} coveragePct={coveragePct} />
         )}
 
-        {/* ── Course resume ────────────────────────────────────────── */}
-        {resumeLesson && <CourseResumeCard resume={resumeLesson} delay={0.09} />}
+        {/* Course resume */}
+        {resumeLesson && <CourseResumeCard resume={resumeLesson} delay={0.1} />}
 
-        {/* ── Weak topics (non-urgent) ─────────────────────────────── */}
+        {/* Weak topics */}
         {!isUrgent && weakTopics.length > 0 && <WeakTopicsSection topics={weakTopics} delay={0.1} />}
 
-        {/* ── social_first: Social Feed Card shown here (replaces ring) ── */}
-        {d30Variant === 'social_first' && user && (
-          <SocialFeedCard userId={user.id} userXP={xp} />
-        )}
+        {/* D30 experiment variants */}
+        {d30Variant === 'social_first' && user && <SocialFeedCard userId={user.id} userXP={xp} />}
+        {d30Variant === 'content_first' && <NovoInsightsCard />}
 
-        {/* ── Daily Power Ring — shown first in streak_first variant ── */}
-        {d30Variant === 'streak_first' && (
-          <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.1 }}>
-            <DailyPowerRing />
-          </motion.div>
-        )}
-
-        {/* ── Novo AI Insights — shown first in content_first variant ── */}
-        {d30Variant === 'content_first' && (
-          <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.1 }}>
-            <NovoInsightsCard />
-          </motion.div>
-        )}
-
-        {/* ── BENTO GRID ROW 3: Focus Mode | Study Break ───────────── */}
-        <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.11 }}
-          className="bento-grid">
-          <button onClick={() => setFocusModeOpen(true)}
-            className="bento-cell-elevated p-4 flex items-center gap-3 active:scale-97 transition-transform text-left">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background:'linear-gradient(145deg,#7C3AED,#A855F7)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 12px rgba(124,58,237,0.45)' }}>
-              <Timer size={16} className="text-white" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-white">Focus Mode</p>
-              <p className="text-[10px]" style={{ color:'rgba(255,255,255,0.38)' }}>25-min timer</p>
-            </div>
-          </button>
-          <button onClick={() => setMusicOpen(true)}
-            className="bento-cell-elevated p-4 flex items-center gap-3 active:scale-97 transition-transform text-left">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background:'linear-gradient(145deg,#059669,#10B981)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 12px rgba(16,185,129,0.4)' }}>
-              <Music size={16} className="text-white" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-white">Study Break</p>
-              <p className="text-[10px]" style={{ color:'rgba(255,255,255,0.38)' }}>10-min music</p>
-            </div>
-          </button>
-        </motion.div>
-
-        {/* ── Today's Mission ──────────────────────────────────────── */}
+        {/* Today's Mission */}
         {user && (
           <TodaysMissionCard
             userId={user.id}
@@ -1177,47 +1359,62 @@ export default function HomePage() {
           />
         )}
 
-        {/* ── Daily Power Ring — shown here in content_first and social_first variants ── */}
-        {(d30Variant === 'content_first' || d30Variant === 'social_first') && (
-          <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.125 }}>
-            <DailyPowerRing />
-          </motion.div>
-        )}
-
-        {/* ── Novo AI Insights — shown here in streak_first/social_first variants ── */}
+        {/* AI Insights (non-content_first variants) */}
         {d30Variant !== 'content_first' && <NovoInsightsCard />}
 
-        {/* ── Recommended Actions ──────────────────────────────────── */}
-        <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.12 }}>
+        {/* Recommended Actions */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
           <RecommendedActions actions={top3} />
         </motion.div>
 
-        {/* ── BENTO GRID ROW 4: Concept of Day | Novo CTA ─────────── */}
-        <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.14 }}
+        {/* Focus Mode | Study Break */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }}
           className="bento-grid">
-          {/* Concept of Day — full width */}
-          <div className="bento-full">
-            <ConceptOfDayCard />
-          </div>
+          <button onClick={() => setFocusModeOpen(true)}
+            className="card-l1 p-4 flex items-center gap-3 active:scale-97 transition-transform text-left">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: 'linear-gradient(145deg,#7C3AED,#A855F7)', boxShadow: 'inset 0 1px 0 var(--ink-200), 0 4px 12px rgba(124,58,237,0.45)' }}>
+              <Timer size={16} className="text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white">Focus Mode</p>
+              <p className="text-xs" style={{ color: 'var(--ink-380)' }}>25-min timer</p>
+            </div>
+          </button>
+          <button onClick={() => setMusicOpen(true)}
+            className="card-l1 p-4 flex items-center gap-3 active:scale-97 transition-transform text-left">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: 'linear-gradient(145deg,#059669,#10B981)', boxShadow: 'inset 0 1px 0 var(--ink-200), 0 4px 12px rgba(16,185,129,0.4)' }}>
+              <Music size={16} className="text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white">Study Break</p>
+              <p className="text-xs" style={{ color: 'var(--ink-380)' }}>10-min music</p>
+            </div>
+          </button>
         </motion.div>
 
-        {/* ── Novo AI CTA — Liquid Glass ───────────────────────────── */}
-        <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.16 }}>
+        {/* Concept of Day */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}>
+          <ConceptOfDayCard />
+        </motion.div>
+
+        {/* Novo AI CTA */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
           <Link to="/chat">
-            <div className="liquid-glass-panel specular rounded-3xl p-4 flex items-center gap-4 active:scale-98 transition-transform">
-              {/* Novo orb */}
+            <div className="card-l2 specular rounded-3xl p-4 flex items-center gap-4 active:scale-98 transition-transform">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 relative"
-                style={{ background:'linear-gradient(145deg,#6373F6,#7C3AED)', boxShadow:'inset 0 1.5px 0 rgba(255,255,255,0.22), 0 6px 22px rgba(91,106,245,0.55)' }}>
-                <div style={{ position:'absolute', inset:0, borderRadius:14, background:'radial-gradient(ellipse 65% 40% at 35% 28%, rgba(255,255,255,0.24), transparent 65%)', pointerEvents:'none' }} />
+                style={{ background: 'linear-gradient(145deg,#6373F6,#7C3AED)', boxShadow: 'inset 0 1.5px 0 var(--ink-220), 0 6px 22px rgba(91,106,245,0.55)' }}>
+                <div style={{ position: 'absolute', inset: 0, borderRadius: 14, background: 'radial-gradient(ellipse 65% 40% at 35% 28%, var(--ink-240), transparent 65%)', pointerEvents: 'none' }} />
                 <TeachingIcon size={22} className="text-white relative z-10" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider mb-0.5 gradient-text">Novo AI</p>
+                <p className="text-xs font-extrabold uppercase tracking-wider mb-0.5 gradient-text">Novo AI</p>
                 <p className="text-sm font-bold text-white leading-snug">Ask me anything, anytime</p>
-                <p className="text-[11px] mt-0.5" style={{ color:'rgba(255,255,255,0.38)' }}>Your personal AI study tutor</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--ink-380)' }}>Your personal AI study tutor</p>
               </div>
               <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                style={{ background:'rgba(91,106,245,0.18)', border:'1px solid rgba(91,106,245,0.28)' }}>
+                style={{ background: 'rgba(91,106,245,0.18)', border: '1px solid rgba(91,106,245,0.28)' }}>
                 <ArrowRight size={15} className="text-primary" />
               </div>
             </div>
@@ -1261,11 +1458,13 @@ export default function HomePage() {
         onClose={() => setFocusModeOpen(false)}
       />
 
-      {/* Spotify Study Break Player */}
-      <SpotifyBreakPlayer
+      {/* Study Break Player — 10-25 min slider, mood-aware YouTube playlist auto-pick */}
+      <StudyBreakPlayer
         open={musicOpen}
         onClose={() => setMusicOpen(false)}
         breakMin={10}
+        mood={todayMood}
+        enforceBreak
       />
 
       {/* Onboarding tour — fires once after first login */}
@@ -1275,6 +1474,14 @@ export default function HomePage() {
             if (user) localStorage.setItem(`edora_tour_done_${user.id}`, '1');
             setShowTour(false);
           }}
+        />
+      )}
+
+      {/* Day 7 "first result" modal */}
+      {showDay7Modal && day7Stats && (
+        <Day7FirstResultModal
+          stats={day7Stats}
+          onClose={() => setShowDay7Modal(false)}
         />
       )}
     </div>

@@ -1,11 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Search, Star, StarOff, ChevronDown, ChevronUp,
+import {Search, Star, StarOff, ChevronDown, ChevronUp,
   Download, X, BookMarked, Calculator, Atom,
-  FlaskConical, Microscope, Lightbulb, AlertTriangle,
-  Link2, Copy, Check,
-} from 'lucide-react';
+  FlaskConical, Microscope, Lightbulb, AlertTriangle, Copy, Check} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Toast } from '@capacitor/toast';
 
@@ -378,11 +375,11 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
   useEffect(() => {
     if (!katexReady || !f.latex || !latexRef.current) return;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).katex.render(f.latex, latexRef.current, {
         throwOnError: false,
         displayMode: true,
-        output: 'html',
-      });
+        output: 'html' });
     } catch { /* fall back to ASCII text already shown */ }
   }, [katexReady, f.latex]);
 
@@ -398,7 +395,7 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}
     >
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
@@ -406,15 +403,15 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-1">
               <SubIcon size={10} style={{ color: SUBJECT_COLORS[f.subject] }} />
-              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: SUBJECT_COLORS[f.subject] }}>
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: SUBJECT_COLORS[f.subject] }}>
                 {f.subject}
               </span>
-              <span className="text-[9px] text-white/30 font-medium">·</span>
-              <span className="text-[9px] text-white/30 font-medium">{f.topic}</span>
+              <span className="text-xs text-white/30 font-medium">·</span>
+              <span className="text-xs text-white/30 font-medium">{f.topic}</span>
               {f.class && (
                 <>
-                  <span className="text-[9px] text-white/30">·</span>
-                  <span className="text-[9px] font-bold text-amber-400/70">{f.class}</span>
+                  <span className="text-xs text-white/30">·</span>
+                  <span className="text-xs font-bold text-amber-400/70">{f.class}</span>
                 </>
               )}
             </div>
@@ -422,11 +419,11 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={copyFormula} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-              style={{ background: 'rgba(255,255,255,0.06)' }} aria-label="Copy formula">
+              style={{ background: 'var(--ink-060)' }} aria-label="Copy formula">
               {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} className="text-white/40" />}
             </button>
             <button onClick={onPin} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-              style={{ background: pinned ? 'rgba(234,179,8,0.15)' : 'rgba(255,255,255,0.06)' }} aria-label={pinned ? 'Unpin' : 'Pin formula'}>
+              style={{ background: pinned ? 'rgba(234,179,8,0.15)' : 'var(--ink-060)' }} aria-label={pinned ? 'Unpin' : 'Pin formula'}>
               {pinned ? <Star size={13} className="text-yellow-400" /> : <StarOff size={13} className="text-white/40" />}
             </button>
           </div>
@@ -467,20 +464,20 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
             <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
               {/* Derivation */}
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">Derivation</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-white/40 mb-1">Derivation</p>
                 <p className="text-xs text-white/70 leading-relaxed">{f.derivation}</p>
               </div>
 
               {/* Usage */}
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">When to use</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-white/40 mb-1">When to use</p>
                 <p className="text-xs text-white/70 leading-relaxed">{f.usage}</p>
               </div>
 
               {/* Common mistakes */}
               {f.mistakes.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Common mistakes</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-white/40 mb-1.5">Common mistakes</p>
                   <div className="space-y-1">
                     {f.mistakes.map((m, i) => (
                       <div key={i} className="flex items-start gap-1.5">
@@ -497,7 +494,7 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
                 <div className="px-3 py-2.5 rounded-xl" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)' }}>
                   <div className="flex items-center gap-1.5 mb-1">
                     <Lightbulb size={10} className="text-violet-400" />
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-violet-400">Mnemonic</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-violet-400">Mnemonic</p>
                   </div>
                   <p className="text-xs text-violet-200 leading-relaxed italic">{f.mnemonic}</p>
                 </div>
@@ -506,8 +503,8 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
               {/* Tags */}
               <div className="flex flex-wrap gap-1.5">
                 {f.tags.map(tag => (
-                  <span key={tag} className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)' }}>
+                  <span key={tag} className="text-xs font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: 'var(--ink-070)', color: 'var(--ink-400)' }}>
                     #{tag}
                   </span>
                 ))}
@@ -561,7 +558,7 @@ export default function FormulaSheetPage() {
       <div className="shrink-0 px-4 pt-4 pb-2" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-4">
           <Link to="/tools" className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.08)' }}>
+            style={{ background: 'var(--ink-080)' }}>
             <ChevronDown size={18} className="text-white rotate-90" />
           </Link>
           <h1 className="font-heading text-base font-bold text-white">Formula Sheet</h1>
@@ -569,13 +566,13 @@ export default function FormulaSheetPage() {
             <button
               onClick={() => setShowPinned(s => !s)}
               className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: showPinned ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.08)' }}
+              style={{ background: showPinned ? 'rgba(234,179,8,0.2)' : 'var(--ink-080)' }}
               aria-label="Show pinned"
             >
-              <Star size={15} style={{ color: showPinned ? '#EAB308' : 'rgba(255,255,255,0.5)' }} />
+              <Star size={15} style={{ color: showPinned ? '#EAB308' : 'var(--ink-500)' }} />
             </button>
             <button onClick={printPDF} className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.08)' }} aria-label="Download PDF">
+              style={{ background: 'var(--ink-080)' }} aria-label="Download PDF">
               <Download size={15} className="text-white/60" />
             </button>
           </div>
@@ -590,7 +587,7 @@ export default function FormulaSheetPage() {
             onChange={e => setSearch(e.target.value)}
             placeholder="Search formulas, topics, tags…"
             className="w-full pl-9 pr-9 py-2.5 rounded-2xl text-sm text-white placeholder-white/30 outline-none"
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)' }}
+            style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-090)' }}
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -607,17 +604,16 @@ export default function FormulaSheetPage() {
               onClick={() => setSubject(s)}
               className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
               style={{
-                background: subject === s ? (s === 'All' ? '#5B6AF5' : SUBJECT_COLORS[s as keyof typeof SUBJECT_COLORS] + '33') : 'rgba(255,255,255,0.07)',
-                color: subject === s ? (s === 'All' ? 'white' : SUBJECT_COLORS[s as keyof typeof SUBJECT_COLORS]) : 'rgba(255,255,255,0.45)',
-                border: subject === s && s !== 'All' ? `1px solid ${SUBJECT_COLORS[s as keyof typeof SUBJECT_COLORS]}44` : '1px solid transparent',
-              }}
+                background: subject === s ? (s === 'All' ? '#5B6AF5' : SUBJECT_COLORS[s as keyof typeof SUBJECT_COLORS] + '33') : 'var(--ink-070)',
+                color: subject === s ? (s === 'All' ? 'white' : SUBJECT_COLORS[s as keyof typeof SUBJECT_COLORS]) : 'var(--ink-450)',
+                border: subject === s && s !== 'All' ? `1px solid ${SUBJECT_COLORS[s as keyof typeof SUBJECT_COLORS]}44` : '1px solid transparent' }}
             >
               {s}
             </button>
           ))}
         </div>
 
-        <p className="text-[10px] text-white/30 mt-2">{filtered.length} formulas</p>
+        <p className="text-xs text-white/30 mt-2">{filtered.length} formulas</p>
       </div>
 
       {/* List */}

@@ -15,14 +15,15 @@ interface LeaderRow { rank_pos: number; full_name: string; avatar_url: string | 
 interface SchoolSummary { school_name: string; total_xp: number; student_count: number; school_rank: number; }
 
 function Avatar({ url, name, size = 40 }: { url: string | null; name: string; size?: number }) {
-  if (url) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />;
+  const [imgError, setImgError] = useState(false);
+  if (url && !imgError) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} onError={() => setImgError(true)} />;
   const initials = (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.36, fontWeight: 700, color: '#fff', flexShrink: 0,
+      fontSize: size * 0.36, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0,
     }}>{initials}</div>
   );
 }
@@ -53,7 +54,7 @@ export default function SchoolLeaderboardPage() {
     try {
       await Share.share({
         title: `${decodedName} on Edora`,
-        text: `${decodedName} is ranked #${summary?.school_rank ?? '?'} on Edora this week! Check the leaderboard 🏆`,
+        text: `${decodedName} is ranked #${summary?.school_rank ?? '?'} on Edora this week. Check the leaderboard.`,
         url: link,
       });
     } catch { /* cancelled */ }
@@ -77,20 +78,20 @@ export default function SchoolLeaderboardPage() {
           {/* Summary cards */}
           {summary && (
             <div className="grid grid-cols-3 gap-2 mb-6">
-              <div className="rounded-2xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="rounded-2xl p-2.5 text-center" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
                 <Trophy className="w-4 h-4 mx-auto mb-1" style={{ color: '#FBBF24' }} />
                 <p className="font-heading text-base font-bold text-white leading-tight">#{summary.school_rank}</p>
-                <p className="text-[10px] text-white/40 mt-0.5">Nationwide</p>
+                <p className="text-xs text-white/40 mt-0.5">Nationwide</p>
               </div>
-              <div className="rounded-2xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="rounded-2xl p-2.5 text-center" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
                 <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: '#A0AEFF' }} />
                 <p className="font-heading text-base font-bold text-white leading-tight truncate">{summary.total_xp.toLocaleString()}</p>
-                <p className="text-[10px] text-white/40 mt-0.5">Total XP</p>
+                <p className="text-xs text-white/40 mt-0.5">Total XP</p>
               </div>
-              <div className="rounded-2xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="rounded-2xl p-2.5 text-center" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
                 <Users className="w-4 h-4 mx-auto mb-1" style={{ color: '#34D399' }} />
                 <p className="font-heading text-base font-bold text-white leading-tight">{summary.student_count}</p>
-                <p className="text-[10px] text-white/40 mt-0.5">Students</p>
+                <p className="text-xs text-white/40 mt-0.5">Students</p>
               </div>
             </div>
           )}
@@ -103,14 +104,14 @@ export default function SchoolLeaderboardPage() {
             ) : leaders.map((l, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                 className="flex items-center gap-3 p-3 rounded-2xl"
-                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div className="w-7 text-center font-heading font-bold text-sm" style={{ color: i < 3 ? '#FBBF24' : 'rgba(255,255,255,0.4)' }}>
-                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${l.rank_pos}`}
+                style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}>
+                <div className="w-7 text-center font-heading font-bold text-sm" style={{ color: i < 3 ? '#FBBF24' : 'var(--ink-400)' }}>
+                  {`#${l.rank_pos}`}
                 </div>
                 <Avatar url={l.avatar_url} name={l.full_name} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{l.full_name}</p>
-                  <p className="text-xs text-white/40">🔥 {l.streak_count} day streak</p>
+                  <p className="text-xs text-white/40">{l.streak_count} day streak</p>
                 </div>
                 <p className="text-sm font-bold" style={{ color: '#A0AEFF' }}>{l.xp.toLocaleString()} XP</p>
               </motion.div>

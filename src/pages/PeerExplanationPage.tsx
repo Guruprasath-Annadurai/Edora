@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Sparkles, Send, Trophy, Target,
   Loader2, ChevronRight, RotateCcw, History,
-  CheckCircle2, XCircle, Lightbulb, Zap, BookOpen,
+  CheckCircle2, XCircle, Lightbulb, Zap, BookOpen, Brain,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -99,7 +99,7 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div className="relative w-36 h-36 mx-auto">
       <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-        <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--ink-060)" strokeWidth="10" />
         <motion.circle
           cx="60" cy="60" r={r}
           fill="none"
@@ -263,7 +263,7 @@ Rules:
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
           {/* Hero */}
           <div className="text-center space-y-2 py-4">
-            <div className="text-5xl">🧠</div>
+            <Brain size={44} className="mx-auto text-white/70" strokeWidth={1.5} />
             <h2 className="text-xl font-bold">The Feynman Method</h2>
             <p className="text-sm text-gray-400 max-w-xs mx-auto">
               Explain a topic as if teaching someone from scratch. Novo will find gaps in your understanding.

@@ -182,10 +182,10 @@ function BottomSheet({ info, onClose, onStudy }: BottomSheetProps) {
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 380, damping: 36 }}
         className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl px-5 pt-4 pb-8 max-w-lg mx-auto"
-        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ background: 'var(--hdr-a-880)', border: '1px solid var(--ink-100)', borderBottom: 'none' }}
       >
         {/* Drag handle */}
-        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'rgba(255,255,255,0.15)' }} />
+        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--ink-150)' }} />
 
         {/* Subject name */}
         <div className="flex items-center gap-3 mb-3">
@@ -200,19 +200,19 @@ function BottomSheet({ info, onClose, onStudy }: BottomSheetProps) {
               {info.subject}
             </h3>
             {masteryPct !== null && (
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
                 Mastery: <span className="font-bold" style={{ color: fillColor }}>{masteryPct}%</span>
               </p>
             )}
             {masteryPct === null && (
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Not yet started</p>
+              <p className="text-xs" style={{ color: 'var(--ink-500)' }}>Not yet started</p>
             )}
           </div>
         </div>
 
         {/* Description */}
         {info.description && (
-          <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--ink-600)' }}>
             {info.description}
           </p>
         )}
@@ -221,7 +221,7 @@ function BottomSheet({ info, onClose, onStudy }: BottomSheetProps) {
         {info.strength && (
           <div className="flex items-center gap-2 mb-4">
             <span
-              className="px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize"
+              className="px-2.5 py-0.5 rounded-full text-xs font-bold capitalize"
               style={{
                 background: STRENGTH_COLORS[info.strength] + '22',
                 color:      STRENGTH_COLORS[info.strength],
@@ -346,7 +346,7 @@ function GraphSVG({ nodes, edges, filter, onNodeTap, allDeps }: GraphProps) {
                 dominantBaseline="middle"
                 fontSize={11}
                 fontWeight={600}
-                fill={fill === '#6B7280' ? 'rgba(255,255,255,0.6)' : fill === '#10B981' ? '#34D399' : '#FBBF24'}
+                fill={fill === '#6B7280' ? 'var(--ink-600)' : fill === '#10B981' ? '#34D399' : '#FBBF24'}
                 style={{ fontFamily: 'system-ui, sans-serif', userSelect: 'none' }}
               >
                 {node.subject.length > 14 ? node.subject.slice(0, 13) + '…' : node.subject}
@@ -364,39 +364,39 @@ function GraphSVG({ nodes, edges, filter, onNodeTap, allDeps }: GraphProps) {
 function Legend() {
   return (
     <div className="rounded-2xl p-3 flex flex-wrap gap-x-4 gap-y-2"
-      style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
       {/* Edge types */}
       <div className="flex items-center gap-1.5">
         <svg width="22" height="8">
           <line x1="0" y1="4" x2="22" y2="4" stroke="#EF4444" strokeWidth="2" />
         </svg>
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Required</span>
+        <span className="text-xs" style={{ color: 'var(--ink-500)' }}>Required</span>
       </div>
       <div className="flex items-center gap-1.5">
         <svg width="22" height="8">
           <line x1="0" y1="4" x2="22" y2="4" stroke="#F59E0B" strokeWidth="2" strokeDasharray="5 2" />
         </svg>
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Recommended</span>
+        <span className="text-xs" style={{ color: 'var(--ink-500)' }}>Recommended</span>
       </div>
       <div className="flex items-center gap-1.5">
         <svg width="22" height="8">
           <line x1="0" y1="4" x2="22" y2="4" stroke="#6B7280" strokeWidth="2" strokeDasharray="2 3" />
         </svg>
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Helpful</span>
+        <span className="text-xs" style={{ color: 'var(--ink-500)' }}>Helpful</span>
       </div>
 
       {/* Mastery levels */}
       <div className="flex items-center gap-1.5">
         <div className="w-3.5 h-3.5 rounded-full" style={{ background: '#10B981' }} />
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Mastered (70%+)</span>
+        <span className="text-xs" style={{ color: 'var(--ink-500)' }}>Mastered (70%+)</span>
       </div>
       <div className="flex items-center gap-1.5">
         <div className="w-3.5 h-3.5 rounded-full" style={{ background: '#F59E0B' }} />
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Developing (40–70%)</span>
+        <span className="text-xs" style={{ color: 'var(--ink-500)' }}>Developing (40–70%)</span>
       </div>
       <div className="flex items-center gap-1.5">
         <div className="w-3.5 h-3.5 rounded-full" style={{ background: '#6B7280' }} />
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Not started / below 40%</span>
+        <span className="text-xs" style={{ color: 'var(--ink-500)' }}>Not started / below 40%</span>
       </div>
     </div>
   );
@@ -446,7 +446,7 @@ function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.04, duration: 0.3 }}
             className="rounded-2xl p-3.5 flex items-center gap-3"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
           >
             {/* Step number */}
             <div
@@ -462,7 +462,7 @@ function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
                 <p className="text-sm font-bold text-white">{node.subject}</p>
                 {readyToLearn && (
                   <span
-                    className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    className="px-2 py-0.5 rounded-full text-xs font-bold"
                     style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34D399' }}
                   >
                     Ready to learn
@@ -470,7 +470,7 @@ function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
                 )}
                 {isMastered && (
                   <span
-                    className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    className="px-2 py-0.5 rounded-full text-xs font-bold"
                     style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34D399' }}
                   >
                     Mastered
@@ -484,7 +484,7 @@ function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
                     ? <CheckCircle2 size={11} className="text-emerald-400 shrink-0" />
                     : <XCircle     size={11} className="text-red-400 shrink-0" />
                   }
-                  <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  <p className="text-xs truncate" style={{ color: 'var(--ink-500)' }}>
                     Needs: {prereqs.join(', ')}
                   </p>
                 </div>
@@ -623,11 +623,11 @@ export default function SubjectDependencyPage() {
 
       {/* ── Header ── */}
       <div className="px-4 py-3 shrink-0 flex items-center gap-3 sticky top-0 z-10"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-all text-white"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', WebkitTapHighlightColor: 'transparent' }}
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)', WebkitTapHighlightColor: 'transparent' }}
         >
           <ArrowLeft size={17} />
         </button>
@@ -635,13 +635,13 @@ export default function SubjectDependencyPage() {
           <h1 className="font-heading text-lg font-bold text-white leading-tight">
             Subject Map
           </h1>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Knowledge unlock graph</p>
+          <p className="text-xs" style={{ color: 'var(--ink-500)' }}>Knowledge unlock graph</p>
         </div>
 
         {/* Graph / List toggle */}
         <div
           className="flex items-center gap-0.5 rounded-xl p-0.5"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-080)' }}
         >
           <button
             onClick={() => setView('graph')}
@@ -651,7 +651,7 @@ export default function SubjectDependencyPage() {
               : {}
             }
           >
-            <MapIcon size={15} style={{ color: view === 'graph' ? '#8B9BFA' : 'rgba(255,255,255,0.4)' }} />
+            <MapIcon size={15} style={{ color: view === 'graph' ? '#8B9BFA' : 'var(--ink-400)' }} />
           </button>
           <button
             onClick={() => setView('list')}
@@ -661,14 +661,14 @@ export default function SubjectDependencyPage() {
               : {}
             }
           >
-            <List size={15} style={{ color: view === 'list' ? '#8B9BFA' : 'rgba(255,255,255,0.4)' }} />
+            <List size={15} style={{ color: view === 'list' ? '#8B9BFA' : 'var(--ink-400)' }} />
           </button>
         </div>
       </div>
 
       {/* ── Filter chips ── */}
       <div className="shrink-0 px-4 py-2.5 overflow-x-auto native-scroll-x"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        style={{ borderBottom: '1px solid var(--ink-060)' }}>
         <div className="flex gap-2 w-max">
           {FILTERS.map(f => (
             <button
@@ -678,7 +678,7 @@ export default function SubjectDependencyPage() {
               style={
                 filter === f.value
                   ? { background: 'rgba(91,106,245,0.15)', borderColor: '#5B6AF5', color: '#8B9BFA' }
-                  : { background: 'rgba(255,255,255,0.045)', borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)' }
+                  : { background: 'var(--ink-045)', borderColor: 'var(--ink-100)', color: 'var(--ink-450)' }
               }
             >
               {f.label}
@@ -697,7 +697,7 @@ export default function SubjectDependencyPage() {
               className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin"
               style={{ borderColor: '#E5E7EB', borderTopColor: '#5B6AF5' }}
             />
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Building subject map…</p>
+            <p className="text-sm" style={{ color: 'var(--ink-500)' }}>Building subject map…</p>
           </div>
         )}
 
@@ -726,7 +726,7 @@ export default function SubjectDependencyPage() {
             <h2 className="font-heading text-xl font-bold text-white mb-2">
               No dependencies yet
             </h2>
-            <p className="text-sm max-w-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <p className="text-sm max-w-xs" style={{ color: 'var(--ink-500)' }}>
               Subject dependency data hasn't been set up for your curriculum yet.
             </p>
           </motion.div>
@@ -745,7 +745,7 @@ export default function SubjectDependencyPage() {
               >
                 <div
                   className="rounded-2xl p-3 overflow-hidden"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
                 >
                   <GraphSVG
                     nodes={nodes}

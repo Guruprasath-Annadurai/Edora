@@ -93,7 +93,7 @@ function RadarChart({ axes }: { axes: RadarAxis[] }) {
         const pts = axes.map((_, i) => polarToXY(i * step, RADAR_R * (r / 100)));
         return (
           <path key={r} d={pointsToPath(pts)} fill="none"
-            stroke="rgba(255,255,255,0.07)" strokeWidth={1} />
+            stroke="var(--ink-070)" strokeWidth={1} />
         );
       })}
 
@@ -102,14 +102,14 @@ function RadarChart({ axes }: { axes: RadarAxis[] }) {
         const p = polarToXY(0, RADAR_R * (r / 100) + 2);
         return (
           <text key={`lbl-${r}`} x={p.x + 4} y={p.y} fontSize={7}
-            fill="rgba(255,255,255,0.25)" dominantBaseline="middle">{r}%</text>
+            fill="var(--ink-250)" dominantBaseline="middle">{r}%</text>
         );
       })}
 
       {/* Axis spokes */}
       {axesEndPts.map((p, i) => (
         <line key={`spoke-${i}`} x1={RADAR_CX} y1={RADAR_CY} x2={p.x} y2={p.y}
-          stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
+          stroke="var(--ink-100)" strokeWidth={1} />
       ))}
 
       {/* JEE weight shape */}
@@ -155,12 +155,12 @@ function TopicRow({ stat }: { stat: TopicStat }) {
     <div className="flex items-center gap-3 py-2">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">{stat.topic}</p>
-        <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--ink-350)' }}>
           {stat.total_q} questions · {stat.subject}
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <div className="w-20 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+        <div className="w-20 h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
           <motion.div className="h-full rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${stat.accuracy_pct}%` }}
@@ -205,8 +205,8 @@ export default function WeaknessRadarPage() {
       setTopics((tpRes.data ?? []) as TopicStat[]);
       setJeeWeights((jeeRes.data ?? []) as JEEWeight[]);
       track('weakness_radar_viewed', { topic_count: tpRes.data?.length ?? 0 });
-    } catch (e: any) {
-      setError(e.message ?? 'Failed to load data');
+    } catch (e) {
+      setError((e as Error).message ?? 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -260,8 +260,8 @@ export default function WeaknessRadarPage() {
       if (sprintErr) throw sprintErr;
       track('weakness_sprint_launched', { topic: worstTopic.topic });
       navigate('/sprint', { state: { subject: worstTopic.subject, topic: worstTopic.topic } });
-    } catch (e: any) {
-      setError(e.message ?? 'Failed to launch sprint');
+    } catch (e) {
+      setError((e as Error).message ?? 'Failed to launch sprint');
       setLaunching(false);
     }
   }
@@ -274,7 +274,7 @@ export default function WeaknessRadarPage() {
         <div className="px-4 pt-5">
           <div className="flex items-center gap-3 mb-6">
             <Link aria-label="Go back" to="/profile" className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.06)' }}>
+              style={{ background: 'var(--ink-060)' }}>
               <ChevronLeft size={18} className="text-white" />
             </Link>
             <h1 className="font-heading text-xl font-extrabold text-foreground">Weakness Radar</h1>
@@ -286,7 +286,7 @@ export default function WeaknessRadarPage() {
             </div>
             <div>
               <h2 className="font-heading text-xl font-bold text-white">No Data Yet</h2>
-              <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <p className="text-sm mt-1" style={{ color: 'var(--ink-500)' }}>
                 Complete a few quizzes to see your radar.
               </p>
             </div>
@@ -309,19 +309,19 @@ export default function WeaknessRadarPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link aria-label="Go back" to="/profile" className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.06)' }}>
+              style={{ background: 'var(--ink-060)' }}>
               <ChevronLeft size={18} className="text-white" />
             </Link>
             <div>
               <h1 className="font-heading text-xl font-extrabold text-foreground">Weakness Radar</h1>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--ink-400)' }}>
                 vs JEE topic weights
               </p>
             </div>
           </div>
           <button onClick={load}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all"
-            style={{ background: 'rgba(255,255,255,0.06)' }}>
+            style={{ background: 'var(--ink-060)' }}>
             <RefreshCw size={16} className={`text-white ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -345,7 +345,7 @@ export default function WeaknessRadarPage() {
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
               className="rounded-3xl p-5 flex flex-col items-center gap-4"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(91,106,245,0.2)' }}>
+              style={{ background: 'var(--ink-060)', border: '1.5px solid rgba(91,106,245,0.2)' }}>
 
               {radarAxes.length >= 3 ? (
                 <>
@@ -353,18 +353,18 @@ export default function WeaknessRadarPage() {
                   <div className="flex items-center gap-6 text-xs">
                     <div className="flex items-center gap-1.5">
                       <div className="w-4 h-0.5 rounded" style={{ background: '#5B6AF5' }} />
-                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>Your Score</span>
+                      <span style={{ color: 'var(--ink-500)' }}>Your Score</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="w-4 h-0.5 rounded border-t border-dashed" style={{ borderColor: 'rgba(251,191,36,0.5)' }} />
-                      <span style={{ color: 'rgba(255,255,255,0.5)' }}>JEE Weight</span>
+                      <span style={{ color: 'var(--ink-500)' }}>JEE Weight</span>
                     </div>
                   </div>
                 </>
               ) : (
                 <div className="text-center py-8">
-                  <TrendingUp size={32} style={{ color: 'rgba(255,255,255,0.2)' }} className="mx-auto mb-2" />
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <TrendingUp size={32} style={{ color: 'var(--ink-200)' }} className="mx-auto mb-2" />
+                  <p className="text-sm" style={{ color: 'var(--ink-400)' }}>
                     Take quizzes across 3+ subjects to see the radar
                   </p>
                 </div>
@@ -387,7 +387,7 @@ export default function WeaknessRadarPage() {
                     {weakTopics.length} topics
                   </span>
                 </div>
-                <div className="flex flex-col divide-y" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                <div className="flex flex-col divide-y" style={{ borderColor: 'var(--ink-050)' }}>
                   {weakTopics.map(t => <TopicRow key={`${t.subject}-${t.topic}`} stat={t} />)}
                 </div>
 
@@ -408,11 +408,11 @@ export default function WeaknessRadarPage() {
                   className="px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all"
                   style={selectedSubject === null ? {
                     background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
-                    color: '#fff',
+                    color: 'var(--ink-950)',
                   } : {
-                    background: 'rgba(255,255,255,0.06)',
-                    color: 'rgba(255,255,255,0.5)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--ink-060)',
+                    color: 'var(--ink-500)',
+                    border: '1px solid var(--ink-100)',
                   }}>
                   All
                 </button>
@@ -422,11 +422,11 @@ export default function WeaknessRadarPage() {
                     className="px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all"
                     style={selectedSubject === s ? {
                       background: subjectColor(s),
-                      color: '#fff',
+                      color: 'var(--ink-950)',
                     } : {
-                      background: 'rgba(255,255,255,0.06)',
-                      color: 'rgba(255,255,255,0.5)',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      background: 'var(--ink-060)',
+                      color: 'var(--ink-500)',
+                      border: '1px solid var(--ink-100)',
                     }}>
                     {s}
                   </button>
@@ -436,16 +436,16 @@ export default function WeaknessRadarPage() {
 
             {/* ── All topics list ── */}
             <div className="rounded-3xl p-5"
-              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-070)' }}>
               <h2 className="font-heading text-base font-bold text-white mb-3">
                 {selectedSubject ?? 'All Topics'}
               </h2>
               {filteredTopics.length === 0 ? (
-                <p className="text-sm text-center py-4" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <p className="text-sm text-center py-4" style={{ color: 'var(--ink-300)' }}>
                   No data for {selectedSubject}
                 </p>
               ) : (
-                <div className="flex flex-col divide-y" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                <div className="flex flex-col divide-y" style={{ borderColor: 'var(--ink-050)' }}>
                   {filteredTopics.map(t => (
                     <TopicRow key={`${t.subject}-${t.topic}`} stat={t} />
                   ))}
@@ -478,7 +478,7 @@ export default function WeaknessRadarPage() {
                         return (
                           <div key={`${j.subject}-${j.topic}`}
                             className="flex items-center gap-3">
-                            <span className="text-xs font-medium w-36 shrink-0" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                            <span className="text-xs font-medium w-36 shrink-0" style={{ color: 'var(--ink-600)' }}>
                               {j.topic}
                             </span>
                             <div className="flex-1 h-1.5 rounded-full overflow-hidden"
@@ -486,17 +486,17 @@ export default function WeaknessRadarPage() {
                               <div className="h-full rounded-full"
                                 style={{ width: `${j.weight_pct}%`, background: 'rgba(251,191,36,0.6)' }} />
                             </div>
-                            <span className="text-[10px] w-8 text-right shrink-0"
+                            <span className="text-xs w-8 text-right shrink-0"
                               style={{ color: 'rgba(251,191,36,0.7)' }}>{j.weight_pct}%</span>
                             {myAcc !== null && (
-                              <span className="text-[10px] w-8 text-right shrink-0 font-bold"
+                              <span className="text-xs w-8 text-right shrink-0 font-bold"
                                 style={{ color: masteryColor(myAcc) }}>{Math.round(myAcc)}%</span>
                             )}
                           </div>
                         );
                       })}
                   </div>
-                  <p className="text-[10px] mt-3" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <p className="text-xs mt-3" style={{ color: 'var(--ink-250)' }}>
                     JEE% = typical paper weightage · My% = your quiz accuracy
                   </p>
                 </motion.div>

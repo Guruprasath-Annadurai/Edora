@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Sparkles, Flame, Check, Clock, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Sparkles, Flame, Check, Clock, RefreshCw, Handshake, PartyPopper } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,14 +24,15 @@ interface BuddyPair {
 }
 
 function Avatar({ url, name, size = 64 }: { url: string | null; name: string; size?: number }) {
-  if (url) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />;
+  const [imgError, setImgError] = useState(false);
+  if (url && !imgError) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} onError={() => setImgError(true)} />;
   const initials = (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.34, fontWeight: 700, color: '#fff', flexShrink: 0,
+      fontSize: size * 0.34, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0,
     }}>{initials}</div>
   );
 }
@@ -46,6 +47,7 @@ export default function StudyBuddyPage() {
   const [checkingIn, setCheckingIn] = useState(false);
   const [bonusToast, setBonusToast] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadBuddy closes over profile which is already tracked via profile?.id
   useEffect(() => { loadBuddy(); }, [profile?.id]);
 
   async function loadBuddy() {
@@ -124,7 +126,7 @@ export default function StudyBuddyPage() {
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <button aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <button aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'var(--ink-060)' }}>
           <ChevronLeft className="w-5 h-5 text-white" />
         </button>
         <h1 className="font-heading text-lg font-bold text-white flex-1">Study Buddy</h1>
@@ -135,7 +137,7 @@ export default function StudyBuddyPage() {
           <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
         ) : !pair ? (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-            <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl" style={{ background: 'rgba(91,106,245,0.12)' }}>🤝</div>
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)' }}><Handshake size={34} style={{ color: '#A0AEFF' }} strokeWidth={1.6} /></div>
             <div>
               <h2 className="font-heading text-xl font-bold text-white mb-2">Get an Accountability Partner</h2>
               <p className="text-sm text-white/60 leading-relaxed max-w-xs mx-auto">
@@ -152,10 +154,10 @@ export default function StudyBuddyPage() {
             {/* Pair card */}
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               className="rounded-3xl p-6 text-center mb-5"
-              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-070)' }}>
               <div className="flex items-center justify-center gap-3 mb-4">
                 <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? 'You'} />
-                <div className="text-2xl">🤝</div>
+                <Handshake size={22} style={{ color: '#A0AEFF' }} strokeWidth={1.7} />
                 <Avatar url={pair.buddy_avatar} name={pair.buddy_name} />
               </div>
               <p className="text-sm text-white/60 mb-1">You & {pair.buddy_name}</p>
@@ -167,19 +169,19 @@ export default function StudyBuddyPage() {
             </motion.div>
 
             {/* Today's check-in status */}
-            <div className="rounded-2xl p-4 mb-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="rounded-2xl p-4 mb-4" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-060)' }}>
               <p className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-3">Today's Check-in</p>
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-sm text-white/80">You</span>
                 {pair.my_checked_in_today
                   ? <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: '#34D399' }}><Check className="w-3.5 h-3.5" />Studied</span>
-                  : <span className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}><Clock className="w-3.5 h-3.5" />Pending</span>}
+                  : <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-400)' }}><Clock className="w-3.5 h-3.5" />Pending</span>}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-white/80">{pair.buddy_name}</span>
                 {pair.buddy_checked_in_today
                   ? <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: '#34D399' }}><Check className="w-3.5 h-3.5" />Studied</span>
-                  : <span className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}><Clock className="w-3.5 h-3.5" />Waiting</span>}
+                  : <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-400)' }}><Clock className="w-3.5 h-3.5" />Waiting</span>}
               </div>
             </div>
 
@@ -203,9 +205,9 @@ export default function StudyBuddyPage() {
       {bonusToast && (
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
           className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-5 rounded-3xl text-center z-50"
-          style={{ background: 'rgba(20,25,50,0.97)', border: '1px solid rgba(91,106,245,0.4)' }}>
-          <div className="text-4xl mb-2">🎉</div>
-          <p className="font-heading text-lg font-bold text-white">+50 XP Bonus!</p>
+          style={{ background: 'var(--surface-scrim)', border: '1px solid rgba(91,106,245,0.4)' }}>
+          <PartyPopper size={36} className="mx-auto mb-2" style={{ color: '#A0AEFF' }} strokeWidth={1.5} />
+          <p className="font-heading text-lg font-bold text-white">+50 XP Bonus</p>
           <p className="text-sm text-white/60 mt-1">You both studied today</p>
         </motion.div>
       )}

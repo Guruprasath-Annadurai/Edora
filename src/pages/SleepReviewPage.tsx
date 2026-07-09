@@ -130,7 +130,7 @@ function CardStep({ card, index, total, onResult }: CardStepProps) {
                 ? 'rgba(167,139,250,0.8)'
                 : i === index
                 ? '#A78BFA'
-                : 'rgba(255,255,255,0.12)',
+                : 'var(--ink-120)',
             }}
           />
         ))}
@@ -158,7 +158,7 @@ function CardStep({ card, index, total, onResult }: CardStepProps) {
               boxShadow: '0 8px 40px rgba(109,40,217,0.2)',
             }}
           >
-            <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-4">Question</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-violet-400/60 mb-4">Question</p>
             <p className="text-xl font-bold text-white leading-snug">{card.front}</p>
             {!flipped && (
               <p className="mt-5 text-xs text-white/30 font-semibold">Tap to reveal answer</p>
@@ -172,12 +172,12 @@ function CardStep({ card, index, total, onResult }: CardStepProps) {
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
-              background: 'linear-gradient(135deg,rgba(30,20,70,0.95),rgba(50,30,100,0.95))',
+              background: 'linear-gradient(135deg,var(--surface-scrim),rgba(50,30,100,0.95))',
               border: '1px solid rgba(167,139,250,0.3)',
               boxShadow: '0 8px 40px rgba(109,40,217,0.3)',
             }}
           >
-            <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/60 mb-4">Answer</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-violet-400/60 mb-4">Answer</p>
             <p className="text-lg font-semibold text-white/90 leading-snug">{card.back}</p>
           </div>
         </motion.div>
@@ -273,7 +273,7 @@ function CompletionScreen({ known, total, onRestart }: { known: number; total: n
       {/* Retention ring */}
       <div className="relative w-28 h-28">
         <svg width={112} height={112} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={56} cy={56} r={48} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={8} />
+          <circle cx={56} cy={56} r={48} fill="none" stroke="var(--ink-060)" strokeWidth={8} />
           <motion.circle
             cx={56} cy={56} r={48} fill="none" stroke="#A78BFA" strokeWidth={8}
             strokeLinecap="round"
@@ -286,7 +286,7 @@ function CompletionScreen({ known, total, onRestart }: { known: number; total: n
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="font-heading text-2xl font-extrabold text-white">{retention}%</span>
-          <span className="text-[10px] text-white/40 font-semibold">retention</span>
+          <span className="text-xs text-white/40 font-semibold">retention</span>
         </div>
       </div>
 
@@ -300,7 +300,7 @@ function CompletionScreen({ known, total, onRestart }: { known: number; total: n
       >
         <div className="flex items-center gap-2 mb-1.5">
           <Sparkles size={12} style={{ color: '#A78BFA' }} />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-violet-400/70">Sleep insight</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-violet-400/70">Sleep insight</span>
         </div>
         <p className="text-sm text-white/60 leading-relaxed">{tip}</p>
       </div>
@@ -367,7 +367,7 @@ Keep each item under 8 words. No numbering. No markdown.`
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-1">
-        <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-100)' }}>
           <ChevronLeft size={16} className="text-white/60" />
         </button>
         <div>
@@ -407,15 +407,15 @@ Keep each item under 8 words. No numbering. No markdown.`
               onClick={() => toggle(i)}
               className="w-full text-left flex items-start gap-3 px-4 py-3 rounded-2xl transition-all"
               style={{
-                background: checked[i] ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${checked[i] ? 'rgba(167,139,250,0.3)' : 'rgba(255,255,255,0.07)'}`,
+                background: checked[i] ? 'rgba(167,139,250,0.12)' : 'var(--ink-040)',
+                border: `1px solid ${checked[i] ? 'rgba(167,139,250,0.3)' : 'var(--ink-070)'}`,
               }}
             >
               {checked[i]
                 ? <CheckSquare size={16} style={{ color: '#A78BFA', marginTop: 1, flexShrink: 0 }} />
-                : <Square size={16} style={{ color: 'rgba(255,255,255,0.25)', marginTop: 1, flexShrink: 0 }} />
+                : <Square size={16} style={{ color: 'var(--ink-250)', marginTop: 1, flexShrink: 0 }} />
               }
-              <span className="text-sm leading-snug" style={{ color: checked[i] ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)', textDecoration: checked[i] ? 'line-through' : 'none' }}>
+              <span className="text-sm leading-snug" style={{ color: checked[i] ? 'var(--ink-500)' : 'var(--ink-850)', textDecoration: checked[i] ? 'line-through' : 'none' }}>
                 {item}
               </span>
             </motion.button>
@@ -430,7 +430,7 @@ Keep each item under 8 words. No numbering. No markdown.`
             <span>{doneCount}/{items.length} checked</span>
             <span>{Math.round((doneCount / items.length) * 100)}% reviewed</span>
           </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
             <motion.div
               className="h-full rounded-full"
               style={{ background: 'linear-gradient(90deg,#7C3AED,#A78BFA)' }}
@@ -580,7 +580,7 @@ export default function SleepReviewPage() {
         <button aria-label="Go back"
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}
         >
           <ChevronLeft size={18} className="text-white/60" />
         </button>

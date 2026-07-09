@@ -26,7 +26,7 @@ interface SessionContent {
 }
 
 // ── Progress ring ─────────────────────────────────────────────────────────────
-function SessionRing({ done, total, size = 80 }: { done: number; total: number; size?: number }) {
+function _SessionRing({ done, total, size = 80 }: { done: number; total: number; size?: number }) {
   const stroke = 6;
   const r      = (size - stroke) / 2;
   const circ   = 2 * Math.PI * r;
@@ -35,7 +35,7 @@ function SessionRing({ done, total, size = 80 }: { done: number; total: number; 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="absolute" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--ink-080)" strokeWidth={stroke} />
         <motion.circle
           cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeLinecap="round" strokeDasharray={circ}
@@ -58,7 +58,7 @@ function FlashcardStep({ card, onDone }: { card: Flashcard; onDone: (knew: boole
   return (
     <div className="flex flex-col gap-5">
       <div className="text-center">
-        <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Flashcard Review</div>
+        <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1">Flashcard Review</div>
         <div className="text-xs text-white/30">{card.subject} {card.topic ? `· ${card.topic}` : ''}</div>
       </div>
 
@@ -113,17 +113,17 @@ function PYQStep({ q, onDone }: { q: PYQQuestion; onDone: (correct: boolean) => 
   return (
     <div className="flex flex-col gap-4">
       <div className="text-center">
-        <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">PYQ Practice</div>
+        <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1">PYQ Practice</div>
         {q.year && <div className="text-xs text-white/30">{q.subject} · {q.year}</div>}
       </div>
-      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="rounded-2xl p-4" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
         <p className="text-white text-sm font-medium leading-relaxed">{q.question_text}</p>
       </div>
       <div className="flex flex-col gap-2.5">
         {(q.options ?? []).map((opt, i) => {
-          let bg = 'rgba(255,255,255,0.04)';
-          let border = 'rgba(255,255,255,0.08)';
-          let color = 'rgba(255,255,255,0.8)';
+          let bg = 'var(--ink-040)';
+          let border = 'var(--ink-080)';
+          let color = 'var(--ink-800)';
           if (revealed) {
             if (i === q.correct_option) { bg = 'rgba(16,185,129,0.12)'; border = '#10B981'; color = '#10B981'; }
             else if (i === selected)     { bg = 'rgba(248,113,113,0.12)'; border = '#F87171'; color = '#F87171'; }
@@ -132,7 +132,7 @@ function PYQStep({ q, onDone }: { q: PYQQuestion; onDone: (correct: boolean) => 
             <motion.button key={i} whileTap={!revealed ? { scale: 0.98 } : {}}
               onClick={() => !revealed && setSelected(i)}
               style={{ background: bg, border: `1px solid ${border}`, borderRadius: 12, padding: '11px 14px', color, textAlign: 'left', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s', cursor: revealed ? 'default' : 'pointer' }}>
-              <span style={{ minWidth: 22, height: 22, borderRadius: 6, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+              <span style={{ minWidth: 22, height: 22, borderRadius: 6, background: 'var(--ink-080)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                 {String.fromCharCode(65 + i)}
               </span>
               <span className="flex-1">{opt}</span>
@@ -146,7 +146,7 @@ function PYQStep({ q, onDone }: { q: PYQQuestion; onDone: (correct: boolean) => 
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} style={{ overflow: 'hidden' }}>
             {q.explanation && (
               <div className="rounded-2xl p-3.5 text-xs text-white/60 leading-relaxed mb-3"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-060)' }}>
                 {q.explanation}
               </div>
             )}
@@ -168,7 +168,7 @@ function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: ()
   return (
     <div className="flex flex-col gap-4">
       <div className="text-center">
-        <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Concept Bite</div>
+        <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1">Concept Bite</div>
         {concept.subject && <div className="text-xs text-white/30">{concept.subject}</div>}
       </div>
       <div className="rounded-3xl p-5" style={{ background: 'linear-gradient(135deg,rgba(91,106,245,0.12),rgba(139,92,246,0.12))', border: '1px solid rgba(91,106,245,0.25)' }}>
@@ -184,7 +184,7 @@ function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: ()
           <motion.button key="read" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             onClick={() => setPhase('example')}
             className="w-full py-3.5 rounded-2xl font-bold text-sm text-white"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-100)' }}>
             See Example →
           </motion.button>
         )}
@@ -192,12 +192,12 @@ function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: ()
           <motion.div key="example" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
             <div className="rounded-2xl p-4 text-sm text-white/70 leading-relaxed"
               style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-              <span className="text-[10px] font-bold text-emerald-400 uppercase block mb-1">Example</span>
+              <span className="text-xs font-bold text-emerald-400 uppercase block mb-1">Example</span>
               {concept.example}
             </div>
             <button onClick={() => setPhase(concept.question ? 'question' : 'answer')}
               className="w-full py-3.5 rounded-2xl font-bold text-sm text-white"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-100)' }}>
               {concept.question ? 'Test yourself →' : 'Complete →'}
             </button>
           </motion.div>
@@ -205,12 +205,12 @@ function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: ()
         {phase === 'question' && concept.question && (
           <motion.div key="question" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
             <div className="rounded-2xl p-4" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-              <span className="text-[10px] font-bold text-amber-400 uppercase block mb-1">Quick Check</span>
+              <span className="text-xs font-bold text-amber-400 uppercase block mb-1">Quick Check</span>
               <p className="text-white/80 text-sm leading-relaxed">{concept.question}</p>
             </div>
             <button onClick={() => setPhase('answer')}
               className="w-full py-3.5 rounded-2xl font-bold text-sm text-white"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-100)' }}>
               Reveal Answer →
             </button>
           </motion.div>
@@ -220,7 +220,7 @@ function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: ()
             {concept.answer && (
               <div className="rounded-2xl p-4 text-sm text-white/70 leading-relaxed"
                 style={{ background: 'rgba(91,106,245,0.08)', border: '1px solid rgba(91,106,245,0.2)' }}>
-                <span className="text-[10px] font-bold text-primary uppercase block mb-1">Answer</span>
+                <span className="text-xs font-bold text-primary uppercase block mb-1">Answer</span>
                 {concept.answer}
               </div>
             )}
@@ -323,20 +323,20 @@ export default function DailyPowerSessionPage() {
       <div className="px-4 pt-4 pb-3 shrink-0">
         <div className="flex items-center gap-3">
           <Link to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={18} className="text-white" strokeWidth={1.75} />
           </Link>
           <div className="flex-1">
             <h1 className="font-heading font-extrabold text-white text-lg leading-tight">Daily Power Session</h1>
-            <p className="text-[11px] font-semibold text-white/40">
+            <p className="text-xs font-semibold text-white/40">
               {busyMode ? '5-min mode' : '10-min session'} · {formatTime(elapsed)} elapsed
             </p>
           </div>
           {/* Timer display */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-            style={{ background: elapsed > TARGET_SECS * 0.8 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <Clock size={12} color={elapsed > TARGET_SECS * 0.8 ? '#F59E0B' : 'rgba(255,255,255,0.4)'} />
-            <span className="text-xs font-bold" style={{ color: elapsed > TARGET_SECS * 0.8 ? '#F59E0B' : 'rgba(255,255,255,0.5)' }}>
+            style={{ background: elapsed > TARGET_SECS * 0.8 ? 'rgba(245,158,11,0.12)' : 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
+            <Clock size={12} color={elapsed > TARGET_SECS * 0.8 ? '#F59E0B' : 'var(--ink-400)'} />
+            <span className="text-xs font-bold" style={{ color: elapsed > TARGET_SECS * 0.8 ? '#F59E0B' : 'var(--ink-500)' }}>
               {formatTime(Math.max(0, TARGET_SECS - elapsed))}
             </span>
           </div>
@@ -345,16 +345,16 @@ export default function DailyPowerSessionPage() {
         {/* Progress bar */}
         <div className="mt-3 flex items-center gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div key={i} className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
               <motion.div animate={{ width: i < progress ? '100%' : '0%' }} transition={{ duration: 0.4, delay: i * 0.05 }}
                 className="h-full rounded-full" style={{ background: i < 3 ? '#5B6AF5' : i < 5 ? '#10B981' : '#F59E0B' }} />
             </div>
           ))}
         </div>
         <div className="flex justify-between mt-1">
-          <span className="text-[10px] text-white/30">Flashcards</span>
-          <span className="text-[10px] text-white/30">PYQ</span>
-          <span className="text-[10px] text-white/30">Concept</span>
+          <span className="text-xs text-white/30">Flashcards</span>
+          <span className="text-xs text-white/30">PYQ</span>
+          <span className="text-xs text-white/30">Concept</span>
         </div>
       </div>
 
@@ -394,7 +394,7 @@ export default function DailyPowerSessionPage() {
                 </button>
                 <button onClick={() => navigate('/home')}
                   className="w-full py-3.5 rounded-2xl font-bold text-sm text-white/60"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}>
                   Back to Home
                 </button>
               </div>
@@ -419,7 +419,7 @@ export default function DailyPowerSessionPage() {
             /* No content available */
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="flex flex-col items-center justify-center h-full gap-4 py-12 text-center">
-              <Target size={40} color="rgba(255,255,255,0.2)" />
+              <Target size={40} color="var(--ink-200)" />
               <div>
                 <p className="text-white font-semibold mb-1">No session content yet</p>
                 <p className="text-white/40 text-sm">Add flashcards and complete some quizzes first</p>
@@ -440,7 +440,7 @@ export default function DailyPowerSessionPage() {
         <div className="px-4 pb-2 shrink-0">
           <button onClick={() => setBusyMode(v => !v)}
             className="w-full py-2.5 rounded-2xl text-xs font-semibold text-white/30 active:scale-98"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            style={{ background: 'var(--ink-030)', border: '1px solid var(--ink-060)' }}>
             {busyMode ? 'Switch to full 10-min session' : 'Busy today? Switch to 5-min mode'}
           </button>
         </div>

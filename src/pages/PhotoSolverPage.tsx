@@ -141,8 +141,8 @@ function SubjectChips({
                   color: '#5B6AF5',
                 }
               : {
-                  background: 'rgba(255,255,255,0.06)',
-                  borderColor: 'rgba(255,255,255,0.12)',
+                  background: 'var(--ink-060)',
+                  borderColor: 'var(--ink-120)',
                   color: 'var(--muted-foreground)',
                 }
           }
@@ -165,7 +165,7 @@ function StepCard({ step, index }: { step: SolveStep; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.07 }}
       className="rounded-2xl overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+      style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-100)' }}
     >
       <div
         className="flex items-start gap-3 p-4 cursor-pointer"
@@ -314,8 +314,8 @@ export default function PhotoSolverPage() {
       if (!photo.dataUrl) return;
       setPreviewUrl(photo.dataUrl);
       setPhase('captured');
-    } catch (err: any) {
-      const msg: string = (err?.message ?? '').toLowerCase();
+    } catch (err) {
+      const msg: string = ((err as Error)?.message ?? '').toLowerCase();
       if (msg.includes('cancel')) return; // user dismissed — no error shown
       if (msg.includes('permission') || msg.includes('denied') || msg.includes('notallowed')) {
         setErrorMsg('Camera access denied. Enable it in Settings → Apps → Edora → Permissions.');
@@ -394,9 +394,9 @@ export default function PhotoSolverPage() {
 
       setResult(solveResult);
       setPhase('result');
-    } catch (err: any) {
+    } catch (err) {
       if (!mountedRef.current) return;
-      setErrorMsg(err.message ?? 'Novo couldn\'t analyse this image. Please try again.');
+      setErrorMsg((err as Error).message ?? 'Novo couldn\'t analyse this image. Please try again.');
       setPhase('error');
     }
   }
@@ -448,9 +448,9 @@ export default function PhotoSolverPage() {
       if (!mountedRef.current) return;
       setScanCardAdded(true);
       setPhase('result');
-    } catch (err: any) {
+    } catch (err) {
       if (!mountedRef.current) return;
-      setErrorMsg(err.message ?? 'Scan failed. Please try again.');
+      setErrorMsg((err as Error).message ?? 'Scan failed. Please try again.');
       setPhase('error');
     }
   }
@@ -483,9 +483,9 @@ export default function PhotoSolverPage() {
       if (!mountedRef.current) return;
       setCardAdded(true);
       showToast('Flashcard added!', 'success');
-    } catch (err: any) {
+    } catch (err) {
       if (!mountedRef.current) return;
-      showToast(err.message ?? 'Failed to add flashcard.', 'error');
+      showToast((err as Error).message ?? 'Failed to add flashcard.', 'error');
     } finally {
       if (mountedRef.current) setAddingCard(false);
     }
@@ -502,10 +502,10 @@ export default function PhotoSolverPage() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowCameraRationale(false)} />
             <motion.div className="relative w-full rounded-t-3xl p-6 pb-10"
-              style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+              style={{ background: 'var(--hdr-a-880)', border: '1px solid var(--ink-100)', borderBottom: 'none' }}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />
+              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'var(--ink-200)' }} />
               <div className="flex items-start gap-3 mb-5">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)' }}>
@@ -513,7 +513,7 @@ export default function PhotoSolverPage() {
                 </div>
                 <div>
                   <p className="font-bold text-white text-base">Allow camera access?</p>
-                  <p className="text-sm mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--ink-550)' }}>
                     Edora needs your camera to photograph problems so Novo can solve them step-by-step.
                   </p>
                 </div>
@@ -540,9 +540,9 @@ export default function PhotoSolverPage() {
       <div
         className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
         style={{
-          background: 'rgba(15,15,25,0.8)',
+          background: 'var(--surface-scrim)',
           backdropFilter: 'blur(20px)',
-          borderColor: 'rgba(255,255,255,0.08)',
+          borderColor: 'var(--ink-080)',
         }}
       >
         <Link to="/tools" className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center shrink-0">
@@ -578,14 +578,14 @@ export default function PhotoSolverPage() {
               className="flex-1 py-2.5 rounded-2xl text-xs font-bold transition-all"
               style={appMode === m ? {
                 background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
-                color: '#fff',
+                color: 'var(--ink-950)',
                 boxShadow: '0 4px 12px rgba(91,106,245,0.3)',
               } : {
-                background: 'rgba(255,255,255,0.05)',
-                color: 'rgba(255,255,255,0.45)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                background: 'var(--ink-050)',
+                color: 'var(--ink-450)',
+                border: '1px solid var(--ink-090)',
               }}>
-              {m === 'solve' ? '🔬 Solve Problem' : '📚 Scan to Flashcard'}
+              {m === 'solve' ? 'Solve Problem' : 'Scan to Flashcard'}
             </button>
           ))}
         </div>
@@ -719,10 +719,10 @@ export default function PhotoSolverPage() {
                     onClick={reset}
                     className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border"
                     style={{
-                      background: 'rgba(15,15,25,0.75)',
+                      background: 'var(--surface-scrim)',
                       backdropFilter: 'blur(12px)',
-                      borderColor: 'rgba(255,255,255,0.15)',
-                      color: 'white',
+                      borderColor: 'var(--ink-150)',
+                      color: 'var(--ink-950)',
                     }}
                   >
                     <RotateCcw size={12} />
@@ -733,7 +733,7 @@ export default function PhotoSolverPage() {
                 {phase === 'solving' && (
                   <div
                     className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl"
-                    style={{ background: 'rgba(10,10,20,0.75)', backdropFilter: 'blur(4px)' }}
+                    style={{ background: 'var(--surface-scrim)', backdropFilter: 'blur(4px)' }}
                   >
                     <Loader2 size={32} className="text-white animate-spin" />
                     <p className="text-white text-sm font-semibold">
@@ -776,15 +776,15 @@ export default function PhotoSolverPage() {
               </div>
               <div className="text-center">
                 <h2 className="font-heading text-2xl font-bold text-white">Flashcard Created!</h2>
-                <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-sm mt-2" style={{ color: 'var(--ink-500)' }}>
                   Your textbook content has been saved to Spaced Review.
                 </p>
                 {ocrText && (
                   <div className="mt-4 rounded-2xl p-4 text-left"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wider mb-2"
-                      style={{ color: 'rgba(255,255,255,0.3)' }}>Scanned text</p>
-                    <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
+                    <p className="text-xs font-bold uppercase tracking-wider mb-2"
+                      style={{ color: 'var(--ink-300)' }}>Scanned text</p>
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-600)' }}>
                       {ocrText.slice(0, 200)}{ocrText.length > 200 ? '…' : ''}
                     </p>
                   </div>
@@ -792,13 +792,12 @@ export default function PhotoSolverPage() {
               </div>
               <div className="flex gap-3 w-full">
                 <button onClick={reset}
-                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm v2-card"
+                  style={{ color: 'var(--v2-text-1)' }}>
                   Scan Another
                 </button>
                 <Link to="/flashcard"
-                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white text-center"
-                  style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}>
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-center v2-btn-primary">
                   Review Cards
                 </Link>
               </div>
@@ -828,8 +827,8 @@ export default function PhotoSolverPage() {
                       style={{ maxHeight: previewExpanded ? 400 : 120 }}
                     />
                     <div
-                      className="absolute bottom-2 right-2 px-2 py-1 rounded-lg text-[10px] font-bold"
-                      style={{ background: 'rgba(0,0,0,0.6)', color: 'white' }}
+                      className="absolute bottom-2 right-2 px-2 py-1 rounded-lg text-xs font-bold"
+                      style={{ background: 'rgba(0,0,0,0.6)', color: 'var(--ink-950)' }}
                     >
                       {previewExpanded ? 'Collapse' : 'Expand'}
                     </div>
@@ -855,16 +854,12 @@ export default function PhotoSolverPage() {
 
               {/* Problem statement */}
               <div
-                className="rounded-2xl p-4"
-                style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}
+                className="rounded-2xl p-4 v2-card"
               >
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">
                   Problem
                 </p>
-                <p className="text-sm text-white leading-relaxed">{result.problem_statement}</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--v2-text-1)' }}>{result.problem_statement}</p>
               </div>
 
               {/* Steps */}
@@ -910,7 +905,7 @@ export default function PhotoSolverPage() {
                     Concept Summary
                   </p>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>{result.concept_summary}</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-800)' }}>{result.concept_summary}</p>
               </div>
 
               {/* Common Mistakes (collapsible) */}
@@ -949,7 +944,7 @@ export default function PhotoSolverPage() {
                           {result.common_mistakes.map((m, i) => (
                             <div key={i} className="flex items-start gap-2.5">
                               <span
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5"
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
                                 style={{ background: 'rgba(245,158,11,0.2)', color: '#F59E0B' }}
                               >
                                 {i + 1}
@@ -987,9 +982,9 @@ export default function PhotoSolverPage() {
                   className="w-full rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold border active:scale-98 transition-all"
                   style={{
                     height: 52,
-                    borderColor: 'rgba(255,255,255,0.15)',
+                    borderColor: 'var(--ink-150)',
                     color: 'var(--muted-foreground)',
-                    background: 'rgba(255,255,255,0.04)',
+                    background: 'var(--ink-040)',
                   }}
                 >
                   <Camera size={16} />
@@ -1035,7 +1030,7 @@ export default function PhotoSolverPage() {
                 <button
                   onClick={reset}
                   className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold border active:scale-98 transition-all"
-                  style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'var(--muted-foreground)' }}
+                  style={{ borderColor: 'var(--ink-120)', color: 'var(--muted-foreground)' }}
                 >
                   Take New Photo
                 </button>

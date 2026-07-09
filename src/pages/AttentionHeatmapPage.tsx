@@ -99,7 +99,7 @@ function AlertCard({ alert, index, onStudyNow }: {
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <p className="font-bold text-sm" style={{ color: c.text }}>{alert.topic}</p>
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              className="text-xs font-bold px-2 py-0.5 rounded-full"
               style={{ background: c.text + '18', color: c.text }}
             >
               {alert.subject}
@@ -143,11 +143,11 @@ function TopicCard({ entry, index }: { entry: TopicEntry; index: number }) {
       <p className="text-xs font-bold leading-snug" style={{ color: c.text }}>
         {entry.topic}
       </p>
-      <p className="text-[10px] font-semibold" style={{ color: c.text + 'bb' }}>
+      <p className="text-xs font-semibold" style={{ color: c.text + 'bb' }}>
         {c.label}
       </p>
       <span
-        className="text-[9px] font-bold px-2 py-0.5 rounded-full self-start"
+        className="text-xs font-bold px-2 py-0.5 rounded-full self-start"
         style={{ background: c.text + '18', color: c.text }}
       >
         {sourceLabel(entry.source)}
@@ -167,11 +167,11 @@ function InfoTooltip({ visible }: { visible: boolean }) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -6, scale: 0.95 }}
           transition={{ duration: 0.15 }}
-          className="absolute top-8 right-0 z-20 w-56 text-white text-[11px] leading-snug rounded-2xl px-3.5 py-2.5 shadow-lg pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(28px) saturate(170%) brightness(1.04)', WebkitBackdropFilter: 'blur(28px) saturate(170%) brightness(1.04)', border: '1px solid rgba(255,255,255,0.10)' }}
+          className="absolute top-8 right-0 z-20 w-56 text-white text-xs leading-snug rounded-2xl px-3.5 py-2.5 shadow-lg pointer-events-none"
+          style={{ background: 'var(--ink-050)', backdropFilter: 'blur(28px) saturate(170%) brightness(1.04)', WebkitBackdropFilter: 'blur(28px) saturate(170%) brightness(1.04)', border: '1px solid var(--ink-100)' }}
         >
           Shows which topics you've been avoiding — the redder a card, the longer it's been since you studied it.
-          <div className="absolute top-[-5px] right-4 w-2.5 h-2.5 rotate-45" style={{ background: 'rgba(15,20,45,0.95)' }} />
+          <div className="absolute top-[-5px] right-4 w-2.5 h-2.5 rotate-45" style={{ background: 'var(--hdr-b-950)' }} />
         </motion.div>
       )}
     </AnimatePresence>
@@ -192,14 +192,14 @@ function StatsRow({ data }: { data: HeatmapData }) {
   ];
 
   return (
-    <div className="rounded-3xl p-4" style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+    <div className="rounded-3xl p-4" style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
       <div className="grid grid-cols-3" style={{ borderTop: 'none' }}>
         {stats.map(({ label, value, icon: Icon, color }, i) => (
           <div key={label} className="flex flex-col items-center gap-1 px-2 text-center"
-            style={i > 0 ? { borderLeft: '1px solid rgba(255,255,255,0.07)' } : {}}>
+            style={i > 0 ? { borderLeft: '1px solid var(--ink-070)' } : {}}>
             <Icon size={16} style={{ color }} />
             <span className="font-heading font-bold text-xl leading-none text-white">{value}</span>
-            <span className="text-[9px] text-muted-foreground font-medium leading-tight">{label}</span>
+            <span className="text-xs text-muted-foreground font-medium leading-tight">{label}</span>
           </div>
         ))}
       </div>
@@ -267,11 +267,11 @@ export default function AttentionHeatmapPage() {
     return (
       <div className="flex flex-col h-full bg-gradient-page">
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <button
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
           >
             <ArrowLeft size={17} className="text-white" />
           </button>
@@ -324,11 +324,11 @@ export default function AttentionHeatmapPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
         >
           <ArrowLeft size={17} className="text-white" />
         </button>
@@ -341,7 +341,7 @@ export default function AttentionHeatmapPage() {
           <button
             onClick={() => setShowTooltip(v => !v)}
             className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
           >
             <Info size={15} className="text-muted-foreground" />
           </button>
@@ -362,7 +362,7 @@ export default function AttentionHeatmapPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className="rounded-3xl p-6 flex flex-col items-center gap-3 text-center"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
           >
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
               style={{ background: 'rgba(91,106,245,0.15)' }}>
@@ -400,7 +400,7 @@ export default function AttentionHeatmapPage() {
             <div className="flex items-center gap-2 mb-3">
               <AlertCircle size={15} className="text-red-500 shrink-0" />
               <h2 className="font-heading text-base font-bold text-white">Novo's Alerts</h2>
-              <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full"
+              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
                 style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
                 {data.alerts.length} neglected
               </span>
@@ -431,8 +431,8 @@ export default function AttentionHeatmapPage() {
                 className="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95"
                 style={
                   activeTab === tab
-                    ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#fff' }
-                    : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' }
+                    ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'var(--ink-950)' }
+                    : { background: 'var(--ink-060)', color: 'var(--ink-550)', border: '1px solid var(--ink-100)' }
                 }
               >
                 {tab}
@@ -447,7 +447,7 @@ export default function AttentionHeatmapPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className="rounded-3xl p-8 flex flex-col items-center gap-4 text-center"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
           >
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{ background: 'rgba(91,106,245,0.15)' }}>
@@ -475,7 +475,7 @@ export default function AttentionHeatmapPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <BookOpen size={14} className="text-primary shrink-0" />
                   <h3 className="font-heading text-sm font-bold text-white">{subject}</h3>
-                  <span className="text-[10px] text-muted-foreground font-medium ml-1">
+                  <span className="text-xs text-muted-foreground font-medium ml-1">
                     {entries.length} topic{entries.length !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -501,9 +501,9 @@ export default function AttentionHeatmapPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
             className="rounded-2xl p-3.5"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
           >
-            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2.5">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2.5">
               Colour legend
             </p>
             <div className="flex flex-col gap-1.5">

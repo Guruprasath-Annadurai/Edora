@@ -124,7 +124,7 @@ function ScoreCircle({ score }: { score: number }) {
   return (
     <div className="relative w-36 h-36 flex items-center justify-center mx-auto">
       <svg className="w-36 h-36 -rotate-90 absolute inset-0">
-        <circle cx="72" cy="72" r={radius} stroke="rgba(255,255,255,0.08)" strokeWidth="10" fill="none" />
+        <circle cx="72" cy="72" r={radius} stroke="var(--ink-080)" strokeWidth="10" fill="none" />
         <motion.circle
           cx="72" cy="72" r={radius}
           stroke={color} strokeWidth="10" fill="none" strokeLinecap="round"
@@ -369,11 +369,11 @@ export default function NovoChallengesPage() {
 
       {/* Sticky header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-20"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => screen !== 'picker' ? resetToSubjectPicker() : navigate(-1)}
           className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-90 transition-transform"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', WebkitTapHighlightColor: 'transparent' }}
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)', WebkitTapHighlightColor: 'transparent' }}
         >
           <ArrowLeft size={20} className="text-white" />
         </button>
@@ -404,7 +404,7 @@ export default function NovoChallengesPage() {
 
               {/* Daily reset countdown */}
               <div className="rounded-2xl px-4 py-3 flex items-center gap-3"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                   style={{ background: 'linear-gradient(135deg, #5B6AF522, #8B5CF622)' }}>
                   <Clock size={18} className="text-primary" />
@@ -439,7 +439,7 @@ export default function NovoChallengesPage() {
                           onClick={() => handleSelectSubject(s)}
                           whileTap={{ scale: 0.97 }}
                           className="p-4 rounded-2xl text-left flex items-center gap-3 transition-all"
-                          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)', WebkitTapHighlightColor: 'transparent' }}
+                          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)', WebkitTapHighlightColor: 'transparent' }}
                         >
                           <SubjectIcon size={20} className="text-primary shrink-0" />
                           <span className="text-sm font-semibold text-white leading-snug">{s}</span>
@@ -464,7 +464,7 @@ export default function NovoChallengesPage() {
                 <div>
                   <p className="text-sm font-semibold text-white mb-2.5">Recent Challenges</p>
                   <div className="rounded-2xl p-4 flex flex-col gap-3"
-                    style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                     {history.map(h => {
                       const HistoryIcon = getSubjectIcon(h.subject);
                       return (
@@ -514,14 +514,14 @@ export default function NovoChallengesPage() {
                   <span className="text-white text-xs font-bold">{challenge.xp_multiplier}× XP</span>
                 </motion.div>
                 <span className="text-xs px-2.5 py-1 rounded-full text-muted-foreground"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                   {selectedSubject} · {challenge.topic}
                 </span>
               </div>
 
               {/* Timer bar */}
               <div className="rounded-2xl p-3.5"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                 <div className="flex items-center justify-between mb-2.5">
                   <div className="flex items-center gap-1.5">
                     <Clock size={15} style={{ color: timerColor }} />
@@ -541,7 +541,7 @@ export default function NovoChallengesPage() {
                     </span>
                   )}
                 </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
                   <motion.div
                     className="h-full rounded-full transition-colors"
                     style={{ background: timerColor }}
@@ -553,11 +553,11 @@ export default function NovoChallengesPage() {
 
               {/* Problem statement */}
               <div className="rounded-2xl overflow-hidden"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                 <div className="flex">
                   <div className="w-1 shrink-0" style={{ background: 'linear-gradient(180deg, #5B6AF5, #8B5CF6)' }} />
                   <div className="p-4 flex-1">
-                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2.5">Problem</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2.5">Problem</p>
                     <p className="text-sm font-medium text-white/85 leading-relaxed">{challenge.problem}</p>
                   </div>
                 </div>
@@ -566,7 +566,7 @@ export default function NovoChallengesPage() {
               {/* MCQ options */}
               {challenge.answer_type === 'mcq' && challenge.options && (
                 <div className="flex flex-col gap-2">
-                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Choose your answer</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Choose your answer</p>
                   {challenge.options.map((opt, i) => (
                     <motion.button
                       key={i}
@@ -577,9 +577,9 @@ export default function NovoChallengesPage() {
                         WebkitTapHighlightColor: 'transparent',
                         background: selectedOption === i
                           ? 'rgba(91,106,245,0.15)'
-                          : 'rgba(255,255,255,0.055)',
-                        borderColor: selectedOption === i ? '#5B6AF5' : 'rgba(255,255,255,0.08)',
-                        color: '#FFFFFF',
+                          : 'var(--ink-055)',
+                        borderColor: selectedOption === i ? '#5B6AF5' : 'var(--ink-080)',
+                        color: 'var(--ink-950)',
                         opacity: timerActive ? 1 : 0.55,
                       }}
                     >
@@ -595,7 +595,7 @@ export default function NovoChallengesPage() {
               {/* Text answer */}
               {challenge.answer_type === 'text' && (
                 <div>
-                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Your Answer</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Your Answer</p>
                   <textarea
                     value={answer}
                     onChange={e => setAnswer(e.target.value)}
@@ -603,7 +603,7 @@ export default function NovoChallengesPage() {
                     placeholder={timerActive ? 'Type your answer here…' : 'Press "Start Challenge" to begin'}
                     rows={5}
                     className="w-full rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/30 resize-none outline-none transition-colors disabled:opacity-55"
-                    style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
+                    style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }}
                   />
                 </div>
               )}
@@ -622,7 +622,7 @@ export default function NovoChallengesPage() {
                       >
                         <Lightbulb size={15} className="text-amber-400 mt-0.5 shrink-0" />
                         <div>
-                          <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wide mb-1">Hint {i + 1}</p>
+                          <p className="text-xs font-bold text-amber-400 uppercase tracking-wide mb-1">Hint {i + 1}</p>
                           <p className="text-sm text-amber-300">{hint}</p>
                         </div>
                       </motion.div>
@@ -666,8 +666,8 @@ export default function NovoChallengesPage() {
 
               {/* Score card */}
               <div className="rounded-3xl p-6 flex flex-col items-center gap-4"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Your Score</p>
+                style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Your Score</p>
                 <ScoreCircle score={result.score} />
 
                 {/* XP badge */}
@@ -679,7 +679,7 @@ export default function NovoChallengesPage() {
                   style={{
                     background: result.score >= 70
                       ? 'linear-gradient(135deg, #F59E0B, #EF4444)'
-                      : 'rgba(255,255,255,0.06)',
+                      : 'var(--ink-060)',
                     boxShadow: result.score >= 70 ? '0 0 20px rgba(245,158,11,0.35)' : undefined,
                   }}
                 >
@@ -697,8 +697,8 @@ export default function NovoChallengesPage() {
               {/* AI Feedback */}
               {result.feedback && (
                 <div className="rounded-2xl p-4"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2.5">
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2.5">
                     Novo's Feedback
                   </p>
                   <p className="text-sm text-white/85 leading-relaxed">{result.feedback}</p>
@@ -708,7 +708,7 @@ export default function NovoChallengesPage() {
               {/* Correct answer (expandable) */}
               {result.correct_answer && (
                 <div className="rounded-2xl overflow-hidden"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   <button
                     onClick={() => setShowCorrectAnswer(v => !v)}
                     className="w-full flex items-center justify-between px-4 py-3.5 text-sm font-semibold text-white"
@@ -739,7 +739,7 @@ export default function NovoChallengesPage() {
 
               {/* Leaderboard */}
               <div className="rounded-2xl overflow-hidden"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                 <button
                   onClick={() => setShowLeaderboard(v => !v)}
                   className="w-full flex items-center justify-between px-4 py-3.5"
@@ -775,7 +775,7 @@ export default function NovoChallengesPage() {
                           <div key={entry.rank}
                             className="flex items-center gap-3 p-2.5 rounded-xl"
                             style={{
-                              background: entry.is_me ? 'rgba(91,106,245,0.12)' : 'rgba(255,255,255,0.04)',
+                              background: entry.is_me ? 'rgba(91,106,245,0.12)' : 'var(--ink-040)',
                               border: entry.is_me ? '1.5px solid rgba(91,106,245,0.2)' : '1.5px solid transparent',
                             }}>
                             <span className="w-8 text-center shrink-0 flex items-center justify-center">

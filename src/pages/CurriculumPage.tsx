@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, X, ChevronDown, BookOpen } from 'lucide-react';
+import {ArrowLeft, Search, X, BookOpen, Globe} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
@@ -23,13 +23,6 @@ interface ExamBoard {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const COUNTRY_FLAG: Record<string, string> = {
-  GB: '🇬🇧', IN: '🇮🇳', US: '🇺🇸', AU: '🇦🇺', CA: '🇨🇦',
-  SG: '🇸🇬', HK: '🇭🇰', CN: '🇨🇳', KR: '🇰🇷', JP: '🇯🇵',
-  FR: '🇫🇷', DE: '🇩🇪', IT: '🇮🇹', ES: '🇪🇸', NL: '🇳🇱',
-  PL: '🇵🇱', AE: '🇦🇪', EG: '🇪🇬', NG: '🇳🇬', ZA: '🇿🇦',
-  CH: '🇨🇭',
-};
 
 const REGIONS = ['All', 'UK', 'India', 'USA', 'International', 'Australia', 'Asia-Pacific', 'Europe', 'MENA/Africa', 'Professional'];
 const LEVELS  = ['All', 'Secondary', 'Pre-University', 'University', 'Professional'];
@@ -44,21 +37,16 @@ const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
   Secondary:       { bg: 'rgba(16,185,129,0.15)',  text: '#10B981' },
   'Pre-University': { bg: 'rgba(91,106,245,0.15)',  text: '#5B6AF5' },
   University:      { bg: 'rgba(245,158,11,0.15)',  text: '#F59E0B' },
-  Professional:    { bg: 'rgba(139,92,246,0.15)',  text: '#8B5CF6' },
-};
+  Professional:    { bg: 'rgba(139,92,246,0.15)',  text: '#8B5CF6' } };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function countryFlag(code: string): string {
-  return COUNTRY_FLAG[code.toUpperCase()] ?? '🌍';
-}
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function SkeletonCard() {
   return (
     <div className="rounded-2xl overflow-hidden animate-pulse"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}>
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-white/10" />
@@ -83,8 +71,7 @@ interface BoardCardProps {
 }
 
 function BoardCard({ board, onSelect, index }: BoardCardProps) {
-  const flag = countryFlag(board.country);
-  const levelStyle = LEVEL_COLORS[board.level] ?? { bg: 'rgba(255,255,255,0.1)', text: '#9CA3AF' };
+  const levelStyle = LEVEL_COLORS[board.level] ?? { bg: 'var(--v2-elevated)', text: 'var(--v2-text-4)' };
 
   return (
     <motion.button
@@ -92,38 +79,33 @@ function BoardCard({ board, onSelect, index }: BoardCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.28 }}
       onClick={() => onSelect(board)}
-      className="text-left rounded-2xl p-4 transition-all active:scale-[0.97] hover:scale-[1.02]"
-      style={{
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(12px)',
-      }}
+      className="text-left rounded-2xl p-4 transition-all active:scale-[0.97] hover:scale-[1.02] v2-card"
       whileTap={{ scale: 0.97 }}
     >
-      {/* Flag + name */}
+      {/* Icon + name */}
       <div className="flex items-start gap-2.5 mb-2">
-        <span className="text-2xl leading-none mt-0.5">{flag}</span>
+        <Globe size={22} className="mt-0.5 shrink-0" style={{ color: 'var(--v2-text-4)' }} strokeWidth={1.6} />
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-white text-sm leading-tight truncate">{board.name}</p>
-          <p className="text-xs text-white/50 mt-0.5 font-mono">{board.code}</p>
+          <p className="font-bold text-sm leading-tight truncate" style={{ color: 'var(--v2-text-1)' }}>{board.name}</p>
+          <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--v2-text-4)' }}>{board.code}</p>
         </div>
       </div>
 
       {/* Description */}
       {board.description && (
-        <p className="text-xs text-white/60 leading-relaxed mb-3 line-clamp-2">{board.description}</p>
+        <p className="text-xs leading-relaxed mb-3 line-clamp-2" style={{ color: 'var(--v2-text-3)' }}>{board.description}</p>
       )}
 
       {/* Badges */}
       <div className="flex flex-wrap gap-1.5">
         <span
-          className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+          className="text-xs font-bold px-2 py-0.5 rounded-full"
           style={{ background: 'rgba(91,106,245,0.2)', color: '#818CF8' }}
         >
           {board.region}
         </span>
         <span
-          className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+          className="text-xs font-bold px-2 py-0.5 rounded-full"
           style={{ background: levelStyle.bg, color: levelStyle.text }}
         >
           {board.level}
@@ -174,10 +156,9 @@ function SubjectSheet({ board, onClose, onSelectSubject }: SubjectSheetProps) {
         transition={{ type: 'spring', stiffness: 380, damping: 38 }}
         className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl pb-10"
         style={{
-          background: 'linear-gradient(180deg, #1E2440 0%, #141829 100%)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(24px)',
-        }}
+          background: 'linear-gradient(180deg, var(--grad-curriculum-1) 0%, var(--grad-curriculum-2) 100%)',
+          border: '1px solid var(--ink-100)',
+          backdropFilter: 'blur(24px)' }}
       >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
@@ -195,7 +176,7 @@ function SubjectSheet({ board, onClose, onSelectSubject }: SubjectSheetProps) {
               aria-label="Close"
               onClick={onClose}
               className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.1)' }}
+              style={{ background: 'var(--ink-100)' }}
             >
               <X size={15} className="text-white/70" />
             </button>
@@ -204,7 +185,7 @@ function SubjectSheet({ board, onClose, onSelectSubject }: SubjectSheetProps) {
           {/* Text input */}
           <div
             className="flex items-center gap-2.5 rounded-2xl px-4 py-3 mb-4"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+            style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-120)' }}
           >
             <BookOpen size={16} className="text-white/40 shrink-0" />
             <input
@@ -236,7 +217,7 @@ function SubjectSheet({ board, onClose, onSelectSubject }: SubjectSheetProps) {
                 key={subj}
                 onClick={() => onSelectSubject(subj)}
                 className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white/80 transition-all active:scale-95"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-120)' }}
               >
                 {subj}
               </button>
@@ -272,8 +253,7 @@ export default function CurriculumPage() {
     setError(null);
     try {
       const { data, error: fnError } = await supabase.functions.invoke('curriculum-builder', {
-        body: { action: 'list_boards' },
-      });
+        body: { action: 'list_boards' } });
       if (fnError) throw fnError;
       if (!mountedRef.current) return;
       const fetched = data?.boards ?? [];
@@ -316,37 +296,38 @@ export default function CurriculumPage() {
       {/* ── Header ── */}
       <div
         className="shrink-0 px-4 pt-4 pb-3"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ borderBottom: '1px solid var(--v2-border)' }}
       >
         <div className="flex items-center gap-3 mb-1">
           <button
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'var(--v2-elevated)', border: '1px solid var(--v2-border)' }}
           >
-            <ArrowLeft size={17} className="text-white/80" />
+            <ArrowLeft size={17} style={{ color: 'var(--v2-text-1)' }} />
           </button>
           <div>
-            <h1 className="font-bold text-white text-lg leading-tight">Curricula</h1>
-            <p className="text-white/50 text-xs">Find your exam board</p>
+            <h1 className="font-bold text-lg leading-tight" style={{ color: 'var(--v2-text-1)' }}>Curricula</h1>
+            <p className="text-xs" style={{ color: 'var(--v2-text-4)' }}>Find your exam board</p>
           </div>
         </div>
 
         {/* Search bar */}
         <div
           className="flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5 mt-3"
-          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}
         >
-          <Search size={15} className="text-white/40 shrink-0" />
+          <Search size={15} style={{ color: 'var(--v2-text-4)' }} className="shrink-0" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search boards or codes…"
-            className="flex-1 bg-transparent text-white placeholder-white/30 text-sm outline-none"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-[color:var(--v2-text-4)]"
+            style={{ color: 'var(--v2-text-1)' }}
           />
           {search && (
             <button aria-label="Clear search" onClick={() => setSearch('')}>
-              <X size={14} className="text-white/40" />
+              <X size={14} style={{ color: 'var(--v2-text-4)' }} />
             </button>
           )}
         </div>
@@ -364,8 +345,8 @@ export default function CurriculumPage() {
                 className="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all active:scale-95"
                 style={
                   active
-                    ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#fff' }
-                    : { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' }
+                    ? { background: 'var(--v2-primary)', color: '#fff' }
+                    : { background: 'var(--v2-card)', color: 'var(--v2-text-3)', border: '1px solid var(--v2-border)' }
                 }
               >
                 {region}
@@ -384,11 +365,11 @@ export default function CurriculumPage() {
               <button
                 key={level}
                 onClick={() => setActiveLevel(level)}
-                className="px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all active:scale-95"
+                className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all active:scale-95"
                 style={
                   active
-                    ? { background: 'rgba(91,106,245,0.3)', color: '#818CF8', border: '1px solid rgba(91,106,245,0.5)' }
-                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.40)', border: '1px solid rgba(255,255,255,0.08)' }
+                    ? { background: 'var(--v2-primary-tint-2)', color: 'var(--v2-primary)', border: '1px solid var(--v2-primary)' }
+                    : { background: 'var(--v2-elevated)', color: 'var(--v2-text-4)', border: '1px solid var(--v2-border)' }
                 }
               >
                 {level}

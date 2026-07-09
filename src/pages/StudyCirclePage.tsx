@@ -6,11 +6,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronLeft, Plus, Users, Flame, Hash, Copy, Check,
-  Play, Square, Timer, Share2, Crown, Zap, RefreshCw,
-  MessageCircle, BookOpen,
-} from 'lucide-react';
+import {ChevronLeft, Plus, Users, Flame, Hash, Copy, Check,
+  Play, Square, Timer, Crown, Zap, RefreshCw,
+  MessageCircle, Users2} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -55,16 +53,17 @@ const SUBJECTS = ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'History', '
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 function Avatar({ url, name, size = 36 }: { url: string | null; name: string; size?: number }) {
-  if (url) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />;
+  const [imgError, setImgError] = useState(false);
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  return (
+  const fallback = (
     <div style={{
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#7C3AED,#A78BFA)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.38, fontWeight: 700, color: '#fff',
-    }}>{initials}</div>
+      fontSize: size * 0.38, fontWeight: 700, color: 'var(--ink-950)' }}>{initials}</div>
   );
+  if (url && !imgError) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} onError={() => setImgError(true)} />;
+  return fallback;
 }
 
 // ── Utility: format sprint timer ──────────────────────────────────────────────
@@ -93,6 +92,7 @@ export default function StudyCirclePage() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // ── Load circles ────────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadCircles closes over user which is already in deps
   useEffect(() => { loadCircles(); }, [user]);
 
   async function loadCircles() {
@@ -154,8 +154,7 @@ export default function StudyCirclePage() {
     if (channelRef.current) supabase.removeChannel(channelRef.current);
     const ch = supabase.channel(`circle_sprints:${circleId}`)
       .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'circle_sprints', filter: `circle_id=eq.${circleId}`,
-      }, async (payload) => {
+        event: '*', schema: 'public', table: 'circle_sprints', filter: `circle_id=eq.${circleId}` }, async (payload) => {
         if (payload.eventType === 'INSERT') {
           const s = payload.new as SprintState;
           const { data: starter } = await supabase.from('profiles').select('full_name').eq('id', s.started_by).maybeSingle();
@@ -229,8 +228,7 @@ export default function StudyCirclePage() {
   function shareWhatsApp() {
     if (!selected) return;
     const code = selected.invite_code;
-    const msg = `Join my Edora Study Circle "${selected.name}"!\nEnter code: ${code} in the app.\nhttps://wa.me/?text=${encodeURIComponent(`Join my Edora Study Circle! Code: ${code}`)}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(`Join my Edora Study Circle "${selected.name}"! Enter code ${code} in the Edora app to join. 📚`)}`, '_blank', 'noopener,noreferrer');
+    window.open(`https://wa.me/?text=${encodeURIComponent(`Join my Edora Study Circle "${selected.name}". Enter code ${code} in the Edora app to join.`)}`, '_blank', 'noopener,noreferrer');
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -254,7 +252,7 @@ export default function StudyCirclePage() {
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: '0 0 80px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--ink-100)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button aria-label="Go back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)' }}>
             <ChevronLeft size={24} />
@@ -291,9 +289,8 @@ export default function StudyCirclePage() {
                 onClick={() => openCircle(c)}
                 style={{
                   width: '100%', textAlign: 'left',
-                  background: 'rgba(255,255,255,0.055)', borderRadius: 16,
-                  border: '1px solid rgba(255,255,255,0.10)', padding: '16px 18px', cursor: 'pointer',
-                }}
+                  background: 'var(--ink-055)', borderRadius: 16,
+                  border: '1px solid var(--ink-100)', padding: '16px 18px', cursor: 'pointer' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                   <div style={{ fontSize: 32 }}>{c.avatar_emoji}</div>
@@ -359,7 +356,7 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: '0 0 80px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.10)', background: 'rgba(255,255,255,0.055)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--ink-100)', background: 'var(--ink-055)' }}>
         <button aria-label="Go back" onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)' }}>
           <ChevronLeft size={24} />
         </button>
@@ -373,15 +370,15 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
       <div style={{ padding: '20px', maxWidth: 480, margin: '0 auto' }}>
         {/* Streak + XP */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-          <div style={{ background: 'rgba(255,255,255,0.055)', borderRadius: 14, padding: '14px 16px', border: '1px solid rgba(255,255,255,0.10)', textAlign: 'center' }}>
+          <div style={{ background: 'var(--ink-055)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--ink-100)', textAlign: 'center' }}>
             <Flame size={24} color={circle.group_streak > 0 ? '#F59E0B' : '#6B7280'} style={{ marginBottom: 4 }} />
             <div style={{ fontWeight: 800, fontSize: 22, color: circle.group_streak > 0 ? '#F59E0B' : 'var(--color-text)' }}>{circle.group_streak}</div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>Group Streak</div>
+            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Group Streak</div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.055)', borderRadius: 14, padding: '14px 16px', border: '1px solid rgba(255,255,255,0.10)', textAlign: 'center' }}>
+          <div style={{ background: 'var(--ink-055)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--ink-100)', textAlign: 'center' }}>
             <Zap size={24} color="#60A5FA" style={{ marginBottom: 4 }} />
             <div style={{ fontWeight: 800, fontSize: 22 }}>{circle.total_xp.toLocaleString()}</div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>Total XP</div>
+            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Total XP</div>
           </div>
         </div>
 
@@ -395,8 +392,7 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
               style={{
                 background: 'linear-gradient(135deg,rgba(124,58,237,0.2),rgba(167,139,250,0.1))',
                 border: '2px solid rgba(124,58,237,0.4)',
-                borderRadius: 16, padding: '16px 20px', marginBottom: 20,
-              }}
+                borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 15 }}>
@@ -429,18 +425,17 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
                   width: '100%', padding: '14px', borderRadius: 14,
                   border: '2px dashed rgba(124,58,237,0.4)', background: 'transparent',
                   color: '#A78BFA', fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
                 <Play size={16} />Start Sync Sprint for everyone
               </button>
             ) : (
-              <div style={{ background: 'rgba(255,255,255,0.055)', borderRadius: 14, padding: '16px', border: '1px solid rgba(255,255,255,0.10)' }}>
+              <div style={{ background: 'var(--ink-055)', borderRadius: 14, padding: '16px', border: '1px solid var(--ink-100)' }}>
                 <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Configure Sprint</div>
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Subject</div>
                   <select value={sprintSubject} onChange={e => setSprintSubject(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.88)', fontSize: 14, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--ink-140)', background: 'var(--ink-080)', color: 'var(--ink-880)', fontSize: 14, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
                     {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
@@ -450,10 +445,9 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
                     {[15, 25, 45, 60].map(m => (
                       <button key={m} onClick={() => setSprintMins(m)} style={{
                         flex: 1, padding: '8px 4px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                        border: `2px solid ${sprintMins === m ? '#7C3AED' : 'rgba(255,255,255,0.12)'}`,
-                        background: sprintMins === m ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.055)',
-                        color: sprintMins === m ? '#A78BFA' : 'rgba(255,255,255,0.75)', cursor: 'pointer',
-                      }}>{m}m</button>
+                        border: `2px solid ${sprintMins === m ? '#7C3AED' : 'var(--ink-120)'}`,
+                        background: sprintMins === m ? 'rgba(124,58,237,0.15)' : 'var(--ink-055)',
+                        color: sprintMins === m ? '#A78BFA' : 'var(--ink-750)', cursor: 'pointer' }}>{m}m</button>
                     ))}
                   </div>
                 </div>
@@ -469,7 +463,7 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
         )}
 
         {/* Invite code */}
-        <div style={{ background: 'rgba(255,255,255,0.055)', borderRadius: 14, padding: '14px 16px', marginBottom: 20, border: '1px solid rgba(255,255,255,0.10)' }}>
+        <div style={{ background: 'var(--ink-055)', borderRadius: 14, padding: '14px 16px', marginBottom: 20, border: '1px solid var(--ink-100)' }}>
           <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 8, fontWeight: 600 }}>INVITE CODE</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ fontFamily: 'monospace', fontSize: 24, fontWeight: 800, letterSpacing: 8, flex: 1, color: '#A78BFA' }}>
@@ -478,7 +472,7 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
             <button onClick={onCopyCode} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: copied ? '#10B981' : 'var(--color-text-secondary)' }}>
               {copied ? <Check size={18} /> : <Copy size={18} />}
             </button>
-            <button onClick={onShareWhatsApp} style={{ background: '#25D366', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 8, color: '#fff', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
+            <button onClick={onShareWhatsApp} style={{ background: '#25D366', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 8, color: 'var(--ink-950)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
               <MessageCircle size={14} />Share
             </button>
           </div>
@@ -488,9 +482,9 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Circle Leaderboard</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {members.map((m, i) => (
-            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.055)', borderRadius: 12, border: m.id === myId ? '1px solid rgba(124,58,237,0.4)' : '1px solid rgba(255,255,255,0.10)' }}>
+            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--ink-055)', borderRadius: 12, border: m.id === myId ? '1px solid rgba(124,58,237,0.4)' : '1px solid var(--ink-100)' }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: i === 0 ? '#F59E0B' : i === 1 ? '#9CA3AF' : i === 2 ? '#CD7C2F' : 'var(--color-text-secondary)', minWidth: 24 }}>
-                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                {`#${i + 1}`}
               </div>
               <Avatar url={m.avatar_url} name={m.full_name} size={32} />
               <div style={{ flex: 1 }}>
@@ -509,8 +503,7 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
           position: 'fixed', bottom: 24, right: 20, width: 56, height: 56, borderRadius: '50%',
           background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 8px 24px rgba(91,106,245,0.4)', zIndex: 30,
-        }}
+          boxShadow: '0 8px 24px rgba(91,106,245,0.4)', zIndex: 30 }}
       >
         <MessageCircle size={24} color="#fff" />
       </button>
@@ -526,7 +519,7 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
 function EmptyState({ onJoin, onCreate }: { onJoin: () => void; onCreate: () => void }) {
   return (
     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>👥</div>
+      <div style={{ marginBottom: 16 }}><Users2 size={56} className="mx-auto text-white/25" strokeWidth={1.4} /></div>
       <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 8 }}>No Study Circles Yet</div>
       <div style={{ color: 'var(--color-text-secondary)', marginBottom: 28, fontSize: 14 }}>
         Join a circle with a code or create one for your friends.
@@ -574,7 +567,7 @@ function CreateCircleModal({ onClose, onCreated, userId }: {
       onClick={onClose}
     >
       <motion.div initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
-        style={{ width: '100%', background: 'rgba(8,6,20,0.92)', backdropFilter: 'blur(64px) saturate(200%)', WebkitBackdropFilter: 'blur(64px) saturate(200%)', borderRadius: '20px 20px 0 0', borderTop: '1px solid rgba(255,255,255,0.1)', padding: '24px 20px 40px', maxWidth: 480, margin: '0 auto' }}
+        style={{ width: '100%', background: 'var(--hdr-a-920)', backdropFilter: 'blur(64px) saturate(200%)', WebkitBackdropFilter: 'blur(64px) saturate(200%)', borderRadius: '20px 20px 0 0', borderTop: '1px solid var(--ink-100)', padding: '24px 20px 40px', maxWidth: 480, margin: '0 auto' }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 20 }}>Create Study Circle</div>
@@ -584,9 +577,9 @@ function CreateCircleModal({ onClose, onCreated, userId }: {
           ))}
         </div>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Circle name"
-          style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'rgba(255,255,255,0.92)', fontSize: 15, marginBottom: 10, boxSizing: 'border-box' }} />
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--ink-140)', background: 'var(--ink-070)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'var(--ink-920)', fontSize: 15, marginBottom: 10, boxSizing: 'border-box' }} />
         <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description (optional)" rows={2}
-          style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'rgba(255,255,255,0.92)', fontSize: 14, marginBottom: 16, resize: 'none', boxSizing: 'border-box' }} />
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--ink-140)', background: 'var(--ink-070)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'var(--ink-920)', fontSize: 14, marginBottom: 16, resize: 'none', boxSizing: 'border-box' }} />
         <Button onClick={create} disabled={loading || !name.trim()} style={{ width: '100%', background: '#7C3AED', padding: '13px' }}>
           {loading ? 'Creating…' : `${emoji} Create Circle`}
         </Button>
@@ -626,13 +619,13 @@ function JoinCircleModal({ onClose, onJoined, userId }: {
       onClick={onClose}
     >
       <motion.div initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
-        style={{ width: '100%', background: 'rgba(8,6,20,0.92)', backdropFilter: 'blur(64px) saturate(200%)', WebkitBackdropFilter: 'blur(64px) saturate(200%)', borderRadius: '20px 20px 0 0', borderTop: '1px solid rgba(255,255,255,0.1)', padding: '24px 20px 40px', maxWidth: 480, margin: '0 auto' }}
+        style={{ width: '100%', background: 'var(--hdr-a-920)', backdropFilter: 'blur(64px) saturate(200%)', WebkitBackdropFilter: 'blur(64px) saturate(200%)', borderRadius: '20px 20px 0 0', borderTop: '1px solid var(--ink-100)', padding: '24px 20px 40px', maxWidth: 480, margin: '0 auto' }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Join a Circle</div>
         <div style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginBottom: 20 }}>Enter the 6-character invite code</div>
         <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="ABCDE1" maxLength={6}
-          style={{ width: '100%', padding: '14px', borderRadius: 10, border: `1px solid ${error ? '#EF4444' : 'rgba(255,255,255,0.16)'}`, background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'rgba(255,255,255,0.92)', fontSize: 22, fontWeight: 800, letterSpacing: 8, textAlign: 'center', fontFamily: 'monospace', marginBottom: 8, boxSizing: 'border-box' }} />
+          style={{ width: '100%', padding: '14px', borderRadius: 10, border: `1px solid ${error ? '#EF4444' : 'var(--ink-160)'}`, background: 'var(--ink-070)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'var(--ink-920)', fontSize: 22, fontWeight: 800, letterSpacing: 8, textAlign: 'center', fontFamily: 'monospace', marginBottom: 8, boxSizing: 'border-box' }} />
         {error && <div style={{ color: '#EF4444', fontSize: 12, marginBottom: 12 }}>{error}</div>}
         <Button onClick={join} disabled={loading || code.length !== 6} style={{ width: '100%', background: '#7C3AED', padding: '13px', marginTop: 8 }}>
           {loading ? 'Joining…' : 'Join Circle'}

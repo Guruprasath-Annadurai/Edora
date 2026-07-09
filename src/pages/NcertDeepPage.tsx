@@ -1,11 +1,10 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import {useState, useEffect, useMemo} from 'react';
 import { SkeletonNcertCards } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ChevronLeft, BookOpen, Lightbulb, AlertTriangle,
   Globe, Zap, BookMarked, ChevronRight, X, Sparkles,
-  Calculator, Atom, FlaskConical, Microscope,
-} from 'lucide-react';
+  Calculator, Atom, FlaskConical, Microscope } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -88,20 +87,20 @@ function ParagraphCard({ p, onBookmark }: { p: NcertParagraph; onBookmark: (id: 
   return (
     <motion.div layout initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
       className="rounded-2xl overflow-hidden mb-3"
-      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
       <div className="p-4">
         {/* Meta row */}
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5">
             <SubIcon size={10} style={{ color }} />
-            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color }}>{p.subject}</span>
-            <span className="text-[9px] text-white/30">·</span>
-            <span className="text-[9px] text-white/40">{p.chapter_title}</span>
-            <span className="text-[9px] text-white/30">· Class {p.class_num}</span>
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color }}>{p.subject}</span>
+            <span className="text-xs text-white/30">·</span>
+            <span className="text-xs text-white/40">{p.chapter_title}</span>
+            <span className="text-xs text-white/30">· Class {p.class_num}</span>
           </div>
           <button onClick={() => onBookmark(p.id)} aria-label={p.bookmarked ? 'Remove bookmark' : 'Bookmark'}
             className="flex items-center justify-center -mr-1 -my-1" style={{ width: 44, height: 44 }}>
-            <BookMarked size={14} style={{ color: p.bookmarked ? color : 'rgba(255,255,255,0.25)' }} fill={p.bookmarked ? color : 'none'} />
+            <BookMarked size={14} style={{ color: p.bookmarked ? color : 'var(--ink-250)' }} fill={p.bookmarked ? color : 'none'} />
           </button>
         </div>
 
@@ -112,7 +111,7 @@ function ParagraphCard({ p, onBookmark }: { p: NcertParagraph; onBookmark: (id: 
         <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl mb-2"
           style={{ background: `${color}12`, border: `1px solid ${color}20` }}>
           <Lightbulb size={10} style={{ color }} className="shrink-0 mt-0.5" />
-          <p className="text-[11px] font-semibold leading-relaxed" style={{ color }}>{p.concept}</p>
+          <p className="text-xs font-semibold leading-relaxed" style={{ color }}>{p.concept}</p>
         </div>
       </div>
 
@@ -130,7 +129,7 @@ function ParagraphCard({ p, onBookmark }: { p: NcertParagraph; onBookmark: (id: 
               <div className="px-3 py-2.5 rounded-xl" style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.18)' }}>
                 <div className="flex items-center gap-1.5 mb-1">
                   <Zap size={9} className="text-indigo-400" />
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-indigo-400">Likely Exam Question</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">Likely Exam Question</p>
                 </div>
                 <p className="text-xs text-indigo-200/80 leading-relaxed">{p.exam_question}</p>
               </div>
@@ -139,7 +138,7 @@ function ParagraphCard({ p, onBookmark }: { p: NcertParagraph; onBookmark: (id: 
               <div className="px-3 py-2.5 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
                 <div className="flex items-center gap-1.5 mb-1">
                   <AlertTriangle size={9} className="text-red-400" />
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-red-400">Common Misconception</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-red-400">Common Misconception</p>
                 </div>
                 <p className="text-xs text-red-200/70 leading-relaxed">{p.misconception}</p>
               </div>
@@ -148,7 +147,7 @@ function ParagraphCard({ p, onBookmark }: { p: NcertParagraph; onBookmark: (id: 
               <div className="px-3 py-2.5 rounded-xl" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
                 <div className="flex items-center gap-1.5 mb-1">
                   <Globe size={9} className="text-emerald-400" />
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Real-World Example</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">Real-World Example</p>
                 </div>
                 <p className="text-xs text-emerald-200/70 leading-relaxed">{p.real_world_example}</p>
               </div>
@@ -266,7 +265,7 @@ Return ONLY valid JSON array:
               // 'browse' phase: back button navigates via the Link wrapper below, nothing to do here
             }}
             className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.08)' }}
+            style={{ background: 'var(--ink-080)' }}
           >
             {phase === 'browse'
               ? <Link to="/learning"><ChevronLeft size={18} className="text-white" /></Link>
@@ -275,7 +274,7 @@ Return ONLY valid JSON array:
           <div className="text-center">
             <h1 className="font-heading text-base font-bold text-white">NCERT Deep Dive</h1>
             {phase !== 'browse' && (
-              <p className="text-[10px] text-white/40">{selSubject}{selChapter ? ` · ${selChapter}` : ''}</p>
+              <p className="text-xs text-white/40">{selSubject}{selChapter ? ` · ${selChapter}` : ''}</p>
             )}
           </div>
           <div className="w-8" />
@@ -288,7 +287,7 @@ Return ONLY valid JSON array:
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search paragraphs, concepts…"
               className="w-full pl-8 pr-8 py-2.5 rounded-2xl text-sm text-white placeholder-white/30 outline-none"
-              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)' }} />
+              style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-090)' }} />
             {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={13} className="text-white/40" /></button>}
           </div>
         )}
@@ -314,7 +313,7 @@ Return ONLY valid JSON array:
                       style={{ background: `${color}10`, border: `1px solid ${color}25` }}>
                       <SubIcon size={24} style={{ color }} />
                       <p className="text-base font-bold text-white">{s.subject}</p>
-                      <p className="text-[10px]" style={{ color: `${color}80` }}>{s.chapters.length} chapters · {total}+ paragraphs</p>
+                      <p className="text-xs" style={{ color: `${color}80` }}>{s.chapters.length} chapters · {total}+ paragraphs</p>
                     </motion.button>
                   );
                 })}
@@ -341,13 +340,13 @@ Return ONLY valid JSON array:
                   return (
                     <button key={ch} onClick={() => { setSelChapter(ch); setPhase('content'); }}
                       className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-left active:scale-98 transition-transform"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-060)' }}>
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-bold text-white/30 w-5">{i+1}</span>
                         <p className="text-sm font-semibold text-white">{ch}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {count > 0 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background:'rgba(16,185,129,0.15)', color:'#34D399' }}>{count} mapped</span>}
+                        {count > 0 && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background:'rgba(16,185,129,0.15)', color:'#34D399' }}>{count} mapped</span>}
                         <ChevronRight size={13} className="text-white/25" />
                       </div>
                     </button>

@@ -115,10 +115,10 @@ export default function ExamSimulatorPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/tools"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
           <ChevronLeft size={18} className="text-white" />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -133,7 +133,7 @@ export default function ExamSimulatorPage() {
           <div className="px-3 py-1.5 rounded-xl font-mono font-bold text-sm"
             style={timerUrgent
               ? { background: 'rgba(239,68,68,0.15)', color: '#F87171', border: '1px solid rgba(239,68,68,0.3)' }
-              : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              : { background: 'var(--ink-060)', color: 'var(--ink-850)', border: '1px solid var(--ink-100)' }}>
             {mm}:{ss}
           </div>
         )}
@@ -156,7 +156,7 @@ export default function ExamSimulatorPage() {
               <input type="text" placeholder="Subject / Topic (e.g. Organic Chemistry)"
                 value={topic} onChange={e => setTopic(e.target.value)}
                 className="rounded-2xl px-4 h-14 text-white placeholder:text-white/30 outline-none w-full"
-                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+                style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
 
               <div>
                 <p className="text-sm font-semibold text-white mb-2">Questions</p>
@@ -165,8 +165,8 @@ export default function ExamSimulatorPage() {
                     <button key={n} onClick={() => setCount(n)}
                       className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all"
                       style={count === n
-                        ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: '#fff' }
-                        : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: 'var(--ink-950)' }
+                        : { background: 'var(--ink-055)', color: 'var(--ink-600)', border: '1px solid var(--ink-080)' }}>
                       {n}
                     </button>
                   ))}
@@ -180,8 +180,8 @@ export default function ExamSimulatorPage() {
                     <button key={m} onClick={() => setMinutes(m)}
                       className="flex-1 py-3 rounded-2xl text-xs font-semibold transition-all"
                       style={minutes === m
-                        ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: '#fff' }
-                        : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: 'var(--ink-950)' }
+                        : { background: 'var(--ink-055)', color: 'var(--ink-600)', border: '1px solid var(--ink-080)' }}>
                       {m}m
                     </button>
                   ))}
@@ -232,12 +232,12 @@ export default function ExamSimulatorPage() {
               <div className="flex gap-1 flex-wrap">
                 {questions.map((_, i) => (
                   <button key={i} onClick={() => { setCurrent(i); setSelected(answers[i]); }}
-                    className="w-6 h-6 rounded-full text-[10px] font-bold transition-all flex items-center justify-center"
+                    className="w-6 h-6 rounded-full text-xs font-bold transition-all flex items-center justify-center"
                     style={{
                       background: answers[i] !== null
                         ? answers[i] === questions[i].correct_answer ? '#10B981' : '#EF4444'
-                        : i === current ? '#7C3AED' : 'rgba(255,255,255,0.1)',
-                      color: answers[i] !== null || i === current ? '#fff' : 'rgba(255,255,255,0.5)',
+                        : i === current ? '#7C3AED' : 'var(--ink-100)',
+                      color: answers[i] !== null || i === current ? '#fff' : 'var(--ink-500)',
                     }}>
                     {i + 1}
                   </button>
@@ -245,7 +245,7 @@ export default function ExamSimulatorPage() {
               </div>
 
               <div className="rounded-3xl p-5"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
                 <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#A78BFA' }}>Question {current + 1}</p>
                 <p className="font-heading text-base font-semibold text-white leading-snug">{q.question}</p>
               </div>
@@ -255,8 +255,8 @@ export default function ExamSimulatorPage() {
                   const answered   = answers[current] !== null;
                   const isCorrect  = i === q.correct_answer;
                   const isSelected = i === answers[current];
-                  let optBg = 'rgba(255,255,255,0.055)';
-                  let optBorder = 'rgba(255,255,255,0.08)';
+                  let optBg = 'var(--ink-055)';
+                  let optBorder = 'var(--ink-080)';
                   if (answered) {
                     if (isCorrect)       { optBg = 'rgba(16,185,129,0.12)'; optBorder = 'rgba(16,185,129,0.4)'; }
                     else if (isSelected) { optBg = 'rgba(239,68,68,0.12)';  optBorder = 'rgba(239,68,68,0.4)'; }
@@ -270,7 +270,7 @@ export default function ExamSimulatorPage() {
                           style={{
                             background: answered && isCorrect ? '#10B981'
                               : answered && isSelected ? '#EF4444'
-                              : 'rgba(255,255,255,0.1)',
+                              : 'var(--ink-100)',
                           }}>
                           {String.fromCharCode(65 + i)}
                         </span>
@@ -324,9 +324,9 @@ export default function ExamSimulatorPage() {
                   { label: 'Wrong', value: questions.length - score },
                 ].map(({ label, value }) => (
                   <div key={label} className="rounded-2xl p-3 text-center"
-                    style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                     <p className="font-heading font-bold text-lg text-white">{value}</p>
-                    <p className="text-[10px] text-muted-foreground">{label}</p>
+                    <p className="text-xs text-muted-foreground">{label}</p>
                   </div>
                 ))}
               </div>
@@ -345,7 +345,7 @@ export default function ExamSimulatorPage() {
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-white/85 leading-snug line-clamp-2">{q.question}</p>
                       {answers[i] !== q.correct_answer && (
-                        <p className="text-[10px] mt-0.5" style={{ color: '#34D399' }}>Correct: {q.options?.[q.correct_answer]}</p>
+                        <p className="text-xs mt-0.5" style={{ color: '#34D399' }}>Correct: {q.options?.[q.correct_answer]}</p>
                       )}
                     </div>
                   </div>

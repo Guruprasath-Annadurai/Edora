@@ -4,12 +4,13 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-  ChevronLeft, Sword, Zap, Trophy, Clock, Users,
-  CheckCircle2, XCircle, Search, Shield, Crown,
+  ChevronLeft, Sword, Zap, Trophy,
+  CheckCircle2, XCircle, Search, Shield, Medal, Gem, Crown,
+  type LucideIcon,
 } from 'lucide-react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -58,14 +59,14 @@ const TOTAL_QUESTIONS = 10;
 
 // ── ELO ───────────────────────────────────────────────────────────────────────
 
-interface EloTier { name: string; min: number; color: string; icon: string; }
+interface EloTier { name: string; min: number; color: string; icon: LucideIcon; }
 const ELO_TIERS: EloTier[] = [
-  { name: 'Bronze',      min: 0,    color: '#CD7F32', icon: '🥉' },
-  { name: 'Silver',      min: 1200, color: '#C0C0C0', icon: '🥈' },
-  { name: 'Gold',        min: 1400, color: '#FFD700', icon: '🥇' },
-  { name: 'Platinum',    min: 1600, color: '#5B6AF5', icon: '💎' },
-  { name: 'Diamond',     min: 1800, color: '#06B6D4', icon: '🔷' },
-  { name: 'Grandmaster', min: 2000, color: '#EF4444', icon: '👑' },
+  { name: 'Bronze',      min: 0,    color: '#CD7F32', icon: Medal },
+  { name: 'Silver',      min: 1200, color: '#C0C0C0', icon: Medal },
+  { name: 'Gold',        min: 1400, color: '#FFD700', icon: Medal },
+  { name: 'Platinum',    min: 1600, color: '#5B6AF5', icon: Gem },
+  { name: 'Diamond',     min: 1800, color: '#06B6D4', icon: Gem },
+  { name: 'Grandmaster', min: 2000, color: '#EF4444', icon: Crown },
 ];
 
 function getEloTier(elo: number): EloTier {
@@ -86,7 +87,7 @@ function Avatar({ url, name, size = 48 }: { url: string | null; name: string; si
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#7C3AED,#A78BFA)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.35, fontWeight: 700, color: '#fff',
+      fontSize: size * 0.35, fontWeight: 700, color: 'var(--ink-950)',
     }}>{initials}</div>
   );
 }
@@ -129,7 +130,7 @@ export default function BattlePage() {
   const [oppScore, setOppScore]         = useState(0);
   const [myAnswers, setMyAnswers]       = useState<(number | null)[]>([]);
   const [countdown, setCountdown]       = useState(3);
-  const [inviteId, setInviteId]         = useState<string | null>(null);
+  const [_inviteId, setInviteId]         = useState<string | null>(null);
   const [battlePassWins, setBattlePassWins] = useState(0);
   const [error, setError]               = useState<string | null>(null);
   const [myElo, setMyElo]               = useState(1200);
@@ -169,6 +170,7 @@ export default function BattlePage() {
   useEffect(() => {
     const id = searchParams.get('invite');
     if (id) acceptInvite(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   // ── Cleanup ────────────────────────────────────────────────────────────────
@@ -414,6 +416,7 @@ export default function BattlePage() {
         finishBattle(newScore, qs);
       }
     }, 1500);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myScore, battle, user]);
 
   async function finishBattle(finalScore: number, qs: BattleQuestion[]) {
@@ -511,7 +514,7 @@ function EloTierBadge({ elo }: { elo: number }) {
   const tier = getEloTier(elo);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 12, background: `${tier.color}14`, border: `1px solid ${tier.color}33` }}>
-      <span style={{ fontSize: 20 }}>{tier.icon}</span>
+      <tier.icon size={20} style={{ color: tier.color }} strokeWidth={1.7} />
       <div>
         <div style={{ fontWeight: 700, fontSize: 14, color: tier.color }}>{tier.name}</div>
         <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{elo} ELO</div>
@@ -520,7 +523,7 @@ function EloTierBadge({ elo }: { elo: number }) {
   );
 }
 
-function LobbyScreen({ subject, setSubject, onFind, battlePassWins, profile, myElo, error }: {
+function LobbyScreen({ subject, setSubject, onFind, battlePassWins, myElo, error }: {
   subject: string;
   setSubject: (s: string) => void;
   onFind: () => void;
@@ -564,7 +567,7 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, profile, myE
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ fontWeight: 600, fontSize: 14 }}>Battle Pass — This Week</div>
             <div style={{ fontSize: 12, color: battlePassWins >= 5 ? '#F59E0B' : 'var(--color-text-secondary)' }}>
-              {battlePassWins >= 5 ? '🏆 Trophy Earned!' : `${battlePassWins}/5 wins`}
+              {battlePassWins >= 5 ? 'Trophy Earned!' : `${battlePassWins}/5 wins`}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -611,7 +614,7 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, profile, myE
           onClick={onFind}
           style={{
             width: '100%', padding: '16px', borderRadius: 16, border: 'none',
-            background: 'linear-gradient(135deg,#EF4444,#DC2626)', color: '#fff',
+            background: 'linear-gradient(135deg,#EF4444,#DC2626)', color: 'var(--ink-950)',
             fontWeight: 700, fontSize: 16, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           }}
@@ -640,7 +643,7 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, profile, myE
 }
 
 // ── Searching Screen ──────────────────────────────────────────────────────────
-function SearchingScreen({ subject, isBotFallback }: { subject: string; isBotFallback: boolean }) {
+function SearchingScreen({ subject }: { subject: string; isBotFallback?: boolean }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
       <motion.div
@@ -806,7 +809,7 @@ function QuestionScreen({
             animate={{ opacity: 1, y: 0 }}
             style={{ marginTop: 16, padding: '12px 16px', background: 'var(--color-surface)', borderRadius: 12, border: '1px solid var(--color-border)', fontSize: 13, color: 'var(--color-text-secondary)' }}
           >
-            💡 {question.explanation}
+            {question.explanation}
           </motion.div>
         )}
       </div>
@@ -838,7 +841,9 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
         textAlign: 'center',
         borderBottom: '1px solid var(--color-border)',
       }}>
-        <div style={{ fontSize: 64, marginBottom: 8 }}>{won ? '🏆' : '💪'}</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+          <Trophy size={56} color={won ? '#F59E0B' : 'var(--v2-text-4)'} strokeWidth={1.5} />
+        </div>
         <div style={{ fontWeight: 900, fontSize: 28, color: won ? '#10B981' : '#EF4444', marginBottom: 4 }}>
           {won ? 'Victory!' : 'Defeated'}
         </div>
@@ -882,7 +887,7 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
             <Trophy size={20} color="#F59E0B" />
             <div style={{ fontSize: 13 }}>
               <span style={{ fontWeight: 700, color: '#F59E0B' }}>Battle Pass: {battlePassWins}/5 wins this week</span>
-              {battlePassWins >= 5 && ' — Trophy earned! 🏆'}
+              {battlePassWins >= 5 && ' — Trophy earned!'}
             </div>
           </div>
         )}
@@ -917,7 +922,7 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
             onClick={onRematch}
             style={{
               flex: 1, padding: '12px', borderRadius: 12, border: 'none',
-              background: 'linear-gradient(135deg,#EF4444,#DC2626)', color: '#fff',
+              background: 'linear-gradient(135deg,#EF4444,#DC2626)', color: 'var(--ink-950)',
               fontWeight: 700, fontSize: 14, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}

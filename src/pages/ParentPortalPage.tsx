@@ -20,13 +20,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import {motion} from 'framer-motion';
 import {
   ArrowLeft, Users, RefreshCw, Share2, Copy, Check,
   TrendingUp, Zap, Flame, Clock, BookOpen, Target,
   ChevronRight, Loader2, Award, AlertCircle, Shield,
-  BarChart2, Brain, Trophy, X,
-} from 'lucide-react';
+  BarChart2, Brain, Trophy, X, Link2, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
@@ -92,8 +91,7 @@ const SUBJECT_COLORS: Record<string, string> = {
   Physics:     '#5B6AF5',
   Chemistry:   '#10B981',
   Mathematics: '#F59E0B',
-  Biology:     '#EC4899',
-};
+  Biology:     '#EC4899' };
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -144,7 +142,7 @@ function WeeklyChart({ history }: { history: Array<{ date: string; xp: number }>
               animate={{ height: `${Math.max(4, pct)}%` }}
               transition={{ duration: 0.6, delay: i * 0.05, ease: 'easeOut' }}
             />
-            <span className="text-[8px] text-gray-600">{days[i % 7]}</span>
+            <span className="text-xs text-gray-600">{days[i % 7]}</span>
           </div>
         );
       })}
@@ -277,7 +275,7 @@ export default function ParentPortalPage() {
   if (phase === 'student_setup') {
     return (
       <div className="h-full text-white flex flex-col">
-        <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
+        <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: 'var(--hdr-a-820)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
           <Link to="/home" className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </Link>
@@ -297,7 +295,7 @@ export default function ParentPortalPage() {
         <div className="max-w-md mx-auto px-4 py-8 space-y-6">
           {/* Hero */}
           <div className="text-center space-y-2">
-            <div className="text-5xl">👨‍👩‍👧</div>
+            <Users size={44} className="mx-auto text-white/40" strokeWidth={1.4} />
             <h2 className="text-xl font-bold">Keep your parents in the loop</h2>
             <p className="text-sm text-gray-400">
               Generate a code and share it with your parent. They'll get a live dashboard of your study progress.
@@ -397,7 +395,7 @@ export default function ParentPortalPage() {
   if (phase === 'enter_code') {
     return (
       <div className="h-full text-white flex flex-col">
-        <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
+        <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: 'var(--hdr-a-820)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
           <button onClick={() => setPhase('student_setup')} className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </button>
@@ -410,7 +408,7 @@ export default function ParentPortalPage() {
         <div className="flex-1 overflow-y-auto pb-nav">
         <div className="max-w-sm mx-auto px-4 py-12 space-y-8">
           <div className="text-center space-y-2">
-            <div className="text-6xl">🔗</div>
+            <Link2 size={52} className="mx-auto text-white/40" strokeWidth={1.4} />
             <h2 className="text-xl font-bold">Connect to your child</h2>
             <p className="text-sm text-gray-400">Ask your child to generate an invite code in their Edora app, then enter it below.</p>
           </div>
@@ -487,7 +485,7 @@ export default function ParentPortalPage() {
         </div>
       ) : !childStats ? (
         <div className="text-center py-20 space-y-3 px-4">
-          <div className="text-4xl">📊</div>
+          <BarChart3 size={36} className="mx-auto text-white/25" strokeWidth={1.5} />
           <p className="text-gray-400">No study data yet for {selectedChild?.child_name}.</p>
           <p className="text-sm text-gray-600">Once they start studying, you'll see their progress here.</p>
         </div>
@@ -509,7 +507,7 @@ export default function ParentPortalPage() {
                 <div className="text-sm text-indigo-300">Level {childStats.profile.level}</div>
                 <div className="mt-1.5">
                   <XPBar value={childStats.profile.xp % 1000} max={1000} />
-                  <div className="text-[10px] text-gray-500 mt-0.5">{childStats.profile.xp} XP total</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{childStats.profile.xp} XP total</div>
                 </div>
               </div>
               <div className="text-center">
@@ -608,7 +606,7 @@ export default function ParentPortalPage() {
                       ? `${Math.round((childStats.boss_fights.victories / childStats.boss_fights.total) * 100)}%`
                       : '—'}
                   </div>
-                  <div className="text-[10px] text-gray-500">win rate</div>
+                  <div className="text-xs text-gray-500">win rate</div>
                 </div>
               </div>
             </motion.div>

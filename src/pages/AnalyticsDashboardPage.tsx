@@ -38,11 +38,11 @@ function BarChart({ data }: { data: { date: string; xp: number }[] }) {
           return (
             <g key={d.date}>
               <rect x={x} y={y} width={BAR_W} height={barH} rx={3}
-                fill={isToday ? '#5B6AF5' : d.xp > 0 ? '#A5B0F7' : 'rgba(255,255,255,0.1)'} />
+                fill={isToday ? '#5B6AF5' : d.xp > 0 ? '#A5B0F7' : 'var(--ink-100)'} />
               {/* Day label every 2 days */}
               {i % 2 === 0 && (
                 <text x={x + BAR_W / 2} y={H + 14} textAnchor="middle"
-                  fontSize={8} fill="#94a3b8">
+                  fontSize={10} fill="#94a3b8">
                   {new Date(d.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                 </text>
               )}
@@ -61,12 +61,12 @@ function AccuracyBar({ label, accuracy, total, color = '#5B6AF5' }: {
   return (
     <div className="flex items-center gap-3">
       <span className="text-xs text-white font-medium w-28 shrink-0 truncate">{label}</span>
-      <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
         <div className="h-full rounded-full transition-all duration-700"
           style={{ width: `${accuracy}%`, background: color }} />
       </div>
       <span className="text-xs font-bold text-white w-10 text-right shrink-0">{accuracy}%</span>
-      <span className="text-[10px] text-muted-foreground w-12 text-right shrink-0">{total} q</span>
+      <span className="text-xs text-muted-foreground w-12 text-right shrink-0">{total} q</span>
     </div>
   );
 }
@@ -80,7 +80,7 @@ function ScoreRing({ score }: { score: number }) {
 
   return (
     <svg width={108} height={108} viewBox="0 0 108 108">
-      <circle cx={54} cy={54} r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={10} />
+      <circle cx={54} cy={54} r={R} fill="none" stroke="var(--ink-080)" strokeWidth={10} />
       <circle cx={54} cy={54} r={R} fill="none"
         stroke={color} strokeWidth={10}
         strokeDasharray={`${dash} ${circ - dash}`}
@@ -124,7 +124,7 @@ function ProGate({ preview }: { preview: { total_sprints: number; total_quizzes:
       {/* Blurred teaser */}
       <div className="relative rounded-3xl overflow-hidden">
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 backdrop-blur-sm"
-          style={{ background: 'rgba(8,12,26,0.85)' }}>
+          style={{ background: 'var(--surface-scrim)' }}>
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
             <Lock size={28} className="text-white" />
@@ -143,25 +143,25 @@ function ProGate({ preview }: { preview: { total_sprints: number; total_quizzes:
           <div className="flex flex-col gap-3">
             {preview && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="bento-cell rounded-2xl p-4 text-center">
+                <div className="card-l0 rounded-2xl p-4 text-center">
                   <p className="text-2xl font-bold text-white">{preview.total_sprints}</p>
                   <p className="text-xs text-muted-foreground">Study Sessions</p>
                 </div>
-                <div className="bento-cell rounded-2xl p-4 text-center">
+                <div className="card-l0 rounded-2xl p-4 text-center">
                   <p className="text-2xl font-bold text-white">{preview.total_quizzes}</p>
                   <p className="text-xs text-muted-foreground">Quizzes Taken</p>
                 </div>
               </div>
             )}
             {/* Weekly activity bar chart — real sprint counts */}
-            <div className="bento-cell rounded-2xl p-4">
+            <div className="card-l0 rounded-2xl p-4">
               <p className="text-xs font-semibold text-muted-foreground mb-3">THIS WEEK'S ACTIVITY</p>
               <div className="flex items-end gap-2 h-16">
                 {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d, i) => (
                   <div key={d} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full rounded-t-lg opacity-50 transition-all duration-500"
                       style={{ height: `${weekData[i]}%`, background: 'linear-gradient(180deg,#5B6AF5,#8B5CF6)' }} />
-                    <span className="text-[9px] text-muted-foreground">{d}</span>
+                    <span className="text-xs text-muted-foreground">{d}</span>
                   </div>
                 ))}
               </div>
@@ -181,9 +181,9 @@ function ProGate({ preview }: { preview: { total_sprints: number; total_quizzes:
               { label: 'Total XP', value: preview.xp.toLocaleString() },
               { label: 'Day Streak', value: `${preview.streak}` },
             ].map(({ label, value }) => (
-              <div key={label} className="bento-cell rounded-2xl p-3 text-center">
+              <div key={label} className="card-l0 rounded-2xl p-3 text-center">
                 <p className="text-lg font-bold text-white">{value}</p>
-                <p className="text-[10px] text-muted-foreground">{label}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
               </div>
             ))}
           </div>
@@ -211,10 +211,10 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
           { icon: Target, label: 'Avg Accuracy', value: `${stats.avg_accuracy_30d}%`, color: '#10B981' },
           { icon: Clock, label: 'Study Time', value: `${Math.round(stats.study_time_by_subject.reduce((s, x) => s + x.minutes, 0) / 60)}h`, color: '#F59E0B' },
         ].map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="bento-cell-elevated rounded-2xl p-3 flex flex-col items-center gap-1">
+          <div key={label} className="card-l1 rounded-2xl p-3 flex flex-col items-center gap-1">
             <Icon size={18} style={{ color }} />
             <p className="text-base font-bold text-white">{value}</p>
-            <p className="text-[10px] text-muted-foreground text-center leading-tight">{label}</p>
+            <p className="text-xs text-muted-foreground text-center leading-tight">{label}</p>
           </div>
         ))}
       </div>
@@ -239,7 +239,7 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
 
       {/* ── XP Trend — secondary tier ── */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}
-        className="bento-cell rounded-3xl p-5">
+        className="card-l0 rounded-3xl p-5">
         <div className="flex items-center gap-2 mb-3">
           <TrendingUp size={14} className="text-primary" />
           <p className="font-semibold text-white text-sm">XP Earned — Last 14 Days</p>
@@ -253,7 +253,7 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
       {/* ── Subject Accuracy ── */}
       {stats.subject_accuracy.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }}
-          className="bento-cell rounded-3xl p-5">
+          className="card-l0 rounded-3xl p-5">
           <p className="font-semibold text-white text-sm mb-4">Subject Accuracy (30d)</p>
           <div className="flex flex-col gap-3">
             {stats.subject_accuracy.map((s, i) => (
@@ -267,7 +267,7 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
       {/* ── Study Time Breakdown ── */}
       {stats.study_time_by_subject.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
-          className="bento-cell rounded-3xl p-5">
+          className="card-l0 rounded-3xl p-5">
           <p className="font-semibold text-white text-sm mb-3">Study Time by Subject</p>
           <div className="flex flex-col gap-2.5">
             {stats.study_time_by_subject.slice(0, 6).map((s, i) => {
@@ -278,7 +278,7 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
               return (
                 <div key={s.subject} className="flex items-center gap-3">
                   <span className="text-xs text-white font-medium w-28 shrink-0 truncate">{s.subject}</span>
-                  <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
                     <div className="h-full rounded-full"
                       style={{ width: `${pct}%`, background: subjectColors[i % subjectColors.length] }} />
                   </div>
@@ -295,7 +295,7 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
       {/* ── Weak Topics ── */}
       {stats.weak_topics.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-          className="bento-cell rounded-3xl p-5">
+          className="card-l0 rounded-3xl p-5">
           <p className="font-semibold text-white text-sm mb-1">Topics Needing Attention</p>
           <p className="text-xs text-muted-foreground mb-4">Topics where your accuracy is below average (min 3 questions)</p>
           <div className="flex flex-col gap-2.5">
@@ -306,7 +306,7 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
                   <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-white truncate">{t.topic}</p>
-                    <p className="text-[10px] text-muted-foreground">{t.subject} · {t.count} questions</p>
+                    <p className="text-xs text-muted-foreground">{t.subject} · {t.count} questions</p>
                   </div>
                   <span className="text-xs font-bold shrink-0" style={{ color }}>{t.accuracy}%</span>
                 </div>
@@ -371,11 +371,11 @@ export default function AnalyticsDashboardPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       {/* Header */}
       <div className="px-4 py-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <div className="flex items-center gap-3">
           <Link aria-label="Go back" to="/profile"
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ChevronLeft size={18} className="text-white" />
           </Link>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -389,7 +389,7 @@ export default function AnalyticsDashboardPage() {
             </p>
           </div>
           {isPro && (
-            <span className="text-[10px] px-2 py-1 rounded-full font-bold text-white"
+            <span className="text-xs px-2 py-1 rounded-full font-bold text-white"
               style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
               PRO
             </span>

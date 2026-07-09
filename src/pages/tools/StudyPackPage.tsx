@@ -252,7 +252,7 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
           className="flex flex-col gap-3">
           <div className="rounded-2xl p-4"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
             <p className="text-white font-semibold text-sm leading-relaxed">{q.question}</p>
           </div>
 
@@ -260,9 +260,9 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
           {q.options.map((opt, i) => {
             const isCorrect  = i === q.correct_answer;
             const isSelected = i === selected;
-            let optBg = 'rgba(255,255,255,0.055)';
-            let optBorder = 'rgba(255,255,255,0.08)';
-            let textColor = 'rgba(255,255,255,0.85)';
+            let optBg = 'var(--ink-055)';
+            let optBorder = 'var(--ink-080)';
+            let textColor = 'var(--ink-850)';
             if (revealed) {
               if (isCorrect)       { optBg = 'rgba(16,185,129,0.12)'; optBorder = 'rgba(16,185,129,0.35)'; textColor = '#34D399'; }
               else if (isSelected) { optBg = 'rgba(239,68,68,0.12)';  optBorder = 'rgba(239,68,68,0.35)'; textColor = '#F87171'; }
@@ -275,7 +275,7 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
                 className={`w-full text-left px-4 py-3 rounded-2xl text-sm font-medium transition-all flex items-center gap-3 ${!revealed ? 'active:scale-98' : ''}`}
                 style={{ background: optBg, border: `1px solid ${optBorder}` }}>
                 <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: textColor }}>
+                  style={{ background: 'var(--ink-080)', color: textColor }}>
                   {String.fromCharCode(65 + i)}
                 </span>
                 <span style={{ color: textColor }}>{opt}</span>
@@ -472,7 +472,6 @@ export default function StudyPackPage() {
       setGenError(msg);
       track('study_pack_generate_error', { error: msg });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   function openPack(pack: StudyPack) {
@@ -623,10 +622,10 @@ export default function StudyPackPage() {
       <div className="flex flex-col h-full bg-gradient-page">
         {/* Header */}
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <button onClick={() => setPhase('list')}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={18} className="text-white" strokeWidth={1.75} />
           </button>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -653,7 +652,7 @@ export default function StudyPackPage() {
 
         {/* Tabs */}
         <div className="px-4 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: 'var(--hdr-a-880)', borderBottom: '1px solid var(--ink-060)' }}>
           <div className="flex gap-1">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => { setActiveTab(id); setCardIndex(0); }}
@@ -675,7 +674,7 @@ export default function StudyPackPage() {
               <motion.div key="summary"
                 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                 <div className="rounded-3xl p-5"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center"
                       style={{ background: 'rgba(91,106,245,0.15)' }}>
@@ -704,7 +703,7 @@ export default function StudyPackPage() {
                     onClick={() => setCardIndex(i => Math.max(0, i - 1))}
                     disabled={cardIndex === 0}
                     className="flex-1 py-3 rounded-2xl text-sm font-semibold text-white/70 disabled:opacity-30 transition-all active:scale-95"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                     ← Previous
                   </button>
                   <button
@@ -721,7 +720,7 @@ export default function StudyPackPage() {
                   {viewing.flashcards.map((_, i) => (
                     <button key={i} onClick={() => setCardIndex(i)}
                       className="w-2 h-2 rounded-full transition-all"
-                      style={{ background: i === cardIndex ? '#5B6AF5' : 'rgba(255,255,255,0.15)', transform: i === cardIndex ? 'scale(1.3)' : 'scale(1)' }} />
+                      style={{ background: i === cardIndex ? '#5B6AF5' : 'var(--ink-150)', transform: i === cardIndex ? 'scale(1.3)' : 'scale(1)' }} />
                   ))}
                 </div>
               </motion.div>
@@ -745,7 +744,7 @@ export default function StudyPackPage() {
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
                     className="rounded-2xl p-4"
-                    style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                     <p className="font-semibold text-white text-sm mb-1">{term.term}</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">{term.definition}</p>
                   </motion.div>
@@ -803,7 +802,7 @@ export default function StudyPackPage() {
             { Icon: List,      label: '10 Key Terms',    desc: 'Definitions & vocabulary',  color: '#FBBF24' },
           ].map(({ Icon, label, desc, color }) => (
             <div key={label} className="rounded-2xl p-3 flex items-center gap-2"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
               <Icon size={18} style={{ color }} className="shrink-0" />
               <div>
                 <p className="text-xs font-semibold text-white">{label}</p>
@@ -825,7 +824,7 @@ export default function StudyPackPage() {
                 transition={{ delay: i * 0.05 }}>
                 <button onClick={() => openPack(pack)}
                   className="w-full rounded-2xl p-4 flex items-center gap-3 active:scale-[0.98] transition-all text-left"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: 'rgba(245,158,11,0.15)' }}>
                     <FileText size={20} style={{ color: '#FBBF24' }} />
@@ -878,10 +877,10 @@ export default function StudyPackPage() {
 function Header({ title }: { title: string }) {
   return (
     <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-      style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+      style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
       <Link to="/tools"
         className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
         <ArrowLeft size={18} className="text-white" strokeWidth={1.75} />
       </Link>
       <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"

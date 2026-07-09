@@ -6,14 +6,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronLeft, Building2, Users, Zap, BarChart2, Copy, Check,
-  QrCode, Download, Search, Filter, ChevronDown, ChevronUp,
+import {ChevronLeft, Building2, Users, Zap, Copy, Check,
+  QrCode, Download, Search,
   TrendingUp, TrendingDown, Minus, AlertTriangle, Crown,
   BookOpen, Target, RefreshCw, Loader2, Plus, X, School,
-  CheckCircle2, Star, ArrowUpRight, Flame, Trophy, Mail,
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+  CheckCircle2, Star, ArrowUpRight, Flame, Trophy} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Toast } from '@capacitor/toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { supabase } from '@/lib/supabase';
@@ -79,40 +77,38 @@ const TIER_CONFIG = {
   free:       { label: 'Free',       color: '#9CA3AF', limit: '50 students',   price: '' },
   starter:    { label: 'Starter',    color: '#60A5FA', limit: '200 students',  price: '₹999/mo' },
   pro:        { label: 'Pro',        color: '#A78BFA', limit: 'Unlimited',     price: '₹4,999/mo' },
-  enterprise: { label: 'Enterprise', color: '#FBBF24', limit: 'Unlimited',     price: 'Custom' },
-};
+  enterprise: { label: 'Enterprise', color: '#FBBF24', limit: 'Unlimited',     price: 'Custom' } };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function Avatar({ url, name, size = 36 }: { url: string | null; name: string; size?: number }) {
-  if (url) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />;
+  const [imgError, setImgError] = useState(false);
+  if (url && !imgError) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} onError={() => setImgError(true)} />;
   const initials = (name || '?').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.36, fontWeight: 700, color: '#fff', flexShrink: 0,
-    }}>{initials}</div>
+      fontSize: size * 0.36, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0 }}>{initials}</div>
   );
 }
 
 function StatCard({ label, value, sub, color = '#A0AEFF', icon: Icon }:
   { label: string; value: string | number; sub?: string; color?: string; icon: React.ElementType }) {
   return (
-    <div className="rounded-2xl p-4 flex flex-col gap-1"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+    <div className="rounded-2xl p-4 flex flex-col gap-1 v2-card">
       <div className="flex items-center gap-2 mb-1">
         <Icon size={14} style={{ color }} />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--v2-text-4)' }}>{label}</span>
       </div>
-      <span className="font-heading text-2xl font-black text-white">{value}</span>
-      {sub && <span className="text-[10px] text-white/30">{sub}</span>}
+      <span className="font-heading text-2xl font-black v2-tnum" style={{ color: 'var(--v2-text-1)' }}>{value}</span>
+      {sub && <span className="text-xs" style={{ color: 'var(--v2-text-4)' }}>{sub}</span>}
     </div>
   );
 }
 
-function TrendIcon({ val }: { val: number }) {
+function _TrendIcon({ val }: { val: number }) {
   if (val > 0) return <TrendingUp size={12} className="text-green-400" />;
   if (val < 0) return <TrendingDown size={12} className="text-red-400" />;
   return <Minus size={12} className="text-white/30" />;
@@ -178,7 +174,7 @@ function QRPlaceholder({ value }: { value: string }) {
 // ── Setup Wizard ───────────────────────────────────────────────────────────────
 
 function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) {
-  const [step, setStep]       = useState(0);
+  const [_step, _setStep]       = useState(0);
   const [name, setName]       = useState('');
   const [city, setCity]       = useState('');
   const [state, setState]     = useState('');
@@ -192,8 +188,7 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
     setErr('');
     try {
       const { data, error } = await supabase.rpc('create_institution', {
-        p_name: name.trim(), p_city: city.trim(), p_state: state.trim(), p_board: board,
-      });
+        p_name: name.trim(), p_city: city.trim(), p_state: state.trim(), p_board: board });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error ?? 'Failed to create institution');
       // Fetch full institution row
@@ -222,20 +217,20 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
             <label className="text-xs text-white/40 font-semibold uppercase tracking-wide block mb-1">School Name *</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Delhi Public School, RK Puram"
               className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none"
-              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }} />
+              style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-120)' }} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-white/40 font-semibold uppercase tracking-wide block mb-1">City</label>
               <input value={city} onChange={e => setCity(e.target.value)} placeholder="New Delhi"
                 className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }} />
+                style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-120)' }} />
             </div>
             <div>
               <label className="text-xs text-white/40 font-semibold uppercase tracking-wide block mb-1">State</label>
               <input value={state} onChange={e => setState(e.target.value)} placeholder="Delhi"
                 className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }} />
+                style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-120)' }} />
             </div>
           </div>
           <div>
@@ -245,10 +240,9 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
                 <button key={b} onClick={() => setBoard(b)}
                   className="px-3 py-1.5 rounded-xl text-sm font-semibold transition-all"
                   style={{
-                    background: board === b ? 'rgba(91,106,245,0.25)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${board === b ? 'rgba(91,106,245,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                    color: board === b ? '#A0AEFF' : 'rgba(255,255,255,0.5)',
-                  }}>{b}</button>
+                    background: board === b ? 'rgba(91,106,245,0.25)' : 'var(--ink-060)',
+                    border: `1px solid ${board === b ? 'rgba(91,106,245,0.5)' : 'var(--ink-100)'}`,
+                    color: board === b ? '#A0AEFF' : 'var(--ink-500)' }}>{b}</button>
               ))}
             </div>
           </div>
@@ -261,7 +255,7 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
           style={{ background: loading ? 'rgba(91,106,245,0.4)' : 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}>
           {loading ? <Loader2 size={18} className="animate-spin" /> : <><Plus size={18} /> Create Institution</>}
         </motion.button>
-        <p className="text-[10px] text-white/25 mt-3">Free tier includes up to 50 students. Upgrade anytime.</p>
+        <p className="text-xs text-white/25 mt-3">Free tier includes up to 50 students. Upgrade anytime.</p>
       </motion.div>
     </div>
   );
@@ -271,7 +265,7 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
 
 export default function SchoolAdminPage() {
   const { profile } = useAuth();
-  const navigate    = useNavigate();
+
 
   const [institution, setInstitution]   = useState<Institution | null>(null);
   const [analytics, setAnalytics]       = useState<InstitutionAnalytics | null>(null);
@@ -330,6 +324,7 @@ export default function SchoolAdminPage() {
     if (!institution) return;
     if (tab === 'students') loadStudents(institution.id);
     if (tab === 'topics')   loadWeakTopics(institution.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadStudents/loadWeakTopics close over institution already tracked; adding them would require useCallback and cause infinite loops
   }, [tab, institution]);
 
   async function refresh() {
@@ -414,9 +409,9 @@ export default function SchoolAdminPage() {
     return (
       <div className="h-full flex flex-col" style={{ background: 'transparent' }}>
         <div className="shrink-0 px-4 py-3 flex items-center gap-3"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(64px)' }}>
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-060)', backdropFilter: 'blur(64px)' }}>
           <Link to="/profile" className="w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-080)' }}>
             <ChevronLeft size={18} className="text-white" />
           </Link>
           <div className="flex-1">
@@ -439,20 +434,20 @@ export default function SchoolAdminPage() {
     <div className="h-full flex flex-col" style={{ background: 'transparent' }}>
       {/* ── Header ── */}
       <div className="shrink-0 px-4 py-3 flex items-center gap-3"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(64px)', WebkitBackdropFilter: 'blur(64px)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-060)', backdropFilter: 'blur(64px)', WebkitBackdropFilter: 'blur(64px)' }}>
         <Link to="/profile" className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-080)' }}>
           <ChevronLeft size={18} className="text-white" />
         </Link>
         <div className="flex-1 min-w-0">
           <h2 className="font-heading font-bold text-white text-sm truncate">{institution.name}</h2>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
               style={{ background: `${tierCfg.color}18`, color: tierCfg.color, border: `1px solid ${tierCfg.color}40` }}>
               {tierCfg.label}
             </span>
             {institution.is_verified && (
-              <span className="flex items-center gap-1 text-[10px] text-green-400">
+              <span className="flex items-center gap-1 text-xs text-green-400">
                 <CheckCircle2 size={10} /> Verified
               </span>
             )}
@@ -460,22 +455,21 @@ export default function SchoolAdminPage() {
         </div>
         <button onClick={refresh}
           className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-080)' }}>
           <RefreshCw size={15} className={`text-white/60 ${refreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {/* ── Tab Bar ── */}
       <div className="shrink-0 px-4 pt-3 pb-0 flex gap-2"
-        style={{ background: 'rgba(8,6,20,0.6)', backdropFilter: 'blur(32px)' }}>
+        style={{ background: 'var(--hdr-a-600)', backdropFilter: 'blur(32px)' }}>
         {(['overview','students','topics'] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="flex-1 py-2.5 rounded-xl text-xs font-bold capitalize transition-all"
             style={{
-              background: tab === t ? 'rgba(91,106,245,0.2)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${tab === t ? 'rgba(91,106,245,0.4)' : 'rgba(255,255,255,0.07)'}`,
-              color: tab === t ? '#A0AEFF' : 'rgba(255,255,255,0.4)',
-            }}>{t}</button>
+              background: tab === t ? 'var(--v2-primary-tint-2)' : 'var(--v2-card)',
+              border: `1px solid ${tab === t ? 'var(--v2-primary)' : 'var(--v2-border)'}`,
+              color: tab === t ? 'var(--v2-primary)' : 'var(--v2-text-4)' }}>{t}</button>
         ))}
       </div>
 
@@ -489,7 +483,7 @@ export default function SchoolAdminPage() {
 
               {/* Join Code Card */}
               <div className="rounded-3xl p-5 relative overflow-hidden"
-                style={{ background: 'linear-gradient(135deg,#0A0A1F,#1A0A3E)', border: '1px solid rgba(91,106,245,0.3)' }}>
+                style={{ background: 'linear-gradient(135deg,var(--grad-referral-1),var(--grad-referral-2))', border: '1px solid rgba(91,106,245,0.3)' }}>
                 <div className="absolute inset-0 opacity-20"
                   style={{ background: 'radial-gradient(ellipse at 80% 20%,#5B6AF5,transparent 60%)' }} />
                 <div className="relative">
@@ -498,7 +492,7 @@ export default function SchoolAdminPage() {
                     <span className="font-heading text-4xl font-black text-white tracking-[0.2em]">{institution.join_code}</span>
                     <button onClick={copyCode}
                       className="w-10 h-10 rounded-2xl flex items-center justify-center transition-colors"
-                      style={{ background: codeCopied ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.08)', border: `1px solid ${codeCopied ? 'rgba(52,211,153,0.4)' : 'rgba(255,255,255,0.1)'}` }}>
+                      style={{ background: codeCopied ? 'rgba(52,211,153,0.15)' : 'var(--ink-080)', border: `1px solid ${codeCopied ? 'rgba(52,211,153,0.4)' : 'var(--ink-100)'}` }}>
                       <AnimatePresence mode="wait">
                         {codeCopied
                           ? <motion.div key="chk" initial={{ scale: 0 }} animate={{ scale: 1 }}><Check size={16} className="text-green-400" /></motion.div>
@@ -514,12 +508,11 @@ export default function SchoolAdminPage() {
                       <span className="text-xs text-white/40">{institution.student_count} / {institution.max_students} students</span>
                       <span className="text-xs font-bold" style={{ color: capacityPct > 80 ? '#EF4444' : '#A0AEFF' }}>{Math.round(capacityPct)}%</span>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-100)' }}>
                       <div className="h-full rounded-full transition-all"
                         style={{
                           width: `${Math.min(capacityPct, 100)}%`,
-                          background: capacityPct > 80 ? 'linear-gradient(90deg,#F59E0B,#EF4444)' : 'linear-gradient(90deg,#5B6AF5,#8B5CF6)',
-                        }} />
+                          background: capacityPct > 80 ? 'linear-gradient(90deg,#F59E0B,#EF4444)' : 'linear-gradient(90deg,#5B6AF5,#8B5CF6)' }} />
                     </div>
                   </div>
 
@@ -531,7 +524,7 @@ export default function SchoolAdminPage() {
                     </motion.button>
                     <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowQR(v => !v)}
                       className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-120)' }}>
                       <QrCode size={18} className="text-white/70" />
                     </motion.button>
                   </div>
@@ -543,12 +536,12 @@ export default function SchoolAdminPage() {
                 {showQR && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                     className="rounded-2xl p-5 flex flex-col items-center gap-3"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
                     <p className="text-xs font-semibold text-white/40 uppercase tracking-wide">Scan to Join</p>
                     <div className="rounded-xl overflow-hidden p-2" style={{ background: '#fff' }}>
                       <QRPlaceholder value={joinLink} />
                     </div>
-                    <p className="text-[10px] text-white/30 text-center max-w-xs">
+                    <p className="text-xs text-white/30 text-center max-w-xs">
                       Print this QR code and post it in your classroom. Students scan it to join instantly.
                     </p>
                     <button onClick={exportCSV}
@@ -594,32 +587,28 @@ export default function SchoolAdminPage() {
               <div className="flex flex-col gap-2">
                 <p className="text-xs font-semibold text-white/40 uppercase tracking-wide">Quick Actions</p>
                 <button onClick={() => setTab('students')}
-                  className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl v2-card">
                   <Users size={16} style={{ color: '#5B6AF5' }} />
-                  <span className="text-sm text-white/80 flex-1">View Student Roster</span>
-                  <ArrowUpRight size={14} className="text-white/30" />
+                  <span className="text-sm flex-1" style={{ color: 'var(--v2-text-2)' }}>View Student Roster</span>
+                  <ArrowUpRight size={14} style={{ color: 'var(--v2-chevron)' }} />
                 </button>
                 <button onClick={() => setTab('topics')}
-                  className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl v2-card">
                   <AlertTriangle size={16} style={{ color: '#F59E0B' }} />
-                  <span className="text-sm text-white/80 flex-1">Identify Weak Topics</span>
-                  <ArrowUpRight size={14} className="text-white/30" />
+                  <span className="text-sm flex-1" style={{ color: 'var(--v2-text-2)' }}>Identify Weak Topics</span>
+                  <ArrowUpRight size={14} style={{ color: 'var(--v2-chevron)' }} />
                 </button>
                 <button onClick={exportCSV}
-                  className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl v2-card">
                   <Download size={16} style={{ color: '#34D399' }} />
-                  <span className="text-sm text-white/80 flex-1">Export Student Data (CSV)</span>
-                  <ArrowUpRight size={14} className="text-white/30" />
+                  <span className="text-sm flex-1" style={{ color: 'var(--v2-text-2)' }}>Export Student Data (CSV)</span>
+                  <ArrowUpRight size={14} style={{ color: 'var(--v2-chevron)' }} />
                 </button>
                 <Link to="/teacher"
-                  className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl v2-card">
                   <BookOpen size={16} style={{ color: '#A78BFA' }} />
-                  <span className="text-sm text-white/80 flex-1">Teacher Dashboard (Assignments)</span>
-                  <ArrowUpRight size={14} className="text-white/30" />
+                  <span className="text-sm flex-1" style={{ color: 'var(--v2-text-2)' }}>Teacher Dashboard (Assignments)</span>
+                  <ArrowUpRight size={14} style={{ color: 'var(--v2-chevron)' }} />
                 </Link>
               </div>
             </motion.div>
@@ -630,10 +619,9 @@ export default function SchoolAdminPage() {
             <motion.div key="students" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="flex flex-col gap-3">
 
-              {/* Search + Filter */}
+              {/* Search +  */}
               <div className="flex gap-2">
-                <div className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl v2-card">
                   <Search size={14} className="text-white/40 shrink-0" />
                   <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
                     placeholder="Search students…" className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none" />
@@ -641,8 +629,7 @@ export default function SchoolAdminPage() {
                 </div>
                 {sections.length > 0 && (
                   <select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}
-                    className="rounded-xl px-3 py-2.5 text-sm text-white/70 outline-none"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    className="rounded-xl px-3 py-2.5 text-sm text-white/70 outline-none v2-card">
                     <option value="">All Sections</option>
                     {sections.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -674,8 +661,7 @@ export default function SchoolAdminPage() {
                 <div className="flex flex-col gap-2">
                   {filteredStudents.map((s, i) => (
                     <motion.div key={s.user_id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
-                      className="flex items-center gap-3 p-3 rounded-2xl"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      className="flex items-center gap-3 p-3 rounded-2xl v2-card">
                       <Avatar url={s.avatar_url} name={s.full_name} size={38} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -683,9 +669,9 @@ export default function SchoolAdminPage() {
                           {s.is_pro && <Crown size={11} style={{ color: '#FBBF24', flexShrink: 0 }} />}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          {s.class_section && <span className="text-[10px] text-white/40">{s.class_section}</span>}
-                          <span className="text-[10px] text-white/30">• {s.total_sessions} sessions</span>
-                          <span className="text-[10px]" style={{ color: s.accuracy_pct >= 70 ? '#34D399' : s.accuracy_pct >= 50 ? '#F59E0B' : '#EF4444' }}>
+                          {s.class_section && <span className="text-xs text-white/40">{s.class_section}</span>}
+                          <span className="text-xs text-white/30">• {s.total_sessions} sessions</span>
+                          <span className="text-xs" style={{ color: s.accuracy_pct >= 70 ? '#34D399' : s.accuracy_pct >= 50 ? '#F59E0B' : '#EF4444' }}>
                             {s.accuracy_pct}% acc
                           </span>
                         </div>
@@ -694,7 +680,7 @@ export default function SchoolAdminPage() {
                         <span className="text-sm font-bold" style={{ color: '#A0AEFF' }}>{s.xp.toLocaleString()} XP</span>
                         <div className="flex items-center gap-1">
                           <Flame size={10} style={{ color: s.streak_count > 0 ? '#F97316' : '#4B5563' }} />
-                          <span className="text-[10px] text-white/40">{s.streak_count}d</span>
+                          <span className="text-xs text-white/40">{s.streak_count}d</span>
                         </div>
                       </div>
                     </motion.div>
@@ -736,8 +722,7 @@ export default function SchoolAdminPage() {
                     return (
                       <motion.div key={`${t.subject}-${t.topic}`}
                         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                        className="p-4 rounded-2xl"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        className="p-4 rounded-2xl v2-card">
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-white truncate">{t.topic}</p>
@@ -748,11 +733,11 @@ export default function SchoolAdminPage() {
                             <span className="text-sm font-bold" style={{ color }}>{t.avg_struggle}×</span>
                           </div>
                         </div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--v2-border)' }}>
                           <div className="h-full rounded-full transition-all"
                             style={{ width: `${pct}%`, background: color }} />
                         </div>
-                        <p className="text-[10px] text-white/25 mt-1">Avg struggle count per student</p>
+                        <p className="text-xs text-white/25 mt-1">Avg struggle count per student</p>
                       </motion.div>
                     );
                   })}

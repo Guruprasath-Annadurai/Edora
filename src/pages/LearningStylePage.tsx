@@ -57,7 +57,7 @@ function styleAdaptText(style: LearningStyleType): string {
 function SkeletonBlock({ className }: { className?: string }) {
   return (
     <div className={`rounded-xl animate-pulse ${className ?? ''}`}
-      style={{ background: 'rgba(255,255,255,0.06)' }} />
+      style={{ background: 'var(--ink-060)' }} />
   );
 }
 
@@ -68,13 +68,13 @@ function LoadingSkeleton() {
         <SkeletonBlock className="h-48 rounded-3xl" />
       </div>
       <div className="rounded-2xl p-4 space-y-4"
-        style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
         <SkeletonBlock className="h-4 w-28" />
         {[0, 1, 2, 3].map(i => (
           <div key={i} className="flex items-center gap-3">
             <SkeletonBlock className="h-4 w-24" />
             <div className="flex-1 h-3 rounded-full animate-pulse"
-              style={{ background: 'rgba(255,255,255,0.06)' }} />
+              style={{ background: 'var(--ink-060)' }} />
             <SkeletonBlock className="h-4 w-10" />
           </div>
         ))}
@@ -150,13 +150,13 @@ function BarRow({ label, icon: Icon, iconColor, pct, isPrimary, delay }: BarRowP
 
       {/* Track */}
       <div className="flex-1 h-3 rounded-full overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.08)' }}>
+        style={{ background: 'var(--ink-080)' }}>
         <motion.div
           className="h-full rounded-full"
           style={{
             background: isPrimary
               ? 'linear-gradient(90deg, #5B6AF5, #8B5CF6)'
-              : 'rgba(255,255,255,0.2)',
+              : 'var(--ink-200)',
           }}
           initial={{ width: 0 }}
           animate={{ width: `${displayPct}%` }}
@@ -167,7 +167,7 @@ function BarRow({ label, icon: Icon, iconColor, pct, isPrimary, delay }: BarRowP
       {/* Pct */}
       <span
         className="w-10 text-right text-xs font-bold shrink-0"
-        style={{ color: isPrimary ? '#8B9BFA' : 'rgba(255,255,255,0.4)' }}
+        style={{ color: isPrimary ? '#8B9BFA' : 'var(--ink-400)' }}
       >
         {displayPct}%
       </span>
@@ -230,11 +230,11 @@ export default function LearningStylePage() {
 
       {/* ── Header ── */}
       <div className="px-4 py-3 shrink-0 flex items-center gap-3 sticky top-0 z-20"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-all text-white"
-          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}
+          style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-100)' }}
         >
           <ArrowLeft size={17} />
         </button>
@@ -291,17 +291,17 @@ export default function LearningStylePage() {
               {/* Decorative circles */}
               <div
                 className="absolute -top-8 -right-8 w-36 h-36 rounded-full opacity-20"
-                style={{ background: 'rgba(255,255,255,0.3)' }}
+                style={{ background: 'var(--ink-300)' }}
               />
               <div
                 className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full opacity-10"
-                style={{ background: 'rgba(255,255,255,0.4)' }}
+                style={{ background: 'var(--ink-400)' }}
               />
 
               {/* Content */}
               <div className="relative">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
-                  style={{ background: 'rgba(255,255,255,0.2)' }}>
+                  style={{ background: 'var(--ink-200)' }}>
                   {(() => {
                     const s = profile.primary_style;
                     const C = s === 'visual' ? Eye : s === 'conceptual' ? Lightbulb : s === 'example_driven' ? FileText : s === 'step_by_step' ? List : Layers;
@@ -318,7 +318,7 @@ export default function LearningStylePage() {
                 {/* Sessions badge */}
                 <span
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-                  style={{ background: 'rgba(255,255,255,0.2)' }}
+                  style={{ background: 'var(--ink-200)' }}
                 >
                   <Sparkles size={11} />
                   Based on {profile.sessions_analysed} session{profile.sessions_analysed === 1 ? '' : 's'}
@@ -332,7 +332,7 @@ export default function LearningStylePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.4 }}
               className="rounded-2xl p-4"
-              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}
             >
               <h3 className="text-sm font-bold text-white mb-4">Style Breakdown</h3>
               <div className="flex flex-col gap-3.5">
@@ -356,7 +356,7 @@ export default function LearningStylePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.4 }}
               className="rounded-2xl p-4"
-              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}
             >
               <h3 className="text-sm font-bold text-white mb-3">Your Strengths</h3>
               <div className="flex flex-wrap gap-2">
@@ -384,7 +384,7 @@ export default function LearningStylePage() {
                   <div
                     key={i}
                     className="rounded-2xl p-3.5 flex items-start gap-3"
-                    style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}
                   >
                     <div
                       className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
@@ -394,7 +394,7 @@ export default function LearningStylePage() {
                     </div>
                     <div className="flex items-start gap-2 flex-1">
                       <span
-                        className="text-[11px] font-bold shrink-0 mt-0.5"
+                        className="text-xs font-bold shrink-0 mt-0.5"
                         style={{ color: '#5B6AF5' }}
                       >
                         {i + 1}.
@@ -420,7 +420,7 @@ export default function LearningStylePage() {
                   How Novo Adapts
                 </h3>
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--ink-650)' }}>
                 Novo automatically adjusts its explanations based on your style. When you
                 study in Tutoring mode, Novo will{' '}
                 <span className="font-bold">{styleAdaptText(profile.primary_style)}</span>.

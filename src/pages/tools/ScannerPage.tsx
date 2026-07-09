@@ -14,18 +14,23 @@ import { useAuth } from '@/hooks/useAuth';
 import { geminiJSON } from '@/lib/gemini';
 import { track } from '@/lib/analytics';
 import { loadUnlockedIds, checkAchievements } from '@/lib/achievements';
+import { indexUserItem } from '@/lib/userContentIndex';
+import { getFeatureTheme } from '@/lib/featureTheme';
 
 type Phase = 'idle' | 'scanning' | 'result' | 'saving' | 'generating';
 
 interface ScanResult {
-  scan_id: string;
-  full_text: string;
-  blocks: { text: string; confidence: number }[];
+  scan_id:    string;
+  full_text:  string;
+  blocks:     { text: string; confidence: number }[];
   confidence: number | null;
+  ocr_source?: 'cloud_vision' | 'gemini_vision';
 }
 
-// ── Resize image and convert to base64 ───────────────────────────────────────
-function resizeImage(dataUrl: string, maxDim = 1024): Promise<string> {
+// ── Resize + enhance for Indian textbook OCR ─────────────────────────────────
+// Higher resolution (1600px) + contrast stretch improves accuracy on printed
+// serif fonts, blurry phone shots, and mixed Hindi/English pages.
+function resizeAndEnhance(dataUrl: string, maxDim = 1600): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -33,23 +38,42 @@ function resizeImage(dataUrl: string, maxDim = 1024): Promise<string> {
       let { width, height } = img;
       if (width > height && width > maxDim) {
         height = Math.round((height * maxDim) / width);
-        width = maxDim;
+        width  = maxDim;
       } else if (height > maxDim) {
-        width = Math.round((width * maxDim) / height);
+        width  = Math.round((width * maxDim) / height);
         height = maxDim;
       }
-      canvas.width = width;
+      canvas.width  = width;
       canvas.height = height;
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-      // Return only the base64 part (strip data:image/jpeg;base64,)
-      const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-      resolve(base64);
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Auto-contrast stretch — lifts shadow detail in dark/blurry photos
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data      = imageData.data;
+      let min = 255, max = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        // Luminance approx
+        const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        if (lum < min) min = lum;
+        if (lum > max) max = lum;
+      }
+      const range = max - min || 1;
+      for (let i = 0; i < data.length; i += 4) {
+        data[i]     = Math.min(255, Math.round(((data[i]     - min) / range) * 255));
+        data[i + 1] = Math.min(255, Math.round(((data[i + 1] - min) / range) * 255));
+        data[i + 2] = Math.min(255, Math.round(((data[i + 2] - min) / range) * 255));
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      resolve(canvas.toDataURL('image/jpeg', 0.92).split(',')[1]);
     };
     img.src = dataUrl;
   });
 }
 
 export default function ScannerPage() {
+  const ft = getFeatureTheme('scanner');
   const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -58,6 +82,7 @@ export default function ScannerPage() {
   const [noteTitle, setNoteTitle] = useState('');
   const [error, setError] = useState('');
   const lastBase64Ref    = useRef<string>('');
+  const [showManualEntry, setShowManualEntry] = useState(false);
   const [showCameraRationale, setShowCameraRationale] = useState(false);
   const pendingSourceRef = useRef<'camera' | 'gallery' | null>(null);
   const skipRationaleRef = useRef(false);
@@ -84,7 +109,7 @@ export default function ScannerPage() {
           reader.onload = async (ev) => {
             const dataUrl = ev.target?.result as string;
             setPreviewUrl(dataUrl);
-            const base64 = dataUrl.split(',')[1];
+            const base64 = await resizeAndEnhance(dataUrl);
             lastBase64Ref.current = base64;
             await runOCR(base64);
           };
@@ -122,12 +147,12 @@ export default function ScannerPage() {
       setPreviewUrl(photo.dataUrl);
 
       // Resize before sending to API (saves bandwidth + cost)
-      const base64 = await resizeImage(photo.dataUrl, 1024);
+      const base64 = await resizeAndEnhance(photo.dataUrl, 1024);
       lastBase64Ref.current = base64;
       await runOCR(base64);
 
-    } catch (err: any) {
-      const msg: string = (err?.message ?? '').toLowerCase();
+    } catch (err) {
+      const msg: string = ((err as Error)?.message ?? '').toLowerCase();
       if (msg.includes('cancel')) return;
       if (msg.includes('permission') || msg.includes('denied') || msg.includes('notallowed')) {
         setError('Camera access denied. Enable it in Settings → Apps → Edora → Permissions.');
@@ -175,8 +200,8 @@ export default function ScannerPage() {
       const unlocked = await loadUnlockedIds(user.id);
       await checkAchievements({ userId: user.id, unlocked, profile: { xp: 0, streak_count: 0 }, extras: { isFirstScan: !unlocked.has('first_scan') } });
 
-    } catch (err: any) {
-      setError(err.message ?? 'Scanning failed. Please try again.');
+    } catch (err) {
+      setError((err as Error).message ?? 'Scanning failed. Please try again.');
       setPhase('idle');
     }
   }
@@ -186,19 +211,20 @@ export default function ScannerPage() {
     if (!user || !editedText.trim()) return;
     setPhase('saving');
     try {
-      const { error: insertError } = await supabase.from('study_notes').insert({
+      const { data: scanNote, error: insertError } = await supabase.from('study_notes').insert({
         user_id: user.id,
         title: noteTitle || 'Scanned Note',
         content: editedText,
         ocr_text: result?.full_text,
         subject: '',
-      });
+      }).select('id').single();
       if (insertError) throw new Error(insertError.message);
+      if (scanNote?.id) indexUserItem('study_note', scanNote.id).catch(() => {});
       track('scan_saved_as_note', { word_count: editedText.split(/\s+/).filter(Boolean).length });
       await Toast.show({ text: 'Note saved!', duration: 'short', position: 'bottom' });
       reset();
-    } catch (err: any) {
-      setError(err.message ?? 'Failed to save note.');
+    } catch (err) {
+      setError((err as Error).message ?? 'Failed to save note.');
       setPhase('result');
     }
   }
@@ -219,7 +245,7 @@ ${editedText.slice(0, 3000)}`
 
       if (!Array.isArray(cards) || cards.length === 0) throw new Error('No cards generated');
 
-      const { error: insertError } = await supabase.from('flashcards').insert(
+      const { data: scanCards, error: insertError } = await supabase.from('flashcards').insert(
         cards.map(c => ({
           user_id: user.id,
           front: c.front,
@@ -231,14 +257,15 @@ ${editedText.slice(0, 3000)}`
           repetitions: 0,
           next_review: new Date().toISOString(),
         }))
-      );
+      ).select('id');
       if (insertError) throw new Error(insertError.message);
+      (scanCards ?? []).forEach(fc => indexUserItem('flashcard', fc.id).catch(() => {}));
 
       track('ai_flashcards_generated', { count: cards.length, source: 'scanner' });
       await Toast.show({ text: `${cards.length} flashcards created!`, duration: 'long', position: 'bottom' });
       reset();
-    } catch (err: any) {
-      setError(err.message ?? 'Could not generate flashcards. Please try again.');
+    } catch (err) {
+      setError((err as Error).message ?? 'Could not generate flashcards. Please try again.');
       setPhase('result');
     }
   }
@@ -255,17 +282,20 @@ ${editedText.slice(0, 3000)}`
     setEditedText('');
     setNoteTitle('');
     setError('');
+    setShowManualEntry(false);
   }
 
   return (
-    <div className="flex flex-col h-full bg-gradient-page">
+    <div className="flex flex-col h-full bg-gradient-page"
+      data-feature="scanner"
+      style={{ backgroundImage: ft.meshGradient, backgroundAttachment: 'fixed' }}>
       {/* Header */}
-      <div className="glass-strong border-b border-border px-4 py-3 flex items-center gap-3 shrink-0">
+      <div className="page-hero glass-strong border-b border-border px-4 py-3 flex items-center gap-3 shrink-0">
         <Link to="/tools" className="touch-target">
           <ArrowLeft size={22} className="text-white" strokeWidth={1.75} />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-          style={{ background: 'linear-gradient(135deg, #06B6D4, #3B82F6)' }}>
+          style={{ background: ft.gradient, boxShadow: `0 4px 14px ${ft.glowRgba}` }}>
           <ScanLine size={20} className="text-white" />
         </div>
         <div className="flex-1">
@@ -354,11 +384,11 @@ ${editedText.slice(0, 3000)}`
                   {[
                     'Ensure good lighting — avoid shadows on the page',
                     'Hold camera flat and parallel to the paper',
-                    'Keep handwriting clear and not overlapping',
-                    'Supports English + 9 Indian languages',
+                    'For blurry or low-confidence scans, use the "Type it manually" fallback',
+                    'Supports English, Hindi, Tamil, Telugu + 7 more Indian scripts',
                   ].map((tip, i) => (
                     <div key={i} className="flex items-start gap-2 mb-2 last:mb-0">
-                      <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                      <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
                         {i + 1}
                       </span>
                       <p className="text-sm text-white/80">{tip}</p>
@@ -428,7 +458,7 @@ ${editedText.slice(0, 3000)}`
                     <p className="font-heading font-bold text-foreground text-lg">
                       {result.full_text.split(/\s+/).filter(Boolean).length}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">Words</p>
+                    <p className="text-xs text-muted-foreground">Words</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -436,7 +466,7 @@ ${editedText.slice(0, 3000)}`
                     <p className="font-heading font-bold text-foreground text-lg">
                       {result.blocks.length}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">Blocks</p>
+                    <p className="text-xs text-muted-foreground">Blocks</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -444,17 +474,49 @@ ${editedText.slice(0, 3000)}`
                     <p className="font-heading font-bold text-foreground text-lg">
                       {result.confidence ? `${Math.round(result.confidence * 100)}%` : '—'}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">Confidence</p>
+                    <p className="text-xs text-muted-foreground">Confidence</p>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* ── Low-confidence alert + manual type fallback ── */}
+              {result.confidence !== null && result.confidence < 0.65 && (
+                <div className="rounded-2xl px-4 py-3 flex items-start gap-3"
+                  style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                  <span className="text-amber-400 text-base shrink-0 mt-0.5">⚠</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-amber-300">Low confidence scan ({Math.round(result.confidence * 100)}%)</p>
+                    <p className="text-xs text-amber-200/60 mt-0.5 leading-snug">
+                      Blurry image or mixed script detected. Edit the text below, or type your question directly.
+                    </p>
+                    {!showManualEntry && (
+                      <button
+                        onClick={() => { setShowManualEntry(true); setEditedText(''); }}
+                        className="mt-2 text-xs font-bold px-3 py-1.5 rounded-xl active:scale-95 transition-transform"
+                        style={{ background: 'rgba(251,191,36,0.15)', color: '#FCD34D' }}
+                      >
+                        Type it manually instead →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* OCR source badge */}
+              {result.ocr_source === 'gemini_vision' && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl self-start"
+                  style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                  <Sparkles size={11} className="text-violet-400" />
+                  <span className="text-xs font-semibold text-violet-300">Enhanced with Gemini Vision</span>
+                </div>
+              )}
 
               {/* Extracted text editor */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-semibold text-white flex items-center gap-2">
                     <Sparkles size={14} className="text-cyan-400" />
-                    Extracted Text
+                    {showManualEntry ? 'Type your text' : 'Extracted Text'}
                   </p>
                   <button onClick={copyText}
                     className="flex items-center gap-1.5 glass px-3 py-1.5 rounded-xl text-xs font-medium text-foreground active:scale-95 transition-all">
@@ -535,10 +597,10 @@ ${editedText.slice(0, 3000)}`
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowCameraRationale(false)} />
             <motion.div className="relative w-full rounded-t-3xl p-6 pb-10"
-              style={{ background: 'rgba(8,6,20,0.88)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ background: 'var(--hdr-a-880)', backdropFilter: 'blur(20px)', borderTop: '1px solid var(--ink-100)' }}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.2)' }} />
+              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'var(--ink-200)' }} />
               <div className="flex items-start gap-3 mb-5">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(6,182,212,0.15)' }}>

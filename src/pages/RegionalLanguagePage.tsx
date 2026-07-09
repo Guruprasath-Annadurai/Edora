@@ -1,11 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Globe, ChevronLeft, ChevronRight, Search, Sparkles,
-  Check, Languages, BookOpen, X, RefreshCw,
-} from 'lucide-react';
+import {Globe, ChevronLeft, ChevronRight, Search,
+  Check, Languages, X, RefreshCw} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
@@ -15,7 +12,6 @@ interface Language {
   code: string;
   name: string;
   native: string;
-  flag: string;
   script: 'Devanagari' | 'Dravidian' | 'Bengali' | 'Gujarati' | 'Latin';
 }
 interface PYQQuestion {
@@ -40,13 +36,13 @@ interface Translation {
 
 // ── Language data ─────────────────────────────────────────────────────────────
 const LANGUAGES: Language[] = [
-  { code:'hi', name:'Hindi',   native:'हिन्दी',   flag:'🇮🇳', script:'Devanagari' },
-  { code:'ta', name:'Tamil',   native:'தமிழ்',    flag:'🔴', script:'Dravidian' },
-  { code:'te', name:'Telugu',  native:'తెలుగు',   flag:'🟡', script:'Dravidian' },
-  { code:'kn', name:'Kannada', native:'ಕನ್ನಡ',    flag:'🟤', script:'Dravidian' },
-  { code:'mr', name:'Marathi', native:'मराठी',    flag:'🟠', script:'Devanagari' },
-  { code:'bn', name:'Bengali', native:'বাংলা',    flag:'🟢', script:'Bengali' },
-  { code:'gu', name:'Gujarati',native:'ગુજરાતી',  flag:'🔵', script:'Gujarati' },
+  { code:'hi', name:'Hindi',   native:'हिन्दी',   script:'Devanagari' },
+  { code:'ta', name:'Tamil',   native:'தமிழ்',    script:'Dravidian' },
+  { code:'te', name:'Telugu',  native:'తెలుగు',   script:'Dravidian' },
+  { code:'kn', name:'Kannada', native:'ಕನ್ನಡ',    script:'Dravidian' },
+  { code:'mr', name:'Marathi', native:'मराठी',    script:'Devanagari' },
+  { code:'bn', name:'Bengali', native:'বাংলা',    script:'Bengali' },
+  { code:'gu', name:'Gujarati',native:'ગુજરાતી',  script:'Gujarati' },
 ];
 
 // ── Sample PYQ questions ──────────────────────────────────────────────────────
@@ -93,32 +89,32 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
 
   return (
     <div className="rounded-2xl overflow-hidden mb-3"
-      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
       <div className="p-4">
         {/* Meta */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full"
               style={{ background: q.exam === 'JEE' ? 'rgba(139,92,246,0.2)' : 'rgba(236,72,153,0.2)', color: q.exam === 'JEE' ? '#C4B5FD' : '#F9A8D4' }}>
               {q.exam} {q.year}
             </span>
-            <span className="text-[9px] text-white/35">{q.subject} · {q.topic}</span>
+            <span className="text-xs text-white/35">{q.subject} · {q.topic}</span>
           </div>
           <div className="flex items-center gap-2">
             {hasTranslation && (
-              <button onClick={() => setShowEn(e => !e)} className="text-[9px] font-bold text-white/40">
+              <button onClick={() => setShowEn(e => !e)} className="text-xs font-bold text-white/40">
                 {showEn ? lang.native : 'EN'}
               </button>
             )}
             {!hasTranslation && !isTranslating && (
               <button onClick={() => onTranslate(q.id)}
-                className="flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full"
+                className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
                 style={{ background: 'rgba(91,106,245,0.2)', color: '#8B9BFA' }}>
                 <Languages size={9} /> {lang.native}
               </button>
             )}
             {isTranslating && (
-              <span className="text-[9px] text-white/40 flex items-center gap-1">
+              <span className="text-xs text-white/40 flex items-center gap-1">
                 <RefreshCw size={9} className="animate-spin" /> Translating…
               </span>
             )}
@@ -136,10 +132,9 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
             <button key={i} onClick={() => { setSelected(i); setRevealed(true); }}
               className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-all"
               style={{
-                background: !revealed ? 'rgba(255,255,255,0.04)' : i === q.correct_idx ? 'rgba(16,185,129,0.12)' : selected === i ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)',
-                border: !revealed ? '1px solid rgba(255,255,255,0.06)' : i === q.correct_idx ? '1px solid rgba(16,185,129,0.25)' : selected === i ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(255,255,255,0.06)',
-              }}>
-              <span className="text-xs font-bold w-5 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                background: !revealed ? 'var(--ink-040)' : i === q.correct_idx ? 'rgba(16,185,129,0.12)' : selected === i ? 'rgba(239,68,68,0.1)' : 'var(--ink-040)',
+                border: !revealed ? '1px solid var(--ink-060)' : i === q.correct_idx ? '1px solid rgba(16,185,129,0.25)' : selected === i ? '1px solid rgba(239,68,68,0.2)' : '1px solid var(--ink-060)' }}>
+              <span className="text-xs font-bold w-5 shrink-0" style={{ color: 'var(--ink-400)' }}>
                 {String.fromCharCode(65+i)}
               </span>
               <span className="text-sm text-white/80 flex-1">{opt}</span>
@@ -154,7 +149,7 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
             <motion.div initial={{ height:0, opacity:0 }} animate={{ height:'auto', opacity:1 }} className="overflow-hidden">
               <div className="mt-3 px-3 py-2.5 rounded-xl"
                 style={{ background: 'rgba(91,106,245,0.08)', border: '1px solid rgba(91,106,245,0.15)' }}>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 mb-1">Explanation</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-1">Explanation</p>
                 <p className="text-xs text-white/65 leading-relaxed">
                   {(showEn || !hasTranslation) ? q.explanation_en : explanation}
                 </p>
@@ -169,7 +164,6 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function RegionalLanguagePage() {
-  const { user, profile } = useAuth();
   const [selLang, setSelLang]         = useState<Language | null>(null);
   const [translations, setTranslations] = useState<Record<string, Translation>>({});
   const [subject, setSubject]           = useState('All');
@@ -239,8 +233,7 @@ Return ONLY JSON:
         translated_question: result.question_text,
         translated_options: result.options,
         translated_explanation: result.explanation,
-        translated_by: 'gemini',
-      });
+        translated_by: 'gemini' });
     } catch {
       setTranslations(prev => {
         const next = { ...prev };
@@ -271,7 +264,7 @@ Return ONLY JSON:
         <div className="flex items-center justify-between mb-4">
           <button aria-label="Go back" onClick={() => phase === 'questions' ? setPhase('pick') : undefined}
             className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.08)' }}>
+            style={{ background: 'var(--ink-080)' }}>
             {phase === 'questions'
               ? <ChevronLeft size={18} className="text-white" onClick={() => setPhase('pick')} />
               : <Link to="/learning"><ChevronLeft size={18} className="text-white" /></Link>
@@ -284,10 +277,10 @@ Return ONLY JSON:
         {phase === 'questions' && selLang && (
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">{selLang.flag}</span>
+              <Languages size={20} style={{ color: '#A0AEFF' }} strokeWidth={1.7} />
               <div>
                 <p className="text-sm font-bold text-white">{selLang.name}</p>
-                <p className="text-[10px] text-white/40">{selLang.native}</p>
+                <p className="text-xs text-white/40">{selLang.native}</p>
               </div>
             </div>
             <button onClick={translateAll} disabled={translatingAll}
@@ -307,7 +300,7 @@ Return ONLY JSON:
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search questions…"
                 className="w-full pl-8 pr-8 py-2.5 rounded-2xl text-sm text-white placeholder-white/30 outline-none"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)' }} />
+                style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-090)' }} />
               {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={13} className="text-white/40" /></button>}
             </div>
             {/* Subject tabs */}
@@ -315,7 +308,7 @@ Return ONLY JSON:
               {SUBJECTS.map(s => (
                 <button key={s} onClick={() => setSubject(s)}
                   className="shrink-0 px-3 py-1 rounded-xl text-xs font-bold"
-                  style={{ background: subject === s ? '#5B6AF5' : 'rgba(255,255,255,0.07)', color: subject === s ? 'white' : 'rgba(255,255,255,0.4)' }}>
+                  style={{ background: subject === s ? '#5B6AF5' : 'var(--ink-070)', color: subject === s ? 'white' : 'var(--ink-400)' }}>
                   {s}
                 </button>
               ))}
@@ -338,16 +331,16 @@ Return ONLY JSON:
                   <motion.button key={lang.code} whileTap={{ scale:0.97 }}
                     onClick={() => { setSelLang(lang); setPhase('questions'); }}
                     className="w-full flex items-center justify-between px-4 py-4 rounded-2xl text-left active:opacity-80"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
                     <div className="flex items-center gap-3.5">
-                      <span className="text-2xl">{lang.flag}</span>
+                      <Languages size={22} style={{ color: '#A0AEFF' }} strokeWidth={1.6} />
                       <div>
                         <p className="text-base font-bold text-white">{lang.name}</p>
-                        <p className="text-sm" style={{ fontFamily: 'serif', color: 'rgba(255,255,255,0.5)' }}>{lang.native}</p>
+                        <p className="text-sm" style={{ fontFamily: 'serif', color: 'var(--ink-500)' }}>{lang.native}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background:'rgba(91,106,245,0.15)', color:'#8B9BFA' }}>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background:'rgba(91,106,245,0.15)', color:'#8B9BFA' }}>
                         {lang.script}
                       </span>
                       <ChevronRight size={14} className="text-white/25" />
@@ -370,7 +363,7 @@ Return ONLY JSON:
           {/* Questions */}
           {phase === 'questions' && selLang && (
             <motion.div key="questions" initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-20 }}>
-              <p className="text-[10px] text-white/30 mb-3">{filtered.length} questions · tap a card to translate</p>
+              <p className="text-xs text-white/30 mb-3">{filtered.length} questions · tap a card to translate</p>
               {filtered.map(q => (
                 <QuestionCard
                   key={q.id} q={q} lang={selLang}

@@ -71,7 +71,7 @@ const PLANS = {
     subLabel: 'per year · just ₹58/month',
     paise: 69900,
     badge: 'Save 41%',
-    savings: 'Save ₹489 compared to monthly',
+    savings: 'Most JEE toppers prep for 18 months. ₹699 covers your entire journey — less than one coaching class.',
     legalLine: 'Subscription renews automatically every year at ₹699 until cancelled.',
   },
 } as const;
@@ -104,7 +104,7 @@ export default function ProSubscriptionPage() {
 
   // A/B experiments — PostHog determines variant
   const pricingVariant = usePricingVariant();
-  const pricingConfig  = getPricingConfig();
+  const _pricingConfig  = getPricingConfig();
   const paywallCTA     = usePaywallCTAVariant();
   const ctaLabel       = paywallCTA === 'unlock_everything' ? 'Unlock Everything'
                        : paywallCTA === 'try_free'         ? 'Try Pro Free'
@@ -141,7 +141,7 @@ export default function ProSubscriptionPage() {
     })();
   }, [user]);
 
-  async function refreshStatus() {
+  async function _refreshStatus() {
     setStatusLoading(true);
     const res = await callFn({ action: 'get_status' });
     if (!res.error) setStatus(res.data);
@@ -282,15 +282,15 @@ export default function ProSubscriptionPage() {
       <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
         {/* Header */}
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(124,58,237,0.15)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid rgba(124,58,237,0.15)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <Link to="/profile" aria-label="Back"
             className="w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-080)' }}>
             <ChevronLeft size={18} className="text-white" />
           </Link>
           <div className="flex-1">
             <h2 className="font-heading font-bold text-white text-sm">Edora Pro</h2>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>Your subscription</p>
+            <p className="text-xs" style={{ color: 'var(--ink-450)' }}>Your subscription</p>
           </div>
           <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white"
             style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}>
@@ -304,15 +304,15 @@ export default function ProSubscriptionPage() {
           {/* Hero card */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="rounded-3xl p-6 text-center relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #1A0A3E 0%, #0F0A1F 100%)', border: '1px solid rgba(124,58,237,0.3)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--grad-pro-header-1) 0%, var(--grad-pro-header-2) 100%)', border: '1px solid rgba(124,58,237,0.3)' }}>
             <div className="absolute inset-0 opacity-20"
               style={{ background: 'radial-gradient(circle at 50% 0%, #7C3AED, transparent 60%)' }} />
             <div className="relative">
               <NovoAvatar state="celebrating" size="lg" className="mx-auto mb-4" />
               <h2 className="font-heading text-2xl font-bold text-white mb-1">You're Pro!</h2>
-              <p className="text-sm mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>All Novo Pro features unlocked</p>
+              <p className="text-sm mb-3" style={{ color: 'var(--ink-600)' }}>All Novo Pro features unlocked</p>
               {expiresDate && (
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Next billing date: {expiresDate}</p>
+                <p className="text-xs" style={{ color: 'var(--ink-400)' }}>Next billing date: {expiresDate}</p>
               )}
               {status?.active_plan && (
                 <span className="mt-3 inline-block px-4 py-1 rounded-full text-xs font-semibold"
@@ -327,15 +327,15 @@ export default function ProSubscriptionPage() {
           <div className="rounded-2xl p-3.5 flex items-start gap-2.5"
             style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)' }}>
             <Info size={14} className="shrink-0 mt-0.5" style={{ color: '#A855F7' }} />
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            <p className="text-xs" style={{ color: 'var(--ink-550)' }}>
               Novo AI generates content using large language models. All AI responses should be verified against your textbooks and official sources, especially for exams.
             </p>
           </div>
 
           {/* Features */}
           <div className="rounded-2xl p-4 flex flex-col gap-3"
-            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '1px solid rgba(124,58,237,0.15)' }}>
-            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            style={{ background: 'var(--ink-040)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '1px solid rgba(124,58,237,0.15)' }}>
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--ink-350)' }}>
               Everything you have
             </p>
             {FEATURES.map((f, i) => {
@@ -348,7 +348,7 @@ export default function ProSubscriptionPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">{f.title}</p>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{f.desc}</p>
+                    <p className="text-xs" style={{ color: 'var(--ink-450)' }}>{f.desc}</p>
                   </div>
                 </div>
               );
@@ -356,14 +356,14 @@ export default function ProSubscriptionPage() {
           </div>
 
           {platform !== 'web' && (
-            <p className="text-center text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-center text-xs" style={{ color: 'var(--ink-300)' }}>
               To cancel, manage your subscription in {platform === 'android' ? 'Google Play Store' : 'iPhone Settings'} → Subscriptions.
             </p>
           )}
           {platform === 'web' && (
             <button onClick={() => setCancelConfirm(true)}
               className="text-center text-xs py-2"
-              style={{ color: 'rgba(255,255,255,0.3)' }}>
+              style={{ color: 'var(--ink-300)' }}>
               Cancel subscription
             </button>
           )}
@@ -376,10 +376,10 @@ export default function ProSubscriptionPage() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="absolute inset-0 bg-black/60" onClick={() => setCancelConfirm(false)} />
               <motion.div className="relative w-full rounded-t-3xl p-6 pb-10"
-                style={{ background: 'rgba(8,6,20,0.90)', backdropFilter: 'blur(72px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(72px) saturate(220%) brightness(1.04)', borderTop: '1px solid rgba(124,58,237,0.25)' }}
+                style={{ background: 'var(--hdr-a-900)', backdropFilter: 'blur(72px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(72px) saturate(220%) brightness(1.04)', borderTop: '1px solid rgba(124,58,237,0.25)' }}
                 initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 28, stiffness: 280 }}>
-                <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.12)' }} />
+                <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'var(--ink-120)' }} />
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                     style={{ background: 'rgba(239,68,68,0.12)' }}>
@@ -387,14 +387,14 @@ export default function ProSubscriptionPage() {
                   </div>
                   <div>
                     <p className="font-bold text-white">Cancel subscription?</p>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    <p className="text-xs" style={{ color: 'var(--ink-450)' }}>
                       Pro access continues until the current billing period ends
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <button className="flex-1 py-3 rounded-xl font-semibold text-sm text-white"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
                     onClick={() => setCancelConfirm(false)}>Keep Pro</button>
                   <button className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50"
                     style={{ background: 'rgba(239,68,68,0.75)' }}
@@ -417,15 +417,15 @@ export default function ProSubscriptionPage() {
     <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(124,58,237,0.12)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid rgba(124,58,237,0.12)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/profile" aria-label="Back"
           className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-080)' }}>
           <ChevronLeft size={18} className="text-white" />
         </Link>
         <div className="flex-1">
           <h2 className="font-heading font-bold text-white text-sm">Edora Pro</h2>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>Student-friendly pricing</p>
+          <p className="text-xs" style={{ color: 'var(--ink-450)' }}>Student-friendly pricing</p>
         </div>
       </div>
 
@@ -436,13 +436,13 @@ export default function ProSubscriptionPage() {
         {/* Hero */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl p-6 text-center relative overflow-hidden"
-          style={{ background: 'linear-gradient(160deg, #1A0A3E 0%, #0A0A0F 100%)', border: '1px solid rgba(124,58,237,0.25)' }}>
+          style={{ background: 'linear-gradient(160deg, var(--grad-pro-header-1) 0%, var(--grad-pro-header-2) 100%)', border: '1px solid rgba(124,58,237,0.25)' }}>
           <div className="absolute inset-0 opacity-30"
             style={{ background: 'radial-gradient(ellipse at 50% -10%, #7C3AED, transparent 60%)' }} />
           <div className="relative flex flex-col items-center">
             <NovoAvatar state="celebrating" size="lg" className="mb-4" />
             <h2 className="font-heading text-2xl font-bold text-white mb-1">Edora Pro</h2>
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <p className="text-sm" style={{ color: 'var(--ink-600)' }}>
               Novo's full brain, unlocked — less than a cup of chai
             </p>
           </div>
@@ -452,7 +452,7 @@ export default function ProSubscriptionPage() {
         <div className="rounded-2xl p-3.5 flex items-start gap-2.5"
           style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
           <Info size={14} className="shrink-0 mt-0.5 text-indigo-400" />
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <p className="text-xs" style={{ color: 'var(--ink-550)' }}>
             <span className="font-semibold text-white/70">AI-powered app.</span> Novo uses AI to generate educational content, explanations, and diagrams. Always verify important facts with your textbook or official sources.
           </p>
         </div>
@@ -467,28 +467,28 @@ export default function ProSubscriptionPage() {
                 whileTap={{ scale: 0.98 }}
                 className="relative rounded-2xl p-4 text-left transition-all"
                 style={active
-                  ? { background: 'rgba(124,58,237,0.12)', border: '2px solid #7C3AED' }
-                  : { background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '2px solid rgba(255,255,255,0.08)' }}>
+                  ? { background: 'var(--v2-primary-tint-2)', border: '1.5px solid var(--v2-primary)' }
+                  : { background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
                 {plan.badge && (
                   <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full text-xs font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}>
+                    style={{ background: 'var(--v2-primary)' }}>
                     {plan.badge}
                   </span>
                 )}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-heading font-bold text-white text-lg leading-none">{plan.price}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{plan.subLabel}</p>
+                    <p className="font-heading font-bold text-lg leading-none" style={{ color: 'var(--v2-text-1)' }}>{plan.price}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--v2-text-4)' }}>{plan.subLabel}</p>
                     {plan.savings && active && (
-                      <p className="text-xs font-semibold mt-1" style={{ color: '#A855F7' }}>{plan.savings}</p>
+                      <p className="text-xs font-semibold mt-1" style={{ color: 'var(--v2-primary)' }}>{plan.savings}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white">{plan.label}</span>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--v2-text-1)' }}>{plan.label}</span>
                     <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
                       style={active
-                        ? { borderColor: '#7C3AED', background: '#7C3AED' }
-                        : { borderColor: 'rgba(255,255,255,0.2)' }}>
+                        ? { borderColor: 'var(--v2-primary)', background: 'var(--v2-primary)' }
+                        : { borderColor: 'var(--v2-border)' }}>
                       {active && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
                   </div>
@@ -500,13 +500,12 @@ export default function ProSubscriptionPage() {
 
         {/* Free vs Pro comparison */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl p-3.5"
-            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <p className="text-xs font-bold mb-2.5 uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.3)' }}>Free</p>
+          <div className="rounded-2xl p-3.5 v2-card">
+            <p className="text-xs font-bold mb-2.5 uppercase tracking-wide" style={{ color: 'var(--v2-text-4)' }}>Free</p>
             {['5 certs/month', '2 plans/week', '10 voice msgs/day', 'Basic analytics'].map((l, i) => (
               <div key={i} className="flex items-start gap-1.5 mb-1.5">
-                <X size={11} className="shrink-0 mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }} />
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{l}</p>
+                <X size={11} className="shrink-0 mt-0.5" style={{ color: 'var(--ink-250)' }} />
+                <p className="text-xs" style={{ color: 'var(--ink-400)' }}>{l}</p>
               </div>
             ))}
           </div>
@@ -524,7 +523,7 @@ export default function ProSubscriptionPage() {
 
         {/* Feature cards */}
         <div className="flex flex-col gap-2.5">
-          <p className="text-xs font-bold uppercase tracking-wider px-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <p className="text-xs font-bold uppercase tracking-wider px-0.5" style={{ color: 'var(--ink-350)' }}>
             Everything in Pro
           </p>
           {FEATURES.map((f, i) => {
@@ -534,14 +533,14 @@ export default function ProSubscriptionPage() {
                 initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 + 0.1 }}
                 className="flex items-start gap-3 rounded-2xl p-3.5"
-                style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '1px solid rgba(124,58,237,0.12)' }}>
+                style={{ background: 'var(--ink-040)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '1px solid rgba(124,58,237,0.12)' }}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                   style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(168,85,247,0.2))' }}>
                   <Icon size={16} style={{ color: '#A855F7' }} />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-white">{f.title}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{f.desc}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--ink-450)' }}>{f.desc}</p>
                 </div>
                 <CheckCircle2 size={14} style={{ color: '#A855F7' }} className="shrink-0 mt-1" />
               </motion.div>
@@ -551,15 +550,15 @@ export default function ProSubscriptionPage() {
 
         {/* Trust signals */}
         <div className="rounded-2xl p-4 flex flex-col gap-2.5"
-          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
           {[
             { Icon: Shield,        text: platform === 'android' ? 'Your data is encrypted and secure' : platform === 'ios' ? 'Payment secured by Apple App Store' : 'Secure checkout' },
             { Icon: CalendarDays,  text: 'Cancel anytime from your store account — no lock-in' },
             { Icon: GraduationCap, text: 'Built for Indian students, priced fairly' },
           ].map(({ Icon, text }, i) => (
             <div key={i} className="flex items-center gap-2.5">
-              <Icon size={13} style={{ color: 'rgba(255,255,255,0.3)' }} className="shrink-0" />
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{text}</p>
+              <Icon size={13} style={{ color: 'var(--ink-300)' }} className="shrink-0" />
+              <p className="text-xs" style={{ color: 'var(--ink-450)' }}>{text}</p>
             </div>
           ))}
         </div>
@@ -570,7 +569,7 @@ export default function ProSubscriptionPage() {
             onClick={handleRestore}
             disabled={restoring}
             className="text-center text-xs py-2 flex items-center justify-center gap-1.5 disabled:opacity-50"
-            style={{ color: 'rgba(255,255,255,0.35)' }}>
+            style={{ color: 'var(--ink-350)' }}>
             {restoring ? <RefreshCw size={11} className="animate-spin" /> : null}
             Restore previous purchase
           </button>
@@ -589,7 +588,7 @@ export default function ProSubscriptionPage() {
       {/* Sticky CTA */}
       <div className="shrink-0 px-4 pt-3"
         style={{
-          background: 'rgba(8,6,20,0.82)',
+          background: 'var(--hdr-a-820)',
           backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)',
           WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)',
           borderTop: '1px solid rgba(124,58,237,0.15)',
@@ -609,7 +608,7 @@ export default function ProSubscriptionPage() {
         </motion.button>
 
         {/* Legally required billing disclosure */}
-        <p className="text-center text-xs mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.28)' }}>
+        <p className="text-center text-xs mt-2 leading-relaxed" style={{ color: 'var(--ink-280)' }}>
           {currentPlan.legalLine}{' '}
           {platform === 'ios'
             ? 'Manage subscription in iPhone Settings → Subscriptions.'

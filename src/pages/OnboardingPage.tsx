@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Sparkles, GraduationCap, BookOpen, Target, Check, Zap,
-  ArrowRight, ChevronRight, Brain, Calendar, Smile, Globe, Gift,
-} from 'lucide-react';
+import {Sparkles, GraduationCap, BookOpen, Target, Check,
+  ArrowRight, ChevronRight, Calendar, Gift, Flame, Zap, Smile, Meh, CloudRain, Moon, Languages} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -41,22 +39,22 @@ const EXAMS = [
 ];
 
 const LANGUAGES = [
-  { value: 'en', label: 'English',    native: 'English',    flag: '🇬🇧' },
-  { value: 'hi', label: 'Hindi',      native: 'हिन्दी',       flag: '🇮🇳' },
-  { value: 'ta', label: 'Tamil',      native: 'தமிழ்',        flag: '🇮🇳' },
-  { value: 'te', label: 'Telugu',     native: 'తెలుగు',       flag: '🇮🇳' },
-  { value: 'kn', label: 'Kannada',    native: 'ಕನ್ನಡ',        flag: '🇮🇳' },
-  { value: 'mr', label: 'Marathi',    native: 'मराठी',        flag: '🇮🇳' },
-  { value: 'bn', label: 'Bengali',    native: 'বাংলা',        flag: '🇮🇳' },
+  { value: 'en', label: 'English',    native: 'English' },
+  { value: 'hi', label: 'Hindi',      native: 'हिन्दी' },
+  { value: 'ta', label: 'Tamil',      native: 'தமிழ்' },
+  { value: 'te', label: 'Telugu',     native: 'తెలుగు' },
+  { value: 'kn', label: 'Kannada',    native: 'ಕನ್ನಡ' },
+  { value: 'mr', label: 'Marathi',    native: 'मराठी' },
+  { value: 'bn', label: 'Bengali',    native: 'বাংলা' },
 ];
 
 const MOODS = [
-  { emoji: '🔥', label: 'Excited',    value: 'focused',    color: '#F97316' },
-  { emoji: '😤', label: 'Determined', value: 'determined', color: '#7C3AED' },
-  { emoji: '😊', label: 'Curious',    value: 'good',       color: '#10B981' },
-  { emoji: '😐', label: 'Uncertain',  value: 'okay',       color: '#F59E0B' },
-  { emoji: '😰', label: 'Anxious',    value: 'anxious',    color: '#EF4444' },
-  { emoji: '😴', label: 'Tired',      value: 'low',        color: '#6B7280' },
+  { icon: Flame,     label: 'Excited',    value: 'focused',    color: '#F97316' },
+  { icon: Zap,       label: 'Determined', value: 'determined', color: '#7C3AED' },
+  { icon: Smile,     label: 'Curious',    value: 'good',       color: '#10B981' },
+  { icon: Meh,       label: 'Uncertain',  value: 'okay',       color: '#F59E0B' },
+  { icon: CloudRain, label: 'Anxious',    value: 'anxious',    color: '#EF4444' },
+  { icon: Moon,      label: 'Tired',      value: 'low',        color: '#6B7280' },
 ];
 
 // ── Novo intro messages for each step ────────────────────────────────────────
@@ -65,44 +63,37 @@ const NOVO_INTRO = [
     state: 'talking' as NovoState,
     heading: 'Hey, I\'m Novo.',
     body: 'Your personal AI study companion for JEE and NEET. I remember everything about how you learn — your patterns, your weak topics, your wins.',
-    cta: 'Let\'s meet properly',
-  },
+    cta: 'Let\'s meet properly' },
   {
     state: 'idle' as NovoState,
     heading: 'What are you preparing for?',
     body: 'I\'ll tailor every explanation, quiz, and revision plan specifically for your exam level.',
-    cta: null,
-  },
+    cta: null },
   {
     state: 'talking' as NovoState,
     heading: 'What language do you prefer?',
     body: 'I can explain concepts, give hints, and chat with you in your mother tongue — making learning 2× easier.',
-    cta: null,
-  },
+    cta: null },
   {
     state: 'thinking' as NovoState,
     heading: 'Which subjects do you study?',
     body: 'Pick all that apply. I\'ll track your progress and adapt your sessions for each one.',
-    cta: null,
-  },
+    cta: null },
   {
     state: 'concerned' as NovoState,
     heading: 'Got a target exam?',
     body: 'If you\'re aiming for a specific exam and date, I\'ll build a countdown and adjust the intensity as we get closer.',
-    cta: null,
-  },
+    cta: null },
   {
     state: 'idle' as NovoState,
     heading: 'Before we start...',
     body: 'How are you feeling about studying right now? No judgment — this helps me calibrate how we begin.',
-    cta: null,
-  },
+    cta: null },
   {
     state: 'talking' as NovoState,
     heading: 'Got a referral code?',
     body: 'If a friend invited you, enter their code to get 50 bonus XP! You can also skip this step.',
-    cta: null,
-  },
+    cta: null },
 ];
 
 async function haptic() {
@@ -135,20 +126,18 @@ function StepLayout({ heading, body, novoState, children }: {
         padding: '16px 18px', borderRadius: 20, marginBottom: 28,
         background: 'rgba(124,58,237,0.1)',
         border: '1px solid rgba(124,58,237,0.25)',
-        position: 'relative',
-      }}>
+        position: 'relative' }}>
         {/* Bubble tail */}
         <div style={{
           position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
           width: 0, height: 0,
           borderLeft: '8px solid transparent',
           borderRight: '8px solid transparent',
-          borderBottom: '8px solid rgba(124,58,237,0.25)',
-        }} />
+          borderBottom: '8px solid rgba(124,58,237,0.25)' }} />
         <h2 style={{ fontFamily: 'Sora, sans-serif', fontSize: 20, fontWeight: 800, color: '#F4F6FA', marginBottom: 6, lineHeight: 1.2 }}>
           {heading}
         </h2>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.55 }}>
+        <p style={{ fontSize: 13, color: 'var(--ink-650)', lineHeight: 1.55 }}>
           {body}
         </p>
       </div>
@@ -178,8 +167,6 @@ export default function OnboardingPage() {
   const [saving, setSaving]           = useState(false);
 
   const totalSteps = NOVO_INTRO.length;
-  const progress   = ((step + 1) / totalSteps) * 100;
-
   async function nextStep() {
     await haptic();
     if (step < totalSteps - 1) {
@@ -203,8 +190,7 @@ export default function OnboardingPage() {
       .from('profiles').select('dpdp_consent_at').eq('id', user.id).single();
     const consentFields = existing?.dpdp_consent_at ? {} : {
       dpdp_consent_at:      new Date().toISOString(),
-      dpdp_consent_version: 'v2026.06',
-    };
+      dpdp_consent_version: 'v2026.06' };
 
     await supabase.from('profiles').update({
       study_level:         studyLevel || null,
@@ -213,21 +199,18 @@ export default function OnboardingPage() {
       exam_date:           examDate || null,
       preferred_language:  language || 'en',
       onboarding_completed: true,
-      ...consentFields,
-    }).eq('id', user.id);
+      ...consentFields }).eq('id', user.id);
 
     // Process referral code if provided
     if (referralCode.trim()) {
       await supabase.rpc('process_referral', {
         p_referee_id:    user.id,
-        p_referral_code: referralCode.trim().toUpperCase(),
-      });
+        p_referral_code: referralCode.trim().toUpperCase() });
     }
 
     if (mood) {
       await supabase.from('user_moods').insert({
-        user_id: user.id, mood, logged_at: new Date().toISOString(),
-      });
+        user_id: user.id, mood, logged_at: new Date().toISOString() });
     }
 
     incrementSession();
@@ -251,8 +234,7 @@ export default function OnboardingPage() {
   return (
     <div className="bg-deep-space" style={{
       height: '100dvh', display: 'flex', flexDirection: 'column',
-      overflow: 'hidden', position: 'relative',
-    }}>
+      overflow: 'hidden', position: 'relative' }}>
       {/* 5-layer ambient orb system matching AppShell */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
         <div style={{ position: 'absolute', width: 440, height: 440, top: -130, left: -100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.22), transparent 68%)', filter: 'blur(50px)' }} />
@@ -272,16 +254,14 @@ export default function OnboardingPage() {
                 width: i === step ? 24 : 8,
                 background: i <= step
                   ? 'linear-gradient(90deg,#7C3AED,#A855F7)'
-                  : 'rgba(255,255,255,0.15)',
-                opacity: i < step ? 0.55 : 1,
-              }}
+                  : 'var(--ink-150)',
+                opacity: i < step ? 0.55 : 1 }}
               transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
               style={{
                 height: 8,
                 borderRadius: 4,
                 flexShrink: 0,
-                boxShadow: i === step ? '0 0 10px rgba(168,85,247,0.55)' : 'none',
-              }}
+                boxShadow: i === step ? '0 0 10px rgba(168,85,247,0.55)' : 'none' }}
             />
           ))}
         </div>
@@ -298,11 +278,10 @@ export default function OnboardingPage() {
                   style={{
                     padding: '16px 40px', borderRadius: 18,
                     background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
-                    color: 'white', fontSize: 15, fontWeight: 700,
+                    color: 'var(--ink-950)', fontSize: 15, fontWeight: 700,
                     display: 'flex', alignItems: 'center', gap: 8,
                     boxShadow: '0 8px 32px rgba(124,58,237,0.5)',
-                    border: 'none', cursor: 'pointer', minHeight: 52,
-                  }}
+                    border: 'none', cursor: 'pointer', minHeight: 52 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   {intro.cta} <ArrowRight size={18} />
@@ -322,16 +301,15 @@ export default function OnboardingPage() {
                       onClick={() => { haptic(); setStudyLevel(value); }}
                       style={{
                         padding: '16px 12px', borderRadius: 18, textAlign: 'left',
-                        background: active ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.07)',
-                        border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid rgba(255,255,255,0.07)',
+                        background: active ? 'rgba(124,58,237,0.15)' : 'var(--ink-070)',
+                        border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid var(--ink-070)',
                         boxShadow: active ? '0 0 16px rgba(124,58,237,0.2)' : 'none',
-                        cursor: 'pointer', minHeight: 44,
-                      }}
+                        cursor: 'pointer', minHeight: 44 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Icon size={20} style={{ color: active ? '#A855F7' : 'rgba(255,255,255,0.5)', marginBottom: 8 }} />
-                      <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#F4F6FA' : 'rgba(255,255,255,0.7)', marginBottom: 2 }}>{label}</div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{sub}</div>
+                      <Icon size={20} style={{ color: active ? '#A855F7' : 'var(--ink-500)', marginBottom: 8 }} />
+                      <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#F4F6FA' : 'var(--ink-700)', marginBottom: 2 }}>{label}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-400)' }}>{sub}</div>
                       {active && <div style={{ position: 'absolute', top: 12, right: 12 }}><Check size={14} style={{ color: '#A855F7' }} /></div>}
                     </motion.button>
                   );
@@ -351,16 +329,15 @@ export default function OnboardingPage() {
                       onClick={() => { haptic(); setLanguage(lang.value); }}
                       style={{
                         padding: '14px 16px', borderRadius: 16, textAlign: 'left',
-                        background: active ? 'rgba(124,58,237,0.18)' : 'rgba(255,255,255,0.06)',
-                        border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid rgba(255,255,255,0.08)',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14,
-                      }}
+                        background: active ? 'rgba(124,58,237,0.18)' : 'var(--ink-060)',
+                        border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid var(--ink-080)',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
                       whileTap={{ scale: 0.97 }}
                     >
-                      <span style={{ fontSize: 24 }}>{lang.flag}</span>
+                      <Languages size={20} style={{ color: active ? '#A855F7' : 'var(--ink-400)' }} strokeWidth={1.7} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#F4F6FA' : 'rgba(255,255,255,0.7)' }}>{lang.label}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{lang.native}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#F4F6FA' : 'var(--ink-700)' }}>{lang.label}</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-400)' }}>{lang.native}</div>
                       </div>
                       {active && <Check size={16} style={{ color: '#A855F7', flexShrink: 0 }} />}
                     </motion.button>
@@ -384,12 +361,11 @@ export default function OnboardingPage() {
                       }}
                       style={{
                         padding: '8px 16px', borderRadius: 100,
-                        background: active ? `rgba(${hexToRgb(color)}, 0.18)` : 'rgba(255,255,255,0.05)',
-                        border: active ? `1.5px solid ${color}60` : '1.5px solid rgba(255,255,255,0.08)',
-                        color: active ? color : 'rgba(255,255,255,0.6)',
+                        background: active ? `rgba(${hexToRgb(color)}, 0.18)` : 'var(--ink-050)',
+                        border: active ? `1.5px solid ${color}60` : '1.5px solid var(--ink-080)',
+                        color: active ? color : 'var(--ink-600)',
                         fontSize: 13, fontWeight: 700,
-                        cursor: 'pointer', minHeight: 36, display: 'flex', alignItems: 'center', gap: 4,
-                      }}
+                        cursor: 'pointer', minHeight: 36, display: 'flex', alignItems: 'center', gap: 4 }}
                       whileTap={{ scale: 0.92 }}
                     >
                       {active && <Check size={12} />}
@@ -414,12 +390,11 @@ export default function OnboardingPage() {
                         onClick={() => { haptic(); setExamName(active ? '' : e.value); }}
                         style={{
                           padding: '8px 14px', borderRadius: 100,
-                          background: active ? 'rgba(124,58,237,0.18)' : 'rgba(255,255,255,0.05)',
-                          border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid rgba(255,255,255,0.08)',
-                          color: active ? '#A855F7' : 'rgba(255,255,255,0.6)',
+                          background: active ? 'rgba(124,58,237,0.18)' : 'var(--ink-050)',
+                          border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid var(--ink-080)',
+                          color: active ? '#A855F7' : 'var(--ink-600)',
                           fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 36,
-                          display: 'flex', alignItems: 'center', gap: 4,
-                        }}
+                          display: 'flex', alignItems: 'center', gap: 4 }}
                         whileTap={{ scale: 0.92 }}
                       >
                         {active && <Check size={12} />}
@@ -432,7 +407,7 @@ export default function OnboardingPage() {
                 {/* Date picker */}
                 {examName && examName !== 'Other' && (
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                       <Calendar size={13} /> Exam date (optional)
                     </label>
                     <input
@@ -443,18 +418,17 @@ export default function OnboardingPage() {
                       max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
                       style={{
                         width: '100%', padding: '12px 14px', borderRadius: 14,
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'var(--ink-050)',
+                        border: '1px solid var(--ink-100)',
                         color: '#F4F6FA', fontSize: 14, fontWeight: 600,
                         outline: 'none', cursor: 'pointer',
-                        WebkitUserSelect: 'text',
-                      }}
+                        WebkitUserSelect: 'text' }}
                     />
                   </motion.div>
                 )}
 
                 {/* Skip hint */}
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 4 }}>
+                <p style={{ fontSize: 12, color: 'var(--ink-300)', textAlign: 'center', marginTop: 4 }}>
                   Skip if not sure — you can set this later in Profile
                 </p>
               </div>
@@ -473,15 +447,14 @@ export default function OnboardingPage() {
                       style={{
                         padding: '14px 8px', borderRadius: 18,
                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                        background: active ? `rgba(${hexToRgb(m.color)}, 0.15)` : 'rgba(255,255,255,0.07)',
-                        border: active ? `1.5px solid ${m.color}60` : '1.5px solid rgba(255,255,255,0.06)',
-                        cursor: 'pointer', minHeight: 44,
-                      }}
+                        background: active ? `rgba(${hexToRgb(m.color)}, 0.15)` : 'var(--ink-070)',
+                        border: active ? `1.5px solid ${m.color}60` : '1.5px solid var(--ink-060)',
+                        cursor: 'pointer', minHeight: 44 }}
                       whileTap={{ scale: 0.93 }}
                       animate={active ? { scale: [1, 1.05, 1] } : { scale: 1 }}
                     >
-                      <span style={{ fontSize: 28 }}>{m.emoji}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? m.color : 'rgba(255,255,255,0.55)' }}>
+                      <m.icon size={26} style={{ color: m.color }} strokeWidth={1.7} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: active ? m.color : 'var(--ink-550)' }}>
                         {m.label}
                       </span>
                     </motion.button>
@@ -492,7 +465,7 @@ export default function OnboardingPage() {
               {mood && (
                 <motion.p
                   initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                  style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}
+                  style={{ fontSize: 13, color: 'var(--ink-550)', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}
                 >
                   Got it. {mood === 'anxious' ? "I'll go gentle today." : mood === 'low' ? "Short sessions today — quality over quantity." : mood === 'focused' ? "Let's make the most of this energy." : "Let's get started."}
                 </motion.p>
@@ -504,9 +477,8 @@ export default function OnboardingPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 12,
-                  background: 'rgba(255,255,255,0.06)', borderRadius: 16,
-                  border: '1px solid rgba(255,255,255,0.1)', padding: '12px 16px',
-                }}>
+                  background: 'var(--ink-060)', borderRadius: 16,
+                  border: '1px solid var(--ink-100)', padding: '12px 16px' }}>
                   <Gift size={18} style={{ color: '#A0AEFF', flexShrink: 0 }} />
                   <input
                     value={referralCode}
@@ -516,8 +488,7 @@ export default function OnboardingPage() {
                     style={{
                       flex: 1, background: 'none', outline: 'none',
                       fontSize: 16, fontWeight: 700, letterSpacing: '0.12em',
-                      color: '#F4F6FA',
-                    }}
+                      color: '#F4F6FA' }}
                   />
                   {referralStatus === 'ok' && <Check size={16} style={{ color: '#34D399' }} />}
                 </div>
@@ -537,10 +508,9 @@ export default function OnboardingPage() {
                   <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '8px 16px', borderRadius: 100,
-                    background: 'rgba(160,174,255,0.08)', border: '1px solid rgba(160,174,255,0.15)',
-                  }}>
+                    background: 'rgba(160,174,255,0.08)', border: '1px solid rgba(160,174,255,0.15)' }}>
                     <Gift size={13} style={{ color: '#A0AEFF' }} />
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Both you and your friend earn bonus XP</span>
+                    <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>Both you and your friend earn bonus XP</span>
                   </div>
                 </div>
               </div>
@@ -555,8 +525,7 @@ export default function OnboardingPage() {
           position: 'relative', zIndex: 1,
           padding: '16px 24px',
           paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
-          display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
+          display: 'flex', flexDirection: 'column', gap: 10 }}>
           <motion.button
             onClick={nextStep}
             disabled={!canProceed() || saving}
@@ -564,15 +533,14 @@ export default function OnboardingPage() {
               width: '100%', padding: '16px', borderRadius: 18,
               background: canProceed()
                 ? 'linear-gradient(135deg, #7C3AED, #A855F7)'
-                : 'rgba(255,255,255,0.06)',
-              color: canProceed() ? 'white' : 'rgba(255,255,255,0.3)',
+                : 'var(--ink-060)',
+              color: canProceed() ? 'white' : 'var(--ink-300)',
               fontSize: 15, fontWeight: 700,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               border: 'none', cursor: canProceed() ? 'pointer' : 'not-allowed',
               minHeight: 52,
               boxShadow: canProceed() ? '0 8px 28px rgba(124,58,237,0.45)' : 'none',
-              transition: 'all 0.2s',
-            }}
+              transition: 'all 0.2s' }}
             whileTap={canProceed() ? { scale: 0.97 } : {}}
           >
             {saving ? 'Setting up...' : step === totalSteps - 1 ? "Let's go" : 'Continue'}
@@ -582,7 +550,7 @@ export default function OnboardingPage() {
           {(step === 4 || step === 6) && (
             <button
               onClick={nextStep}
-              style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', minHeight: 32 }}
+              style={{ fontSize: 12, color: 'var(--ink-300)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', minHeight: 32 }}
             >
               Skip for now
             </button>

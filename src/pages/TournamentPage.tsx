@@ -104,7 +104,7 @@ function rankLabel(rank: number): { text: string; color: string } {
   if (rank === 1) return { text: '1st', color: '#FFD700' };
   if (rank === 2) return { text: '2nd', color: '#C0C0C0' };
   if (rank === 3) return { text: '3rd', color: '#CD7F32' };
-  return { text: `#${rank}`, color: 'rgba(255,255,255,0.4)' };
+  return { text: `#${rank}`, color: 'var(--ink-400)' };
 }
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'] as const;
@@ -165,8 +165,8 @@ function WeeklyScheduleBanner() {
 
   return (
     <div className="mx-4 mb-3 px-4 py-3 rounded-2xl"
-      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-3">Weekly Schedule</p>
+      style={{ background: 'var(--ink-030)', border: '1px solid var(--ink-060)' }}>
+      <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-3">Weekly Schedule</p>
       <div className="flex items-center gap-1">
         {phases.map((p, i) => {
           const Icon = p.icon;
@@ -174,20 +174,20 @@ function WeeklyScheduleBanner() {
             <div key={p.label} className="flex items-center gap-1 flex-1">
               <div className="flex flex-col items-center gap-1 flex-1">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: p.active ? `${p.color}22` : 'rgba(255,255,255,0.04)', border: `1px solid ${p.active ? p.color + '44' : 'rgba(255,255,255,0.06)'}` }}>
-                  <Icon size={14} style={{ color: p.active ? p.color : 'rgba(255,255,255,0.2)' }} />
+                  style={{ background: p.active ? `${p.color}22` : 'var(--ink-040)', border: `1px solid ${p.active ? p.color + '44' : 'var(--ink-060)'}` }}>
+                  <Icon size={14} style={{ color: p.active ? p.color : 'var(--ink-200)' }} />
                 </div>
-                <p className="text-[9px] font-bold text-center leading-tight"
-                  style={{ color: p.active ? p.color : 'rgba(255,255,255,0.25)' }}>
+                <p className="text-xs font-bold text-center leading-tight"
+                  style={{ color: p.active ? p.color : 'var(--ink-250)' }}>
                   {p.label}
                 </p>
-                <p className="text-[8px] text-center leading-tight"
-                  style={{ color: p.active ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.18)' }}>
+                <p className="text-xs text-center leading-tight"
+                  style={{ color: p.active ? 'var(--ink-600)' : 'var(--ink-180)' }}>
                   {p.desc}
                 </p>
               </div>
               {i < phases.length - 1 && (
-                <div className="w-4 h-px mb-4 shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                <div className="w-4 h-px mb-4 shrink-0" style={{ background: 'var(--ink-080)' }} />
               )}
             </div>
           );
@@ -220,7 +220,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
         <div>
           <h1 className="font-heading text-2xl font-bold text-white">Weekly Tournaments</h1>
           {weekStart && weekEnd && (
-            <p className="text-sm mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{formatWeekDates(weekStart, weekEnd)}</p>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--ink-500)' }}>{formatWeekDates(weekStart, weekEnd)}</p>
           )}
         </div>
       </div>
@@ -231,10 +231,10 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
         <div className="flex flex-col gap-4 px-4 mt-2">
           {[1, 2].map(i => (
             <div key={i} className="rounded-3xl p-5 animate-pulse"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <div className="h-5 rounded w-2/3 mb-3" style={{ background: 'rgba(255,255,255,0.06)' }} />
-              <div className="h-4 rounded w-1/3 mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
-              <div className="h-10 rounded-2xl" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
+              <div className="h-5 rounded w-2/3 mb-3" style={{ background: 'var(--ink-060)' }} />
+              <div className="h-4 rounded w-1/3 mb-4" style={{ background: 'var(--ink-060)' }} />
+              <div className="h-10 rounded-2xl" style={{ background: 'var(--ink-060)' }} />
             </div>
           ))}
         </div>
@@ -251,7 +251,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
             <Calendar size={28} style={{ color: '#8B9BFA' }} />
           </div>
           <p className="font-heading text-lg font-semibold text-white">No tournaments yet</p>
-          <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.5)' }}>Tournaments generate every Monday. Check back soon.</p>
+          <p className="text-sm mt-2" style={{ color: 'var(--ink-500)' }}>Tournaments generate every Monday. Check back soon.</p>
         </motion.div>
       )}
 
@@ -263,7 +263,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08 }}
             className="rounded-3xl p-5"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
           >
             <div className="flex items-start justify-between mb-2">
               <h2 className="font-heading text-base font-bold text-white flex-1 mr-2">{t.name}</h2>
@@ -273,7 +273,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
               </span>
             </div>
 
-            <div className="flex items-center gap-3 text-xs mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <div className="flex items-center gap-3 text-xs mb-3" style={{ color: 'var(--ink-500)' }}>
               <span className="flex items-center gap-1">
                 <Clock size={12} />
                 {Math.floor(t.time_limit_secs / 60)}m · {t.question_count}Q
@@ -289,7 +289,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
                 const xp = idx === 0 ? t.xp_1st : idx === 1 ? t.xp_2nd : t.xp_3rd;
                 return (
                   <div key={rl.text} className="flex items-center gap-1 rounded-xl px-2 py-1"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}>
                     <span className="text-xs font-bold" style={{ color: rl.color }}>{rl.text}</span>
                     <span className="text-xs font-bold text-white">{xp} XP</span>
                   </div>
@@ -323,7 +323,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
                     return <span className="text-lg font-bold" style={{ color: rl.color }}>{rl.text}</span>;
                   })()}
                   <div>
-                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Your score</p>
+                    <p className="text-xs" style={{ color: 'var(--ink-500)' }}>Your score</p>
                     <p className="font-bold text-sm text-white">
                       {t.question_count > 0
                         ? Math.round((t.my_participation.score / (t.question_count * 10)) * 100)
@@ -430,7 +430,7 @@ function QuizScreen({ tournament, questions, timeLimitSecs, onSubmit, submitting
     <div className="fixed inset-0 bg-gradient-page flex flex-col z-50">
       <div className="flex items-center justify-between px-4 pt-12 pb-3">
         <div className="flex flex-col">
-          <span className="text-xs font-medium truncate max-w-[180px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{tournament.name}</span>
+          <span className="text-xs font-medium truncate max-w-[180px]" style={{ color: 'var(--ink-500)' }}>{tournament.name}</span>
           <span className="text-sm font-bold text-white">
             Question {currentIdx + 1} / {questions.length}
           </span>
@@ -449,7 +449,7 @@ function QuizScreen({ tournament, questions, timeLimitSecs, onSubmit, submitting
         </motion.div>
       </div>
 
-      <div className="mx-4 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      <div className="mx-4 h-1.5 rounded-full" style={{ background: 'var(--ink-080)' }}>
         <motion.div
           className="h-full rounded-full"
           style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
@@ -468,7 +468,7 @@ function QuizScreen({ tournament, questions, timeLimitSecs, onSubmit, submitting
             transition={{ duration: 0.25 }}
           >
             <div className="rounded-3xl p-5 mb-4"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
               <p className="text-xs font-semibold mb-2" style={{ color: '#8B9BFA' }}>{q.points} pts</p>
               <p className="font-heading text-base font-semibold text-white leading-snug">{q.question}</p>
             </div>
@@ -484,14 +484,14 @@ function QuizScreen({ tournament, questions, timeLimitSecs, onSubmit, submitting
                     className="w-full text-left rounded-2xl p-4 flex items-center gap-3 transition-colors"
                     style={isSelected
                       ? { background: 'rgba(91,106,245,0.15)', border: '2px solid #5B6AF5' }
-                      : { background: 'rgba(15,20,45,0.75)', border: '2px solid rgba(255,255,255,0.08)' }
+                      : { background: 'var(--hdr-b-750)', border: '2px solid var(--ink-080)' }
                     }
                   >
                     <span
                       className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
                       style={isSelected
-                        ? { background: '#5B6AF5', color: 'white' }
-                        : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }
+                        ? { background: '#5B6AF5', color: 'var(--ink-950)' }
+                        : { background: 'var(--ink-080)', color: 'var(--ink-600)' }
                       }
                     >
                       {OPTION_LABELS[i]}
@@ -552,7 +552,7 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
 
       <div className="mx-4 mb-4">
         <div className="rounded-3xl p-6 text-center"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
           {isTop3 && (
             <motion.div
               initial={{ scale: 0, rotate: -20 }}
@@ -567,9 +567,9 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
             </motion.div>
           )}
           <p className="text-4xl font-bold text-white font-heading">
-            {score} <span className="text-2xl font-normal" style={{ color: 'rgba(255,255,255,0.5)' }}>/ {max_score}</span>
+            {score} <span className="text-2xl font-normal" style={{ color: 'var(--ink-500)' }}>/ {max_score}</span>
           </p>
-          <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{pct}% accuracy</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--ink-500)' }}>{pct}% accuracy</p>
           {!isTop3 && <p className="font-semibold text-white mt-2">Rank #{rank}</p>}
 
           {xp_earned > 0 && (
@@ -591,7 +591,7 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
               if (!ga) return null;
               return (
                 <div key={qIdx} className="rounded-2xl p-4"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   <p className="text-sm font-semibold text-white mb-2">
                     {qIdx + 1}. {q.question}
                   </p>
@@ -612,7 +612,7 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
                     </div>
                   )}
                   {q.explanation && (
-                    <p className="text-xs mt-1.5 pt-1.5" style={{ color: 'rgba(255,255,255,0.5)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <p className="text-xs mt-1.5 pt-1.5" style={{ color: 'var(--ink-500)', borderTop: '1px solid var(--ink-060)' }}>
                       {q.explanation}
                     </p>
                   )}
@@ -634,7 +634,7 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
         <button
           onClick={onBack}
           className="w-full py-3.5 rounded-2xl font-semibold text-sm"
-          style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}
+          style={{ border: '1px solid var(--ink-100)', color: 'var(--ink-700)' }}
         >
           Back to Tournaments
         </button>
@@ -658,7 +658,7 @@ function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenPr
         <button
           onClick={onBack}
           className="w-9 h-9 rounded-2xl flex items-center justify-center text-white"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
         >
           <ArrowLeft size={18} />
         </button>
@@ -669,11 +669,11 @@ function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenPr
         <div className="flex flex-col gap-3 px-4">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="rounded-2xl p-4 flex items-center gap-3 animate-pulse"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <div className="w-10 h-10 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
+              <div className="w-10 h-10 rounded-full" style={{ background: 'var(--ink-060)' }} />
               <div className="flex-1">
-                <div className="h-3 rounded w-1/2 mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
-                <div className="h-3 rounded w-1/3" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                <div className="h-3 rounded w-1/2 mb-2" style={{ background: 'var(--ink-060)' }} />
+                <div className="h-3 rounded w-1/3" style={{ background: 'var(--ink-060)' }} />
               </div>
             </div>
           ))}
@@ -694,7 +694,7 @@ function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenPr
                 className="rounded-2xl p-4 flex items-center gap-3"
                 style={isMe
                   ? { background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.4)' }
-                  : { background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }
+                  : { background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }
                 }
               >
                 <div className="w-8 text-center flex-shrink-0">
@@ -714,15 +714,15 @@ function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenPr
                   <p className="text-sm font-semibold truncate" style={{ color: isMe ? '#8B9BFA' : 'white' }}>
                     {entry.name}{isMe && <span className="text-xs font-normal ml-1" style={{ color: 'rgba(139,155,250,0.7)' }}>(YOU)</span>}
                   </p>
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{formatMs(entry.time_taken_ms)}</p>
+                  <p className="text-xs" style={{ color: 'var(--ink-500)' }}>{formatMs(entry.time_taken_ms)}</p>
                 </div>
 
                 <div className="text-right flex-shrink-0">
                   <p className="text-sm font-bold text-white">
                     {entry.score}
-                    <span className="font-normal text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>/{entry.max_score}</span>
+                    <span className="font-normal text-xs" style={{ color: 'var(--ink-500)' }}>/{entry.max_score}</span>
                   </p>
-                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
                     {entry.max_score > 0 ? Math.round((entry.score / entry.max_score) * 100) : 0}%
                   </p>
                 </div>
@@ -736,7 +736,7 @@ function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenPr
         <button
           onClick={onBack}
           className="w-full py-3.5 rounded-2xl font-semibold text-sm"
-          style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}
+          style={{ border: '1px solid var(--ink-100)', color: 'var(--ink-700)' }}
         >
           Back to Tournaments
         </button>
@@ -901,7 +901,7 @@ export default function TournamentPage() {
     return (
       <div className="fixed inset-0 bg-gradient-page flex flex-col items-center justify-center z-50">
         <span className="w-10 h-10 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Loading tournament…</p>
+        <p className="text-sm" style={{ color: 'var(--ink-500)' }}>Loading tournament…</p>
       </div>
     );
   }

@@ -60,10 +60,10 @@ export default function BrowserPage() {
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/tools"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
           <ChevronLeft size={18} className="text-white" />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -88,7 +88,7 @@ export default function BrowserPage() {
               {items.map(({ name, desc, url }) => (
                 <button key={name} onClick={() => openUrl(url)}
                   className="rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left active:scale-98 transition-all w-full"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: `${color}18` }}>
                     <Globe size={16} style={{ color }} />

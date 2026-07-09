@@ -43,8 +43,8 @@ function humaniseAuthError(raw: string): string {
 const BG     = '#0A0A0F';
 const PURPLE = 'linear-gradient(135deg,#6D28D9,#9333EA)';
 const DARK   = '#F4F6FA';
-const GRAY   = 'rgba(255,255,255,0.5)';
-const BORDER = 'rgba(255,255,255,0.18)';
+const GRAY   = 'var(--ink-500)';
+const BORDER = 'var(--ink-180)';
 
 function GoogleIcon() {
   return (
@@ -67,7 +67,13 @@ function AppleIcon() {
 
 // ── OTP digit input ──────────────────────────────────────────────────────────
 function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const refs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
+  const ref0 = useRef<HTMLInputElement>(null);
+  const ref1 = useRef<HTMLInputElement>(null);
+  const ref2 = useRef<HTMLInputElement>(null);
+  const ref3 = useRef<HTMLInputElement>(null);
+  const ref4 = useRef<HTMLInputElement>(null);
+  const ref5 = useRef<HTMLInputElement>(null);
+  const refs = [ref0, ref1, ref2, ref3, ref4, ref5];
 
   function handleChange(i: number, char: string) {
     const digits = value.split('');
@@ -108,7 +114,7 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
           onPaste={handlePaste}
           className="w-11 h-14 text-center text-xl font-bold rounded-2xl outline-none transition-all"
           style={{
-            background: 'rgba(15,17,23,0.9)',
+            background: 'var(--surface-elev-09)',
             border: value[i] ? '2px solid #5B6AF5' : `1.5px solid ${BORDER}`,
             color: DARK,
             WebkitUserSelect: 'text',
@@ -330,7 +336,7 @@ export default function LoginPage() {
   const inputClass = "flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400";
   const inputStyle = { color: DARK, WebkitUserSelect: 'text' as const, userSelect: 'text' as const };
   const fieldWrap  = {
-    background: 'rgba(15,17,23,0.9)', border: `1.5px solid ${BORDER}`,
+    background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`,
     borderRadius: 16, display: 'flex', alignItems: 'center',
     gap: 12, paddingLeft: 16, paddingRight: 16, height: 56,
     boxShadow: '0 1px 4px rgba(91,106,245,0.06)',
@@ -349,7 +355,7 @@ export default function LoginPage() {
         <div className="absolute top-4 left-0 right-0 flex justify-center">
           <p className="font-heading text-xl font-black tracking-wider" style={{ color: '#5B6AF5' }}>EDORA</p>
         </div>
-        <CharacterImage slug="login-character" anim="float" fillParent fallbackEmoji="📚" />
+        <CharacterImage slug="login-character" anim="float" fillParent />
       </div>
 
       {/* Form card */}
@@ -358,12 +364,12 @@ export default function LoginPage() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
         className="flex-1 overflow-y-auto native-scroll px-6 pt-5 pb-safe"
-        style={{ background: 'rgba(15,17,23,0.9)', borderTopLeftRadius: 32, borderTopRightRadius: 32, boxShadow: '0 -4px 24px rgba(91,106,245,0.08)' }}
+        style={{ background: 'var(--surface-elev-09)', borderTopLeftRadius: 32, borderTopRightRadius: 32, boxShadow: '0 -4px 24px rgba(91,106,245,0.08)' }}
       >
         {/* Title */}
         <div className="mb-4">
           <h1 className="font-heading text-2xl font-bold" style={{ color: DARK }}>
-            {authMethod === 'otp' ? 'Quick Sign In ⚡' : mode === 'login' ? 'Welcome Back! 👋' : 'Create Account ✨'}
+            {authMethod === 'otp' ? 'Quick Sign In' : mode === 'login' ? 'Welcome Back' : 'Create Account'}
           </h1>
           <p className="text-sm mt-1" style={{ color: GRAY }}>
             {authMethod === 'otp'
@@ -373,7 +379,7 @@ export default function LoginPage() {
         </div>
 
         {/* Auth method tabs */}
-        <div className="flex gap-2 mb-4 p-1 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${BORDER}` }}>
+        <div className="flex gap-2 mb-4 p-1 rounded-2xl" style={{ background: 'var(--v2-elevated)', border: `1px solid ${BORDER}` }}>
           {(['password', 'otp'] as const).map(m => (
             <button
               key={m}
@@ -381,7 +387,7 @@ export default function LoginPage() {
               onClick={() => switchMethod(m)}
               className="flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
               style={authMethod === m
-                ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(91,106,245,0.35)' }
+                ? { background: 'var(--v2-primary)', color: '#fff' }
                 : { color: GRAY }}
             >
               {m === 'password' ? <><Lock size={13} /> Password</> : <><KeyRound size={13} /> Email OTP</>}
@@ -403,7 +409,7 @@ export default function LoginPage() {
                   <button key={m} type="button" onClick={() => switchMode(m)}
                     className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
                     style={mode === m
-                      ? { background: 'rgba(91,106,245,0.15)', color: '#A0AEFF', border: '1px solid rgba(91,106,245,0.3)' }
+                      ? { background: 'var(--v2-primary-tint-2)', color: 'var(--v2-primary)', border: '1px solid var(--v2-primary)' }
                       : { color: GRAY, border: `1px solid ${BORDER}` }}>
                     {m === 'login' ? 'Sign In' : 'Sign Up'}
                   </button>
@@ -471,7 +477,7 @@ export default function LoginPage() {
                       <div className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all"
                         style={dpdpConsent
                           ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', borderColor: '#5B6AF5' }
-                          : { borderColor: BORDER, background: 'rgba(15,17,23,0.9)' }}>
+                          : { borderColor: BORDER, background: 'var(--surface-elev-09)' }}>
                         {dpdpConsent && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                       </div>
                       <span className="text-xs leading-relaxed" style={{ color: GRAY }}>
@@ -495,7 +501,7 @@ export default function LoginPage() {
                       <div className="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all"
                         style={rememberMe
                           ? { background: PURPLE, borderColor: '#5B6AF5' }
-                          : { borderColor: BORDER, background: 'rgba(15,17,23,0.9)' }}>
+                          : { borderColor: BORDER, background: 'var(--surface-elev-09)' }}>
                         {rememberMe && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                       </div>
                       <span className="text-xs font-medium" style={{ color: GRAY }}>Remember me</span>
@@ -562,7 +568,7 @@ export default function LoginPage() {
                       <div className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all"
                         style={otpConsent
                           ? { background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', borderColor: '#5B6AF5' }
-                          : { borderColor: BORDER, background: 'rgba(15,17,23,0.9)' }}>
+                          : { borderColor: BORDER, background: 'var(--surface-elev-09)' }}>
                         {otpConsent && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                       </div>
                       <span className="text-xs leading-relaxed" style={{ color: GRAY }}>
@@ -663,12 +669,12 @@ export default function LoginPage() {
         <div className="flex gap-3">
           <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('google')}
             className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ background: 'rgba(15,17,23,0.9)', border: `1.5px solid ${BORDER}`, color: DARK }}>
+            style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: DARK }}>
             <GoogleIcon /> Google
           </motion.button>
           <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('apple')}
             className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ background: 'rgba(15,17,23,0.9)', border: `1.5px solid ${BORDER}`, color: DARK }}>
+            style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: DARK }}>
             <AppleIcon /> Apple
           </motion.button>
         </div>
@@ -681,26 +687,26 @@ export default function LoginPage() {
         {forgotOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end"
-            style={{ background: 'rgba(26,26,46,0.5)', backdropFilter: 'blur(4px)' }}
+            style={{ background: 'var(--surface-scrim)', backdropFilter: 'blur(4px)' }}
             onClick={() => { setForgotOpen(false); setForgotError(""); setForgotSent(false); setForgotEmail(""); }}>
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="w-full rounded-t-3xl px-6 pt-4 pb-safe"
-              style={{ background: 'rgba(15,17,23,0.9)', boxShadow: '0 -4px 32px rgba(0,0,0,0.5)' }}
+              style={{ background: 'var(--surface-elev-09)', boxShadow: '0 -4px 32px rgba(0,0,0,0.5)' }}
               onClick={e => e.stopPropagation()}>
               <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: '#E5E7EB' }} />
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-heading text-xl font-bold" style={{ color: DARK }}>Reset Password</h2>
                 <button aria-label="Close" onClick={() => { setForgotOpen(false); setForgotError(""); setForgotSent(false); setForgotEmail(""); }}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  style={{ background: 'var(--ink-060)' }}>
                   <X size={16} color={GRAY} />
                 </button>
               </div>
               {forgotSent ? (
                 <div className="text-center py-6">
-                  <div className="text-5xl mb-3">📬</div>
+                  <Mail size={44} className="mx-auto mb-3" style={{ color: '#818CF8' }} strokeWidth={1.4} />
                   <p className="font-semibold text-base mb-1" style={{ color: DARK }}>Check your inbox</p>
                   <p className="text-sm" style={{ color: GRAY }}>
                     Reset link sent to <span className="font-semibold" style={{ color: '#5B6AF5' }}>{forgotEmail}</span>

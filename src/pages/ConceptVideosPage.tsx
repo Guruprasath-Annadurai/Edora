@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Play, Search, BookOpen, Zap, X, Lock, Clock } from 'lucide-react';
+import {ChevronLeft, Play, Search, BookOpen, Zap, X, Lock} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,8 +38,7 @@ const SUBJECT_COLORS: Record<string, string> = {
   Biology: '#4ADE80',
   History: '#FBBF24',
   Geography: '#FB923C',
-  Science: '#38BDF8',
-};
+  Science: '#38BDF8' };
 
 function subjectColor(s: string) { return SUBJECT_COLORS[s] ?? '#A0AEFF'; }
 
@@ -57,7 +56,7 @@ export default function ConceptVideosPage() {
   const [videos, setVideos]       = useState<ConceptVideo[]>([]);
   const [recommendations, setRecs] = useState<GeneratedVideoRec[]>([]);
   const [loading, setLoading]     = useState(false);
-  const [recsLoading, setRecsLoading] = useState(false);
+  const [_recsLoading, setRecsLoading] = useState(false);
   const [activeVideo, setActiveVideo] = useState<ConceptVideo | null>(null);
   const [watchPct, setWatchPct]   = useState(0);
 
@@ -123,8 +122,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
   async function closeVideo() {
     if (activeVideo && profile) {
       await supabase.from('video_watches').upsert({
-        user_id: profile.id, video_id: activeVideo.id, watch_pct: watchPct, watched_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,video_id' });
+        user_id: profile.id, video_id: activeVideo.id, watch_pct: watchPct, watched_at: new Date().toISOString() }, { onConflict: 'user_id,video_id' });
     }
     setActiveVideo(null);
   }
@@ -167,8 +165,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
               style={{
                 background: subject === s ? `${subjectColor(s)}20` : 'var(--color-surface)',
                 color: subject === s ? subjectColor(s) : 'var(--color-text-secondary)',
-                border: `1px solid ${subject === s ? subjectColor(s) : 'var(--color-border)'}`,
-              }}>
+                border: `1px solid ${subject === s ? subjectColor(s) : 'var(--color-border)'}` }}>
               {s}
             </button>
           ))}
@@ -200,7 +197,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
                    target="_blank" rel="noopener noreferrer"
                    onClick={() => track('concept_video_rec_clicked', { concept: rec.concept })}>
                   <Button className="text-xs px-3 py-1.5 rounded-xl h-auto"
-                    style={{ background: '#FF0000', color: '#fff' }}>YouTube</Button>
+                    style={{ background: '#FF0000', color: 'var(--ink-950)' }}>YouTube</Button>
                 </a>
               </motion.div>
             ))}
@@ -238,13 +235,13 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
                 <div className="w-20 h-14 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative"
                      style={{ background: `${subjectColor(v.subject)}20` }}>
                   {v.thumbnail_url ? (
-                    <img src={v.thumbnail_url} alt={v.title} className="w-full h-full object-cover" />
+                    <img src={v.thumbnail_url} alt={v.title} className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }} />
                   ) : (
                     <Play size={20} color={subjectColor(v.subject)} />
                   )}
                   {v.duration_secs && (
-                    <span className="absolute bottom-1 right-1 text-[10px] font-bold px-1 rounded"
-                      style={{ background: 'rgba(0,0,0,0.7)', color: '#fff' }}>
+                    <span className="absolute bottom-1 right-1 text-xs font-bold px-1 rounded"
+                      style={{ background: 'rgba(0,0,0,0.7)', color: 'var(--ink-950)' }}>
                       {formatDuration(v.duration_secs)}
                     </span>
                   )}
@@ -281,7 +278,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
             <div className="flex items-center justify-between px-4 py-3">
               <p className="text-sm font-semibold text-white truncate flex-1">{activeVideo.title}</p>
               <button onClick={closeVideo} className="p-2 rounded-xl ml-2"
-                style={{ background: 'rgba(255,255,255,0.1)' }}>
+                style={{ background: 'var(--ink-100)' }}>
                 <X size={20} color="#fff" />
               </button>
             </div>

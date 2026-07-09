@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, BookMarked, ChevronDown, ChevronUp,
@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
 
@@ -137,7 +136,7 @@ function StepBlock({ step, novoAsk }: { step: SolutionStep; novoAsk: (s: Solutio
           style={{ background: 'rgba(91,106,245,0.2)', color: '#8B9BFA' }}>
           {step.step}
         </div>
-        <div className="flex-1 w-px mt-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="flex-1 w-px mt-1" style={{ background: 'var(--ink-060)' }} />
       </div>
       <div className="flex-1 pb-4">
         <p className="text-sm font-bold text-white mb-0.5">{step.action}</p>
@@ -179,7 +178,7 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+    <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
       {/* Header */}
       <div className="p-4">
         <div className="flex items-start gap-2 mb-2">
@@ -196,8 +195,8 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
             <p className="text-sm text-white/90 leading-relaxed">{ex.question}</p>
           </div>
           <button onClick={() => onSave(ex.id)} className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: ex.saved ? 'rgba(91,106,245,0.2)' : 'rgba(255,255,255,0.06)' }} aria-label="Save">
-            <BookMarked size={14} style={{ color: ex.saved ? '#8B9BFA' : 'rgba(255,255,255,0.4)' }} fill={ex.saved ? '#8B9BFA' : 'none'} />
+            style={{ background: ex.saved ? 'rgba(91,106,245,0.2)' : 'var(--ink-060)' }} aria-label="Save">
+            <BookMarked size={14} style={{ color: ex.saved ? '#8B9BFA' : 'var(--ink-400)' }} fill={ex.saved ? '#8B9BFA' : 'none'} />
           </button>
         </div>
 
@@ -233,7 +232,7 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {ex.tags.map(t => (
                   <span key={t} className="text-[9px] px-2 py-0.5 rounded-full font-medium"
-                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)' }}>#{t}</span>
+                    style={{ background: 'var(--ink-060)', color: 'var(--ink-350)' }}>#{t}</span>
                 ))}
               </div>
             </div>
@@ -318,7 +317,7 @@ Return ONLY JSON array:
       {/* Header */}
       <div className="shrink-0 px-4 pb-2" style={{ paddingTop: 'max(16px,env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-3">
-          <Link to="/learning" className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <Link to="/learning" className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--ink-080)' }}>
             <ChevronLeft size={18} className="text-white" />
           </Link>
           <h1 className="font-heading text-base font-bold text-white">Solved Examples</h1>
@@ -336,7 +335,7 @@ Return ONLY JSON array:
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search questions, topics…"
             className="w-full pl-8 pr-8 py-2.5 rounded-2xl text-sm text-white placeholder-white/30 outline-none"
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.09)' }} />
+            style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-090)' }} />
           {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={13} className="text-white/40" /></button>}
         </div>
 
@@ -345,7 +344,7 @@ Return ONLY JSON array:
           {SUBJECTS.map(s => (
             <button key={s} onClick={() => setSubject(s)}
               className="shrink-0 px-3 py-1 rounded-xl text-xs font-bold transition-all"
-              style={{ background: subject === s ? '#5B6AF5' : 'rgba(255,255,255,0.07)', color: subject === s ? 'white' : 'rgba(255,255,255,0.4)' }}>
+              style={{ background: subject === s ? '#5B6AF5' : 'var(--ink-070)', color: subject === s ? 'white' : 'var(--ink-400)' }}>
               {s}
             </button>
           ))}
@@ -357,7 +356,7 @@ Return ONLY JSON array:
             {SOURCES.map(s => (
               <button key={s} onClick={() => setSource(s)}
                 className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold"
-                style={{ background: source === s ? 'rgba(139,92,246,0.25)' : 'rgba(255,255,255,0.05)', color: source === s ? '#C4B5FD' : 'rgba(255,255,255,0.35)' }}>
+                style={{ background: source === s ? 'rgba(139,92,246,0.25)' : 'var(--ink-050)', color: source === s ? '#C4B5FD' : 'var(--ink-350)' }}>
                 {s}
               </button>
             ))}
@@ -366,7 +365,7 @@ Return ONLY JSON array:
             {DIFFICULTIES.map(d => (
               <button key={d} onClick={() => setDifficulty(d)}
                 className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold"
-                style={{ background: difficulty === d ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)', color: difficulty === d ? '#FCD34D' : 'rgba(255,255,255,0.35)' }}>
+                style={{ background: difficulty === d ? 'rgba(245,158,11,0.2)' : 'var(--ink-050)', color: difficulty === d ? '#FCD34D' : 'var(--ink-350)' }}>
                 {d}
               </button>
             ))}
@@ -401,7 +400,7 @@ Return ONLY JSON array:
               initial={{ y:'100%' }} animate={{ y:0 }} exit={{ y:'100%' }}
               transition={{ type:'spring', stiffness:340, damping:36 }}
               className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl px-4 pb-10 pt-5"
-              style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', maxHeight:'60vh' }}>
+              style={{ background: 'var(--surface-sheet)', border: '1px solid var(--ink-100)', maxHeight:'60vh' }}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: '#5B6AF5' }}>
@@ -409,7 +408,7 @@ Return ONLY JSON array:
                   </div>
                   <p className="text-sm font-bold text-white">Novo explains</p>
                 </div>
-                <button onClick={() => setNovoQuestion(null)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <button onClick={() => setNovoQuestion(null)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--ink-080)' }}>
                   <X size={14} className="text-white/60" />
                 </button>
               </div>

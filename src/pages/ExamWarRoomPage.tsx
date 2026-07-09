@@ -1,9 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import {useState, useEffect} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft, Zap, CheckCircle2, Circle, Brain, Target,
-  Clock, AlertTriangle, Shield, Loader2,
-} from 'lucide-react';
+import {ArrowLeft, CheckCircle2, Circle, Loader2, Moon, Utensils, Brain, Clock, Target, Ban} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -55,8 +52,7 @@ const STATIC_CHECKLIST: CheckItem[] = [
 const CATEGORY_COLORS = {
   logistics: '#5B6AF5',
   revision:  '#10B981',
-  mindset:   '#F59E0B',
-};
+  mindset:   '#F59E0B' };
 
 // ── Rapid-fire revision topics ────────────────────────────────────────────────
 
@@ -156,7 +152,7 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
         <div className="flex items-center gap-3 mb-4">
           <Link to="/home"
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={18} className="text-white" strokeWidth={1.75} />
           </Link>
           <div className="flex-1">
@@ -171,11 +167,10 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
             onClick={() => setFocusMode(v => !v)}
             className="px-3 py-1.5 rounded-xl text-xs font-bold"
             style={{
-              background: focusMode ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)',
-              border: `1px solid ${focusMode ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.1)'}`,
-              color: focusMode ? '#F87171' : 'rgba(255,255,255,0.6)',
-            }}>
-            {focusMode ? '🔴 Focus' : 'Focus'}
+              background: focusMode ? 'rgba(239,68,68,0.15)' : 'var(--ink-060)',
+              border: `1px solid ${focusMode ? 'rgba(239,68,68,0.4)' : 'var(--ink-100)'}`,
+              color: focusMode ? '#F87171' : 'var(--ink-600)' }}>
+            Focus
           </motion.button>
         </div>
 
@@ -186,8 +181,7 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
           className="rounded-3xl p-5 mb-1"
           style={{
             background: `linear-gradient(135deg, ${urgencyColor}22, ${urgencyColor}11)`,
-            border: `1px solid ${urgencyColor}44`,
-          }}>
+            border: `1px solid ${urgencyColor}44` }}>
           <p className="text-center text-xs font-bold mb-3" style={{ color: urgencyColor, letterSpacing: 2 }}>
             T-MINUS
           </p>
@@ -206,7 +200,7 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                   <span className="text-5xl font-black tabular-nums" style={{ color: urgencyColor, fontVariantNumeric: 'tabular-nums' }}>
                     {item.value}
                   </span>
-                  <span className="text-[10px] font-bold tracking-widest mt-1" style={{ color: `${urgencyColor}88` }}>
+                  <span className="text-xs font-bold tracking-widest mt-1" style={{ color: `${urgencyColor}88` }}>
                     {item.label}
                   </span>
                 </div>
@@ -218,17 +212,16 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
 
       {/* Tabs */}
       <div className="px-4 mb-3 shrink-0">
-        <div className="flex gap-2 p-1 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="flex gap-2 p-1 rounded-2xl" style={{ background: 'var(--ink-040)' }}>
           {(['checklist', 'revision', 'mindset'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className="flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all"
               style={{
-                background: activeTab === tab ? 'rgba(255,255,255,0.1)' : 'transparent',
-                color: activeTab === tab ? 'white' : 'rgba(255,255,255,0.4)',
-              }}>
-              {tab === 'checklist' ? '✅ Checklist' : tab === 'revision' ? '⚡ Revision' : '🧘 Mindset'}
+                background: activeTab === tab ? 'var(--ink-100)' : 'transparent',
+                color: activeTab === tab ? 'white' : 'var(--ink-400)' }}>
+              {tab === 'checklist' ? 'Checklist' : tab === 'revision' ? 'Revision' : 'Mindset'}
             </button>
           ))}
         </div>
@@ -245,10 +238,10 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs text-white/50">{doneCount}/{checklist.length} items ready</span>
                 <span className="text-xs font-bold" style={{ color: readyPct === 100 ? '#10B981' : urgencyColor }}>
-                  {readyPct === 100 ? '✅ All ready!' : `${readyPct}% ready`}
+                  {readyPct === 100 ? 'All ready' : `${readyPct}% ready`}
                 </span>
               </div>
-              <div className="h-1.5 rounded-full mb-4 overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="h-1.5 rounded-full mb-4 overflow-hidden" style={{ background: 'var(--ink-080)' }}>
                 <motion.div
                   animate={{ width: `${readyPct}%` }}
                   className="h-full rounded-full"
@@ -264,14 +257,13 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                     onClick={() => setChecklist(prev => prev.map(i => i.id === item.id ? { ...i, done: !i.done } : i))}
                     className="flex items-center gap-3 p-3.5 rounded-2xl text-left transition-all"
                     style={{
-                      background: item.done ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${item.done ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.07)'}`,
-                    }}>
+                      background: item.done ? 'rgba(16,185,129,0.1)' : 'var(--ink-040)',
+                      border: `1px solid ${item.done ? 'rgba(16,185,129,0.3)' : 'var(--ink-070)'}` }}>
                     {item.done
                       ? <CheckCircle2 size={20} color="#10B981" strokeWidth={2} />
-                      : <Circle size={20} color="rgba(255,255,255,0.25)" strokeWidth={1.75} />
+                      : <Circle size={20} color="var(--ink-250)" strokeWidth={1.75} />
                     }
-                    <span className="flex-1 text-sm leading-snug" style={{ color: item.done ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)', textDecoration: item.done ? 'line-through' : 'none' }}>
+                    <span className="flex-1 text-sm leading-snug" style={{ color: item.done ? 'var(--ink-500)' : 'var(--ink-850)', textDecoration: item.done ? 'line-through' : 'none' }}>
                       {item.text}
                     </span>
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ background: CATEGORY_COLORS[item.category] }} />
@@ -299,7 +291,7 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.06 }}
                       className="p-4 rounded-2xl"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
@@ -309,8 +301,7 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                           <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
                             style={{
                               background: topic.priority === 'critical' ? 'rgba(239,68,68,0.15)' : topic.priority === 'high' ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
-                              color: topic.priority === 'critical' ? '#F87171' : topic.priority === 'high' ? '#FCD34D' : '#6EE7B7',
-                            }}>
+                              color: topic.priority === 'critical' ? '#F87171' : topic.priority === 'high' ? '#FCD34D' : '#6EE7B7' }}>
                             {topic.priority}
                           </span>
                         </div>
@@ -322,7 +313,7 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                         </button>
                       </div>
                       <p className="text-white font-bold text-sm mb-1">{topic.topic}</p>
-                      <p className="text-white/50 text-xs leading-relaxed">💡 {topic.tip}</p>
+                      <p className="text-white/50 text-xs leading-relaxed">{topic.tip}</p>
                     </motion.div>
                   ))}
                 </div>
@@ -335,12 +326,12 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
             <motion.div key="mindset" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
               <div className="flex flex-col gap-3">
                 {[
-                  { icon: '😴', title: 'Sleep is revision', body: 'Your brain consolidates today\'s learning during sleep. 7-8 hours tonight is worth more than any last-minute cramming.' },
-                  { icon: '🍽️', title: 'Fuel smart', body: 'Light meal tonight and breakfast. Avoid heavy/oily food. No caffeine after 6 PM — it disrupts sleep.' },
-                  { icon: '🧠', title: 'Trust your preparation', body: 'You\'ve put in the work. The exam tests what you know — not what you could have known. Go in confident.' },
-                  { icon: '⏱️', title: 'Time management in hall', body: 'Attempt sure questions first. Don\'t spend >3 min on any question. Flag and return — never leave marks on the table.' },
-                  { icon: '🎯', title: 'Accuracy over speed', body: 'One wrong answer costs you 1 mark. One right answer earns you 4. Pick your battles wisely.' },
-                  { icon: '📵', title: 'Digital detox tonight', body: 'Stop social media at 9 PM. No doom-scrolling rank prediction posts. Your preparation is done — protect your headspace.' },
+                  { icon: Moon, title: 'Sleep is revision', body: 'Your brain consolidates today\'s learning during sleep. 7-8 hours tonight is worth more than any last-minute cramming.' },
+                  { icon: Utensils, title: 'Fuel smart', body: 'Light meal tonight and breakfast. Avoid heavy/oily food. No caffeine after 6 PM — it disrupts sleep.' },
+                  { icon: Brain, title: 'Trust your preparation', body: 'You\'ve put in the work. The exam tests what you know — not what you could have known. Go in confident.' },
+                  { icon: Clock, title: 'Time management in hall', body: 'Attempt sure questions first. Don\'t spend >3 min on any question. Flag and return — never leave marks on the table.' },
+                  { icon: Target, title: 'Accuracy over speed', body: 'One wrong answer costs you 1 mark. One right answer earns you 4. Pick your battles wisely.' },
+                  { icon: Ban, title: 'Digital detox tonight', body: 'Stop social media at 9 PM. No doom-scrolling rank prediction posts. Your preparation is done — protect your headspace.' },
                 ].map((card, i) => (
                   <motion.div
                     key={i}
@@ -348,8 +339,8 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.07 }}
                     className="p-4 rounded-2xl flex gap-4"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <span className="text-3xl shrink-0">{card.icon}</span>
+                    style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
+                    <card.icon size={26} className="shrink-0" style={{ color: '#A0AEFF' }} strokeWidth={1.6} />
                     <div>
                       <p className="text-white font-bold text-sm mb-1">{card.title}</p>
                       <p className="text-white/50 text-xs leading-relaxed">{card.body}</p>

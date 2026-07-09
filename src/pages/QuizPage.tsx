@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { SkeletonTopWeakness } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, ChevronLeft, CheckCircle, XCircle, Trophy, Zap, Star, Flame, AlertTriangle, Lightbulb, HelpCircle, Clock } from 'lucide-react';
+import { Brain, ChevronLeft, CheckCircle, XCircle, Zap, Star, Flame, AlertTriangle, Lightbulb, HelpCircle, Clock, Dices, Trophy, Meh, Loader2 } from 'lucide-react';
 import { PeerPercentile } from '@/components/quiz/PeerPercentile';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON, geminiCall } from '@/lib/gemini';
@@ -14,6 +13,7 @@ import { OfflineCache } from '@/lib/offlineCache';
 import { SyncQueue } from '@/lib/syncQueue';
 import { track } from '@/lib/analytics';
 import { loadUnlockedIds, checkAchievements } from '@/lib/achievements';
+import { scoreQuiz } from '@/lib/quizScoring';
 import type { QuizQuestion } from '@/types';
 
 interface QuizDraft {
@@ -64,28 +64,24 @@ const QuizOptionButton = memo(function QuizOptionButton({
   option: string; index: number; isCorrect: boolean; isSelected: boolean; revealed: boolean;
   onSelect: (i: number) => void;
 }) {
-  let bg = 'rgba(255,255,255,0.055)';
-  let blur = 'blur(24px) saturate(160%)';
-  let border = 'rgba(255,255,255,0.1)';
-  let insetShadow = 'inset 0 1px 0 rgba(255,255,255,0.1)';
-  let textColor = 'rgba(255,255,255,0.88)';
-  let labelBg = 'rgba(91,106,245,0.18)';
-  let labelColor = '#A0AEFF';
+  let bg = 'var(--v2-card)';
+  let border = 'var(--v2-border)';
+  let textColor = 'var(--v2-text-1)';
+  let labelBg = 'var(--v2-primary-tint-2)';
+  let labelColor = 'var(--v2-primary)';
 
   if (revealed) {
     if (isCorrect) {
-      bg = 'rgba(16,185,129,0.14)';
-      border = 'rgba(16,185,129,0.42)';
-      insetShadow = 'inset 0 1px 0 rgba(255,255,255,0.12)';
-      labelBg = '#10B981';
+      bg = 'rgba(16,185,129,0.10)';
+      border = 'var(--v2-success)';
+      labelBg = 'var(--v2-success)';
       labelColor = '#fff';
     } else if (isSelected) {
-      bg = 'rgba(239,68,68,0.12)';
-      border = 'rgba(239,68,68,0.42)';
-      insetShadow = 'inset 0 1px 0 rgba(255,255,255,0.08)';
-      labelBg = '#EF4444';
+      bg = 'rgba(239,68,68,0.10)';
+      border = 'var(--v2-error)';
+      labelBg = 'var(--v2-error)';
       labelColor = '#fff';
-      textColor = '#F87171';
+      textColor = 'var(--v2-error-text)';
     }
   }
 
@@ -100,10 +96,7 @@ const QuizOptionButton = memo(function QuizOptionButton({
       className="w-full text-left rounded-2xl p-4 transition-all"
       style={{
         background: bg,
-        backdropFilter: blur,
-        WebkitBackdropFilter: blur,
         border: `1.5px solid ${border}`,
-        boxShadow: insetShadow,
       }}>
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-extrabold shrink-0 transition-all"
@@ -142,6 +135,10 @@ export default function QuizPage() {
   const [showConceptModal, setShowConceptModal] = useState(false);
   const [conceptExplanation, setConceptExplanation] = useState('');
   const [conceptLoading, setConceptLoading] = useState(false);
+
+  // ── Deep explanation (Nemotron-backed cache, per question) ────────────────
+  const [deepExplanations, setDeepExplanations] = useState<Record<number, string>>({});
+  const [deepLoading, setDeepLoading] = useState<Record<number, boolean>>({});
 
   // ── Per-question countdown timer ──────────────────────────────────────────
   const [qTimeLeft, setQTimeLeft] = useState<number | null>(null);
@@ -283,6 +280,35 @@ export default function QuizPage() {
     setPhase('quiz');
   }
 
+  // Ground quiz generation in real NCERT textbook content when the topic
+  // matches the existing curriculum corpus (274 chapters, class 6-12),
+  // instead of always writing generic free-floating AI trivia. Falls back
+  // to the plain prompt untouched if no real match is found — never blocks.
+  async function fetchNcertGrounding(topicStr: string): Promise<string> {
+    try {
+      const { data } = await supabase.functions.invoke('novo-ncert', {
+        body: { action: 'search', query: topicStr, count: 3 },
+      });
+      const results = (data?.results ?? []) as Array<{ content?: string; chapter_title?: string }>;
+      if (!results.length) return '';
+      return results.map(r => r.content).filter(Boolean).join('\n\n');
+    } catch {
+      return '';
+    }
+  }
+
+  function buildQuizPrompt(topicStr: string, n: number, grounding: string): string {
+    if (grounding) {
+      return `Create ${n} MCQ questions about "${topicStr}", based STRICTLY on the real textbook content below — test the actual facts/concepts/examples present in this content, not generic trivia.
+
+Textbook content:
+${grounding}
+
+Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}]. correct_answer is 0-indexed.`;
+    }
+    return `Create ${n} MCQ questions about "${topicStr}". Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}]. correct_answer is 0-indexed.`;
+  }
+
   async function generateQuiz() {
     if (!topic.trim()) return;
     setGenError(''); clearDraft(); setDraft(null);
@@ -303,8 +329,8 @@ export default function QuizPage() {
         setPhase('quiz');
 
         // Pre-generate fresh questions in the background for next time
-        geminiJSON<QuizQuestion[]>(
-          `Create ${count} MCQ questions about "${topic}". Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}]. correct_answer is 0-indexed.`
+        fetchNcertGrounding(topic).then(grounding =>
+          geminiJSON<QuizQuestion[]>(buildQuizPrompt(topic, count, grounding))
         ).then(fresh => {
           if (Array.isArray(fresh)) {
             OfflineCache.cacheQuizQuestions(topic, fresh.map((q, i) => ({
@@ -318,6 +344,30 @@ export default function QuizPage() {
         return;
       }
 
+      // No cache — draw a couple of human-approved questions from the
+      // self-healed verified_question_bank as a trusted supplement, then
+      // fill the rest with fresh AI generation. Never blocks the core flow.
+      let verified: QuizQuestion[] = [];
+      try {
+        const { data: vRows } = await supabase
+          .from('verified_question_bank')
+          .select('id, question_text, options, correct_index, explanation')
+          .eq('is_approved', true)
+          .ilike('topic', `%${topic}%`)
+          .limit(Math.min(2, count - 1));
+        verified = (vRows ?? []).map((r, i) => ({
+          id: `vqb${i}_${r.id}`,
+          question: r.question_text,
+          options: r.options as string[],
+          correct_answer: r.correct_index,
+          explanation: r.explanation,
+        })) as QuizQuestion[];
+      } catch {
+        verified = [];
+      }
+
+      const aiCount = count - verified.length;
+
       // No cache — generate with AI
       setLoadProgress(20); setLoadStatus('Connecting to Novo AI…');
       // Simulate incremental progress while the AI works (real completion snaps to 100%)
@@ -327,14 +377,13 @@ export default function QuizPage() {
           return p + Math.random() * 8;
         });
       }, 800);
-      setLoadStatus(`Writing ${count} questions on "${topic}"…`);
-      const parsed = await geminiJSON<QuizQuestion[]>(
-        `Create ${count} MCQ questions about "${topic}". Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A","B","C","D"],"correct_answer":0,"explanation":"..."}]. correct_answer is 0-indexed.`
-      );
+      setLoadStatus(`Writing ${aiCount} questions on "${topic}"…`);
+      const grounding = await fetchNcertGrounding(topic);
+      const parsed = await geminiJSON<QuizQuestion[]>(buildQuizPrompt(topic, aiCount, grounding));
       clearInterval(progressTimer);
       if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('No questions returned');
       setLoadProgress(100); setLoadStatus('Ready!');
-      const qs = parsed.map((q, i) => ({ ...q, id: `q${i}` }));
+      const qs = [...verified, ...parsed.map((q, i) => ({ ...q, id: `q${i}` }))];
       setQuestions(qs);
       setCurrent(0); setAnswers([]); setSelected(null); setRevealed(false);
       saveDraft(qs, 0, [], topic, count);
@@ -385,6 +434,32 @@ export default function QuizPage() {
     }
   }
 
+  async function fetchDeepExplanation() {
+    const q = questions[current];
+    if (!q || deepLoading[current] || deepExplanations[current]) return;
+    setDeepLoading(prev => ({ ...prev, [current]: true }));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('question-explain', {
+        body: {
+          action: 'get_or_generate',
+          question_text: q.question,
+          options: q.options,
+          correct_answer: q.options[q.correct_answer],
+          subject: topic,
+          topic,
+        },
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
+      if (error || !data?.explanation) throw new Error(error?.message ?? 'No explanation returned');
+      setDeepExplanations(prev => ({ ...prev, [current]: data.explanation }));
+    } catch {
+      setDeepExplanations(prev => ({ ...prev, [current]: 'Could not load a deeper explanation right now — try again in a moment.' }));
+    } finally {
+      setDeepLoading(prev => ({ ...prev, [current]: false }));
+    }
+  }
+
   function next() {
     if (selected === null) return;
     Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
@@ -405,8 +480,7 @@ export default function QuizPage() {
 
   async function finishQuiz(finalAnswers: number[]) {
     clearDraft();
-    const score = finalAnswers.filter((a, i) => a === questions[i].correct_answer).length;
-    const pct   = Math.round((score / questions.length) * 100);
+    const { score, pct } = scoreQuiz(finalAnswers, questions);
     // Haptic punctuates the result — strong success for ≥70%, warning otherwise
     if (pct >= 70) Haptics.notification({ type: NotificationType.Success }).catch(() => {});
     else Haptics.notification({ type: NotificationType.Warning }).catch(() => {});
@@ -610,17 +684,17 @@ export default function QuizPage() {
 
               {/* Topic input */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>Topic</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ink-400)' }}>Topic</p>
                 <input type="text" placeholder="e.g. Newton's Laws of Motion"
                   value={topic} onChange={e => setTopic(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && generateQuiz()}
                   className="w-full h-14 px-4 rounded-2xl text-white placeholder:text-white/30 outline-none text-sm font-medium"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
+                    background: 'var(--ink-060)',
                     backdropFilter: 'blur(20px)',
                     WebkitBackdropFilter: 'blur(20px)',
                     border: '1.5px solid rgba(91,106,245,0.28)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+                    boxShadow: 'inset 0 1px 0 var(--ink-100)',
                     WebkitUserSelect: 'text',
                     userSelect: 'text',
                   }} />
@@ -628,22 +702,22 @@ export default function QuizPage() {
 
               {/* Question count */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>Questions</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ink-400)' }}>Questions</p>
                 <div className="flex gap-2">
                   {[5, 10, 15, 20].map(n => (
                     <button key={n} onClick={() => setCount(n)}
                       className="flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95"
                       style={count === n ? {
                         background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
-                        color: '#fff',
-                        boxShadow: '0 4px 16px rgba(91,106,245,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
+                        color: 'var(--ink-950)',
+                        boxShadow: '0 4px 16px rgba(91,106,245,0.35), inset 0 1px 0 var(--ink-200)',
                       } : {
-                        background: 'rgba(255,255,255,0.055)',
+                        background: 'var(--ink-055)',
                         backdropFilter: 'blur(20px)',
                         WebkitBackdropFilter: 'blur(20px)',
-                        color: 'rgba(255,255,255,0.55)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+                        color: 'var(--ink-550)',
+                        border: '1px solid var(--ink-100)',
+                        boxShadow: 'inset 0 1px 0 var(--ink-080)',
                       }}>
                       {n}
                     </button>
@@ -689,7 +763,7 @@ export default function QuizPage() {
                 {/* Status text — reassures users the app is working, not frozen */}
                 <p className="text-sm text-muted-foreground min-h-[20px]">{loadStatus}</p>
                 {/* Animated progress bar */}
-                <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
                   <motion.div className="h-full rounded-full"
                     animate={{ width: `${Math.min(loadProgress, 100)}%` }}
                     transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -712,18 +786,18 @@ export default function QuizPage() {
               <div className="flex items-center gap-3">
                 <button aria-label="Go back" onClick={() => setPhase('setup')}
                   className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-90"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <ChevronLeft size={18} className="text-white" />
+                  style={{ background: 'var(--v2-elevated)', border: '1px solid var(--v2-border)' }}>
+                  <ChevronLeft size={18} style={{ color: 'var(--v2-text-1)' }} />
                 </button>
                 {/* Progress bar */}
-                <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--v2-border)' }}>
                   <motion.div className="h-full rounded-full"
                     initial={{ width: `${qProgress}%` }}
                     animate={{ width: `${((current + (revealed ? 1 : 0)) / questions.length) * 100}%` }}
                     transition={{ duration: 0.4 }}
-                    style={{ background: 'linear-gradient(90deg,#5B6AF5,#8B5CF6)' }} />
+                    style={{ background: 'var(--v2-primary)' }} />
                 </div>
-                <span className="text-sm font-bold text-muted-foreground shrink-0 min-w-[36px] text-right">
+                <span className="text-sm font-bold v2-tnum shrink-0 min-w-[36px] text-right" style={{ color: 'var(--v2-text-4)' }}>
                   {current + 1}/{questions.length}
                 </span>
               </div>
@@ -731,17 +805,17 @@ export default function QuizPage() {
               {/* Per-question timer */}
               {qTimeLeft !== null && (
                 <div className="flex items-center gap-2">
-                  <Clock size={13} style={{ color: qTimeLeft <= 10 ? '#EF4444' : 'rgba(255,255,255,0.35)' }} />
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                  <Clock size={13} style={{ color: qTimeLeft <= 10 ? 'var(--v2-error)' : 'var(--v2-text-4)' }} />
+                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--v2-border)' }}>
                     <motion.div
                       className="h-full rounded-full"
                       animate={{ width: `${(qTimeLeft / 30) * 100}%` }}
                       transition={{ duration: 0.9, ease: 'linear' }}
-                      style={{ background: qTimeLeft <= 10 ? '#EF4444' : 'rgba(91,106,245,0.7)' }}
+                      style={{ background: qTimeLeft <= 10 ? 'var(--v2-error)' : 'var(--v2-primary)' }}
                     />
                   </div>
-                  <span className="text-xs font-extrabold tabular-nums shrink-0"
-                    style={{ color: qTimeLeft <= 10 ? '#EF4444' : 'rgba(255,255,255,0.4)', minWidth: 24 }}>
+                  <span className="text-xs font-extrabold v2-tnum shrink-0"
+                    style={{ color: qTimeLeft <= 10 ? 'var(--v2-error)' : 'var(--v2-text-4)', minWidth: 24 }}>
                     {qTimeLeft}s
                   </span>
                 </div>
@@ -832,19 +906,20 @@ export default function QuizPage() {
 
                     {/* Confidence rating */}
                     {confidence[current] === undefined && (
-                      <div className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div className="rounded-2xl p-3" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
                         <p className="text-[11px] font-bold uppercase tracking-wider mb-2 text-center"
-                          style={{ color: 'rgba(255,255,255,0.4)' }}>
+                          style={{ color: 'var(--ink-400)' }}>
                           How confident were you?
                         </p>
                         <div className="flex gap-2">
                           {([
-                            { key: 'sure' as const, label: '✅ I knew it', color: '#10B981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)' },
-                            { key: 'guessing' as const, label: '🎲 Was guessing', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)' },
+                            { key: 'sure' as const, label: 'I knew it', icon: CheckCircle, color: '#10B981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)' },
+                            { key: 'guessing' as const, label: 'Was guessing', icon: Dices, color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)' },
                           ] as const).map(opt => (
                             <button key={opt.key} onClick={() => setQuestionConfidence(opt.key)}
-                              className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+                              className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5"
                               style={{ background: opt.bg, color: opt.color, border: `1.5px solid ${opt.border}` }}>
+                              <opt.icon size={14} strokeWidth={1.8} />
                               {opt.label}
                             </button>
                           ))}
@@ -859,7 +934,25 @@ export default function QuizPage() {
                           Explanation
                         </p>
                       </div>
-                      <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>{q.explanation}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-750)' }}>{q.explanation}</p>
+
+                      {deepExplanations[current] ? (
+                        <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--ink-100)' }}>
+                          <p className="text-[11px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: '#8B5CF6' }}>
+                            Deeper explanation
+                          </p>
+                          <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-750)' }}>{deepExplanations[current]}</p>
+                        </div>
+                      ) : (
+                        <button onClick={fetchDeepExplanation} disabled={deepLoading[current]}
+                          className="mt-3 flex items-center gap-1.5 text-xs font-bold disabled:opacity-60"
+                          style={{ color: '#8B5CF6' }}>
+                          {deepLoading[current]
+                            ? <><Loader2 size={12} className="animate-spin" /> Thinking deeper…</>
+                            : <><HelpCircle size={12} /> Still confused? Get a deeper explanation</>
+                          }
+                        </button>
+                      )}
                     </div>
                     <button onClick={next}
                       disabled={confidence[current] === undefined}
@@ -885,10 +978,10 @@ export default function QuizPage() {
               transition={{ type: 'spring', stiffness: 280, damping: 24 }}
               className="flex flex-col items-center justify-center flex-1 gap-6">
 
-              {/* Result character */}
-              <div className="text-7xl">
-                {Math.round((score / questions.length) * 100) >= 70 ? '🏆' : '🤔'}
-              </div>
+              {/* Result icon */}
+              {Math.round((score / questions.length) * 100) >= 70
+                ? <Trophy size={56} style={{ color: '#FBBF24' }} strokeWidth={1.4} />
+                : <Meh size={56} className="text-white/30" strokeWidth={1.4} />}
 
               {/* Score */}
               <div className="text-center">
@@ -921,7 +1014,7 @@ export default function QuizPage() {
                 ].map(stat => (
                   <div key={stat.label} className="bento-cell rounded-2xl py-3 text-center">
                     <p className="font-heading text-2xl font-extrabold" style={{ color: stat.color }}>{stat.value}</p>
-                    <p className="text-[11px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{stat.label}</p>
+                    <p className="text-[11px] font-semibold mt-0.5" style={{ color: 'var(--ink-400)' }}>{stat.label}</p>
                   </div>
                 ))}
               </motion.div>
@@ -935,7 +1028,7 @@ export default function QuizPage() {
                 <button
                   onClick={() => { setCurrent(0); setAnswers([]); setSelected(null); setRevealed(false); setPhase('quiz'); }}
                   className="py-4 rounded-2xl font-bold text-sm text-white active:scale-98 transition-all"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.1)' }}>
+                  style={{ background: 'var(--ink-060)', border: '1.5px solid var(--ink-100)' }}>
                   Retry
                 </button>
                 <button onClick={() => setPhase('setup')}
@@ -966,7 +1059,7 @@ export default function QuizPage() {
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 380 }}
               className="w-full rounded-t-3xl p-6 flex flex-col gap-4"
-              style={{ background: '#13172A', border: '1.5px solid rgba(91,106,245,0.3)' }}
+              style={{ background: 'var(--surface-sheet)', border: '1.5px solid rgba(91,106,245,0.3)' }}
               onClick={e => e.stopPropagation()}>
 
               <div className="flex items-center gap-3">
@@ -989,7 +1082,7 @@ export default function QuizPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-5 h-5 rounded-full border-2 border-purple-500 animate-spin"
                       style={{ borderTopColor: 'transparent' }} />
-                    <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    <span className="text-sm" style={{ color: 'var(--ink-600)' }}>
                       Novo is thinking…
                     </span>
                   </div>
@@ -1001,7 +1094,7 @@ export default function QuizPage() {
               <div className="flex items-center gap-2 rounded-xl p-3"
                 style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
                 <AlertTriangle size={13} style={{ color: '#FBBF24' }} />
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                <p className="text-xs" style={{ color: 'var(--ink-600)' }}>
                   3 wrong in a row — this topic is being flagged for revision
                 </p>
               </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, BookOpen, CheckCircle, XCircle, ChevronRight, Sparkles, Flag } from 'lucide-react';
+import {ChevronLeft, BookOpen, CheckCircle, XCircle, ChevronRight, Sparkles} from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,8 +45,7 @@ const CLASSES = [6, 7, 8, 9, 10, 11, 12];
 const SUBJECT_COLORS: Record<string, string> = {
   Maths: '#A78BFA', Science: '#38BDF8', Physics: '#60A5FA',
   Chemistry: '#34D399', Biology: '#4ADE80',
-  History: '#FBBF24', Geography: '#FB923C', Civics: '#F472B6', Economics: '#E879F9',
-};
+  History: '#FBBF24', Geography: '#FB923C', Civics: '#F472B6', Economics: '#E879F9' };
 function sColor(s: string) { return SUBJECT_COLORS[s] ?? '#A0AEFF'; }
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
@@ -73,6 +72,7 @@ export default function NCERTChaptersPage() {
   const [fcFlipped, setFcFlipped] = useState(false);
   const [showFlashcards, setShowFlashcards] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadChapters(); }, [classNum, subject]);
 
   async function loadChapters() {
@@ -209,8 +209,7 @@ Keep it under 100 words. Be warm and encouraging.`;
       questions_correct: correct,
       flashcards_reviewed: flashcards.length > 0 ? fcIdx + 1 : 0,
       completed_at: correct / questions.length >= 0.7 ? new Date().toISOString() : null,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,chapter_id' });
+      updated_at: new Date().toISOString() }, { onConflict: 'user_id,chapter_id' });
   }
 
   const q = questions[current];
@@ -257,8 +256,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                   style={{
                     background: classNum === c ? 'rgba(91,106,245,0.2)' : 'var(--color-surface)',
                     color: classNum === c ? '#A0AEFF' : 'var(--color-text-secondary)',
-                    border: `1px solid ${classNum === c ? '#5B6AF5' : 'var(--color-border)'}`,
-                  }}>
+                    border: `1px solid ${classNum === c ? '#5B6AF5' : 'var(--color-border)'}` }}>
                   Class {c}
                 </button>
               ))}
@@ -271,8 +269,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                   style={{
                     background: subject === s ? `${sColor(s)}20` : 'var(--color-surface)',
                     color: subject === s ? sColor(s) : 'var(--color-text-secondary)',
-                    border: `1px solid ${subject === s ? sColor(s) : 'var(--color-border)'}`,
-                  }}>
+                    border: `1px solid ${subject === s ? sColor(s) : 'var(--color-border)'}` }}>
                   {s}
                 </button>
               ))}
@@ -370,7 +367,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                 {/* Actions */}
                 <div className="space-y-3">
                   <Button onClick={startQuiz} className="w-full h-12 rounded-2xl font-bold"
-                    style={{ background: sColor(subject), color: '#0A0A0F' }}
+                    style={{ background: sColor(subject), color: 'var(--color-on-accent)' }}
                     disabled={!questions.length}>
                     Practice {questions.length} Questions
                   </Button>
@@ -379,7 +376,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                     <Button onClick={() => setShowFlashcards(true)} variant="outline"
                       className="w-full h-12 rounded-2xl"
                       style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
-                      📇 Review {flashcards.length} Flashcards
+                      <BookOpen size={16} className="mr-1.5 inline" strokeWidth={1.7} /> Review {flashcards.length} Flashcards
                     </Button>
                   )}
                 </div>
@@ -426,7 +423,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                           if (fcIdx < flashcards.length - 1) { setFcIdx(i => i + 1); setFcFlipped(false); }
                           else setShowFlashcards(false);
                         }} className="flex-1 rounded-2xl"
-                          style={{ background: sColor(subject), color: '#0A0A0F' }}>
+                          style={{ background: sColor(subject), color: 'var(--color-on-accent)' }}>
                           {fcIdx < flashcards.length - 1 ? 'Next →' : 'Done ✓'}
                         </Button>
                       </div>
@@ -508,7 +505,7 @@ Keep it under 100 words. Be warm and encouraging.`;
             </AnimatePresence>
             {revealed && (
               <Button onClick={nextQuestion} className="w-full h-12 rounded-2xl font-bold"
-                style={{ background: sColor(subject), color: '#0A0A0F' }}>
+                style={{ background: sColor(subject), color: 'var(--color-on-accent)' }}>
                 {current >= questions.length - 1 ? 'See Results' : 'Next →'}
               </Button>
             )}
@@ -542,7 +539,7 @@ Keep it under 100 words. Be warm and encouraging.`;
             </div>
             <div className="space-y-3">
               <Button onClick={startQuiz} className="w-full h-12 rounded-2xl font-bold"
-                style={{ background: sColor(subject), color: '#0A0A0F' }}>Retry Quiz</Button>
+                style={{ background: sColor(subject), color: 'var(--color-on-accent)' }}>Retry Quiz</Button>
               <Button onClick={() => { setPhase('chapter'); setCurrent(0); }} variant="outline"
                 className="w-full h-12 rounded-2xl"
                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>← Back to Chapter</Button>

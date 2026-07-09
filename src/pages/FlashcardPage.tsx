@@ -11,6 +11,8 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { OfflineCache } from '@/lib/offlineCache';
 import { getSubjectTheme } from '@/lib/subjectColors';
 import type { Flashcard } from '@/types';
+import { indexUserItem } from '@/lib/userContentIndex';
+import { getFeatureTheme } from '@/lib/featureTheme';
 
 type ReviewRating = 'again' | 'hard' | 'good' | 'easy';
 
@@ -149,12 +151,13 @@ export default function FlashcardPage() {
 
   async function saveCard() {
     if (!profile || !newFront.trim() || !newBack.trim()) return;
-    const { error } = await supabase.from('flashcards').insert({
+    const { data: fcData, error } = await supabase.from('flashcards').insert({
       user_id: profile.id, front: newFront.trim(), back: newBack.trim(),
       subject, topic: '', ease_factor: 2.5, interval: 1, repetitions: 0,
       next_review: new Date().toISOString(),
-    });
+    }).select('id').single();
     if (error) { console.error('[FlashcardPage] saveCard error:', error.message); return; }
+    if (fcData?.id) indexUserItem('flashcard', fcData.id).catch(() => {});
     setNewFront(''); setNewBack(''); setView('menu');
   }
 
@@ -166,12 +169,13 @@ export default function FlashcardPage() {
         `Generate 5 flashcards for: "${aiTopic}". Return ONLY valid JSON array: [{"front":"question","back":"answer"}]. No markdown.`
       );
       if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('No cards were generated. Please try a different topic.');
-      const { error } = await supabase.from('flashcards').insert(parsed.map(c => ({
+      const { data: aiCards, error } = await supabase.from('flashcards').insert(parsed.map(c => ({
         user_id: profile.id, front: c.front, back: c.back,
         subject: aiTopic, topic: aiTopic, ease_factor: 2.5,
         interval: 1, repetitions: 0, next_review: new Date().toISOString(),
-      })));
+      }))).select('id');
       if (error) throw new Error('Could not save cards. Please try again.');
+      (aiCards ?? []).forEach(fc => indexUserItem('flashcard', fc.id).catch(() => {}));
       track('ai_flashcards_generated', { topic: aiTopic, count: parsed.length, source: 'ai_generate' });
       setAiTopic(''); setView('menu');
     } catch (err) {
@@ -181,22 +185,25 @@ export default function FlashcardPage() {
 
   const card = cards[current];
   const subTheme = getSubjectTheme(card?.subject ?? subject ?? '');
+  const ft = getFeatureTheme('flashcards');
 
   return (
-    <div className="h-full native-scroll px-4 pt-5 pb-nav" style={{ background: 'transparent' }}>
+    <div className="h-full native-scroll px-4 pt-5 pb-nav"
+      data-feature="flashcards"
+      style={{ background: 'transparent', backgroundImage: ft.meshGradient, backgroundAttachment: 'fixed' }}>
       <AnimatePresence mode="wait">
 
         {/* ── MENU ── */}
         {view === 'menu' && (
           <motion.div key="menu" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
-            <div className="flex items-center gap-3">
+            <div className="page-hero flex items-center gap-3 -mx-4 px-4 pt-2 pb-4 mb-1 rounded-b-3xl">
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-                style={{ background: 'linear-gradient(135deg,#10B981,#06B6D4)', boxShadow: '0 4px 16px rgba(16,185,129,0.3)' }}>
+                style={{ background: ft.gradient, boxShadow: `0 4px 16px ${ft.glowRgba}` }}>
                 <BookOpen size={20} className="text-white" />
               </div>
               <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Spaced Repetition</p>
-                <h1 className="font-heading text-2xl font-extrabold text-foreground leading-tight">Flashcards</h1>
+                <p className="text-eyebrow">Spaced Repetition</p>
+                <h1 className="text-display">Flashcards</h1>
               </div>
             </div>
             {loadError && (
@@ -214,14 +221,14 @@ export default function FlashcardPage() {
               <Button size="lg" variant="secondary" onClick={() => setView('create')} className="w-full"><Plus size={18} />Create Card</Button>
 
               {/* AI Generate */}
-              <div className="bento-cell-elevated rounded-3xl p-4 flex flex-col gap-3">
+              <div className="card-l1 rounded-3xl p-4 flex flex-col gap-3">
                 <p className="text-sm font-semibold text-white flex items-center gap-2">
                   <Sparkles size={16} className="text-primary" /> Generate with AI
                 </p>
                 <input type="text" placeholder="Topic (e.g. Photosynthesis)"
                   value={aiTopic} onChange={e => { setAiTopic(e.target.value); setAiError(''); }}
                   className="rounded-2xl px-4 h-11 w-full text-sm outline-none text-white placeholder:text-white/30"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+                  style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
                 {aiError && (
                   <div className="rounded-2xl px-3 py-2" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
                     <p className="text-xs" style={{ color: '#F87171' }}>{aiError}</p>
@@ -265,18 +272,17 @@ export default function FlashcardPage() {
                   {/* Front */}
                   <div className="w-full rounded-3xl min-h-[260px] flex items-center justify-center p-6"
                     style={{
-                      background: 'rgba(255,255,255,0.055)',
-                      backdropFilter: 'blur(40px) saturate(180%) brightness(1.06)',
-                      WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(1.06)',
-                      border: `1.5px solid rgba(${subTheme.accentRgb},0.22)`,
-                      boxShadow: `inset 0 1.5px 0 rgba(255,255,255,0.16), inset 0 -0.5px 0 rgba(0,0,0,0.15), 0 8px 32px rgba(${subTheme.accentRgb},0.10)`,
+                      background: 'var(--v2-card)',
+                      border: `1.5px solid rgba(${subTheme.accentRgb},0.3)`,
                       backfaceVisibility: 'hidden',
                     }}>
-                    <div className="text-center">
-                      <span className="inline-block text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
+                    <div className="text-center w-full">
+                      <span className="inline-block text-xs font-extrabold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
                         style={{ background: `rgba(${subTheme.accentRgb},0.15)`, color: subTheme.accent }}>Question</span>
-                      <p className="font-heading text-lg font-bold text-white leading-snug">{card.front}</p>
-                      <p className="text-xs mt-5 flex items-center justify-center gap-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                      <div className="overflow-y-auto max-h-[180px]">
+                        <p className="font-heading text-lg font-bold leading-snug" style={{ color: 'var(--v2-text-1)' }}>{card.front}</p>
+                      </div>
+                      <p className="text-xs mt-5 flex items-center justify-center gap-1.5" style={{ color: 'var(--v2-text-4)' }}>
                         Tap to reveal answer
                       </p>
                     </div>
@@ -284,18 +290,17 @@ export default function FlashcardPage() {
                   {/* Back */}
                   <div className="w-full rounded-3xl min-h-[260px] flex items-center justify-center p-6 absolute inset-0"
                     style={{
-                      background: `rgba(${subTheme.accentRgb},0.10)`,
-                      backdropFilter: 'blur(40px) saturate(200%) brightness(1.08)',
-                      WebkitBackdropFilter: 'blur(40px) saturate(200%) brightness(1.08)',
-                      border: `1.5px solid rgba(${subTheme.accentRgb},0.32)`,
-                      boxShadow: `inset 0 1.5px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(0,0,0,0.15), 0 8px 32px rgba(${subTheme.accentRgb},0.14)`,
+                      background: 'var(--v2-card)',
+                      border: `1.5px solid rgba(${subTheme.accentRgb},0.45)`,
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
                     }}>
-                    <div className="text-center">
-                      <span className="inline-block text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
+                    <div className="text-center w-full">
+                      <span className="inline-block text-xs font-extrabold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
                         style={{ background: `rgba(${subTheme.accentRgb},0.20)`, color: subTheme.accent }}>Answer</span>
-                      <p className="font-heading text-lg font-bold text-white leading-snug">{card.back}</p>
+                      <div className="overflow-y-auto max-h-[180px]">
+                        <p className="font-heading text-lg font-bold leading-snug" style={{ color: 'var(--v2-text-1)' }}>{card.back}</p>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -355,17 +360,17 @@ export default function FlashcardPage() {
             {/* ── Up Next preview ── */}
             {current + 1 < cards.length && (
               <div className="rounded-2xl px-3 py-2.5"
-                style={{ background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Up Next</p>
+                style={{ background: 'var(--ink-045)', border: '1px solid var(--ink-060)' }}>
+                <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--ink-350)' }}>Up Next</p>
                 <div className="flex flex-col gap-1">
                   {cards.slice(current + 1, current + 3).map((c, i) => (
                     <div key={c.id} className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] font-semibold shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }}>{i + 1}.</span>
-                      <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{c.front}</p>
+                      <span className="text-xs font-semibold shrink-0" style={{ color: 'var(--ink-350)' }}>{i + 1}.</span>
+                      <p className="text-xs truncate" style={{ color: 'var(--ink-700)' }}>{c.front}</p>
                     </div>
                   ))}
                   {cards.length - current - 1 > 2 && (
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       +{cards.length - current - 3} more
                     </p>
                   )}
@@ -390,7 +395,7 @@ export default function FlashcardPage() {
               <input key={placeholder} placeholder={placeholder} value={value}
                 onChange={e => setter(e.target.value)}
                 className="rounded-2xl px-4 h-12 text-white placeholder:text-white/30 text-sm outline-none w-full"
-                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+                style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
             ))}
             <Button size="lg" onClick={saveCard} disabled={!newFront.trim() || !newBack.trim()} className="w-full">
               Save Flashcard
@@ -402,10 +407,10 @@ export default function FlashcardPage() {
         {view === 'empty' && (
           <motion.div key="empty" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center justify-center h-full gap-4 text-center">
-            <div className="text-7xl">📚</div>
+            <BookOpen size={56} className="text-white/25" strokeWidth={1.4} />
             <div>
-              <h2 className="font-heading text-2xl font-bold text-white">Nothing due today!</h2>
-              <p className="mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>All cards are reviewed. Come back tomorrow.</p>
+              <h2 className="text-display">Nothing due today</h2>
+              <p className="mt-1" style={{ color: 'var(--ink-400)' }}>All cards are reviewed. Come back tomorrow.</p>
             </div>
             <Button size="lg" onClick={() => setView('menu')} className="w-full">Back to Menu</Button>
           </motion.div>
@@ -420,8 +425,8 @@ export default function FlashcardPage() {
               <Sparkles size={36} className="text-white" strokeWidth={1.5} />
             </div>
             <div>
-              <h2 className="font-heading text-2xl font-bold text-white">All caught up!</h2>
-              <p className="mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Come back tomorrow for more.</p>
+              <h2 className="text-display">All caught up!</h2>
+              <p className="mt-1" style={{ color: 'var(--ink-400)' }}>Come back tomorrow for more.</p>
             </div>
             <Button size="lg" onClick={() => setView('menu')} className="w-full">Back to Menu</Button>
           </motion.div>

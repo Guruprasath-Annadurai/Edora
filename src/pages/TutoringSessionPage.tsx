@@ -10,9 +10,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Send, BookOpen, HelpCircle, Wrench,
-  CheckCircle2, XCircle, ChevronRight, Trophy,
-  Loader2, AlertCircle, RefreshCw, Map, Plus,
-  GraduationCap, Brain,
+  CheckCircle2, ChevronRight,
+  Loader2, AlertCircle, RefreshCw,
+  GraduationCap,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -23,619 +23,13 @@ import { geminiJSON } from '@/lib/gemini';
 import { useTypewriter } from '@/lib/useTypewriter';
 import { createCardsFromSession } from '@/lib/spacedRepetition';
 import { updateStyleProfile } from '@/lib/learningStyle';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type TutoringMode = 'standard' | 'socratic' | 'drill';
-type StudyLevel   = 'school' | 'college' | 'competitive' | 'professional';
-type PagePhase    = 'setup' | 'starting' | 'session' | 'complete';
-type SessionPhase = 'teaching' | 'checkpoint' | 'complete';
-
-interface CheckpointOption {
-  label: string;
-  text: string;
-}
-
-interface CheckpointQuestion {
-  question: string;
-  options: CheckpointOption[];
-  difficulty?: string;
-  level?: number;
-}
-
-interface ConceptStatus {
-  title: string;
-  status: 'pending' | 'in_progress' | 'mastered' | 'partial';
-}
-
-interface SessionState {
-  phase: SessionPhase;
-  concepts_done: number;
-  total_concepts: number;
-  score: number;
-  total_checkpoints: number;
-  show_checkpoint_prompt: boolean;
-  xp_earned?: number;
-  completed_concepts?: ConceptStatus[];
-}
-
-type MessageType =
-  | 'text'
-  | 'objective'
-  | 'checkpoint_question'
-  | 'checkpoint_answer'
-  | 'feedback'
-  | 'transition'
-  | 'complete';
-
-interface TutoringMessage {
-  id: string;
-  role: 'novo' | 'student';
-  type: MessageType;
-  content: string;
-  // checkpoint_question
-  checkpointData?: CheckpointQuestion;
-  // checkpoint_answer
-  isCorrect?: boolean;
-  // objective
-  objectives?: string[];
-  // transition
-  conceptTitle?: string;
-  // complete
-  xpEarned?: number;
-}
-
-// ── Markdown renderer ─────────────────────────────────────────────────────────
-// Handles: **bold**, *italic*, `code`, # headers, - bullets, 1. numbered lists
-
-function renderMarkdown(text: string): React.ReactNode[] {
-  const lines = text.split('\n');
-  const result: React.ReactNode[] = [];
-  let listBuffer: string[] = [];
-  let listType: 'ul' | 'ol' | null = null;
-  let key = 0;
-
-  function flushList() {
-    if (!listBuffer.length) return;
-    if (listType === 'ul') {
-      result.push(
-        <ul key={`ul-${key++}`} className="list-none flex flex-col gap-1 my-1">
-          {listBuffer.map((item, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
-              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-              <span>{inlineMarkdown(item)}</span>
-            </li>
-          ))}
-        </ul>,
-      );
-    } else {
-      result.push(
-        <ol key={`ol-${key++}`} className="flex flex-col gap-1 my-1 pl-1">
-          {listBuffer.map((item, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
-              <span className="shrink-0 font-semibold text-primary">{i + 1}.</span>
-              <span>{inlineMarkdown(item)}</span>
-            </li>
-          ))}
-        </ol>,
-      );
-    }
-    listBuffer = [];
-    listType = null;
-  }
-
-  for (const line of lines) {
-    const ulMatch = line.match(/^[-*]\s+(.*)/);
-    const olMatch = line.match(/^\d+\.\s+(.*)/);
-    const h1Match = line.match(/^#\s+(.*)/);
-    const h2Match = line.match(/^##\s+(.*)/);
-    const h3Match = line.match(/^###\s+(.*)/);
-
-    if (ulMatch) {
-      if (listType !== 'ul') { flushList(); listType = 'ul'; }
-      listBuffer.push(ulMatch[1]);
-    } else if (olMatch) {
-      if (listType !== 'ol') { flushList(); listType = 'ol'; }
-      listBuffer.push(olMatch[1]);
-    } else {
-      flushList();
-      if (h1Match) {
-        result.push(<h2 key={key++} className="font-heading font-bold text-base text-white mt-2 mb-1">{inlineMarkdown(h1Match[1])}</h2>);
-      } else if (h2Match) {
-        result.push(<h3 key={key++} className="font-heading font-bold text-sm text-white mt-1.5 mb-0.5">{inlineMarkdown(h2Match[1])}</h3>);
-      } else if (h3Match) {
-        result.push(<p key={key++} className="font-semibold text-sm text-white mt-1">{inlineMarkdown(h3Match[1])}</p>);
-      } else if (line.trim() === '') {
-        result.push(<div key={key++} className="h-2" />);
-      } else {
-        result.push(<p key={key++} className="text-sm leading-relaxed">{inlineMarkdown(line)}</p>);
-      }
-    }
-  }
-  flushList();
-  return result;
-}
-
-function inlineMarkdown(text: string): React.ReactNode {
-  // Split on **bold**, *italic*, `code`
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
-        }
-        if (part.startsWith('*') && part.endsWith('*')) {
-          return <em key={i} className="italic">{part.slice(1, -1)}</em>;
-        }
-        if (part.startsWith('`') && part.endsWith('`')) {
-          return (
-            <code key={i} className="bg-primary/10 text-primary px-1 py-0.5 rounded text-xs font-mono">
-              {part.slice(1, -1)}
-            </code>
-          );
-        }
-        return <span key={i}>{part}</span>;
-      })}
-    </>
-  );
-}
-
-// ── ScoreArc (from NovoInsightsPage pattern) ──────────────────────────────────
-
-function ScoreArc({ pct, size = 80 }: { pct: number; size?: number }) {
-  const stroke = 6;
-  const r      = (size - stroke) / 2;
-  const circ   = 2 * Math.PI * r;
-  const offset = circ - (pct / 100) * circ;
-  const color  = pct >= 70 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
-  return (
-    <div className="relative flex items-center justify-center shrink-0"
-      style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="absolute inset-0"
-        style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke={color} strokeWidth={stroke}
-          strokeDasharray={circ} strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 1.2s ease' }} />
-      </svg>
-      <span className="text-sm font-bold" style={{ color }}>{pct}%</span>
-    </div>
-  );
-}
-
-// ── Novo avatar ───────────────────────────────────────────────────────────────
-
-function NovoAvatar({ size = 32 }: { size?: number }) {
-  return (
-    <div
-      className="rounded-full flex items-center justify-center shrink-0 font-heading font-bold text-white"
-      style={{
-        width: size, height: size,
-        background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)',
-        fontSize: size * 0.4,
-      }}>
-      N
-    </div>
-  );
-}
-
-// ── Typing indicator ──────────────────────────────────────────────────────────
-
-function TypingIndicator() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      className="flex items-end gap-2">
-      <NovoAvatar size={32} />
-      <div className="px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1 items-center"
-        style={{ background: 'rgba(15,20,45,0.9)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        {[0, 0.15, 0.3].map((delay, i) => (
-          <motion.div
-            key={i}
-            className="w-2 h-2 rounded-full bg-primary"
-            animate={{ y: [0, -5, 0] }}
-            transition={{ duration: 0.55, repeat: Infinity, delay }}
-          />
-        ))}
-      </div>
-    </motion.div>
-  );
-}
-
-// ── MCQ Checkpoint Card ───────────────────────────────────────────────────────
-
-interface MCQCardProps {
-  checkpoint: CheckpointQuestion;
-  onAnswer: (idx: number) => void;
-  answered: boolean;
-  selectedIdx: number | null;
-  correctIdx: number | null;
-}
-
-function MCQCard({ checkpoint, onAnswer, answered, selectedIdx, correctIdx }: MCQCardProps) {
-  const OPTION_LABELS = ['A', 'B', 'C', 'D', 'E'];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      className="rounded-2xl p-4 w-full"
-      style={{ background: 'rgba(15,20,45,0.9)', border: '1px solid rgba(255,255,255,0.08)' }}>
-
-      {/* Difficulty badge */}
-      {checkpoint.difficulty && (
-        <div className="mb-3">
-          <span
-            className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
-            style={{ background: 'rgba(91,106,245,0.1)', color: '#5B6AF5' }}>
-            {checkpoint.difficulty}{checkpoint.level != null ? ` (Level ${checkpoint.level})` : ''}
-          </span>
-        </div>
-      )}
-
-      {/* Question */}
-      <p className="text-sm font-semibold text-white leading-snug mb-4">
-        {checkpoint.question}
-      </p>
-
-      {/* Options */}
-      <div className="flex flex-col gap-2">
-        {checkpoint.options.map((opt, i) => {
-          const label = OPTION_LABELS[i] ?? String(i + 1);
-          const isSelected  = selectedIdx === i;
-          const isCorrect   = correctIdx === i;
-          const isWrong     = answered && isSelected && !isCorrect;
-
-          let bg: string;
-          let border: string;
-          let labelBg: string;
-          let icon: React.ReactNode = null;
-
-          if (answered) {
-            if (isCorrect) {
-              bg = 'rgba(16,185,129,0.12)'; border = 'rgba(16,185,129,0.4)';
-              labelBg = '#10B981';
-              icon = <CheckCircle2 size={15} className="text-green-400 ml-auto shrink-0" />;
-            } else if (isWrong) {
-              bg = 'rgba(239,68,68,0.12)'; border = 'rgba(239,68,68,0.4)';
-              labelBg = '#EF4444';
-              icon = <XCircle size={15} className="text-red-400 ml-auto shrink-0" />;
-            } else {
-              bg = 'rgba(255,255,255,0.035)'; border = 'rgba(255,255,255,0.06)';
-              labelBg = 'rgba(255,255,255,0.08)';
-            }
-          } else if (isSelected) {
-            bg = 'rgba(91,106,245,0.15)'; border = 'rgba(91,106,245,0.5)';
-            labelBg = '#5B6AF5';
-          } else {
-            bg = 'rgba(255,255,255,0.055)'; border = 'rgba(255,255,255,0.08)';
-            labelBg = 'rgba(255,255,255,0.1)';
-          }
-
-          return (
-            <button
-              key={i}
-              onClick={() => !answered && onAnswer(i)}
-              disabled={answered}
-              className="w-full text-left p-3.5 rounded-xl border transition-all active:scale-[0.98]"
-              style={{ background: bg, borderColor: border }}>
-              <div className="flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 transition-all"
-                  style={{ background: labelBg }}>
-                  {label}
-                </span>
-                <span className="text-sm text-white/85 flex-1">{opt.text ?? (opt as unknown as string)}</span>
-                {icon}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Message renderer ──────────────────────────────────────────────────────────
-
-interface MessageItemProps {
-  msg: TutoringMessage;
-  displayContent?: string;  // streamed partial text while typewriter animates
-  isTyping?: boolean;
-  onAnswer?: (idx: number) => void;
-  answered?: boolean;
-  selectedIdx?: number | null;
-  correctIdx?: number | null;
-}
-
-function MessageItem({ msg, displayContent, isTyping, onAnswer, answered, selectedIdx, correctIdx }: MessageItemProps) {
-  if (msg.type === 'transition') {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex items-center gap-3 py-2">
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-[11px] font-medium text-muted-foreground px-2 text-center">
-          {msg.conceptTitle || msg.content}
-        </span>
-        <div className="flex-1 h-px bg-border" />
-      </motion.div>
-    );
-  }
-
-  if (msg.type === 'objective') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl p-4"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(91,106,245,0.2)' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-7 h-7 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-            <BookOpen size={13} className="text-white" />
-          </div>
-          <p className="text-xs font-bold uppercase tracking-wide text-primary">Learning Objectives</p>
-        </div>
-        {msg.objectives && msg.objectives.length > 0 ? (
-          <ol className="flex flex-col gap-2">
-            {msg.objectives.map((obj, i) => (
-              <li key={i} className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5"
-                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#fff' }}>
-                  {i + 1}
-                </span>
-                <span className="text-sm text-white/85 leading-snug">{obj}</span>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="text-sm text-white/85 leading-relaxed">{msg.content}</p>
-        )}
-      </motion.div>
-    );
-  }
-
-  if (msg.type === 'checkpoint_question' && msg.checkpointData) {
-    return (
-      <div className="flex items-start gap-2">
-        <NovoAvatar size={32} />
-        <div className="flex-1 min-w-0">
-          <MCQCard
-            checkpoint={msg.checkpointData}
-            onAnswer={onAnswer ?? (() => {})}
-            answered={answered ?? false}
-            selectedIdx={selectedIdx ?? null}
-            correctIdx={correctIdx ?? null}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (msg.type === 'checkpoint_answer') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="self-end flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-        style={msg.isCorrect
-          ? { background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.3)' }
-          : { background: 'rgba(239,68,68,0.15)', color: '#F87171', border: '1px solid rgba(239,68,68,0.3)' }}>
-        {msg.isCorrect
-          ? <><CheckCircle2 size={12} /> Correct!</>
-          : <><XCircle size={12} /> {msg.content}</>
-        }
-      </motion.div>
-    );
-  }
-
-  if (msg.type === 'feedback') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, x: -4 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="ml-10 border-l-2 border-primary/30 pl-3 py-1">
-        <div className="flex items-start gap-1.5">
-          {msg.isCorrect === true  && <CheckCircle2 size={13} className="text-green-500 shrink-0 mt-0.5" />}
-          {msg.isCorrect === false && <XCircle      size={13} className="text-red-500 shrink-0 mt-0.5" />}
-          <p className="text-xs text-muted-foreground italic leading-relaxed">{msg.content}</p>
-        </div>
-      </motion.div>
-    );
-  }
-
-  // Student message
-  if (msg.role === 'student') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 6, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="flex justify-end">
-        <div
-          className="px-4 py-3 rounded-2xl rounded-br-sm text-sm text-white max-w-[80%] leading-relaxed"
-          style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-          {msg.content}
-        </div>
-      </motion.div>
-    );
-  }
-
-  // Default Novo text message
-  const visibleContent = displayContent ?? msg.content;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      className="flex items-start gap-2">
-      <NovoAvatar size={32} />
-      <div className="rounded-2xl rounded-bl-sm px-4 py-3 max-w-[82%]"
-        style={{ background: 'rgba(15,20,45,0.9)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="text-sm text-white/85 leading-relaxed">
-          {isTyping
-            ? <>{visibleContent}<span className="inline-block ml-0.5 w-0.5 h-[1em] align-middle bg-white/50 animate-pulse" /></>
-            : renderMarkdown(visibleContent)
-          }
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Complete Screen ───────────────────────────────────────────────────────────
-
-interface CompleteScreenProps {
-  score: number;
-  totalCheckpoints: number;
-  xpEarned: number;
-  completedConcepts: ConceptStatus[];
-  subject: string;
-  topic: string;
-  onNewSession: () => void;
-  onUpdateConceptMap: () => Promise<void>;
-  updatingMap: boolean;
-  mapUpdated: boolean;
-  srCardsCount: number;
-}
-
-function CompleteScreen({
-  score, totalCheckpoints, xpEarned, completedConcepts,
-  subject, topic, onNewSession, onUpdateConceptMap, updatingMap, mapUpdated, srCardsCount,
-}: CompleteScreenProps) {
-  const accuracy = totalCheckpoints > 0 ? Math.round((score / totalCheckpoints) * 100) : 100;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center gap-5 px-4 py-6">
-
-      {/* Celebration header */}
-      <div className="relative">
-        <div className="w-24 h-24 rounded-3xl flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, rgba(91,106,245,0.2), rgba(139,92,246,0.2))', border: '1px solid rgba(91,106,245,0.3)' }}>
-          <GraduationCap size={48} className="text-primary" strokeWidth={1.5} />
-        </div>
-        <motion.div
-          className="absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}
-          animate={{ rotate: [0, 15, -15, 0] }}
-          transition={{ duration: 1.2, repeat: 2 }}>
-          <Trophy size={14} className="text-white" />
-        </motion.div>
-      </div>
-
-      <div className="text-center">
-        <h2 className="font-heading text-2xl font-bold text-white">Session Complete!</h2>
-        <p className="text-sm text-muted-foreground mt-1">{topic} · {subject}</p>
-      </div>
-
-      {/* Score row */}
-      <div className="flex items-center gap-6">
-        <ScoreArc pct={accuracy} size={88} />
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Trophy size={16} className="text-yellow-500" />
-            <span className="text-sm font-semibold text-white">
-              {score}/{totalCheckpoints} Correct
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-              <span className="text-[8px] font-bold text-white">XP</span>
-            </div>
-            <span className="text-sm font-semibold text-primary">+{xpEarned} XP earned</span>
-          </div>
-          {completedConcepts.length > 0 && (
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={14} className="text-green-500" />
-              <span className="text-sm text-muted-foreground">
-                {completedConcepts.filter(c => c.status === 'mastered').length}/{completedConcepts.length} mastered
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Concepts list */}
-      {completedConcepts.length > 0 && (
-        <div className="w-full rounded-2xl p-4"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-3">Concepts Covered</p>
-          <div className="flex flex-col gap-2">
-            {completedConcepts.map((concept, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                  style={{
-                    background: concept.status === 'mastered' ? 'rgba(16,185,129,0.15)' :
-                                concept.status === 'partial'  ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.08)',
-                  }}>
-                  {concept.status === 'mastered' && <CheckCircle2 size={12} className="text-green-400" />}
-                  {concept.status === 'partial'  && <div className="w-2 h-2 rounded-full bg-amber-400" />}
-                  {concept.status === 'pending'  && <div className="w-2 h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.3)' }} />}
-                </div>
-                <span className="text-sm text-white/85">{concept.title}</span>
-                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide"
-                  style={{ color: concept.status === 'mastered' ? '#34D399' : concept.status === 'partial' ? '#FBBF24' : 'rgba(255,255,255,0.3)' }}>
-                  {concept.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* SR cards badge */}
-      {srCardsCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full rounded-2xl p-3 flex items-center gap-3"
-          style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.25)' }}>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(91,106,245,0.15)' }}>
-            <Brain size={16} style={{ color: '#5B6AF5' }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white leading-tight">
-              {srCardsCount} flashcards added to Spaced Review!
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Your learning style was also updated</p>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Action buttons */}
-      <div className="w-full flex flex-col gap-3">
-        <button
-          onClick={onUpdateConceptMap}
-          disabled={updatingMap || mapUpdated}
-          className="w-full py-3.5 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70"
-          style={{ background: mapUpdated ? '#10b981' : 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-          {updatingMap
-            ? <><Loader2 size={16} className="animate-spin" /> Updating…</>
-            : mapUpdated
-              ? <><CheckCircle2 size={16} /> Concept Map Updated</>
-              : <><Map size={16} /> Update Concept Map</>
-          }
-        </button>
-        <button
-          onClick={onNewSession}
-          className="w-full py-3.5 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-95"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
-          <Plus size={16} /> New Session
-        </button>
-      </div>
-    </motion.div>
-  );
-}
+import type {
+  TutoringMode, StudyLevel, PagePhase, SessionState, TutoringMessage, CheckpointQuestion,
+} from '@/lib/tutoringTypes';
+import { NovoAvatar } from '@/components/tutoring/NovoAvatar';
+import { TypingIndicator } from '@/components/tutoring/TypingIndicator';
+import { MessageItem } from '@/components/tutoring/MessageItem';
+import { CompleteScreen } from '@/components/tutoring/CompleteScreen';
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -873,6 +267,7 @@ export default function TutoringSessionPage() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- addMessage only closes over stable mountedRef/setMessages; restructuring 1500-line component to useCallback not warranted
   }, [inputText, loading]);
 
   // ── Request checkpoint ──
@@ -1098,7 +493,7 @@ Rules:
       await updateStyleProfile(user.id, sessionId).catch(() => null);
 
       if (mountedRef.current) setSrGenDone(true);
-    } catch (_) {
+    } catch {
       if (mountedRef.current) setSrGenDone(true);
     }
   }
@@ -1169,10 +564,10 @@ Rules:
 
         {/* Header */}
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <button onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={17} className="text-white" />
           </button>
           <div className="flex-1">
@@ -1215,7 +610,7 @@ Rules:
               value={subject}
               onChange={e => setSubject(e.target.value)}
               className="w-full rounded-2xl px-4 h-14 text-sm text-white placeholder:text-white/30 outline-none"
-              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
+              style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }}
             />
           </div>
 
@@ -1231,7 +626,7 @@ Rules:
               onChange={e => setTopic(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleStartSession()}
               className="w-full rounded-2xl px-4 h-14 text-sm text-white placeholder:text-white/30 outline-none"
-              style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
+              style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }}
             />
           </div>
 
@@ -1249,7 +644,7 @@ Rules:
                     ${studyLevel === level ? 'text-white' : 'text-white/70'}`}
                   style={studyLevel === level
                     ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', border: 'none' }
-                    : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    : { background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                   {level}
                 </button>
               ))}
@@ -1273,7 +668,7 @@ Rules:
                   className="p-4 rounded-2xl text-left transition-all active:scale-[0.98]"
                   style={mode === key
                     ? { background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.3)' }
-                    : { background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    : { background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all
                       ${mode === key ? 'text-white' : 'text-primary'}`}
@@ -1323,8 +718,8 @@ Rules:
       <div className="shrink-0"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
-          background: 'rgba(8,6,20,0.88)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--hdr-a-880)',
+          borderBottom: '1px solid var(--ink-060)',
           backdropFilter: 'blur(12px)',
         }}>
         <div className="px-4 py-3 flex items-center gap-3">
@@ -1333,7 +728,7 @@ Rules:
               if (isComplete) { handleNewSession(); } else { navigate(-1); }
             }}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all shrink-0"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={17} className="text-white" />
           </button>
 
@@ -1348,7 +743,7 @@ Rules:
             </div>
             {/* Progress bar */}
             <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-100)' }}>
                 <motion.div
                   className="h-full rounded-full"
                   style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
@@ -1367,7 +762,7 @@ Rules:
             {/* Score */}
             {totalChk > 0 && (
               <div className="flex items-center gap-1 px-2 py-1 rounded-full"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                 <CheckCircle2 size={11} className="text-green-400" />
                 <span className="text-[11px] font-bold text-white">{score}/{totalChk}</span>
               </div>
@@ -1375,7 +770,7 @@ Rules:
             {/* Mode badge */}
             {(() => { const ModeIcon = MODE_META[mode].Icon; return (
               <div className="px-2 py-1 rounded-full flex items-center gap-1"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                 <ModeIcon size={10} className="text-muted-foreground" />
                 <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                   {MODE_META[mode].label}
@@ -1412,7 +807,7 @@ Rules:
       <div className="flex-1 overflow-y-auto native-scroll pb-nav px-4 py-4 flex flex-col gap-3">
 
         <AnimatePresence initial={false}>
-          {messages.map((msg, idx) => {
+          {messages.map((msg, _idx) => {
             const tw = getDisplay(msg.id, msg.content);
             return (
               <MessageItem
@@ -1478,9 +873,9 @@ Rules:
         <div
           className="shrink-0"
           style={{
-            background: 'rgba(8,6,20,0.88)',
+            background: 'var(--hdr-a-880)',
             backdropFilter: 'blur(20px)',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
+            borderTop: '1px solid var(--ink-080)',
             paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
           }}>
 
@@ -1518,7 +913,7 @@ Rules:
               {/* Input row */}
               <div className="flex items-center gap-2">
                 <div className="flex-1 rounded-2xl flex items-center gap-2 px-4 h-12"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                   <input
                     ref={inputRef}
                     type="text"

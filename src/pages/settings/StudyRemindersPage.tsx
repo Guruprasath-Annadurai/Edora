@@ -17,9 +17,9 @@ interface ReminderConfig {
 const PREF_KEY = 'edora_study_reminders';
 
 const REMINDERS = [
-  { id: 1, title: '📚 Flashcard Review',  body: 'You have due flashcards waiting — keep your streak alive!',  route: '/flashcard' },
-  { id: 2, title: '🎯 Daily Challenge',   body: 'Complete today\'s challenges and earn XP!',                   route: '/home'      },
-  { id: 3, title: '⚡ Sprint Session',    body: 'Time for a 25-minute focus sprint. You\'ve got this!',        route: '/sprint'    },
+  { id: 1, title: 'Flashcard Review',  body: 'You have due flashcards waiting — keep your streak alive.',  route: '/flashcard' },
+  { id: 2, title: 'Daily Challenge',   body: 'Complete today\'s challenges and earn XP.',                   route: '/home'      },
+  { id: 3, title: 'Sprint Session',    body: 'Time for a 25-minute focus sprint. You\'ve got this.',        route: '/sprint'    },
 ];
 
 async function loadConfig(): Promise<ReminderConfig> {
@@ -90,10 +90,10 @@ export default function StudyRemindersPage() {
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/profile"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
           <ChevronLeft size={18} className="text-white" />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -111,14 +111,14 @@ export default function StudyRemindersPage() {
         {/* Toggle */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl p-4 flex items-center gap-4"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
           <div className="flex-1">
             <p className="font-semibold text-white">Enable Reminders</p>
             <p className="text-xs text-muted-foreground mt-0.5">Get daily nudges to study</p>
           </div>
           <button onClick={toggleEnabled}
             className="w-12 h-6 rounded-full transition-all relative"
-            style={{ background: config.enabled ? '#5B6AF5' : 'rgba(255,255,255,0.12)' }}>
+            style={{ background: config.enabled ? '#5B6AF5' : 'var(--ink-120)' }}>
             <motion.div animate={{ x: config.enabled ? 24 : 2 }}
               className="w-5 h-5 bg-white rounded-full absolute top-0.5 shadow-sm" />
           </button>
@@ -128,35 +128,35 @@ export default function StudyRemindersPage() {
         {config.enabled && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             className="rounded-3xl p-4 flex flex-col gap-4"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
             <p className="font-semibold text-white">Reminder Time</p>
             <div className="flex items-center justify-center gap-4">
               {/* Hour picker */}
               <div className="flex flex-col items-center gap-2">
                 <button onClick={() => setConfig(c => ({ ...c, hour: (c.hour + 1) % 24 }))}
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold text-white/70"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>▲</button>
+                  style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>▲</button>
                 <div className="w-16 h-14 rounded-2xl flex items-center justify-center"
                   style={{ background: 'rgba(91,106,245,0.15)' }}>
                   <span className="text-2xl font-bold text-white">{String(config.hour).padStart(2, '0')}</span>
                 </div>
                 <button onClick={() => setConfig(c => ({ ...c, hour: (c.hour - 1 + 24) % 24 }))}
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold text-white/70"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>▼</button>
+                  style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>▼</button>
               </div>
               <span className="text-3xl font-bold text-white/50">:</span>
               {/* Minute picker */}
               <div className="flex flex-col items-center gap-2">
                 <button onClick={() => setConfig(c => ({ ...c, minute: (c.minute + 15) % 60 }))}
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold text-white/70"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>▲</button>
+                  style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>▲</button>
                 <div className="w-16 h-14 rounded-2xl flex items-center justify-center"
                   style={{ background: 'rgba(91,106,245,0.15)' }}>
                   <span className="text-2xl font-bold text-white">{String(config.minute).padStart(2, '0')}</span>
                 </div>
                 <button onClick={() => setConfig(c => ({ ...c, minute: (c.minute - 15 + 60) % 60 }))}
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold text-white/70"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>▼</button>
+                  style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>▼</button>
               </div>
             </div>
             <p className="text-xs text-muted-foreground text-center">Reminders will fire daily at {timeLabel}</p>
@@ -166,13 +166,13 @@ export default function StudyRemindersPage() {
         {/* What you'll get */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="rounded-3xl overflow-hidden"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="px-4 pt-4 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
+          <div className="px-4 pt-4 pb-2" style={{ borderBottom: '1px solid var(--ink-060)' }}>
             <p className="font-semibold text-white text-sm">What you'll receive</p>
           </div>
           {REMINDERS.map(({ id, title, body }, i) => (
             <div key={id} className="px-4 py-3 flex items-start gap-3"
-              style={{ borderBottom: i < REMINDERS.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+              style={{ borderBottom: i < REMINDERS.length - 1 ? '1px solid var(--ink-050)' : 'none' }}>
               <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
                 style={{ background: 'rgba(91,106,245,0.2)' }}>
                 <Check size={11} className="text-primary" />

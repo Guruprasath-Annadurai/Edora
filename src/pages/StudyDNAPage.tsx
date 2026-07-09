@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import {useState, useEffect} from 'react';
+import {motion} from 'framer-motion';
 import { ArrowLeft, Share2, Loader2, Zap, Flame, Target, BookOpen, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,8 +29,7 @@ function DNAHelix({ stats }: { stats: WeeklyStats }) {
     Physics:   '#5B6AF5',
     Chemistry: '#10B981',
     Maths:     '#F59E0B',
-    Biology:   '#EC4899',
-  };
+    Biology:   '#EC4899' };
 
   return (
     <div className="relative flex justify-center" style={{ height: 240, overflow: 'hidden' }}>
@@ -108,7 +107,7 @@ function DNAHelix({ stats }: { stats: WeeklyStats }) {
         {Object.entries({ 'Physics': '#5B6AF5', 'Chem': '#10B981', 'Maths': '#F59E0B', 'Bio': '#EC4899' }).map(([s, c]) => (
           <div key={s} className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full" style={{ background: c }} />
-            <span className="text-[10px] text-white/40">{s}</span>
+            <span className="text-xs text-white/40">{s}</span>
           </div>
         ))}
       </div>
@@ -126,8 +125,8 @@ function StatCard({ icon: Icon, label, value, color, sub }: {
       style={{ background: `${color}12`, border: `1px solid ${color}22` }}>
       <Icon size={16} style={{ color }} />
       <p className="text-xl font-black text-white">{value}</p>
-      <p className="text-[10px] text-white/50 font-medium leading-tight">{label}</p>
-      {sub && <p className="text-[9px]" style={{ color: `${color}99` }}>{sub}</p>}
+      <p className="text-xs text-white/50 font-medium leading-tight">{label}</p>
+      {sub && <p className="text-xs" style={{ color: `${color}99` }}>{sub}</p>}
     </div>
   );
 }
@@ -160,7 +159,7 @@ function buildShareCard(stats: WeeklyStats, name: string): string {
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 24px system-ui';
   ctx.fillText('Study DNA Report', 40, 55);
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fillStyle = 'var(--ink-700)';
   ctx.font = '14px system-ui';
   ctx.fillText(`${name} · Week of ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`, 40, 78);
 
@@ -185,17 +184,17 @@ function buildShareCard(stats: WeeklyStats, name: string): string {
     ctx.fillStyle = item.color;
     ctx.font = 'bold 32px system-ui';
     ctx.fillText(item.value, x + 16, y + 48);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = 'var(--ink-500)';
     ctx.font = '12px system-ui';
     ctx.fillText(item.label, x + 16, y + 70);
   });
 
   // Top topics
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillStyle = 'var(--ink-080)';
   ctx.beginPath();
   ctx.roundRect(20, 360, 360, 120, 12);
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillStyle = 'var(--ink-400)';
   ctx.font = 'bold 11px system-ui';
   ctx.fillText('THIS WEEK\'S STRONGEST TOPICS', 36, 382);
   stats.topTopics.slice(0, 3).forEach((t, i) => {
@@ -205,7 +204,7 @@ function buildShareCard(stats: WeeklyStats, name: string): string {
   });
 
   // Footer
-  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillStyle = 'var(--ink-200)';
   ctx.font = '12px system-ui';
   ctx.fillText('Made with Edora · edora.app', 20, 570);
 
@@ -292,8 +291,7 @@ export default function StudyDNAPage() {
         streakDays: profileData?.streak_count ?? 0,
         strongestSubject: strongest, weakestSubject: weakest,
         totalMinutes, quizAccuracy: quizAcc,
-        topTopics, weakTopics,
-      });
+        topTopics, weakTopics });
       setLoading(false);
     })();
   }, [user]);
@@ -305,7 +303,7 @@ export default function StudyDNAPage() {
       const blob    = await (await fetch(dataUrl)).blob();
       const file    = new File([blob], 'edora-study-dna.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'My Edora Study DNA Report', text: `I studied ${stats.sessionsCompleted} sessions and earned ${stats.xpEarned} XP this week! 🔥` });
+        await navigator.share({ files: [file], title: 'My Edora Study DNA Report', text: `I studied ${stats.sessionsCompleted} sessions and earned ${stats.xpEarned} XP this week.` });
       } else {
         const a  = document.createElement('a');
         a.href   = dataUrl;
@@ -339,11 +337,11 @@ export default function StudyDNAPage() {
           <div className="flex items-center gap-3">
             <Link to="/home"
               className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
               <ArrowLeft size={18} className="text-white" />
             </Link>
             <div>
-              <h1 className="font-heading font-extrabold text-white text-lg">📰 Study DNA</h1>
+              <h1 className="font-heading font-extrabold text-white text-lg">Study DNA</h1>
               <p className="text-xs text-white/40">Week ending {weekStr}</p>
             </div>
           </div>
@@ -364,7 +362,7 @@ export default function StudyDNAPage() {
 
         {/* DNA visualization */}
         <div className="rounded-3xl p-4"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
           <p className="text-xs font-bold text-white/40 mb-3 uppercase tracking-wider text-center">Your Study DNA</p>
           <DNAHelix stats={stats} />
         </div>
@@ -379,11 +377,11 @@ export default function StudyDNAPage() {
 
         {/* Subject breakdown */}
         <div className="p-4 rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
           <p className="text-xs font-bold text-white/40 mb-3 uppercase tracking-wider">Subject Verdict</p>
           <div className="flex gap-3">
             <div className="flex-1 flex flex-col gap-1">
-              <p className="text-[10px] text-white/40">Strongest</p>
+              <p className="text-xs text-white/40">Strongest</p>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-400" />
                 <p className="text-white font-bold text-sm">{stats.strongestSubject}</p>
@@ -391,7 +389,7 @@ export default function StudyDNAPage() {
             </div>
             <div className="w-px bg-white/10" />
             <div className="flex-1 flex flex-col gap-1">
-              <p className="text-[10px] text-white/40">Needs work</p>
+              <p className="text-xs text-white/40">Needs work</p>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-red-400" />
                 <p className="text-white font-bold text-sm">{stats.weakestSubject}</p>
@@ -403,18 +401,18 @@ export default function StudyDNAPage() {
         {/* Top topics */}
         {stats.topTopics.length > 0 && (
           <div className="p-4 rounded-2xl"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
             <div className="flex items-center gap-2 mb-3">
               <Trophy size={14} color="#F59E0B" />
               <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Top Topics This Week</p>
             </div>
             {stats.topTopics.map((t, i) => (
               <div key={i} className="flex items-center gap-3 py-2 border-b last:border-0"
-                style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                style={{ borderColor: 'var(--ink-050)' }}>
                 <span className="text-xs font-black text-white/30 w-4">{i + 1}</span>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-white">{t.topic}</p>
-                  <p className="text-[10px] text-white/40">{t.subject}</p>
+                  <p className="text-xs text-white/40">{t.subject}</p>
                 </div>
                 <span className="text-xs font-bold" style={{ color: '#10B981' }}>{t.wins} wins</span>
               </div>

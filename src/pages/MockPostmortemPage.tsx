@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Loader2, TrendingUp, TrendingDown, Target, Clock, Brain } from 'lucide-react';
+import {ArrowLeft, Loader2, TrendingUp, TrendingDown, Target, Brain} from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -52,17 +52,17 @@ function RadarChart({ labels, values, color }: { labels: string[]; values: numbe
   const polyline   = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
 
   return (
-    <svg width={200} height={200} viewBox="0 0 200 200">
+    <svg width="100%" height="100%" viewBox="0 0 200 200" style={{ maxWidth: 200, maxHeight: 200 }}>
       {/* Grid rings */}
       {steps.map(s => (
         <polygon key={s}
           points={axisAngles.map(a => { const p = point(a, s * r); return `${p.x},${p.y}`; }).join(' ')}
-          fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
+          fill="none" stroke="var(--ink-080)" strokeWidth={1} />
       ))}
       {/* Axes */}
       {axisAngles.map((a, i) => {
         const p = point(a, r);
-        return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="rgba(255,255,255,0.1)" strokeWidth={1} />;
+        return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="var(--ink-100)" strokeWidth={1} />;
       })}
       {/* Data polygon */}
       <polygon points={polyline} fill={`${color}33`} stroke={color} strokeWidth={2} />
@@ -75,7 +75,7 @@ function RadarChart({ labels, values, color }: { labels: string[]; values: numbe
         const p = point(axisAngles[i], r + 16);
         return (
           <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle"
-            fill="rgba(255,255,255,0.6)" fontSize={9} fontWeight={600}>
+            fill="var(--ink-600)" fontSize={9} fontWeight={600}>
             {label}
           </text>
         );
@@ -93,23 +93,23 @@ function BattingRow({ rank, topic, subject, attempted, correct, color }: {
   const avg    = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
   const isPoor = avg < 50;
   return (
-    <div className="flex items-center gap-2 py-2.5 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+    <div className="flex items-center gap-2 py-2.5 border-b" style={{ borderColor: 'var(--ink-050)' }}>
       <span className="text-xs text-white/30 w-5 shrink-0 text-center">{rank}</span>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-bold text-white truncate">{topic}</p>
-        <p className="text-[10px] text-white/40">{subject}</p>
+        <p className="text-xs text-white/40">{subject}</p>
       </div>
       <div className="flex gap-3 text-right shrink-0">
         <div>
-          <p className="text-[10px] text-white/30">Att</p>
+          <p className="text-xs text-white/30">Att</p>
           <p className="text-xs font-bold text-white">{attempted}</p>
         </div>
         <div>
-          <p className="text-[10px] text-white/30">Cor</p>
+          <p className="text-xs text-white/30">Cor</p>
           <p className="text-xs font-bold text-white">{correct}</p>
         </div>
         <div>
-          <p className="text-[10px] text-white/30">Avg</p>
+          <p className="text-xs text-white/30">Avg</p>
           <p className="text-xs font-bold" style={{ color: isPoor ? '#EF4444' : color }}>{avg}%</p>
         </div>
       </div>
@@ -122,7 +122,7 @@ function BattingRow({ rank, topic, subject, attempted, correct, color }: {
 export default function MockPostmortemPage() {
   const { user, profile } = useAuth();
   const [searchParams]    = useSearchParams();
-  const sessionId         = searchParams.get('session');
+  const _sessionId        = searchParams.get('session');
 
   const [topicStats,    setTopicStats]    = useState<TopicStat[]>([]);
   const [recentSessions, setRecentSessions] = useState<QuizSession[]>([]);
@@ -184,8 +184,7 @@ Return a JSON coaching report:
             topStrength: 'Your consistent topics show genuine mastery when you engage with them.',
             topWeakness: 'Your top struggle topic needs targeted practice — attempt it in Novo chat first.',
             actionItems: ['Spend 20 min daily on your weakest topic', 'Use spaced repetition for formula recall', 'Take one timed mock per week'],
-            motivationLine: 'Every JEE topper had these exact patterns at this stage. The work is the way.',
-          });
+            motivationLine: 'Every JEE topper had these exact patterns at this stage. The work is the way.' });
         }
       }
       setLoading(false);
@@ -226,11 +225,11 @@ Return a JSON coaching report:
         <div className="flex items-center gap-3 mb-4">
           <Link to="/home"
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={18} className="text-white" />
           </Link>
           <div>
-            <h1 className="font-heading font-extrabold text-white text-lg">📈 Mock Postmortem</h1>
+            <h1 className="font-heading font-extrabold text-white text-lg">Mock Postmortem</h1>
             <p className="text-xs text-white/40">Cricket-style performance analysis</p>
           </div>
         </div>
@@ -243,27 +242,26 @@ Return a JSON coaching report:
             { icon: TrendingUp, label: 'Strong Topics', value: String(topicStats.filter(t => t.win_count >= t.struggle_count).length), color: '#10B981' },
           ].map(({ icon: Icon, label, value, color }) => (
             <div key={label} className="flex-1 p-3 rounded-2xl text-center"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
               <Icon size={16} style={{ color }} className="mx-auto mb-1" />
               <p className="text-lg font-black" style={{ color }}>{value}</p>
-              <p className="text-[10px] text-white/40">{label}</p>
+              <p className="text-xs text-white/40">{label}</p>
             </div>
           ))}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: 'var(--ink-040)' }}>
           {([
-            { key: 'batting', label: '🏏 Batting Card' },
-            { key: 'radar',   label: '🕸️ Radar' },
-            { key: 'coach',   label: '🎓 Coach' },
+            { key: 'batting', label: 'Batting Card' },
+            { key: 'radar',   label: 'Radar' },
+            { key: 'coach',   label: 'Coach' },
           ] as const).map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
               style={{
-                background: activeTab === tab.key ? 'rgba(255,255,255,0.1)' : 'transparent',
-                color: activeTab === tab.key ? 'white' : 'rgba(255,255,255,0.4)',
-              }}>
+                background: activeTab === tab.key ? 'var(--ink-100)' : 'transparent',
+                color: activeTab === tab.key ? 'white' : 'var(--ink-400)' }}>
               {tab.label}
             </button>
           ))}
@@ -277,11 +275,11 @@ Return a JSON coaching report:
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {/* Header row */}
             <div className="flex items-center gap-2 py-2 mb-1">
-              <span className="text-[10px] text-white/30 w-5 shrink-0 text-center">#</span>
-              <span className="flex-1 text-[10px] text-white/30 font-bold uppercase tracking-wider">Topic</span>
+              <span className="text-xs text-white/30 w-5 shrink-0 text-center">#</span>
+              <span className="flex-1 text-xs text-white/30 font-bold uppercase tracking-wider">Topic</span>
               <div className="flex gap-3 text-right shrink-0">
                 {['Att', 'Cor', 'Avg'].map(h => (
-                  <span key={h} className="text-[10px] text-white/30 font-bold uppercase w-6 text-right">{h}</span>
+                  <span key={h} className="text-xs text-white/30 font-bold uppercase w-6 text-right">{h}</span>
                 ))}
               </div>
             </div>
@@ -316,7 +314,7 @@ Return a JSON coaching report:
               {subjects.map((subj, i) => (
                 <div key={subj} className="flex items-center gap-3">
                   <span className="text-sm text-white/60 w-20 shrink-0">{subj}</span>
-                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${radarValues[i]}%` }}
@@ -347,18 +345,18 @@ Return a JSON coaching report:
             <div className="grid grid-cols-2 gap-2">
               <div className="p-3 rounded-2xl"
                 style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                <p className="text-[10px] font-bold mb-1" style={{ color: '#10B981' }}>💪 STRENGTH</p>
+                <p className="text-xs font-bold mb-1" style={{ color: '#10B981' }}>STRENGTH</p>
                 <p className="text-xs text-white/70 leading-relaxed">{coachNote.topStrength}</p>
               </div>
               <div className="p-3 rounded-2xl"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <p className="text-[10px] font-bold mb-1" style={{ color: '#EF4444' }}>⚠️ FIX THIS</p>
+                <p className="text-xs font-bold mb-1" style={{ color: '#EF4444' }}>⚠️ FIX THIS</p>
                 <p className="text-xs text-white/70 leading-relaxed">{coachNote.topWeakness}</p>
               </div>
             </div>
 
             <div className="p-4 rounded-2xl"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
               <p className="text-xs font-bold text-white/50 mb-3 uppercase tracking-wider">Action Plan</p>
               {coachNote.actionItems.map((item, i) => (
                 <div key={i} className="flex items-start gap-2 mb-2">

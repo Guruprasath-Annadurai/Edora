@@ -270,7 +270,7 @@ export default function OfflineModePage() {
   return (
     <div className="h-full text-white">
       {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
+      <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'var(--hdr-a-820)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
         <Link to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </Link>
@@ -449,7 +449,7 @@ export default function OfflineModePage() {
                             transition={{ duration: 8, ease: 'easeInOut' }}
                           />
                         </div>
-                        <p className="text-[10px] text-gray-500 mt-1">Caching {PREFETCH_TOPICS[status.subject]?.length ?? 5} topics…</p>
+                        <p className="text-xs text-gray-500 mt-1">Caching {PREFETCH_TOPICS[status.subject]?.length ?? 5} topics…</p>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -484,7 +484,7 @@ export default function OfflineModePage() {
                 </div>
                 <div className="flex-1">
                   <div className={`text-xs font-medium ${f.available ? 'text-white' : 'text-gray-500'}`}>{f.label}</div>
-                  <div className="text-[10px] text-gray-600">{f.description}</div>
+                  <div className="text-xs text-gray-600">{f.description}</div>
                 </div>
                 {f.available
                   ? <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />

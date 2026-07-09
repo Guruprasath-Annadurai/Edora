@@ -1,13 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Heart, BookMarked, Share2, X, Zap, CheckCircle2,
+  Heart, BookMarked, Share2, X, Zap, CheckCircle2, Atom, FlaskConical, Calculator, Dna,
+  type LucideIcon,
 } from 'lucide-react';
+
+const SUBJECT_ICON: Record<string, LucideIcon> = {
+  Physics: Atom, Chemistry: FlaskConical, Mathematics: Calculator, Biology: Dna,
+};
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { Share } from '@capacitor/share';
 import { Toast } from '@capacitor/toast';
+import { indexUserItem } from '@/lib/userContentIndex';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ConceptReel {
@@ -19,7 +25,6 @@ interface ConceptReel {
   explanation: string; // 3-4 sentences
   key_points: string[];
   animation_type: 'wave' | 'orbit' | 'gradient' | 'circuit' | 'dna' | 'pendulum';
-  emoji: string;
   color1: string;
   color2: string;
   liked?: boolean;
@@ -32,49 +37,49 @@ const SEED_REELS: ConceptReel[] = [
     summary:'A closed surface can reveal hidden charges — no matter the shape.',
     explanation:"Gauss's Law states that the total electric flux through any closed surface equals the enclosed charge divided by ε₀. The genius: the surface's shape doesn't matter — only what's inside counts. This makes solving E-field problems for spheres, cylinders, and planes trivially easy.",
     key_points:['Φ = Q_enc/ε₀','Shape of surface doesn\'t matter','Only enclosed charge matters','Use for symmetric distributions'],
-    animation_type:'circuit', emoji:'⚡', color1:'#5B6AF5', color2:'#8B5CF6' },
+    animation_type:'circuit', color1:'#5B6AF5', color2:'#8B5CF6' },
 
   { id:'r2', subject:'Chemistry', chapter:'Chemical Kinetics', concept:'Arrhenius Equation',
     summary:'Why reactions speed up when you heat them — it\'s all about probability.',
     explanation:'The Arrhenius equation k = A·e^(−Ea/RT) tells us that only molecules with energy above Ea (activation energy) can react. Heating up doubles or triples the reaction rate because the fraction of energetic molecules grows exponentially. The "A" factor is how often molecules collide.',
     key_points:['k = A·e^(−Ea/RT)','Ea = activation energy','Higher T → more energetic molecules','Catalyst lowers Ea (not T)'],
-    animation_type:'gradient', emoji:'🔥', color1:'#F59E0B', color2:'#EF4444' },
+    animation_type:'gradient', color1:'#F59E0B', color2:'#EF4444' },
 
   { id:'r3', subject:'Mathematics', chapter:'Calculus', concept:'Chain Rule',
     summary:'Differentiating a function inside another function — go outside in.',
     explanation:"The chain rule says: differentiate the outer function first, keep the inner unchanged, then multiply by the derivative of the inner. Think of it as peeling an onion. d/dx[f(g(x))] = f'(g(x)) · g'(x). The second factor (g'(x)) is the part students most often forget.",
     key_points:["d/dx[f(g(x))] = f'(g(x))·g'(x)",'Work outside → inside','Multiply by inner derivative','Applies to any composition'],
-    animation_type:'wave', emoji:'🔗', color1:'#06B6D4', color2:'#3B82F6' },
+    animation_type:'wave', color1:'#06B6D4', color2:'#3B82F6' },
 
   { id:'r4', subject:'Biology', chapter:'Genetics', concept:'Hardy-Weinberg Equilibrium',
     summary:'A population with no evolution: the mathematical baseline.',
     explanation:"Hardy-Weinberg tells us that allele frequencies stay constant across generations if: no mutation, no migration, no selection, random mating, and large population. Real populations always violate these — that's how evolution happens. p²+2pq+q²=1 is the genotype frequency formula.",
     key_points:['p² + 2pq + q² = 1','5 conditions for equilibrium','Deviations = evolution','q² = recessive phenotype frequency'],
-    animation_type:'dna', emoji:'🧬', color1:'#10B981', color2:'#059669' },
+    animation_type:'dna', color1:'#10B981', color2:'#059669' },
 
   { id:'r5', subject:'Physics', chapter:'Waves', concept:'Doppler Effect',
     summary:'Why an ambulance sounds higher-pitched coming toward you.',
     explanation:'When a sound source moves toward you, wavefronts bunch up — wavelength decreases, frequency rises. Moving away, they stretch out — lower pitch. f_obs = f_src × (v±v_obs)/(v∓v_src). The same effect works for light: approaching stars appear blue-shifted, receding ones red-shifted.',
     key_points:['Approach → higher frequency','Recede → lower frequency','Observer numerator, Source denominator','Red shift = universe expanding'],
-    animation_type:'wave', emoji:'🌊', color1:'#8B5CF6', color2:'#EC4899' },
+    animation_type:'wave', color1:'#8B5CF6', color2:'#EC4899' },
 
   { id:'r6', subject:'Chemistry', chapter:'Equilibrium', concept:"Le Chatelier's Principle",
     summary:'Disturb a system at equilibrium — it fights back.',
     explanation:"Le Chatelier's principle: if you stress an equilibrium (change concentration, pressure, or temperature), the system shifts to oppose the stress. Increase reactants → equilibrium shifts right (more products). Increase temperature in exothermic reaction → shifts left (opposes heat addition). Catalyst: speeds up both directions equally — no shift.",
     key_points:['Stress → system opposes it','Increase reactant → shift right','Add heat to exothermic → shift left','Catalyst: no shift, just faster'],
-    animation_type:'gradient', emoji:'⚖️', color1:'#A78BFA', color2:'#F472B6' },
+    animation_type:'gradient', color1:'#A78BFA', color2:'#F472B6' },
 
   { id:'r7', subject:'Mathematics', chapter:'Vectors', concept:'Dot Product & Cross Product',
     summary:'Two ways to multiply vectors — one gives a number, one gives direction.',
     explanation:'Dot product A·B = |A||B|cosθ gives a scalar — how much A points in the direction of B. Cross product A×B = |A||B|sinθ n̂ gives a vector perpendicular to both. Dot product for work (F·d), angles between vectors. Cross product for torque (r×F), area of parallelogram.',
     key_points:['A·B = |A||B|cosθ (scalar)','A×B = |A||B|sinθ n̂ (vector)','Dot: work, angles','Cross: torque, area'],
-    animation_type:'orbit', emoji:'↗️', color1:'#F59E0B', color2:'#84CC16' },
+    animation_type:'orbit', color1:'#F59E0B', color2:'#84CC16' },
 
   { id:'r8', subject:'Biology', chapter:'Photosynthesis', concept:'Z-Scheme of Light Reactions',
     summary:'How plants split water and capture the sun\'s energy in a zigzag path.',
     explanation:"The Z-scheme describes electron flow in the light reactions. Water is split at PSII (releasing O₂), electrons travel through the electron transport chain to PSI, where they're re-energized by light and used to reduce NADP⁺ to NADPH. The pathway looks like a 'Z' when drawn as an energy diagram.",
     key_points:['PSII → splits water, releases O₂','ETC → generates ATP','PSI → makes NADPH','Z-shape on energy diagram'],
-    animation_type:'dna', emoji:'🌿', color1:'#22C55E', color2:'#16A34A' },
+    animation_type:'dna', color1:'#22C55E', color2:'#16A34A' },
 ];
 
 // ── SVG Animations ────────────────────────────────────────────────────────────
@@ -147,7 +152,7 @@ function DNAAnimation({ color1, color2 }: { color1: string; color2: string }) {
             <motion.circle cx={150} cy={y} r={5} fill={color2} fillOpacity={0.8}
               animate={{ cx:[150-30*Math.cos(phase), 150+30*Math.cos(phase), 150-30*Math.cos(phase)] }}
               transition={{ duration:2, repeat:Infinity, ease:'easeInOut', delay: i*0.05 }} />
-            <motion.line y1={y} y2={y} stroke="rgba(255,255,255,0.15)" strokeWidth={1}
+            <motion.line y1={y} y2={y} stroke="var(--ink-150)" strokeWidth={1}
               animate={{
                 x1:[150+30*Math.cos(phase), 150-30*Math.cos(phase)],
                 x2:[150-30*Math.cos(phase), 150+30*Math.cos(phase)]
@@ -179,7 +184,7 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
 
   return (
     <div className="relative w-full h-full flex flex-col" style={{
-      background: `linear-gradient(180deg, ${reel.color1}18 0%, #050810 60%)`,
+      background: `linear-gradient(180deg, ${reel.color1}18 0%, var(--surface-sheet) 60%)`,
     }}>
       {/* Animation canvas */}
       <div className="flex-1 relative overflow-hidden">
@@ -189,7 +194,7 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
 
         {/* Subject / chapter badge */}
         <div className="absolute top-4 left-4 flex items-center gap-2">
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full"
             style={{ background: `${reel.color1}30`, color: reel.color1, border: `1px solid ${reel.color1}40` }}>
             {reel.subject} · {reel.chapter}
           </span>
@@ -200,21 +205,23 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
           )}
         </div>
 
-        {/* Central emoji */}
+        {/* Central subject icon */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
             animate={active ? { scale:[1,1.08,1], rotate:[0,3,-3,0] } : {}}
             transition={{ duration:3, repeat:Infinity, ease:'easeInOut' }}
-            className="text-6xl select-none"
           >
-            {reel.emoji}
+            {(() => {
+              const Icon = SUBJECT_ICON[reel.subject] ?? Zap;
+              return <Icon size={64} style={{ color: reel.color1 }} strokeWidth={1.3} />;
+            })()}
           </motion.div>
         </div>
       </div>
 
       {/* Content overlay */}
       <div className="shrink-0 px-5 pb-6 pt-3"
-        style={{ background: 'linear-gradient(180deg,transparent,rgba(5,8,16,0.98) 30%)' }}>
+        style={{ background: 'linear-gradient(180deg,transparent,var(--surface-scrim) 30%)' }}>
         <h2 className="font-heading text-2xl font-extrabold text-white mb-1">{reel.concept}</h2>
         <p className="text-sm font-semibold mb-3" style={{ color: reel.color1 }}>{reel.summary}</p>
 
@@ -245,13 +252,13 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
           <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
             <Heart size={20} fill={reel.liked ? '#EF4444' : 'none'} stroke={reel.liked ? '#EF4444' : 'white'} />
           </div>
-          <p className="text-[9px] text-white/60 font-bold">Like</p>
+          <p className="text-xs text-white/60 font-bold">Like</p>
         </button>
         <button onClick={onSave} className="flex flex-col items-center gap-1" aria-label="Save as flashcard">
           <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
             <BookMarked size={20} fill={reel.saved ? reel.color1 : 'none'} stroke={reel.saved ? reel.color1 : 'white'} />
           </div>
-          <p className="text-[9px] text-white/60 font-bold">Save</p>
+          <p className="text-xs text-white/60 font-bold">Save</p>
         </button>
         <button className="flex flex-col items-center gap-1" aria-label="Share" onClick={async () => {
           await Share.share({ title: reel.concept, text: `${reel.summary}\n\n${reel.key_points.join('\n')}`, dialogTitle: 'Share concept' }).catch(() => {});
@@ -259,7 +266,7 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
           <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
             <Share2 size={20} className="text-white" />
           </div>
-          <p className="text-[9px] text-white/60 font-bold">Share</p>
+          <p className="text-xs text-white/60 font-bold">Share</p>
         </button>
       </div>
     </div>
@@ -329,6 +336,7 @@ export default function ConceptReelsPage() {
       if (xpTimeoutRef.current) clearTimeout(xpTimeoutRef.current);
       xpTimeoutRef.current = setTimeout(() => setShowXp(false), 1800);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, user]);
 
   useEffect(() => () => { if (xpTimeoutRef.current) clearTimeout(xpTimeoutRef.current); }, []);
@@ -373,7 +381,7 @@ export default function ConceptReelsPage() {
     if (!user) return;
     setReels(prev => prev.map(r => r.id === reel.id ? { ...r, saved: !r.saved } : r));
     if (!reel.saved) {
-      await supabase.from('flashcards').insert({
+      const { data: reelFc } = await supabase.from('flashcards').insert({
         user_id: user.id,
         front: reel.concept,
         back: `${reel.summary}\n\n${reel.key_points.join('\n')}`,
@@ -381,13 +389,14 @@ export default function ConceptReelsPage() {
         topic: reel.chapter,
         ease_factor: 2.5, interval: 1, repetitions: 0,
         next_review_at: new Date().toISOString(),
-      });
+      }).select('id').single();
+      if (reelFc?.id) indexUserItem('flashcard', reelFc.id).catch(() => {});
       Toast.show({ text: 'Saved as flashcard!', duration: 'short' });
     }
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: '#050810' }}>
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--surface-sheet)' }}>
       {/* XP toast */}
       <XpToast show={showXp} />
 
@@ -399,7 +408,7 @@ export default function ConceptReelsPage() {
         </Link>
         <div className="text-center">
           <h1 className="text-sm font-bold text-white">Concept Reels</h1>
-          <p className="text-[10px] text-white/50">{index + 1} / {reels.length}</p>
+          <p className="text-xs text-white/50">{index + 1} / {reels.length}</p>
         </div>
         <div className="w-8 h-8" />
       </div>
@@ -413,7 +422,7 @@ export default function ConceptReelsPage() {
               style={{
                 width: i === index ? 6 : 4,
                 height: i === index ? 18 : 4,
-                background: i === index ? reels[index].color1 : viewed.has(r.id) ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
+                background: i === index ? reels[index].color1 : viewed.has(r.id) ? 'var(--ink-500)' : 'var(--ink-150)',
               }}
             />
             {viewed.has(r.id) && i !== index && (
@@ -457,7 +466,7 @@ export default function ConceptReelsPage() {
             whileTap={{ scale: 0.9 }}
             onClick={() => goTo(index - 1)}
             className="pointer-events-auto w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-100)' }}
           >
             <span className="text-white/60 text-sm">↑</span>
           </motion.button>
@@ -467,7 +476,7 @@ export default function ConceptReelsPage() {
             whileTap={{ scale: 0.9 }}
             onClick={() => goTo(index + 1)}
             className="pointer-events-auto w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--ink-100)' }}
           >
             <span className="text-white/60 text-sm">↓</span>
           </motion.button>

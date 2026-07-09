@@ -20,7 +20,7 @@ interface Report {
   id: string;
   week_start: string;
   report_html: string;
-  report_data: { narrative?: string; [key: string]: unknown };
+  report_data: { narrative?: string; digest_summary?: string; [key: string]: unknown };
   generated_at: string;
 }
 
@@ -80,16 +80,16 @@ function MasteryRing({
       <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }}>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-            stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+            stroke="var(--ink-080)" strokeWidth={stroke} />
           <circle cx={size / 2} cy={size / 2} r={r} fill="none"
             stroke={color} strokeWidth={stroke}
             strokeDasharray={circ} strokeDashoffset={offset}
             strokeLinecap="round"
             style={{ transition: 'stroke-dashoffset 1s ease' }} />
         </svg>
-        <span className="text-[10px] font-bold" style={{ color }}>{pct}%</span>
+        <span className="text-xs font-bold" style={{ color }}>{pct}%</span>
       </div>
-      <span className="text-[9px] text-center leading-tight" style={{ color: 'rgba(255,255,255,0.5)' }}>{short}</span>
+      <span className="text-xs text-center leading-tight" style={{ color: 'var(--ink-500)' }}>{short}</span>
     </div>
   );
 }
@@ -98,7 +98,7 @@ function MasteryRing({
 
 function Skeleton({ className }: { className?: string }) {
   return (
-    <div className={`animate-pulse rounded-xl ${className ?? ''}`} style={{ background: 'rgba(255,255,255,0.06)' }} />
+    <div className={`animate-pulse rounded-xl ${className ?? ''}`} style={{ background: 'var(--ink-060)' }} />
   );
 }
 
@@ -170,11 +170,14 @@ export default function ParentDashboardPage() {
   async function handleShare() {
     if (!report) return;
     try {
+      const shareText = report.report_data?.digest_summary
+        ? String(report.report_data.digest_summary)
+        : report.report_data?.narrative
+          ? String(report.report_data.narrative).slice(0, 500)
+          : 'Please find the Edora weekly progress report below.';
       await Share.share({
         title: 'Edora Weekly Parent Report',
-        text: report.report_data?.narrative
-          ? String(report.report_data.narrative).slice(0, 500)
-          : 'Please find the Edora weekly progress report below.',
+        text: shareText,
         dialogTitle: 'Share Parent Report',
       });
     } catch {
@@ -192,10 +195,10 @@ export default function ParentDashboardPage() {
 
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-10"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/profile">
           <button aria-label="Go back" className="w-8 h-8 flex items-center justify-center rounded-xl text-white transition-colors"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', WebkitTapHighlightColor: 'transparent' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)', WebkitTapHighlightColor: 'transparent' }}>
             <ChevronLeft size={18} />
           </button>
         </Link>
@@ -205,7 +208,7 @@ export default function ParentDashboardPage() {
         </div>
         <div className="flex-1">
           <h2 className="font-heading font-bold text-white text-sm">Parent Report</h2>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Novo AI weekly summary</p>
+          <p className="text-xs" style={{ color: 'var(--ink-500)' }}>Novo AI weekly summary</p>
         </div>
       </div>
 
@@ -214,10 +217,10 @@ export default function ParentDashboardPage() {
         {/* ── Live Stats Section ────────────────────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl overflow-hidden"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="px-4 pt-4 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
+          <div className="px-4 pt-4 pb-2" style={{ borderBottom: '1px solid var(--ink-060)' }}>
             <p className="font-semibold text-white text-sm">This Week's Activity</p>
-            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>Live data · last 7 days</p>
+            <p className="text-xs" style={{ color: 'var(--ink-500)' }}>Live data · last 7 days</p>
           </div>
 
           {statsLoading ? (
@@ -234,8 +237,8 @@ export default function ParentDashboardPage() {
               ].map(({ icon: Icon, label, value, color }, i) => (
                 <div key={label} className="px-4 py-4 flex items-center gap-3"
                   style={{
-                    borderRight:  i % 2 === 0 ? '1px solid rgba(255,255,255,0.06)' : undefined,
-                    borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.06)' : undefined,
+                    borderRight:  i % 2 === 0 ? '1px solid var(--ink-060)' : undefined,
+                    borderBottom: i < 2 ? '1px solid var(--ink-060)' : undefined,
                   }}>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: `${color}18` }}>
@@ -243,7 +246,7 @@ export default function ParentDashboardPage() {
                   </div>
                   <div>
                     <p className="font-heading font-bold text-white text-base leading-none">{value}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>{label}</p>
                   </div>
                 </div>
               ))}
@@ -255,7 +258,7 @@ export default function ParentDashboardPage() {
         {!statsLoading && masteryEntries.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
             className="rounded-3xl p-4"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
             <p className="font-semibold text-white text-sm mb-3">Subject Mastery</p>
             <div className="flex flex-wrap gap-4 justify-center">
               {masteryEntries.map(([sub, { mastered, total }]) => (
@@ -271,7 +274,7 @@ export default function ParentDashboardPage() {
           {generating ? (
             /* Generating skeleton */
             <div className="rounded-3xl p-5"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
@@ -279,7 +282,7 @@ export default function ParentDashboardPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-white text-sm">Novo is writing your report</p>
-                  <p className="text-xs flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  <p className="text-xs flex items-center gap-1" style={{ color: 'var(--ink-500)' }}>
                     This takes a few seconds <ThreeDots />
                   </p>
                 </div>
@@ -296,29 +299,41 @@ export default function ParentDashboardPage() {
           ) : report ? (
             /* Report exists */
             <div className="rounded-3xl overflow-hidden"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
               <div className="px-4 pt-4 pb-3 flex items-center gap-2"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                style={{ borderBottom: '1px solid var(--ink-060)' }}>
                 <div className="flex-1">
                   <p className="font-semibold text-white text-sm">Weekly Report</p>
                   <div className="flex items-center gap-1 mt-0.5">
-                    <Clock size={10} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                    <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <Clock size={10} style={{ color: 'var(--ink-400)' }} />
+                    <span className="text-xs" style={{ color: 'var(--ink-500)' }}>
                       Generated {timeAgo(report.generated_at)}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={handleGenerate}
-                  className="flex items-center gap-1 text-[11px] rounded-full px-3 py-1 transition-colors"
-                  style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
+                  className="flex items-center gap-1 text-xs rounded-full px-3 py-1 transition-colors"
+                  style={{ border: '1px solid var(--ink-100)', color: 'var(--ink-500)' }}>
                   <RefreshCw size={11} /> Regenerate
                 </button>
               </div>
 
+              {/* Digest headline — the one thing to know this week */}
+              {report.report_data?.digest_summary && (
+                <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--ink-060)', background: 'rgba(91,106,245,0.06)' }}>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1" style={{ color: '#8B9BFA' }}>
+                    This week's headline
+                  </p>
+                  <p className="text-xs leading-relaxed font-medium" style={{ color: 'var(--ink-750)' }}>
+                    {report.report_data.digest_summary}
+                  </p>
+                </div>
+              )}
+
               {/* Narrative preview */}
-              <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <p className="text-xs leading-relaxed line-clamp-4" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--ink-060)' }}>
+                <p className="text-xs leading-relaxed line-clamp-4" style={{ color: 'var(--ink-750)' }}>
                   {report.report_data?.narrative
                     ? String(report.report_data.narrative).slice(0, 220) + '…'
                     : 'Tap "View Full Report" to read the full parent summary.'}
@@ -329,7 +344,7 @@ export default function ParentDashboardPage() {
                 <button
                   onClick={() => setShowModal(true)}
                   className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold"
-                  style={{ color: '#8B9BFA', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                  style={{ color: '#8B9BFA', borderRight: '1px solid var(--ink-060)' }}>
                   <Eye size={15} /> View Full Report
                 </button>
                 <button
@@ -343,7 +358,7 @@ export default function ParentDashboardPage() {
           ) : (
             /* No report yet */
             <div className="rounded-3xl p-5"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}>
@@ -351,10 +366,10 @@ export default function ParentDashboardPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-white text-sm">Generate This Week's Report</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>Takes about 10 seconds</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>Takes about 10 seconds</p>
                 </div>
               </div>
-              <p className="text-xs leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <p className="text-xs leading-relaxed mb-4" style={{ color: 'var(--ink-500)' }}>
                 Novo writes a plain-English summary of this week's progress for parents — what was studied,
                 what improved, and what needs attention.
               </p>
@@ -372,15 +387,15 @@ export default function ParentDashboardPage() {
         {history.length > 1 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
             className="rounded-3xl overflow-hidden"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <div className="px-4 pt-3 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
+            <div className="px-4 pt-3 pb-2" style={{ borderBottom: '1px solid var(--ink-060)' }}>
               <p className="font-semibold text-white text-xs">Past Reports</p>
             </div>
             <div className="px-4 py-3 flex flex-col gap-0">
               {history.map((h, i) => (
                 <div key={h.id}
                   className="flex items-center gap-3 py-2.5"
-                  style={{ borderBottom: i < history.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                  style={{ borderBottom: i < history.length - 1 ? '1px solid var(--ink-050)' : 'none' }}>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.2)' }}>
                     <FileText size={14} style={{ color: '#8B9BFA' }} />
@@ -389,9 +404,9 @@ export default function ParentDashboardPage() {
                     <p className="text-xs font-medium text-white">
                       Week of {formatWeek(h.week_start)}
                     </p>
-                    <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{timeAgo(h.generated_at)}</p>
+                    <p className="text-xs" style={{ color: 'var(--ink-500)' }}>{timeAgo(h.generated_at)}</p>
                   </div>
-                  <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.4)' }} className="shrink-0" />
+                  <ChevronRight size={14} style={{ color: 'var(--ink-400)' }} className="shrink-0" />
                 </div>
               ))}
             </div>
@@ -406,7 +421,7 @@ export default function ParentDashboardPage() {
         {showModal && report && (
           <motion.div
             className="fixed inset-0 z-50 flex flex-col"
-            style={{ background: '#0A0F25' }}
+            style={{ background: 'var(--page-bg-start)' }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -414,17 +429,17 @@ export default function ParentDashboardPage() {
 
             {/* Modal header */}
             <div className="flex items-center gap-3 px-4 py-3 shrink-0"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.10)', background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+              style={{ borderBottom: '1px solid var(--ink-100)', background: 'var(--hdr-a-820)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
               <div className="flex-1">
                 <p className="font-semibold text-white text-sm">Weekly Parent Report</p>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
                   Week of {formatWeek(report.week_start)}
                 </p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-white"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-100)' }}>
                 <X size={16} />
               </button>
             </div>
@@ -439,7 +454,7 @@ export default function ParentDashboardPage() {
             </div>
 
             {/* Modal footer */}
-            <div className="px-4 py-4 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="px-4 py-4 shrink-0" style={{ borderTop: '1px solid var(--ink-060)' }}>
               <button
                 onClick={handleShare}
                 className="w-full py-3 rounded-2xl text-white font-semibold text-sm flex items-center justify-center gap-2"

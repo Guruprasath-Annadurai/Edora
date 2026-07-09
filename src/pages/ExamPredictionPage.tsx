@@ -10,9 +10,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Target, Clock, Calendar, ChevronDown,
   AlertCircle, CheckCircle2, RefreshCw, Sparkles, Info,
-  TrendingUp, BookOpen, Zap,
+  TrendingUp, BookOpen, Zap, Share2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Share } from '@capacitor/share';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -85,7 +86,7 @@ function ScoreGauge({ score, target }: { score: number; target: number }) {
           <path
             d={`M -70 0 A 70 70 0 0 1 70 0`}
             fill="none"
-            stroke="rgba(255,255,255,0.08)"
+            stroke="var(--ink-080)"
             strokeWidth={12}
             strokeLinecap="round"
           />
@@ -135,7 +136,7 @@ function ScoreGauge({ score, target }: { score: number; target: number }) {
 
         {/* Left label: PREDICTED */}
         <div className="absolute bottom-0 left-0 flex flex-col items-start">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Predicted
           </span>
           <span
@@ -148,7 +149,7 @@ function ScoreGauge({ score, target }: { score: number; target: number }) {
 
         {/* Right label: TARGET */}
         <div className="absolute bottom-0 right-0 flex flex-col items-end">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Target
           </span>
           <span
@@ -187,7 +188,7 @@ function MasteryBar({ subject, mastered, total }: { subject: string; mastered: n
   return (
     <div className="flex items-center gap-3">
       <span className="text-xs text-white font-medium w-24 truncate shrink-0">{subject}</span>
-      <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
@@ -231,13 +232,13 @@ function StudyWeekCard({ week, index }: { week: StudyWeek; index: number }) {
           W{index + 1}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: c.accent }}>
+          <p className="text-xs font-bold uppercase tracking-wide" style={{ color: c.accent }}>
             {week.week}
           </p>
           <p className="text-sm font-semibold text-white truncate">{week.focus}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[11px] font-medium text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {week.hours_per_day}h/day
           </span>
           <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -261,7 +262,7 @@ function StudyWeekCard({ week, index }: { week: StudyWeek; index: number }) {
               {week.topics.map(topic => (
                 <span
                   key={topic}
-                  className="text-[11px] font-medium px-2.5 py-1 rounded-full"
+                  className="text-xs font-medium px-2.5 py-1 rounded-full"
                   style={{ background: c.accent + '18', color: c.accent }}
                 >
                   {topic}
@@ -340,8 +341,8 @@ function SetupScreen({
             className="w-16 h-16 rounded-2xl flex items-center justify-center font-heading font-bold text-xl transition-all active:scale-95"
             style={
               !useCustom && selectedGrade === g
-                ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#fff', boxShadow: '0 4px 20px rgba(91,106,245,0.4)' }
-                : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.7)', border: '2px solid rgba(255,255,255,0.12)' }
+                ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'var(--ink-950)', boxShadow: '0 4px 20px rgba(91,106,245,0.4)' }
+                : { background: 'var(--ink-055)', color: 'var(--ink-700)', border: '2px solid var(--ink-120)' }
             }
           >
             {g}
@@ -352,7 +353,7 @@ function SetupScreen({
           className="w-16 h-16 rounded-2xl flex items-center justify-center font-heading font-bold text-sm transition-all active:scale-95"
           style={
             useCustom
-              ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#fff', boxShadow: '0 4px 20px rgba(91,106,245,0.4)' }
+              ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'var(--ink-950)', boxShadow: '0 4px 20px rgba(91,106,245,0.4)' }
               : { background: '#fff', color: '#1A2035', border: '2px solid #E4E8F7' }
           }
         >
@@ -378,7 +379,7 @@ function SetupScreen({
                 onChange={e => setCustomScore(e.target.value)}
                 placeholder="Enter target % (e.g. 75)"
                 className="w-full px-4 py-3.5 rounded-2xl font-bold text-center text-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
-                style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.12)' }}
+                style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-120)' }}
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">%</span>
             </div>
@@ -410,7 +411,7 @@ function SetupScreen({
       </motion.button>
 
       {/* Disclaimer */}
-      <p className="text-center text-[11px] text-muted-foreground leading-relaxed px-2">
+      <p className="text-center text-xs text-muted-foreground leading-relaxed px-2">
         Based on your flashcard mastery, challenge scores, and study patterns
       </p>
     </div>
@@ -477,10 +478,10 @@ function ScoreTrajectory({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="inline-block w-5 h-0.5 rounded" style={{ background: 'rgba(107,114,128,0.6)' }} /> Current pace
         </div>
-        <div className="flex items-center gap-1.5 text-[11px]" style={{ color: '#34D399' }}>
+        <div className="flex items-center gap-1.5 text-xs" style={{ color: '#34D399' }}>
           <span className="inline-block w-5 h-0.5 rounded" style={{ background: '#34D399' }} /> Optimised pace
         </div>
       </div>
@@ -490,9 +491,9 @@ function ScoreTrajectory({
           <g key={i}>
             <line
               x1={PAD.l} y1={toY(v)} x2={W - PAD.r} y2={toY(v)}
-              stroke="rgba(255,255,255,0.06)" strokeWidth={1}
+              stroke="var(--ink-060)" strokeWidth={1}
             />
-            <text x={PAD.l - 5} y={toY(v) + 3.5} textAnchor="end" fontSize={8} fill="rgba(255,255,255,0.35)">
+            <text x={PAD.l - 5} y={toY(v) + 3.5} textAnchor="end" fontSize={8} fill="var(--ink-350)">
               {v}%
             </text>
           </g>
@@ -538,7 +539,7 @@ function ScoreTrajectory({
 
         {/* X-axis labels */}
         {[0, 15, 30].map(d => (
-          <text key={d} x={toX(d)} y={H - 5} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.3)">
+          <text key={d} x={toX(d)} y={H - 5} textAnchor="middle" fontSize={8} fill="var(--ink-300)">
             Day {d}
           </text>
         ))}
@@ -555,12 +556,14 @@ function ResultsScreen({
   onRecalculate,
   recalculating,
   hasExamDate,
+  onShare,
 }: {
   prediction: PredictionData;
   cachedAt: string | null;
   onRecalculate: () => void;
   recalculating: boolean;
   hasExamDate: boolean;
+  onShare: () => void;
 }) {
   const conf = CONFIDENCE_CONFIG[prediction.confidence_level];
   const hoursColor = prediction.daily_hours_needed > 2 ? '#FBBF24' : '#34D399';
@@ -583,9 +586,9 @@ function ResultsScreen({
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 180, damping: 18 }}
         className="rounded-3xl p-5 flex flex-col items-center gap-2"
-        style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
       >
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">
           {hasExamDate ? 'Exam Score Prediction' : 'Current Readiness Score'}
         </p>
         <ScoreGauge
@@ -593,10 +596,15 @@ function ResultsScreen({
           target={prediction.target_score}
         />
         {!hasExamDate && (
-          <p className="text-[11px] text-muted-foreground text-center mt-1 leading-snug px-2">
+          <p className="text-xs text-muted-foreground text-center mt-1 leading-snug px-2">
             Score you'd achieve in an exam today · Set your exam date for a personalised countdown
           </p>
         )}
+        <button onClick={onShare}
+          className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+          style={{ background: 'rgba(91,106,245,0.12)', color: '#818CF8', border: '1px solid rgba(91,106,245,0.25)' }}>
+          <Share2 size={12} /> Share my score
+        </button>
       </motion.div>
 
       {/* Set-exam-date nudge (only shown when no exam date) */}
@@ -611,7 +619,7 @@ function ResultsScreen({
           <Calendar size={18} style={{ color: '#818CF8' }} className="shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold" style={{ color: '#818CF8' }}>Add your exam date</p>
-            <p className="text-[11px]" style={{ color: 'rgba(129,140,248,0.8)' }}>
+            <p className="text-xs" style={{ color: 'rgba(129,140,248,0.8)' }}>
               Get a personalised countdown, study schedule, and daily hour targets.
             </p>
           </div>
@@ -625,11 +633,11 @@ function ResultsScreen({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="rounded-3xl p-4"
-        style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
       >
         <div className="flex items-center gap-2 mb-3">
           <TrendingUp size={14} className="text-primary shrink-0" />
-          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
             30-Day Score Trajectory
           </p>
         </div>
@@ -639,7 +647,7 @@ function ResultsScreen({
           daysRemaining={prediction.days_remaining}
         />
         {prediction.days_remaining !== null && prediction.target_score > prediction.predicted_score && (
-          <p className="text-[11px] text-center mt-2 leading-snug" style={{ color: 'rgba(52,211,153,0.8)' }}>
+          <p className="text-xs text-center mt-2 leading-snug" style={{ color: 'rgba(52,211,153,0.8)' }}>
             Follow the study plan to gain {prediction.target_score - prediction.predicted_score}% in {Math.min(prediction.days_remaining, 30)} days
           </p>
         )}
@@ -659,7 +667,7 @@ function ResultsScreen({
           <p className="font-heading font-bold text-2xl leading-none" style={{ color: hoursColor }}>
             {prediction.daily_hours_needed}h
           </p>
-          <p className="text-[11px] font-medium" style={{ color: hoursColor }}>per day needed</p>
+          <p className="text-xs font-medium" style={{ color: hoursColor }}>per day needed</p>
         </motion.div>
 
         {/* Days remaining / Confidence */}
@@ -675,7 +683,7 @@ function ResultsScreen({
             <p className="font-heading font-bold text-2xl leading-none" style={{ color: '#818CF8' }}>
               {prediction.days_remaining}
             </p>
-            <p className="text-[11px] font-medium" style={{ color: '#818CF8' }}>days to exam</p>
+            <p className="text-xs font-medium" style={{ color: '#818CF8' }}>days to exam</p>
           </motion.div>
         ) : (
           <motion.div
@@ -716,11 +724,11 @@ function ResultsScreen({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.22 }}
         className="rounded-3xl p-4"
-        style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
       >
         <div className="flex items-center gap-2 mb-2">
           <Sparkles size={15} className="text-primary shrink-0" />
-          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
             Novo's Assessment
           </p>
         </div>
@@ -734,11 +742,11 @@ function ResultsScreen({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.26 }}
           className="rounded-3xl p-4"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
         >
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={15} className="text-primary shrink-0" />
-            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Mastery by Subject
             </p>
           </div>
@@ -832,13 +840,13 @@ function ResultsScreen({
           onClick={onRecalculate}
           disabled={recalculating}
           className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-muted-foreground transition-all active:scale-95 disabled:opacity-50"
-          style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-100)' }}
         >
           <RefreshCw size={14} className={recalculating ? 'animate-spin' : ''} />
           {recalculating ? 'Recalculating…' : 'Recalculate'}
         </button>
         {cacheLabel && (
-          <p className="text-[10px] text-muted-foreground">Last calculated {cacheLabel}</p>
+          <p className="text-xs text-muted-foreground">Last calculated {cacheLabel}</p>
         )}
       </motion.div>
     </div>
@@ -929,18 +937,30 @@ export default function ExamPredictionPage() {
     }
   }
 
+  async function handleShare() {
+    if (!prediction) return;
+    const hasExamDateVal = prediction.has_exam_date ?? prediction.days_remaining !== null;
+    const label = hasExamDateVal ? 'Exam Score Prediction' : 'Current Readiness Score';
+    const text = `My ${label} on Edora: ${prediction.predicted_score}% (target ${prediction.target_score}%). ${prediction.narrative}`;
+    try {
+      await Share.share({ title: 'Edora Exam Readiness', text, dialogTitle: 'Share your readiness score' });
+    } catch {
+      try { await navigator.clipboard.writeText(text); } catch { /* noop */ }
+    }
+  }
+
   // ── Loading ──
   if (phase === 'loading') {
     return (
       <div className="flex flex-col h-full bg-gradient-page">
         <div
           className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
         >
           <button
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
           >
             <ArrowLeft size={17} className="text-white" />
           </button>
@@ -961,12 +981,12 @@ export default function ExamPredictionPage() {
       {/* Header */}
       <div
         className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
       >
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-95 transition-colors"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
         >
           <ArrowLeft size={17} className="text-white" />
         </button>
@@ -976,7 +996,7 @@ export default function ExamPredictionPage() {
         </div>
         {phase === 'results' && (
           <div
-            className="px-2.5 py-1 rounded-full text-[10px] font-bold"
+            className="px-2.5 py-1 rounded-full text-xs font-bold"
             style={{ background: 'rgba(91,106,245,0.2)', color: '#818CF8' }}
           >
             AI Powered
@@ -1026,6 +1046,7 @@ export default function ExamPredictionPage() {
                 onRecalculate={handleRecalculate}
                 recalculating={recalculating}
                 hasExamDate={prediction.has_exam_date ?? prediction.days_remaining !== null}
+                onShare={handleShare}
               />
             </motion.div>
           ) : null}

@@ -106,7 +106,7 @@ function ConceptPills({ concepts, expanded, onToggle }: {
         onClick={onToggle}
         className="flex items-center gap-1.5 w-full">
         <BookOpen size={11} style={{ color: '#FBBF24' }} />
-        <span className="text-[10px] font-bold uppercase tracking-wide flex-1 text-left" style={{ color: '#FBBF24' }}>
+        <span className="text-xs font-bold uppercase tracking-wide flex-1 text-left" style={{ color: '#FBBF24' }}>
           Topics covered so far
         </span>
         {expanded
@@ -124,7 +124,7 @@ function ConceptPills({ concepts, expanded, onToggle }: {
               {concepts.map((c, i) => (
                 <span
                   key={i}
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full"
                   style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#FBBF24' }}>
                   {c}
                 </span>
@@ -151,7 +151,7 @@ function ScenarioCard({ scenario, onStart }: ScenarioCardProps) {
       animate={{ opacity: 1, y: 0 }}
       onClick={() => onStart(scenario)}
       className="w-full rounded-3xl p-5 text-left active:scale-[0.98] transition-all"
-      style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
       <div className="flex items-start gap-3 mb-3">
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0"
@@ -161,7 +161,7 @@ function ScenarioCard({ scenario, onStart }: ScenarioCardProps) {
         <div className="flex-1 min-w-0">
           <h3 className="font-heading text-base font-bold text-white leading-tight mb-1">{scenario.title}</h3>
           <span
-            className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full"
+            className="inline-block text-xs font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'rgba(91,106,245,0.1)', color: '#5B6AF5' }}>
             teaches: {scenario.topic}
           </span>
@@ -191,7 +191,7 @@ function ScenarioCard({ scenario, onStart }: ScenarioCardProps) {
 
 function PastStoryRow({ session }: { session: PastStorySession }) {
   return (
-    <div className="flex items-center gap-3 py-3 last:border-b-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <div className="flex items-center gap-3 py-3 last:border-b-0" style={{ borderBottom: '1px solid var(--ink-060)' }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
         style={{ background: 'rgba(245,158,11,0.12)' }}>
         <BookOpen size={16} style={{ color: '#FBBF24' }} />
@@ -200,7 +200,7 @@ function PastStoryRow({ session }: { session: PastStorySession }) {
         <p className="text-sm font-semibold text-white truncate">{session.scenario_title}</p>
         <p className="text-xs text-muted-foreground">{session.topic} · +{session.xp_earned} XP</p>
       </div>
-      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+      <span className="text-xs font-bold px-2 py-0.5 rounded-full"
         style={session.status === 'completed'
           ? { background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34D399' }
           : { background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#FBBF24' }}>
@@ -232,7 +232,7 @@ function CompletionOverlay({ title, totalXp, concepts, onSaveNotes, onExploreMor
         animate={{ y: 0 }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
         className="w-full rounded-t-3xl p-6 flex flex-col gap-5"
-        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
+        style={{ background: 'var(--hdr-a-880)', border: '1px solid var(--ink-100)', borderBottom: 'none', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
 
         <div className="flex flex-col items-center gap-3 text-center">
           <motion.div
@@ -274,7 +274,7 @@ function CompletionOverlay({ title, totalXp, concepts, onSaveNotes, onExploreMor
           <button
             onClick={onSaveNotes}
             className="w-full py-3.5 rounded-2xl text-sm font-bold text-muted-foreground flex items-center justify-center gap-2 active:scale-95 transition-all"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <CheckCircle2 size={16} className="text-[#34D399]" />
             Save to Notes
           </button>
@@ -361,12 +361,10 @@ export default function StoryModePage() {
   useEffect(() => {
     loadScenarios();
     loadPastSessions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     loadScenarios(selectedSubject);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubject]);
 
   useEffect(() => {
@@ -401,7 +399,7 @@ export default function StoryModePage() {
       });
       if (!mountedRef.current) return;
       setPastSessions((data?.sessions as PastStorySession[]) ?? []);
-    } catch (_) { /* silent */ } finally {
+    } catch { /* silent */ } finally {
       if (mountedRef.current) setPastLoading(false);
     }
   }
@@ -516,17 +514,17 @@ export default function StoryModePage() {
       <div className="page-immersive bg-gradient-page">
         <div
           className="shrink-0"
-          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+          style={{ paddingTop: 'env(safe-area-inset-top)', background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
               className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
               <ArrowLeft size={17} className="text-white" />
             </button>
             <div className="flex-1">
               <h1 className="font-heading text-base font-bold text-white">Story Mode</h1>
-              <p className="text-[11px] text-muted-foreground">Learn through immersive adventures</p>
+              <p className="text-xs text-muted-foreground">Learn through immersive adventures</p>
             </div>
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center"
@@ -548,7 +546,7 @@ export default function StoryModePage() {
                 }`}
                 style={selectorTab === tab
                   ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }
-                  : { background: 'rgba(255,255,255,0.05)' }}>
+                  : { background: 'var(--ink-050)' }}>
                 {tab === 'new' ? 'New Story' : 'Continue Reading'}
               </button>
             ))}
@@ -585,7 +583,7 @@ export default function StoryModePage() {
                     }`}
                     style={selectedSubject === ''
                       ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }
-                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      : { background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
                     All
                   </button>
                   {SUBJECTS.map(s => (
@@ -597,7 +595,7 @@ export default function StoryModePage() {
                       }`}
                       style={selectedSubject === s
                         ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }
-                        : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        : { background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
                       {s}
                     </button>
                   ))}
@@ -611,12 +609,12 @@ export default function StoryModePage() {
                   <div className="flex flex-col gap-3">
                     {[1, 2, 3].map(i => (
                       <div key={i} className="h-44 rounded-3xl animate-pulse"
-                        style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }} />
+                        style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }} />
                     ))}
                   </div>
                 ) : scenarios.length === 0 ? (
                   <div className="rounded-3xl p-6 text-center"
-                    style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                     <p className="text-sm text-muted-foreground">No stories found. Try a different subject.</p>
                     <button
                       onClick={() => loadScenarios(selectedSubject)}
@@ -643,7 +641,7 @@ export default function StoryModePage() {
                 </div>
               ) : pastSessions.length === 0 ? (
                 <div className="rounded-3xl p-6 text-center"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   <BookOpen size={28} className="mx-auto mb-2 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">No stories started yet.</p>
                   <button
@@ -654,7 +652,7 @@ export default function StoryModePage() {
                 </div>
               ) : (
                 <div className="rounded-3xl px-4"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   {pastSessions.map(s => <PastStoryRow key={s.id} session={s} />)}
                 </div>
               )}
@@ -669,7 +667,7 @@ export default function StoryModePage() {
               className="fixed inset-0 z-50 flex items-center justify-center"
               style={{ background: 'rgba(0,0,0,0.4)' }}>
               <div className="rounded-3xl p-8 flex flex-col items-center gap-4 mx-6"
-                style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                style={{ background: 'var(--hdr-a-880)', border: '1px solid var(--ink-100)' }}>
                 <BookOpen size={36} className="animate-bounce" style={{ color: '#FBBF24' }} />
                 <p className="font-heading text-base font-bold text-white">Opening the story…</p>
                 <p className="text-xs text-muted-foreground text-center">Setting the scene for your adventure</p>
@@ -691,12 +689,12 @@ export default function StoryModePage() {
       {/* Sticky header */}
       <div
         className="shrink-0"
-        style={{ paddingTop: 'env(safe-area-inset-top)', background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ paddingTop: 'env(safe-area-inset-top)', background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <div className="px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all shrink-0"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={17} className="text-white" />
           </button>
           <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -711,13 +709,13 @@ export default function StoryModePage() {
               className="flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0"
               style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)' }}>
               <Sparkles size={10} style={{ color: '#FBBF24' }} />
-              <span className="text-[11px] font-bold" style={{ color: '#FBBF24' }}>+{totalXp} XP</span>
+              <span className="text-xs font-bold" style={{ color: '#FBBF24' }}>+{totalXp} XP</span>
             </div>
           )}
           <button
             onClick={resetToSelector}
             className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-all shrink-0"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <X size={14} className="text-muted-foreground" />
           </button>
         </div>
@@ -762,7 +760,7 @@ export default function StoryModePage() {
                     style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
                     <div className="flex items-center gap-1.5 mb-2">
                       <BookOpen size={11} style={{ color: '#FBBF24' }} />
-                      <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: '#FBBF24' }}>Narrator</span>
+                      <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#FBBF24' }}>Narrator</span>
                     </div>
                     <p className="text-sm text-white/90 leading-relaxed whitespace-pre-wrap"
                       style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
@@ -812,10 +810,10 @@ export default function StoryModePage() {
       {!isCompleted && (
         <div
           className="shrink-0 px-4 pt-3"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', background: 'rgba(8,6,20,0.82)', borderTop: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', background: 'var(--hdr-a-820)', borderTop: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="flex items-end gap-2">
             <div className="flex-1 rounded-2xl px-4 py-3 flex items-end"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
               <textarea
                 ref={textareaRef}
                 rows={1}
@@ -838,7 +836,7 @@ export default function StoryModePage() {
               <Send size={15} className="text-white" />
             </button>
           </div>
-          <p className="text-[10px] text-muted-foreground text-center mt-2">Continue →</p>
+          <p className="text-xs text-muted-foreground text-center mt-2">Continue →</p>
         </div>
       )}
 

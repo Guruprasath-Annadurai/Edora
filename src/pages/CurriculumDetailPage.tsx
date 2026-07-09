@@ -93,7 +93,7 @@ function topicStatusLabel(status: TopicProgress['status']) {
 
 function topicStatusColor(status: TopicProgress['status']): string {
   switch (status) {
-    case 'locked':      return 'rgba(255,255,255,0.15)';
+    case 'locked':      return 'var(--ink-150)';
     case 'complete':    return 'rgba(16,185,129,0.2)';
     case 'in_progress': return 'rgba(59,130,246,0.2)';
     case 'available':   return 'rgba(91,106,245,0.2)';
@@ -154,7 +154,7 @@ function GeneratingBanner() {
 
 function ProgressBar({ value }: { value: number }) {
   return (
-    <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+    <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-100)' }}>
       <motion.div
         className="h-full rounded-full"
         style={{ background: 'linear-gradient(90deg, #5B6AF5, #8B5CF6)' }}
@@ -206,8 +206,8 @@ function TopicSheet({
         transition={{ type: 'spring', stiffness: 380, damping: 38 }}
         className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl pb-10"
         style={{
-          background: 'linear-gradient(180deg, #1E2440 0%, #141829 100%)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'linear-gradient(180deg, var(--grad-curriculum-1) 0%, var(--grad-curriculum-2) 100%)',
+          border: '1px solid var(--ink-100)',
         }}
       >
         {/* Handle */}
@@ -220,7 +220,7 @@ function TopicSheet({
           <div className="flex items-center gap-2 mb-3">
             <span
               className="text-xs font-bold px-2.5 py-1 rounded-full"
-              style={{ background: topicStatusColor(status), color: 'rgba(255,255,255,0.8)' }}
+              style={{ background: topicStatusColor(status), color: 'var(--ink-800)' }}
             >
               {topicStatusLabel(status)}
             </span>
@@ -299,7 +299,7 @@ function TopicSheet({
             {status === 'locked' && (
               <div
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl"
-                style={{ background: 'rgba(255,255,255,0.05)' }}
+                style={{ background: 'var(--ink-050)' }}
               >
                 <Lock size={15} className="text-white/30" />
                 <span className="text-sm text-white/40">Complete previous topics to unlock</span>
@@ -353,7 +353,7 @@ function TopicRow({ topic, progressMap, onSelect, depth = 0 }: TopicRowProps) {
             isChapter ? 'border-b' : isSection ? 'border-b' : ''
           }`}
           style={{
-            borderColor: isChapter ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
+            borderColor: isChapter ? 'var(--ink-070)' : 'var(--ink-040)',
           }}
         >
           {/* Status icon */}
@@ -379,7 +379,7 @@ function TopicRow({ topic, progressMap, onSelect, depth = 0 }: TopicRowProps) {
             {/* Sub-meta */}
             {!isChapter && (
               <div className="flex items-center gap-2.5 mt-0.5">
-                <span className="text-[10px] text-white/35 flex items-center gap-1">
+                <span className="text-xs text-white/35 flex items-center gap-1">
                   <Clock size={9} />{topic.estimated_hours}h
                 </span>
                 <DifficultyStars value={topic.difficulty} />
@@ -392,8 +392,8 @@ function TopicRow({ topic, progressMap, onSelect, depth = 0 }: TopicRowProps) {
             <div className="flex items-center gap-2 shrink-0">
               {topic.estimated_hours > 0 && (
                 <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
+                  style={{ background: 'var(--ink-080)', color: 'var(--ink-500)' }}
                 >
                   <Clock size={9} />{topic.estimated_hours}h
                 </span>
@@ -413,8 +413,8 @@ function TopicRow({ topic, progressMap, onSelect, depth = 0 }: TopicRowProps) {
           {/* Leaf status text */}
           {!isChapter && (
             <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
-              style={{ background: topicStatusColor(status), color: 'rgba(255,255,255,0.7)' }}
+              className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
+              style={{ background: topicStatusColor(status), color: 'var(--ink-700)' }}
             >
               {status === 'complete' ? 'Done' : status === 'in_progress' ? 'Active' : status === 'available' ? 'Start' : 'Locked'}
             </span>
@@ -432,7 +432,7 @@ function TopicRow({ topic, progressMap, onSelect, depth = 0 }: TopicRowProps) {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.22, ease: 'easeInOut' }}
               className="overflow-hidden"
-              style={{ borderLeft: '1px solid rgba(255,255,255,0.06)', marginLeft: `${depth * 16 + 28}px` }}
+              style={{ borderLeft: '1px solid var(--ink-060)', marginLeft: `${depth * 16 + 28}px` }}
             >
               {topic.children.map(child => (
                 <TopicRow
@@ -670,13 +670,13 @@ export default function CurriculumDetailPage() {
       {/* ── Header ── */}
       <div
         className="shrink-0 px-4 pt-4 pb-4"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ borderBottom: '1px solid var(--ink-070)' }}
       >
         <div className="flex items-start gap-3">
           <button
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-100)' }}
           >
             <ArrowLeft size={17} className="text-white/80" />
           </button>
@@ -750,8 +750,8 @@ export default function CurriculumDetailPage() {
               <div
                 className="rounded-2xl p-4"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--ink-040)',
+                  border: '1px solid var(--ink-080)',
                 }}
               >
                 <div className="flex items-center justify-between mb-2.5">
@@ -773,7 +773,7 @@ export default function CurriculumDetailPage() {
         {!loading && curriculum && !isGenerating && (
           <div className="flex items-center gap-2 mx-4 mt-3 mb-1">
             <span
-              className="text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5"
+              className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5"
               style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981' }}
             >
               <CheckCircle2 size={10} />
@@ -793,8 +793,8 @@ export default function CurriculumDetailPage() {
             <div
               className="mx-4 rounded-2xl overflow-hidden"
               style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                background: 'var(--ink-030)',
+                border: '1px solid var(--ink-070)',
               }}
             >
               {topics.map(chapter => (

@@ -4,13 +4,11 @@
 // Route: /feed
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import {useState, useEffect, useRef} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronLeft, Flame, Trophy, Zap, BookOpen, Users,
-  Star, Award, RefreshCw, Heart, Share2, Filter,
-  GraduationCap, CheckCircle2, Target,
-} from 'lucide-react';
+import {ChevronLeft, Flame, Trophy, Zap, BookOpen, Users,
+  Star, Award, RefreshCw, Share2,
+  GraduationCap, CheckCircle2, Target} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -49,8 +47,7 @@ const EVENT_COLORS: Record<string, string> = {
   circle_joined:     '#34D399',
   mock_test:         '#F472B6',
   pyq_session:       '#FB923C',
-  achievement_unlocked: '#FBBF24',
-};
+  achievement_unlocked: '#FBBF24' };
 
 const EVENT_ICONS: Record<string, React.ReactNode> = {
   chapter_completed: <BookOpen size={16} />,
@@ -61,22 +58,21 @@ const EVENT_ICONS: Record<string, React.ReactNode> = {
   circle_joined:     <Users size={16} />,
   mock_test:         <GraduationCap size={16} />,
   pyq_session:       <Target size={16} />,
-  achievement_unlocked: <Award size={16} />,
-};
+  achievement_unlocked: <Award size={16} /> };
 
 const REACTION_EMOJIS = ['👏', '🔥', '🎉', '💪', '⭐', '🚀'];
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 function Avatar({ url, name, size = 40 }: { url: string | null | undefined; name: string; size?: number }) {
-  if (url) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />;
+  const [imgError, setImgError] = useState(false);
+  if (url && !imgError) return <img src={url} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={() => setImgError(true)} />;
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0,
       background: 'linear-gradient(135deg,#7C3AED,#A78BFA)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.35, fontWeight: 700, color: '#fff',
-    }}>{initials}</div>
+      fontSize: size * 0.35, fontWeight: 700, color: 'var(--ink-950)' }}>{initials}</div>
   );
 }
 
@@ -110,8 +106,7 @@ function FeedCard({ item, myId, onReact, onShare }: {
         background: 'var(--color-surface)',
         borderRadius: 16,
         border: '1px solid var(--color-border)',
-        overflow: 'hidden',
-      }}
+        overflow: 'hidden' }}
     >
       {/* Color accent top bar */}
       <div style={{ height: 3, background: `linear-gradient(90deg,${color},transparent)` }} />
@@ -123,10 +118,10 @@ function FeedCard({ item, myId, onReact, onShare }: {
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{item.profile?.full_name ?? 'Student'}</div>
             {item.profile?.school_name && (
-              <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{item.profile.school_name}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{item.profile.school_name}</div>
             )}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{timeAgo(item.created_at)}</div>
+          <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{timeAgo(item.created_at)}</div>
         </div>
 
         {/* Event content */}
@@ -134,8 +129,7 @@ function FeedCard({ item, myId, onReact, onShare }: {
           <div style={{
             width: 44, height: 44, borderRadius: 12, flexShrink: 0,
             background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22,
-          }}>
+            fontSize: 22 }}>
             {item.emoji}
           </div>
           <div style={{ flex: 1 }}>
@@ -148,8 +142,7 @@ function FeedCard({ item, myId, onReact, onShare }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 20,
-            background: `${color}22`, color, fontSize: 11, fontWeight: 600,
-          }}>
+            background: `${color}22`, color, fontSize: 12, fontWeight: 600 }}>
             <span style={{ color }}>{EVENT_ICONS[item.event_type]}</span>
             {item.event_type.replace(/_/g, ' ')}
           </div>
@@ -166,8 +159,7 @@ function FeedCard({ item, myId, onReact, onShare }: {
                 border: `1px solid ${item.my_reaction ? color : 'var(--color-border)'}`,
                 background: item.my_reaction ? `${color}22` : 'transparent',
                 color: item.my_reaction ? color : 'var(--color-text-secondary)',
-                cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              }}
+                cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
             >
               {item.my_reaction ?? '👏'} {item.reaction_count}
             </button>
@@ -196,8 +188,7 @@ function FeedCard({ item, myId, onReact, onShare }: {
                   style={{
                     fontSize: 22, padding: '6px 10px', borderRadius: 10,
                     border: item.my_reaction === e ? `2px solid ${color}` : '2px solid var(--color-border)',
-                    background: 'var(--color-bg)', cursor: 'pointer',
-                  }}
+                    background: 'var(--color-bg)', cursor: 'pointer' }}
                 >{e}</motion.button>
               ))}
             </motion.div>
@@ -224,9 +215,13 @@ function SchoolToppersBanner({ items }: { items: FeedItem[] }) {
           <div key={t.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
             <div style={{ position: 'relative', marginBottom: 4 }}>
               <Avatar url={t.profile?.avatar_url} name={t.profile?.full_name ?? 'User'} size={40} />
-              <div style={{ position: 'absolute', bottom: -4, right: -4, fontSize: 14 }}>{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</div>
+              <div style={{
+                position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff',
+                background: i === 0 ? '#FBBF24' : i === 1 ? '#C0C0C0' : '#CD7F32',
+              }}>{i + 1}</div>
             </div>
-            <div style={{ fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
               {(t.profile?.full_name ?? 'User').split(' ')[0]}
             </div>
           </div>
@@ -256,6 +251,7 @@ export default function AchievementFeedPage() {
     loadFeed(true);
     subscribeRealtime();
     return () => { if (channelRef.current) supabase.removeChannel(channelRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, user]);
 
   async function loadFeed(reset = false) {
@@ -272,9 +268,8 @@ export default function AchievementFeedPage() {
       .order('created_at', { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
 
-    if (filter === 'school') {
-      // Filter by same school (need to join — simplified via profile column)
-      const { data: myProfile } = await supabase.from('profiles').select('school_name').eq('id', user.id).maybeSingle();
+    if (filter === 'school') {//  by same school (need to join — simplified via profile column)
+      const { data: myProfile} = await supabase.from('profiles').select('school_name').eq('id', user.id).maybeSingle();
       if (myProfile?.school_name) {
         // Can't easily filter by profile.school_name here, show all for now
       }
@@ -285,8 +280,7 @@ export default function AchievementFeedPage() {
 
     const enriched: FeedItem[] = (data ?? []).map(item => ({
       ...item,
-      profile: item.profiles as FeedItem['profile'],
-    }));
+      profile: item.profiles as FeedItem['profile'] }));
 
     // Load my reactions
     if (enriched.length > 0) {
@@ -353,7 +347,7 @@ export default function AchievementFeedPage() {
   return (
     <div className="pb-nav" style={{ height: '100%', overflowY: 'auto' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--hdr-a-820)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', borderBottom: '1px solid var(--ink-080)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px' }}>
           <button aria-label="Go back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)' }}>
             <ChevronLeft size={24} />
@@ -367,15 +361,14 @@ export default function AchievementFeedPage() {
           </button>
         </div>
 
-        {/* Filter tabs */}
+        {/*  tabs */}
         <div style={{ display: 'flex', gap: 8, padding: '0 20px 14px' }}>
           {(['all', 'friends', 'school'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
               border: `1px solid ${filter === f ? '#60A5FA' : 'var(--color-border)'}`,
               background: filter === f ? 'rgba(96,165,250,0.15)' : 'transparent',
-              color: filter === f ? '#60A5FA' : 'var(--color-text-secondary)', cursor: 'pointer',
-            }}>{f.charAt(0).toUpperCase() + f.slice(1)}</button>
+              color: filter === f ? '#60A5FA' : 'var(--color-text-secondary)', cursor: 'pointer' }}>{f.charAt(0).toUpperCase() + f.slice(1)}</button>
           ))}
         </div>
       </div>

@@ -150,7 +150,7 @@ export default function StudyRoomPage() {
   const [myAnswers,      setMyAnswers]       = useState<(number | null)[]>([]);
   // answerCounts[qIdx][answerIdx] = number of people who chose that option
   const answerCounts  = useRef<Record<number, number[]>>({});
-  const [answerTick,  setAnswerTick]  = useState(0); // increment to trigger re-render
+  const [_answerTick, setAnswerTick]  = useState(0); // increment to trigger re-render
 
   // ── Results ─────────────────────────────────────────────────────────────────
   const [results, setResults] = useState<Array<{ name: string; score: number; userId: string }>>([]);
@@ -685,7 +685,7 @@ export default function StudyRoomPage() {
   if (phase === 'lobby') return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/sprint" className="touch-target">
           <ArrowLeft size={20} className="text-white" strokeWidth={1.75} />
         </Link>
@@ -702,7 +702,7 @@ export default function StudyRoomPage() {
       <div className="flex-1 native-scroll pb-nav px-4 py-5 flex flex-col gap-5">
         {/* Tabs */}
         <div className="rounded-2xl p-1 flex gap-1"
-          style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)' }}>
           {(['create', 'join'] as const).map(tab => (
             <button key={tab} onClick={() => { setLobbyTab(tab); setError(''); }}
               className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
@@ -729,7 +729,7 @@ export default function StudyRoomPage() {
             <motion.div key="create" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }}
               className="flex flex-col gap-4">
               <div className="rounded-3xl p-5 flex flex-col gap-4"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Subject</p>
                   <div className="grid grid-cols-2 gap-2">
@@ -740,14 +740,14 @@ export default function StudyRoomPage() {
                         }`}
                         style={subject === s
                           ? { background: 'linear-gradient(135deg, #10B981, #06B6D4)' }
-                          : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          : { background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
                         {s}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="rounded-xl flex items-center px-4 h-11"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
                   <input type="text" placeholder="Topic (e.g. Calculus, World War 2)"
                     value={topic} onChange={e => setTopic(e.target.value)}
                     className="flex-1 bg-transparent text-white placeholder:text-muted-foreground text-sm outline-none"
@@ -756,7 +756,7 @@ export default function StudyRoomPage() {
               </div>
 
               <div className="rounded-2xl p-4 text-xs text-muted-foreground leading-relaxed"
-                style={{ background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                style={{ background: 'var(--ink-045)', border: '1px solid var(--ink-060)' }}>
                 <p className="font-semibold text-white mb-1">How it works</p>
                 A 6-character code is generated. Share it with up to {MAX_MEMBERS - 1} friends.
                 Study together for 5 minutes, then take a live quiz — same questions, live leaderboard.
@@ -776,7 +776,7 @@ export default function StudyRoomPage() {
             <motion.div key="join" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}
               className="flex flex-col gap-4">
               <div className="rounded-3xl p-6 flex flex-col items-center gap-5"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
                 <div className="w-16 h-16 rounded-3xl flex items-center justify-center"
                   style={{ background: 'rgba(16,185,129,0.12)' }}>
                   <Users size={30} style={{ color: '#10B981' }} />
@@ -793,7 +793,7 @@ export default function StudyRoomPage() {
                   onChange={e => setCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                   onKeyDown={e => e.key === 'Enter' && codeInput.length === 6 && joinRoom()}
                   className="w-full text-center text-2xl font-bold tracking-[0.3em] rounded-2xl px-4 py-4 text-white outline-none placeholder:text-muted-foreground placeholder:tracking-normal placeholder:text-base placeholder:font-normal"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
+                  style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }}
                   autoCapitalize="characters"
                   autoCorrect="off"
                   spellCheck={false}
@@ -825,7 +825,7 @@ export default function StudyRoomPage() {
         {/* Room code — large and copyable */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl p-5 flex flex-col items-center gap-3"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Room Code</p>
           <div className="flex items-center gap-3">
             <span className="font-heading text-4xl font-black text-white tracking-[0.2em]">{roomCode}</span>
@@ -840,7 +840,7 @@ export default function StudyRoomPage() {
 
         {/* Members */}
         <div className="rounded-3xl p-5"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-semibold text-white">Members</p>
             <span className="text-xs text-muted-foreground">{onlineCount}/{MAX_MEMBERS}</span>
@@ -855,7 +855,7 @@ export default function StudyRoomPage() {
                   <p className="text-xs text-muted-foreground">{m.online ? 'Online' : 'Offline'}</p>
                 </div>
                 {m.userId === (user?.id ?? '') && isHost && (
-                  <span className="flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5"
+                  <span className="flex items-center gap-1 text-xs font-bold rounded-full px-2 py-0.5"
                     style={{ color: '#FBBF24', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
                     <Crown size={10} /> Host
                   </span>
@@ -920,7 +920,7 @@ export default function StudyRoomPage() {
             const c   = 2 * Math.PI * r;
             return (
               <svg className="w-52 h-52 -rotate-90">
-                <circle cx="104" cy="104" r={r} stroke="rgba(255,255,255,0.08)" strokeWidth="10" fill="none" />
+                <circle cx="104" cy="104" r={r} stroke="var(--v2-border)" strokeWidth="10" fill="none" />
                 <motion.circle cx="104" cy="104" r={r}
                   stroke="url(#studyGrad)" strokeWidth="10" fill="none" strokeLinecap="round"
                   strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
@@ -939,7 +939,7 @@ export default function StudyRoomPage() {
 
         {/* Study tip */}
         <div className="rounded-3xl p-4 w-full"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
           <p className="text-sm text-white leading-relaxed text-center">
             Review your notes, watch a video, or read your textbook.<br />
             A quiz follows this study session!
@@ -1016,7 +1016,7 @@ export default function StudyRoomPage() {
         <div className="flex-1 native-scroll pb-nav px-4 py-4 flex flex-col gap-4">
           {/* Progress + timer */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
               <motion.div className="h-full rounded-full"
                 style={{ background: 'linear-gradient(90deg, #5B6AF5, #8B5CF6)' }}
                 animate={{ width: `${((currentQ) / questions.length) * 100}%` }} />
@@ -1046,7 +1046,7 @@ export default function StudyRoomPage() {
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="flex flex-col gap-3">
               <div className="rounded-2xl p-5"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
                 <p className="font-semibold text-white text-sm leading-relaxed">{q?.question}</p>
               </div>
 
@@ -1056,7 +1056,7 @@ export default function StudyRoomPage() {
                 const count      = counts[i] ?? 0;
                 const pct        = totalAnswered > 0 ? Math.round((count / totalAnswered) * 100) : 0;
 
-                let optStyle: React.CSSProperties = { background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' };
+                let optStyle: React.CSSProperties = { background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' };
                 let textColor = 'text-white';
                 if (isRevealPhase) {
                   if (isCorrect)       { optStyle = { background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)' }; textColor = 'text-[#34D399]'; }
@@ -1079,13 +1079,13 @@ export default function StudyRoomPage() {
                       {isRevealPhase && isCorrect  && <CheckCircle size={16} className="text-[#34D399] shrink-0" />}
                       {isRevealPhase && isSelected && !isCorrect && <XCircle size={16} className="text-red-400 shrink-0" />}
                       {isRevealPhase && count > 0 && (
-                        <span className="text-[10px] font-bold text-muted-foreground shrink-0">{pct}%</span>
+                        <span className="text-xs font-bold text-muted-foreground shrink-0">{pct}%</span>
                       )}
                     </div>
                     {/* Answer count bar shown during reveal */}
                     {isRevealPhase && totalAnswered > 0 && (
                       <motion.div className="absolute bottom-0 left-0 h-0.5 rounded-full"
-                        style={{ background: isCorrect ? '#10B981' : 'rgba(255,255,255,0.15)' }}
+                        style={{ background: isCorrect ? '#10B981' : 'var(--ink-150)' }}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
                         transition={{ duration: 0.5, ease: 'easeOut' }} />
@@ -1098,7 +1098,7 @@ export default function StudyRoomPage() {
               {isRevealPhase && q && (
                 <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                   className="rounded-2xl px-4 py-3 text-xs text-muted-foreground leading-relaxed"
-                  style={{ background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  style={{ background: 'var(--ink-045)', border: '1px solid var(--ink-060)' }}>
                   <span className="font-semibold text-white">Explanation: </span>{q.explanation}
                 </motion.div>
               )}
@@ -1126,7 +1126,7 @@ export default function StudyRoomPage() {
     return (
       <div className="flex flex-col h-full bg-gradient-page">
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
             style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
             <Trophy size={20} className="text-white" />
@@ -1156,7 +1156,7 @@ export default function StudyRoomPage() {
 
           {/* Leaderboard */}
           <div className="rounded-3xl p-4 flex flex-col gap-2"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
             {results.map((r, i) => {
               const isMe = r.userId === myUserId;
               const rankLabels = ['1st', '2nd', '3rd'];
@@ -1176,7 +1176,7 @@ export default function StudyRoomPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-heading font-bold text-white text-sm">{r.score * 20}</p>
-                    <p className="text-[10px] text-muted-foreground">pts</p>
+                    <p className="text-xs text-muted-foreground">pts</p>
                   </div>
                 </motion.div>
               );
@@ -1190,7 +1190,7 @@ export default function StudyRoomPage() {
           </button>
           <button onClick={() => navigate('/sprint')}
             className="w-full py-3 rounded-2xl text-sm font-semibold text-muted-foreground"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
             Back to Sprint
           </button>
           <div className="h-4" />
@@ -1211,7 +1211,7 @@ function RoomHeader({
 }) {
   return (
     <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-      style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+      style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
       <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
         style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)' }}>
         <Users size={20} className="text-white" />

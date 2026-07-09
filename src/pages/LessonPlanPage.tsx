@@ -62,8 +62,8 @@ function TaskCard({
     <motion.div layout
       className="flex items-start gap-3 rounded-2xl px-4 py-3.5"
       style={{
-        background: 'rgba(15,20,45,0.75)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--hdr-b-750)',
+        border: '1px solid var(--ink-070)',
         ...(task.completed ? { opacity: 0.55 } : {}),
       }}>
       <button
@@ -74,7 +74,7 @@ function TaskCard({
           ? <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(91,106,245,0.3)', borderTopColor: '#5B6AF5' }} />
           : task.completed
             ? <CheckCircle2 size={20} style={{ color: '#5B6AF5' }} />
-            : <Circle size={20} style={{ color: 'rgba(255,255,255,0.25)' }} />
+            : <Circle size={20} style={{ color: 'var(--ink-250)' }} />
         }
       </button>
       <div className="flex-1 min-w-0">
@@ -89,7 +89,7 @@ function TaskCard({
             </span>
           )}
         </div>
-        <p className="text-sm font-medium" style={{ color: task.completed ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.9)', textDecoration: task.completed ? 'line-through' : 'none' }}>
+        <p className="text-sm font-medium" style={{ color: task.completed ? 'var(--ink-400)' : 'var(--ink-900)', textDecoration: task.completed ? 'line-through' : 'none' }}>
           {task.title}
         </p>
         {task.description && !task.completed && (
@@ -120,7 +120,7 @@ function SubjectPicker({ onSelect, onBack }: { onSelect: (s: string) => void; on
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button aria-label="Go back" onClick={onBack} className="text-white">
           <ChevronLeft size={20} />
         </button>
@@ -129,9 +129,9 @@ function SubjectPicker({ onSelect, onBack }: { onSelect: (s: string) => void; on
 
       {/* Search / custom input */}
       <div className="px-4 pt-4 pb-2 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        style={{ background: 'var(--hdr-a-880)', borderBottom: '1px solid var(--ink-060)' }}>
         <div className="flex items-center gap-2 rounded-2xl px-3 h-11"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
           <Search size={15} className="text-muted-foreground shrink-0" />
           <input
             type="text"
@@ -162,7 +162,7 @@ function SubjectPicker({ onSelect, onBack }: { onSelect: (s: string) => void; on
               <button key={sub}
                 onClick={() => onSelect(sub)}
                 className="p-4 rounded-2xl text-sm font-medium text-white text-left transition-colors"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                 {sub}
               </button>
             ))}
@@ -180,7 +180,7 @@ function SubjectPicker({ onSelect, onBack }: { onSelect: (s: string) => void; on
 
         {/* Always-visible custom entry at bottom */}
         {filtered.length > 0 && (
-          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--ink-060)' }}>
             <p className="text-xs text-muted-foreground mb-2 px-1 font-semibold">Custom subject</p>
             <div className="flex gap-2">
               <input
@@ -190,7 +190,7 @@ function SubjectPicker({ onSelect, onBack }: { onSelect: (s: string) => void; on
                 onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
                 placeholder="e.g. French, Music Theory, UPSC GS2…"
                 className="flex-1 rounded-xl px-3 h-10 text-sm text-white placeholder:text-white/30 outline-none"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', WebkitUserSelect: 'text', userSelect: 'text' }}
+                style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)', WebkitUserSelect: 'text', userSelect: 'text' }}
               />
               <button
                 onClick={handleCustomSubmit}
@@ -256,7 +256,7 @@ export default function LessonPlanPage() {
       setSelectedSubject(subject);
       setActiveDay(getDayIndex());
       if (Capacitor.isNativePlatform()) {
-        await Toast.show({ text: '📅 Lesson plan ready!', duration: 'short', position: 'bottom' });
+        await Toast.show({ text: 'Lesson plan ready', duration: 'short', position: 'bottom' });
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to generate plan';
@@ -304,7 +304,7 @@ export default function LessonPlanPage() {
 
       {/* ── Header ── */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/profile" className="text-white">
           <ChevronLeft size={20} />
         </Link>
@@ -381,18 +381,18 @@ export default function LessonPlanPage() {
 
             {/* Progress bar */}
             <div className="px-4 py-4"
-              style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              style={{ background: 'var(--hdr-a-880)', borderBottom: '1px solid var(--ink-060)' }}>
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Week progress</p>
                   <p className="font-semibold text-white text-sm">{plan.done_tasks} of {plan.total_tasks} tasks done</p>
                 </div>
                 <span className="text-lg font-bold"
-                  style={{ color: pct >= 80 ? '#34D399' : pct >= 40 ? '#8B9BFA' : 'rgba(255,255,255,0.4)' }}>
+                  style={{ color: pct >= 80 ? '#34D399' : pct >= 40 ? '#8B9BFA' : 'var(--ink-400)' }}>
                   {pct}%
                 </span>
               </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
                 <motion.div className="h-full rounded-full"
                   style={{ background: 'linear-gradient(90deg, #5B6AF5, #8B5CF6)' }}
                   initial={{ width: 0 }}
@@ -406,7 +406,7 @@ export default function LessonPlanPage() {
 
             {/* Day tabs */}
             <div className="px-3 py-2 flex gap-1 overflow-x-auto hide-scrollbar"
-              style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              style={{ background: 'var(--hdr-a-880)', borderBottom: '1px solid var(--ink-060)' }}>
               {DAY_NAMES.map((d, i) => {
                 const dt = dayTasks(i);
                 const dd = dayDone(i);
@@ -420,7 +420,7 @@ export default function LessonPlanPage() {
                     <div className="flex items-center gap-0.5">
                       {done
                         ? <CheckCircle2 size={10} className={activeDay === i ? 'text-white' : 'text-green-500'} />
-                        : <span className={`text-[10px] font-medium ${isToday && activeDay !== i ? 'text-primary' : ''}`}>
+                        : <span className={`text-xs font-medium ${isToday && activeDay !== i ? 'text-primary' : ''}`}>
                             {dt.length > 0 ? `${dd}/${dt.length}` : '·'}
                           </span>
                       }

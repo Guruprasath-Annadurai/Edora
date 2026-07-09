@@ -97,7 +97,7 @@ function GeneratingSteps() {
 
   return (
     <div className="rounded-3xl p-5"
-      style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
           style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
@@ -105,7 +105,7 @@ function GeneratingSteps() {
         </div>
         <div>
           <p className="font-semibold text-white text-sm">Building your report</p>
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>This takes ~15 seconds</p>
+          <p className="text-xs" style={{ color: 'var(--ink-500)' }}>This takes ~15 seconds</p>
         </div>
       </div>
 
@@ -118,7 +118,7 @@ function GeneratingSteps() {
             <motion.div
               className="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
               animate={{
-                borderColor: i < step ? '#10B981' : i === step ? '#5B6AF5' : 'rgba(255,255,255,0.15)',
+                borderColor: i < step ? '#10B981' : i === step ? '#5B6AF5' : 'var(--ink-150)',
                 background:  i < step ? '#10B981' : 'transparent',
               }}>
               {i < step && (
@@ -133,7 +133,7 @@ function GeneratingSteps() {
                   transition={{ duration: 0.8, repeat: Infinity }} />
               )}
             </motion.div>
-            <span className="text-xs" style={{ color: i === step ? '#fff' : 'rgba(255,255,255,0.5)', fontWeight: i === step ? 600 : 400 }}>
+            <span className="text-xs" style={{ color: i === step ? '#fff' : 'var(--ink-500)', fontWeight: i === step ? 600 : 400 }}>
               {label}
             </span>
           </motion.div>
@@ -153,9 +153,9 @@ function MasteryBar({ subject, mastered, total }: { subject: string; mastered: n
     <div>
       <div className="flex justify-between items-center mb-1">
         <span className="text-xs font-medium text-white capitalize">{subject}</span>
-        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{mastered}/{total} · {pct}%</span>
+        <span className="text-xs" style={{ color: 'var(--ink-500)' }}>{mastered}/{total} · {pct}%</span>
       </div>
-      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
         <motion.div
           className="h-full rounded-full"
           style={{ background: color }}
@@ -187,7 +187,7 @@ function TrajectoryBadge({ direction }: { direction: 'improving' | 'stable' | 'd
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse rounded-xl ${className ?? ''}`} style={{ background: 'rgba(255,255,255,0.06)' }} />;
+  return <div className={`animate-pulse rounded-xl ${className ?? ''}`} style={{ background: 'var(--ink-060)' }} />;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -242,10 +242,10 @@ export default function TeacherExportPage() {
 
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-10"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/profile">
           <button aria-label="Go back" className="w-8 h-8 flex items-center justify-center rounded-xl text-white transition-colors"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', WebkitTapHighlightColor: 'transparent' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)', WebkitTapHighlightColor: 'transparent' }}>
             <ChevronLeft size={18} />
           </button>
         </Link>
@@ -255,7 +255,7 @@ export default function TeacherExportPage() {
         </div>
         <div className="flex-1">
           <h2 className="font-heading font-bold text-white text-sm">Teacher Export</h2>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Professional progress report</p>
+          <p className="text-xs" style={{ color: 'var(--ink-500)' }}>Professional progress report</p>
         </div>
       </div>
 
@@ -264,18 +264,18 @@ export default function TeacherExportPage() {
         {/* ── Intro card ────────────────────────────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl p-4"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
           <p className="font-semibold text-white text-sm mb-2">Professional report for your teacher</p>
           <div className="flex flex-wrap gap-1.5 mb-3">
             {['Mastery Map', 'Error Log', 'Learning Trajectory', 'AI Assessment', 'Exam Prediction'].map(f => (
               <span key={f}
-                className="text-[10px] font-medium px-2.5 py-1 rounded-full"
-                style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
+                className="text-xs font-medium px-2.5 py-1 rounded-full"
+                style={{ border: '1px solid var(--ink-100)', color: 'var(--ink-600)' }}>
                 {f}
               </span>
             ))}
           </div>
-          <p className="text-[11px] flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="text-xs flex items-center gap-1" style={{ color: 'var(--ink-500)' }}>
             <Clock size={11} /> This takes ~15 seconds to generate
           </p>
         </motion.div>
@@ -304,14 +304,14 @@ export default function TeacherExportPage() {
             {/* Status bar */}
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
               className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-[11px] rounded-full px-3 py-1"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
+              <span className="flex items-center gap-1 text-xs rounded-full px-3 py-1"
+                style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)', color: 'var(--v2-text-4)' }}>
                 <Clock size={10} /> Generated {timeAgo(exportData.generated_at)}
               </span>
               <button
                 onClick={handleGenerate}
-                className="flex items-center gap-1 text-[11px] rounded-full px-3 py-1 transition-colors"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
+                className="flex items-center gap-1 text-xs rounded-full px-3 py-1 transition-colors"
+                style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)', color: 'var(--v2-text-4)' }}>
                 <RefreshCw size={11} /> Regenerate
               </button>
             </motion.div>
@@ -320,8 +320,8 @@ export default function TeacherExportPage() {
             {masteryEntries.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
                 className="rounded-3xl overflow-hidden"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div className="px-4 pt-4 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
+                <div className="px-4 pt-4 pb-2" style={{ borderBottom: '1px solid var(--ink-060)' }}>
                   <p className="font-semibold text-white text-sm">Mastery by Subject</p>
                 </div>
                 <div className="px-4 py-4 flex flex-col gap-3">
@@ -337,11 +337,11 @@ export default function TeacherExportPage() {
               {ed?.trajectory && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.10 }}
                   className="rounded-3xl p-4"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <p className="text-[11px] mb-2 font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>Trajectory</p>
+                  style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
+                  <p className="text-xs mb-2 font-medium" style={{ color: 'var(--ink-500)' }}>Trajectory</p>
                   <TrajectoryBadge direction={ed.trajectory.direction} />
                   {ed.trajectory.trend && (
-                    <p className="text-[10px] mt-2 line-clamp-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <p className="text-xs mt-2 line-clamp-2" style={{ color: 'var(--ink-500)' }}>
                       {ed.trajectory.trend}
                     </p>
                   )}
@@ -351,8 +351,8 @@ export default function TeacherExportPage() {
               {ed?.error_patterns && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
                   className="rounded-3xl p-4"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <p className="text-[11px] mb-2 font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>Error Patterns</p>
+                  style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
+                  <p className="text-xs mb-2 font-medium" style={{ color: 'var(--ink-500)' }}>Error Patterns</p>
                   <div className="flex items-center gap-2">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                       style={{ background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.25)' }}>
@@ -362,7 +362,7 @@ export default function TeacherExportPage() {
                       <p className="font-heading font-bold text-white text-lg leading-none">
                         {ed.error_patterns.length}
                       </p>
-                      <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>patterns found</p>
+                      <p className="text-xs" style={{ color: 'var(--ink-500)' }}>patterns found</p>
                     </div>
                   </div>
                 </motion.div>
@@ -373,21 +373,21 @@ export default function TeacherExportPage() {
             {ed?.prediction && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}
                 className="rounded-3xl p-4"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
                 <p className="font-semibold text-white text-sm mb-1">Exam Prediction</p>
                 <div className="flex items-center gap-4">
                   <div>
                     <p className="font-heading font-bold text-3xl leading-none" style={{ color: '#8B9BFA' }}>
                       {ed.prediction.predicted_score}%
                     </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>predicted score</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>predicted score</p>
                   </div>
-                  <div className="h-10 w-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                  <div className="h-10 w-px" style={{ background: 'var(--ink-080)' }} />
                   <div>
                     <p className="font-heading font-bold text-3xl text-white leading-none">
                       {ed.prediction.predicted_grade}
                     </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>predicted grade</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>predicted grade</p>
                   </div>
                 </div>
               </motion.div>
@@ -420,7 +420,7 @@ export default function TeacherExportPage() {
         {showModal && exportData && (
           <motion.div
             className="fixed inset-0 z-50 flex flex-col"
-            style={{ background: '#0A0F25' }}
+            style={{ background: 'var(--page-bg-start)' }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -428,19 +428,19 @@ export default function TeacherExportPage() {
 
             {/* Modal header */}
             <div className="flex items-center gap-3 px-4 py-3 shrink-0"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.10)', background: 'rgba(8,6,20,0.82)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+              style={{ borderBottom: '1px solid var(--ink-100)', background: 'var(--hdr-a-820)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
               <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
                 <FileText size={15} className="text-white" />
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-white text-sm">Teacher Export</p>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>Generated {timeAgo(exportData.generated_at)}</p>
+                <p className="text-xs" style={{ color: 'var(--ink-500)' }}>Generated {timeAgo(exportData.generated_at)}</p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-white"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-100)' }}>
                 <X size={16} />
               </button>
             </div>
@@ -455,7 +455,7 @@ export default function TeacherExportPage() {
             </div>
 
             {/* Modal footer */}
-            <div className="px-4 py-4 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="px-4 py-4 shrink-0" style={{ borderTop: '1px solid var(--ink-060)' }}>
               <button
                 onClick={() => shareReport(exportData.export_html)}
                 className="w-full py-3 rounded-2xl text-white font-semibold text-sm flex items-center justify-center gap-2"

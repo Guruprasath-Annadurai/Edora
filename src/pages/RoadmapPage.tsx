@@ -52,26 +52,20 @@ interface StudyRoadmap {
   status: string;
 }
 
-interface DayProgress {
-  day_index: number;
-  completed: boolean;
-  completed_at: string | null;
-}
-
 type Phase = 'loading' | 'setup' | 'generating' | 'view';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const EXAM_PRESETS = [
-  { name: 'JEE Mains',    emoji: '⚗️' },
-  { name: 'JEE Advanced', emoji: '🔬' },
-  { name: 'NEET',         emoji: '🧬' },
-  { name: 'SAT',          emoji: '📐' },
-  { name: 'ACT',          emoji: '📝' },
-  { name: 'CBSE 12th',    emoji: '📚' },
-  { name: 'CBSE 10th',    emoji: '🎒' },
-  { name: 'UPSC',         emoji: '🏛️' },
-  { name: 'CAT',          emoji: '📊' },
-  { name: 'IELTS',        emoji: '🌏' },
+  { name: 'JEE Mains' },
+  { name: 'JEE Advanced' },
+  { name: 'NEET' },
+  { name: 'SAT' },
+  { name: 'ACT' },
+  { name: 'CBSE 12th' },
+  { name: 'CBSE 10th' },
+  { name: 'UPSC' },
+  { name: 'CAT' },
+  { name: 'IELTS' },
 ];
 
 const GENERATING_MESSAGES = [
@@ -226,11 +220,11 @@ function DayRow({
 }
 
 function WeekCard({
-  week, dayIdx, daysPerWeek, progress, onToggle, defaultOpen,
+  week, dayIdx, progress, onToggle, defaultOpen,
 }: {
   week: RoadmapWeek;
   dayIdx: number;
-  daysPerWeek: number;
+  daysPerWeek?: number;
   progress: Map<number, boolean>;
   onToggle: (dayIndex: number) => void;
   defaultOpen: boolean;
@@ -253,7 +247,7 @@ function WeekCard({
     <div className={`rounded-2xl border overflow-hidden transition-all ${
       isCurrentW ? 'border-primary/30' : 'border-border'
     }`}
-      style={{ background: 'rgba(15,20,45,0.75)', backdropFilter: 'blur(10px)' }}>
+      style={{ background: 'var(--hdr-b-750)', backdropFilter: 'blur(10px)' }}>
       {/* Week header */}
       <button
         onClick={() => setOpen(o => !o)}
@@ -277,7 +271,7 @@ function WeekCard({
             <span className="text-[10px] font-bold" style={{ color: weekColor }}>
               {completed}/{total}
             </span>
-            <div className="w-16 h-1.5 rounded-full overflow-hidden mt-0.5" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <div className="w-16 h-1.5 rounded-full overflow-hidden mt-0.5" style={{ background: 'var(--ink-100)' }}>
               <div className="h-full rounded-full transition-all"
                 style={{ width: `${pct}%`, background: weekColor }} />
             </div>
@@ -296,7 +290,7 @@ function WeekCard({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25 }}>
-            <div className="px-2 pb-2 pt-1 flex flex-col gap-0.5" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="px-2 pb-2 pt-1 flex flex-col gap-0.5" style={{ borderTop: '1px solid var(--ink-070)' }}>
               {week.days.map(day => (
                 <DayRow
                   key={day.day}
@@ -448,7 +442,7 @@ export default function RoadmapPage() {
   }
 
   // ── Recalibrate ────────────────────────────────────────────────────────────
-  async function handleRecalibrate() {
+  async function handleRecalibrate(useNemotron = false) {
     if (!roadmap) return;
     setIsRecal(true);
     setError('');
@@ -459,7 +453,7 @@ export default function RoadmapPage() {
 
     try {
       const { data, error: fnErr } = await supabase.functions.invoke('roadmap-generator', {
-        body: { mode: 'recalibrate', roadmap_id: roadmap.id, completed_day_indices: completedIndices },
+        body: { mode: 'recalibrate', roadmap_id: roadmap.id, completed_day_indices: completedIndices, use_nemotron: useNemotron },
       });
 
       // Soft errors — edge function returns 200 with a code field
@@ -521,9 +515,9 @@ export default function RoadmapPage() {
   if (phase === 'loading') return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-100)' }}>
           <ArrowLeft size={17} className="text-white" />
         </Link>
         <h1 className="font-heading text-lg font-bold text-white">Study Roadmap</h1>
@@ -538,9 +532,9 @@ export default function RoadmapPage() {
   if (phase === 'setup') return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-100)' }}>
           <ArrowLeft size={17} className="text-white" />
         </Link>
         <div>
@@ -554,9 +548,9 @@ export default function RoadmapPage() {
         {/* Hero */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl p-5 flex flex-col items-center text-center gap-3"
-          style={{ background: 'linear-gradient(135deg, #1A1144, #2D1B7E)' }}>
+          style={{ background: 'linear-gradient(135deg, var(--grad-purple-header-1), var(--grad-purple-header-2))' }}>
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.12)' }}>
+            style={{ background: 'var(--ink-120)' }}>
             <Calendar size={26} className="text-white" />
           </div>
           <div>
@@ -575,34 +569,32 @@ export default function RoadmapPage() {
               <button key={ex.name} onClick={() => setExamName(ex.name)}
                 className="flex items-center gap-2.5 px-3 py-3 rounded-2xl border text-left transition-all active:scale-95"
                 style={examName === ex.name
-                  ? { background: 'rgba(91,106,245,0.15)', borderColor: 'rgba(91,106,245,0.5)' }
-                  : { background: 'rgba(255,255,255,0.055)', borderColor: 'rgba(255,255,255,0.08)' }}>
-                <span className={`text-sm font-semibold ${examName === ex.name ? 'text-primary' : 'text-white'}`}>{ex.name}</span>
+                  ? { background: 'var(--v2-primary-tint-2)', borderColor: 'var(--v2-primary)' }
+                  : { background: 'var(--v2-card)', borderColor: 'var(--v2-border)' }}>
+                <span className="text-sm font-semibold" style={{ color: examName === ex.name ? 'var(--v2-primary)' : 'var(--v2-text-1)' }}>{ex.name}</span>
               </button>
             ))}
           </div>
           {/* Custom exam input */}
-          <div className="rounded-2xl flex items-center px-3 h-11"
-            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <BookOpen size={15} className="text-muted-foreground mr-2 shrink-0" />
+          <div className="rounded-2xl flex items-center px-3 h-11 v2-card">
+            <BookOpen size={15} style={{ color: 'var(--v2-text-4)' }} className="mr-2 shrink-0" />
             <input
               type="text" placeholder="Or type your exam name…"
               value={examName} onChange={e => setExamName(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-white placeholder:text-white/30 outline-none"
-              style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-[color:var(--v2-text-4)]"
+              style={{ color: 'var(--v2-text-1)', WebkitUserSelect: 'text', userSelect: 'text' }} />
           </div>
         </motion.div>
 
         {/* Exam date */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Exam Date</p>
-          <div className="rounded-2xl flex items-center px-3 h-11"
-            style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <Calendar size={15} className="text-muted-foreground mr-2 shrink-0" />
+          <div className="rounded-2xl flex items-center px-3 h-11 v2-card">
+            <Calendar size={15} style={{ color: 'var(--v2-text-4)' }} className="mr-2 shrink-0" />
             <input
               type="date" value={examDate} onChange={e => setExamDate(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-white outline-none"
-              style={{ WebkitUserSelect: 'text', userSelect: 'text', colorScheme: 'dark' }} />
+              className="flex-1 bg-transparent text-sm outline-none"
+              style={{ color: 'var(--v2-text-1)', WebkitUserSelect: 'text', userSelect: 'text' }} />
           </div>
           {examDate && daysUntil(examDate) > 0 && (
             <p className="text-xs text-muted-foreground mt-1.5 ml-1">
@@ -668,12 +660,12 @@ export default function RoadmapPage() {
 
       {/* ── Header ── */}
       <div className="shrink-0"
-        style={{ background: 'linear-gradient(160deg, #1A1144 0%, #2D1B7E 60%, #3B1FA0 100%)' }}>
+        style={{ background: 'linear-gradient(160deg, var(--grad-purple-header-1) 0%, var(--grad-purple-header-2) 60%, var(--grad-purple-header-3) 100%)' }}>
         <div className="px-4 pt-4 pb-5">
           <div className="flex items-center gap-3 mb-4">
             <Link to="/home"
               className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(255,255,255,0.12)' }}>
+              style={{ background: 'var(--ink-120)' }}>
               <ArrowLeft size={17} className="text-white" />
             </Link>
             <div className="flex-1 min-w-0">
@@ -685,7 +677,7 @@ export default function RoadmapPage() {
             <button
               onClick={() => { setExamName(roadmap.exam_name); setExamDate(roadmap.exam_date); setPhase('setup'); }}
               className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-white/80 shrink-0"
-              style={{ background: 'rgba(255,255,255,0.12)' }}>
+              style={{ background: 'var(--ink-120)' }}>
               Change
             </button>
           </div>
@@ -699,7 +691,7 @@ export default function RoadmapPage() {
               { label: 'Missed',     value: missedDays,      icon: AlertTriangle, color: missedDays > 0 ? '#F87171' : '#34D399' },
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="rounded-2xl p-2.5 text-center"
-                style={{ background: 'rgba(255,255,255,0.08)' }}>
+                style={{ background: 'var(--ink-080)' }}>
                 <Icon size={15} style={{ color }} className="mx-auto mb-1" />
                 <p className="font-heading font-bold text-sm text-white leading-none">{value}</p>
                 <p className="text-[9px] text-purple-300 mt-0.5">{label}</p>
@@ -748,17 +740,29 @@ export default function RoadmapPage() {
                 </p>
                 <p className="text-xs text-muted-foreground">Novo can redistribute missed topics across upcoming weeks.</p>
               </div>
-              <button onClick={handleRecalibrate} disabled={isRecal}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold text-white shrink-0 flex items-center gap-1.5 disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
-                {isRecal
-                  ? <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Updating…</>
-                  : <><RefreshCw size={11} /> Recalibrate</>
-                }
-              </button>
+              <div className="flex flex-col gap-1.5 shrink-0">
+                <button onClick={() => handleRecalibrate(false)} disabled={isRecal}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
+                  {isRecal
+                    ? <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Updating…</>
+                    : <><RefreshCw size={11} /> Recalibrate</>
+                  }
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Deep re-optimize — reasons over actual retention data (sr_cards), not just missed-topic count. Slower, opt-in. */}
+        {!recalDone && roadmap && (
+          <button onClick={() => handleRecalibrate(true)} disabled={isRecal}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-semibold disabled:opacity-60"
+            style={{ background: 'var(--v2-card, rgba(139,92,246,0.08))', border: '1px solid rgba(139,92,246,0.25)', color: '#C4B5FD' }}>
+            <Sparkles size={13} />
+            {isRecal ? 'Deep re-optimizing…' : 'Deep re-optimize (uses your retention data — slower, more precise)'}
+          </button>
+        )}
 
         {/* ── Today's card — three states: before-start / rest day / study day ── */}
         {beforeStart ? (
@@ -767,7 +771,7 @@ export default function RoadmapPage() {
               Today's Focus
             </p>
             <div className="rounded-3xl p-5 flex flex-col items-center text-center gap-2"
-              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                 style={{ background: 'rgba(91,106,245,0.15)' }}>
                 <Calendar size={22} className="text-primary" />
@@ -784,7 +788,7 @@ export default function RoadmapPage() {
               Today's Focus
             </p>
             <div className="rounded-3xl p-5 flex flex-col items-center text-center gap-2"
-              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                 style={{ background: 'rgba(52,211,153,0.15)' }}>
                 <Sparkles size={22} style={{ color: '#34D399' }} />
@@ -801,7 +805,7 @@ export default function RoadmapPage() {
               Today's Focus
             </p>
             <div className="rounded-3xl p-4"
-              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(91,106,245,0.3)' }}>
+              style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(91,106,245,0.3)' }}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: subjectStyle(todayTask.subject).bg }}>
@@ -861,7 +865,7 @@ export default function RoadmapPage() {
         {/* Plan summary */}
         {roadmap.plan_summary && (
           <div className="rounded-2xl p-4"
-            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles size={14} className="text-primary" />
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Novo's Strategy</p>
@@ -888,7 +892,7 @@ export default function RoadmapPage() {
         <button
           onClick={() => { setExamName(roadmap.exam_name); setExamDate(roadmap.exam_date); setPhase('setup'); }}
           className="w-full py-3 rounded-2xl text-xs font-bold text-muted-foreground active:scale-95 transition-all flex items-center justify-center gap-2"
-          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
           <RefreshCw size={13} />
           Start a new roadmap
         </button>

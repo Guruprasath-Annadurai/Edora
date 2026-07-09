@@ -6,15 +6,14 @@ import {
   SkeletonMasteryBars,
 } from '@/components/ui/skeleton';
 import {
-  User, Flame, Star, Shield, Bell, LogOut, Snowflake, Loader2,
+  User, Flame, Star, Shield, Bell, LogOut, Snowflake,
   ChevronRight, Award, CalendarDays, MessageSquare, Users, TrendingUp,
-  Crown, FileText, Medal, Trophy, X, Gift, Copy, Check,
+  Crown, FileText, Medal, Trophy, X, Gift,
   Calculator, Atom, FlaskConical, Microscope, BookOpen, Landmark, BarChart3, Code2, Building2,
 } from 'lucide-react';
-import { TrophyIcon, TeachingIcon } from '@/components/ui/icons';
+import { TrophyIcon } from '@/components/ui/icons';
 import { Link } from 'react-router-dom';
 import { Browser } from '@capacitor/browser';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { isInFreeTrial, trialDaysRemaining } from '@/lib/trial';
 import { supabase } from '@/lib/supabase';
@@ -22,6 +21,7 @@ import { getLevelFromXP, getXPForLevel } from '@/lib/utils';
 import { ACHIEVEMENT_DEFS, loadUnlockedIds } from '@/lib/achievements';
 import { StudyDNA } from '@/components/profile/StudyDNA';
 import { MoodHeatmap } from '@/components/profile/MoodHeatmap';
+import { ThemePicker } from '@/components/settings/ThemePicker';
 import { useNovoMemory, MEMORY_TYPE_LABELS, MEMORY_TYPE_COLORS } from '@/hooks/useNovoMemory';
 
 const SUBJECT_COLORS: Record<string, { color: string; glow: string }> = {
@@ -117,14 +117,14 @@ function RankBadge({ rank }: { rank: number }) {
   );
   return (
     <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}>
       <span className="text-[11px] font-bold text-white/50">#{rank}</span>
     </div>
   );
 }
 
 // ── Novo Memory Viewer (inline) ───────────────────────────────────────────────
-function NovoMemoryViewer({ userId }: { userId: string }) {
+function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
   const { memories, loading, deleteMemory, totalCount } = useNovoMemory();
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? memories : memories.slice(0, 3);
@@ -137,7 +137,7 @@ function NovoMemoryViewer({ userId }: { userId: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-      style={{ borderRadius: 22, padding: 20, background: 'rgba(15,17,23,0.8)', border: '1px solid rgba(124,58,237,0.18)' }}
+      style={{ borderRadius: 22, padding: 20, background: 'var(--surface-elev-08)', border: '1px solid rgba(124,58,237,0.18)' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
@@ -157,7 +157,7 @@ function NovoMemoryViewer({ userId }: { userId: string }) {
       </div>
 
       {memories.length === 0 ? (
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '12px 0' }}>
+        <p style={{ fontSize: 12, color: 'var(--ink-400)', textAlign: 'center', padding: '12px 0' }}>
           Chat with Novo to build your memory
         </p>
       ) : (
@@ -167,8 +167,8 @@ function NovoMemoryViewer({ userId }: { userId: string }) {
               style={{
                 display: 'flex', alignItems: 'flex-start', gap: 10,
                 padding: '10px 12px', borderRadius: 14,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.05)',
+                background: 'var(--ink-030)',
+                border: '1px solid var(--ink-050)',
               }}
               layout
               exit={{ opacity: 0, scale: 0.9 }}
@@ -180,13 +180,13 @@ function NovoMemoryViewer({ userId }: { userId: string }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: MEMORY_TYPE_COLORS[m.memory_type], textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
                   {MEMORY_TYPE_LABELS[m.memory_type]}
-                  {m.subject && <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}> · {m.subject}</span>}
+                  {m.subject && <span style={{ color: 'var(--ink-300)', fontWeight: 500 }}> · {m.subject}</span>}
                 </div>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>{m.content}</p>
+                <p style={{ fontSize: 12, color: 'var(--ink-750)', lineHeight: 1.4 }}>{m.content}</p>
               </div>
               <button
                 onClick={() => deleteMemory(m.id).catch(() => {})}
-                style={{ color: 'rgba(255,255,255,0.25)', padding: 4, flexShrink: 0, minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ color: 'var(--ink-250)', padding: 4, flexShrink: 0, minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 aria-label="Delete memory"
               >
                 <X size={12} />
@@ -214,6 +214,7 @@ export default function ProfilePage() {
   const trialActive = user?.created_at ? isInFreeTrial(user.created_at) : false;
   const daysLeft    = user?.created_at ? trialDaysRemaining(user.created_at) : 0;
   const isPro = trialActive || (!!profile?.is_pro && (!profile.pro_expires_at || new Date(profile.pro_expires_at) > new Date()));
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
   const [lbLoading, setLbLoading]     = useState(true);
@@ -296,7 +297,7 @@ export default function ProfilePage() {
             style={{
               position: 'relative',
               border: '1px solid rgba(91,106,245,0.28)',
-              boxShadow: '0 10px 40px rgba(91,106,245,0.22), inset 0 1.5px 0 rgba(255,255,255,0.16), inset 0 -0.5px 0 rgba(0,0,0,0.2)',
+              boxShadow: '0 10px 40px rgba(91,106,245,0.22), inset 0 1.5px 0 var(--ink-160), inset 0 -0.5px 0 rgba(0,0,0,0.2)',
             }}
           >
             {/* Neon top stripe */}
@@ -310,9 +311,9 @@ export default function ProfilePage() {
                     <div
                       className="w-[60px] h-[60px] rounded-2xl flex items-center justify-center text-xl font-extrabold text-white"
                       style={{
-                        background: 'rgba(255,255,255,0.1)',
+                        background: 'var(--ink-100)',
                         backdropFilter: 'blur(8px)',
-                        border: '1px solid rgba(255,255,255,0.12)',
+                        border: '1px solid var(--ink-120)',
                         boxShadow: '0 0 20px rgba(91,106,245,0.3)',
                       }}
                     >
@@ -337,7 +338,7 @@ export default function ProfilePage() {
                       {isPro && (
                         <span
                           className="text-[10px] px-2 py-0.5 rounded-full font-extrabold"
-                          style={{ background: 'rgba(255,255,255,0.18)', color: 'white' }}
+                          style={{ background: 'var(--ink-180)', color: 'var(--ink-950)' }}
                         >
                           PRO
                         </span>
@@ -368,7 +369,7 @@ export default function ProfilePage() {
                   <span className="text-white/55 font-semibold">Level {level}</span>
                   <span className="text-white/55 font-semibold">{(nextXP - xp).toLocaleString()} XP to Level {level + 1}</span>
                 </div>
-                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-100)' }}>
                   <motion.div
                     className="h-full rounded-full"
                     initial={{ width: 0 }}
@@ -387,12 +388,12 @@ export default function ProfilePage() {
             </div>
 
             {/* Stats strip */}
-            <div className="grid grid-cols-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="grid grid-cols-4" style={{ borderTop: '1px solid var(--ink-100)' }}>
               {stats.map(({ label, value, color }, i) => (
                 <div
                   key={label}
                   className={`flex flex-col items-center py-3.5 gap-1 ${i < 3 ? 'border-r' : ''}`}
-                  style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}
+                  style={{ borderColor: 'var(--ink-080)', background: 'var(--ink-020)' }}
                 >
                   <span className="font-heading font-extrabold text-sm" style={{ color }}>
                     {value}
@@ -428,7 +429,7 @@ export default function ProfilePage() {
                         </div>
                         <span className="text-sm font-extrabold" style={{ color }}>{pct}%</span>
                       </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-050)' }}>
                         <motion.div
                           className="h-full rounded-full"
                           initial={{ width: 0 }}
@@ -488,7 +489,7 @@ export default function ProfilePage() {
                 key={row.rank}
                 className="flex items-center gap-3 px-4 py-3"
                 style={{
-                  borderBottom: idx < leaderboard.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                  borderBottom: idx < leaderboard.length - 1 ? '1px solid var(--ink-040)' : 'none',
                   background: row.is_current_user
                     ? 'linear-gradient(135deg,rgba(91,106,245,0.1),rgba(139,92,246,0.08))'
                     : 'transparent',
@@ -532,6 +533,12 @@ export default function ProfilePage() {
         {/* ── Novo Memory Viewer ────────────────────────────── */}
         {user && <NovoMemoryViewer userId={user.id} />}
 
+        {/* ── Appearance (dark/light + accent themes) ──────────── */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.138 }}
+          className="v2-card rounded-3xl p-4">
+          <ThemePicker />
+        </motion.div>
+
         {/* ── Menu sections ─────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -549,7 +556,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-white leading-tight">Free Pro Trial</p>
-                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>
                   {daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining — all features unlocked
                 </p>
               </div>
@@ -562,8 +569,7 @@ export default function ProfilePage() {
                 {title}
               </p>
               <div
-                className="liquid-glass rounded-3xl overflow-hidden"
-                style={{}}
+                className="v2-card rounded-3xl overflow-hidden"
               >
                 {items.map(({ icon: Icon, label, to, pro, highlight }, idx) => (
                   <Link
@@ -573,19 +579,17 @@ export default function ProfilePage() {
                     className="flex items-center gap-3.5 px-4 active:scale-98 transition-all"
                     style={{
                       minHeight: 56,
-                      borderBottom: idx < items.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                      background: highlight && !isPro
-                        ? 'linear-gradient(135deg,rgba(91,106,245,0.08),rgba(139,92,246,0.08))'
-                        : 'transparent',
+                      borderBottom: idx < items.length - 1 ? '1px solid var(--v2-border)' : 'none',
+                      background: highlight && !isPro ? 'var(--v2-primary-tint)' : 'transparent',
                     }}
                   >
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: highlight && !isPro ? 'rgba(91,106,245,0.18)' : 'rgba(255,255,255,0.06)' }}
+                      style={{ background: highlight && !isPro ? 'var(--v2-primary-tint-2)' : 'var(--v2-elevated)' }}
                     >
-                      <Icon size={18} className="text-primary" strokeWidth={1.75} />
+                      <Icon size={18} style={{ color: 'var(--v2-primary)' }} strokeWidth={1.75} />
                     </div>
-                    <span className="flex-1 text-sm font-semibold text-white/80">{label}</span>
+                    <span className="flex-1 text-sm font-semibold" style={{ color: 'var(--v2-text-1)' }}>{label}</span>
                     {pro && !isPro && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold mr-1"
                         style={{ background: 'rgba(91,106,245,0.15)', color: '#A0AEFF', border: '1px solid rgba(91,106,245,0.2)' }}>
@@ -614,26 +618,26 @@ export default function ProfilePage() {
           {/* Legal — grouped separately at bottom */}
           <div
             className="rounded-3xl overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.045)', border: '1px solid rgba(255,255,255,0.05)' }}
+            style={{ background: 'var(--ink-045)', border: '1px solid var(--ink-050)' }}
           >
             <button
               onClick={() => { Haptics.impact({ style: ImpactStyle.Light }).catch(() => {}); Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' }); }}
               className="flex items-center gap-3.5 px-4 w-full text-left active:scale-98 transition-all"
               style={{ minHeight: 56 }}
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--ink-060)' }}>
                 <FileText size={18} className="text-primary" strokeWidth={1.75} />
               </div>
               <span className="flex-1 text-sm font-semibold text-white/80">Privacy Policy</span>
               <ChevronRight size={15} className="text-white/25 shrink-0" />
             </button>
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '0 16px' }} />
+            <div style={{ height: 1, background: 'var(--ink-040)', margin: '0 16px' }} />
             <button
               onClick={() => { Haptics.impact({ style: ImpactStyle.Light }).catch(() => {}); Browser.open({ url: 'https://edora-app.vercel.app/terms-of-service', presentationStyle: 'popover' }); }}
               className="flex items-center gap-3.5 px-4 w-full text-left active:scale-98 transition-all"
               style={{ minHeight: 56 }}
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--ink-060)' }}>
                 <FileText size={18} className="text-primary" strokeWidth={1.75} />
               </div>
               <span className="flex-1 text-sm font-semibold text-white/80">Terms of Service</span>
@@ -645,12 +649,12 @@ export default function ProfilePage() {
         {/* ── Sign out ──────────────────────────────────────── */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18 }}>
           <button
-            onClick={() => { Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {}); signOut(); }}
+            onClick={() => { Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {}); setShowSignOutConfirm(true); }}
             className="w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-98 transition-all"
             style={{
-              background: 'rgba(239,68,68,0.08)',
-              border: '1px solid rgba(239,68,68,0.2)',
-              color: '#FCA5A5',
+              background: 'rgba(239,68,68,0.06)',
+              border: '1px solid rgba(239,68,68,0.25)',
+              color: 'var(--v2-error-text)',
             }}
           >
             <LogOut size={16} />
@@ -660,6 +664,43 @@ export default function ProfilePage() {
 
         <div className="h-2" />
       </div>
+
+      {showSignOutConfirm && (
+        <div className="fixed inset-0 z-[600] flex items-end" style={{ background: 'var(--surface-scrim)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowSignOutConfirm(false); }}>
+          <motion.div
+            initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            className="w-full rounded-t-3xl p-5"
+            style={{ background: 'var(--v2-card)', borderTop: '1px solid var(--v2-border)' }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-heading font-bold text-lg" style={{ color: 'var(--v2-text-1)' }}>Sign out?</p>
+              <button onClick={() => setShowSignOutConfirm(false)} aria-label="Cancel">
+                <X size={18} style={{ color: 'var(--v2-text-4)' }} />
+              </button>
+            </div>
+            <p className="text-sm mb-5" style={{ color: 'var(--v2-text-3)' }}>
+              You'll need to sign back in to continue studying. Your progress is already saved.
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => { Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {}); signOut(); }}
+                className="w-full py-3 rounded-xl font-bold text-white text-sm"
+                style={{ background: 'var(--v2-error)' }}
+              >
+                Sign Out
+              </button>
+              <button
+                onClick={() => setShowSignOutConfirm(false)}
+                className="w-full py-3 rounded-xl font-bold text-sm"
+                style={{ background: 'var(--v2-elevated)', color: 'var(--v2-text-2)' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

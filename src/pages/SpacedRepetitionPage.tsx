@@ -69,7 +69,7 @@ function SkeletonCard({ index }: { index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
       className="rounded-2xl border overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}
+      style={{ background: 'var(--ink-050)', borderColor: 'var(--ink-100)' }}
     >
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ function StatChip({ label, value, accent }: StatChipProps) {
   return (
     <div
       className="flex-1 flex flex-col items-center justify-center py-3 px-2 rounded-2xl"
-      style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+      style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-100)' }}
     >
       <span
         className="text-lg font-bold leading-none mb-1"
@@ -102,7 +102,7 @@ function StatChip({ label, value, accent }: StatChipProps) {
       >
         {value}
       </span>
-      <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wide text-center leading-tight">
+      <span className="text-xs font-semibold text-white/50 uppercase tracking-wide text-center leading-tight">
         {label}
       </span>
     </div>
@@ -122,7 +122,7 @@ function CardListItem({ card, index }: { card: SRCard; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.24 }}
       className="flex items-center gap-3 py-3 px-4 rounded-2xl"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+      style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}
     >
       {/* Colored dot */}
       <div
@@ -137,7 +137,7 @@ function CardListItem({ card, index }: { card: SRCard; index: number }) {
 
       {/* Retention badge */}
       <span
-        className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
+        className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
         style={{
           background: `${color}22`,
           color,
@@ -148,7 +148,7 @@ function CardListItem({ card, index }: { card: SRCard; index: number }) {
       </span>
 
       {/* Due info */}
-      <span className="shrink-0 text-[10px] text-white/40 font-medium min-w-[48px] text-right">
+      <span className="shrink-0 text-xs text-white/40 font-medium min-w-[48px] text-right">
         {days === 0 ? 'due' : `${days}d`}
       </span>
     </motion.div>
@@ -180,11 +180,11 @@ function FlipCard({ card, isFlipped }: FlipCardProps) {
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
-            background: 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.15)',
+            background: 'var(--ink-070)',
+            border: '1px solid var(--ink-150)',
           }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-4">
             Question
           </p>
           <p className="text-center text-lg font-bold text-white leading-snug">
@@ -203,7 +203,7 @@ function FlipCard({ card, isFlipped }: FlipCardProps) {
             border: '1px solid rgba(91,106,245,0.3)',
           }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-300/60 mb-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-indigo-300/60 mb-4">
             Answer
           </p>
           <p className="text-center text-lg font-bold text-white leading-snug">
@@ -236,7 +236,7 @@ function RatingButton({ label, sublabel, bg, border, textColor, onClick, disable
       style={{ background: bg, border: `1.5px solid ${border}` }}
     >
       <span className="text-sm font-bold" style={{ color: textColor }}>{label}</span>
-      <span className="text-[10px] mt-0.5 font-medium" style={{ color: `${textColor}99` }}>
+      <span className="text-xs mt-0.5 font-medium" style={{ color: `${textColor}99` }}>
         {sublabel}
       </span>
     </button>
@@ -449,13 +449,13 @@ export default function SpacedRepetitionPage() {
           <button
             onClick={handleExitReview}
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+            style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-120)' }}
           >
             <X size={17} className="text-white" />
           </button>
 
           {/* Progress bar */}
-          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--ink-100)' }}>
             <motion.div
               className="h-full rounded-full"
               style={{ background: 'linear-gradient(90deg, #5B6AF5, #8B5CF6)' }}
@@ -472,7 +472,7 @@ export default function SpacedRepetitionPage() {
 
         {/* Subject / topic label */}
         <div className="px-4 pt-1 pb-2 shrink-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-white/30 text-center">
             {currentCard.subject}
             {currentCard.topic ? ` · ${currentCard.topic}` : ''}
           </p>
@@ -511,7 +511,7 @@ export default function SpacedRepetitionPage() {
                   transition={{ delay: 0.15 }}
                   className="w-full flex flex-col gap-3"
                 >
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 text-center">
+                  <p className="text-xs font-bold uppercase tracking-widest text-white/30 text-center">
                     How did you do?
                   </p>
                   <div className="flex gap-2">
@@ -605,24 +605,24 @@ export default function SpacedRepetitionPage() {
           {/* Stats grid */}
           <div
             className="w-full rounded-2xl p-5 mb-6"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
           >
             <div className="grid grid-cols-3 gap-4">
               <div className="flex flex-col items-center">
                 <span className="text-2xl font-bold text-white">{sessionResult.total}</span>
-                <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide mt-1">
+                <span className="text-xs font-semibold text-white/40 uppercase tracking-wide mt-1">
                   Reviewed
                 </span>
               </div>
               <div className="flex flex-col items-center">
                 <span className="text-2xl font-bold" style={{ color: '#10B981' }}>{accuracy}%</span>
-                <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide mt-1">
+                <span className="text-xs font-semibold text-white/40 uppercase tracking-wide mt-1">
                   Accuracy
                 </span>
               </div>
               <div className="flex flex-col items-center">
                 <span className="text-2xl font-bold" style={{ color: '#5B6AF5' }}>{sessionResult.mastered}</span>
-                <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide mt-1">
+                <span className="text-xs font-semibold text-white/40 uppercase tracking-wide mt-1">
                   Mastered
                 </span>
               </div>
@@ -631,7 +631,7 @@ export default function SpacedRepetitionPage() {
             {/* Correct count sub-line */}
             <div
               className="mt-4 pt-4 flex items-center justify-center gap-1.5"
-              style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ borderTop: '1px solid var(--ink-080)' }}
             >
               <CheckCircle2 size={14} style={{ color: '#10B981' }} />
               <span className="text-xs font-semibold text-white/60">
@@ -673,12 +673,12 @@ export default function SpacedRepetitionPage() {
       {/* ── Header */}
       <div
         className="shrink-0 px-4 py-3 flex items-center gap-3"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ borderBottom: '1px solid var(--ink-070)' }}
       >
         <Link
           to="/home"
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+          style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-120)' }}
         >
           <ArrowLeft size={17} className="text-white" />
         </Link>
@@ -686,7 +686,7 @@ export default function SpacedRepetitionPage() {
           <h1 className="font-heading text-lg font-bold text-white leading-tight">
             Spaced Review
           </h1>
-          <p className="text-[11px] text-white/40 font-medium">
+          <p className="text-xs text-white/40 font-medium">
             Science-backed memory training
           </p>
         </div>
@@ -722,7 +722,7 @@ export default function SpacedRepetitionPage() {
               <div
                 key={i}
                 className="flex-1 h-16 rounded-2xl animate-pulse"
-                style={{ background: 'rgba(255,255,255,0.07)' }}
+                style={{ background: 'var(--ink-070)' }}
               />
             ))}
           </div>
@@ -763,7 +763,7 @@ export default function SpacedRepetitionPage() {
                 style={
                   activeSubject === null
                     ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#FFF', border: '1px solid transparent' }
-                    : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.12)' }
+                    : { background: 'var(--ink-080)', color: 'var(--ink-600)', border: '1px solid var(--ink-120)' }
                 }
               >
                 All
@@ -776,7 +776,7 @@ export default function SpacedRepetitionPage() {
                   style={
                     activeSubject === subject
                       ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#FFF', border: '1px solid transparent' }
-                      : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.12)' }
+                      : { background: 'var(--ink-080)', color: 'var(--ink-600)', border: '1px solid var(--ink-120)' }
                   }
                 >
                   {subject}
@@ -815,7 +815,7 @@ export default function SpacedRepetitionPage() {
             <p className="font-heading text-base font-bold text-white mb-1">All caught up!</p>
             <p className="text-xs text-white/50 mb-1">No cards due for review today.</p>
             {nextDueDate && (
-              <p className="text-[10px] text-white/30 font-medium">
+              <p className="text-xs text-white/30 font-medium">
                 Next review: {new Date(nextDueDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               </p>
             )}
@@ -844,11 +844,11 @@ export default function SpacedRepetitionPage() {
               <div key={subject}>
                 {/* Subject heading */}
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">
+                  <p className="text-xs font-bold uppercase tracking-wider text-white/40">
                     {subject}
                   </p>
-                  <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
-                  <p className="text-[10px] font-semibold text-white/30">
+                  <div className="flex-1 h-px" style={{ background: 'var(--ink-070)' }} />
+                  <p className="text-xs font-semibold text-white/30">
                     {cards.length} card{cards.length !== 1 ? 's' : ''}
                   </p>
                 </div>

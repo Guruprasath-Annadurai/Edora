@@ -35,15 +35,16 @@ export default function MistakeJournalPage() {
       if (error) console.error('[MistakeJournal] load error:', error.message);
       if (!data) { setLoading(false); return; }
 
+      type SessionRow = { score: number; questions: QuizQuestion[] | null; user_answers?: (number | null)[] | null; topic: string; created_at: string; id: string };
       const journal: JournalEntry[] = data
-        .filter((s: any) => s.score < (s.questions?.length ?? 0))
-        .map((s: any) => {
+        .filter((s: SessionRow) => s.score < (s.questions?.length ?? 0))
+        .map((s: SessionRow) => {
           const qs: QuizQuestion[] = s.questions ?? [];
           // user_answers is a separate column (array of chosen indices) or falls back
           // to per-question user_answer field for backwards compat
           const userAnswers: (number | null)[] = Array.isArray(s.user_answers)
             ? s.user_answers
-            : qs.map((q: any) => q.user_answer ?? null);
+            : qs.map((q: QuizQuestion & { user_answer?: number | null }) => q.user_answer ?? null);
 
           const mistakes = qs
             .map((q, i) => ({ q, userAns: userAnswers[i] }))
@@ -75,10 +76,10 @@ export default function MistakeJournalPage() {
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/tools"
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
           <ChevronLeft size={18} className="text-white" />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
@@ -114,7 +115,7 @@ export default function MistakeJournalPage() {
           <motion.div key={entry.id}
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
             <div className="rounded-3xl overflow-hidden"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
               {/* Entry header */}
               <button className="w-full px-4 py-4 flex items-center gap-3 text-left"
                 onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}>
@@ -136,14 +137,14 @@ export default function MistakeJournalPage() {
               {/* Mistake list */}
               {expanded === entry.id && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                  style={{ borderTop: '1px solid var(--ink-070)' }}>
                   {entry.mistakes.length === 0 ? (
                     <p className="px-4 py-3 text-sm text-muted-foreground text-center">
                       Detailed breakdown not available for older sessions.
                     </p>
                   ) : entry.mistakes.map((m, j) => (
                     <div key={j} className="px-4 py-3 last:pb-3"
-                      style={{ borderBottom: j < entry.mistakes.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                      style={{ borderBottom: j < entry.mistakes.length - 1 ? '1px solid var(--ink-050)' : 'none' }}>
                       <p className="text-sm font-medium text-white/85 mb-2">{m.question}</p>
                       <div className="flex items-start gap-2 mb-1">
                         <XCircle size={13} style={{ color: '#F87171' }} className="shrink-0 mt-0.5" />
@@ -155,7 +156,7 @@ export default function MistakeJournalPage() {
                       </div>
                       {m.explanation && (
                         <p className="text-xs text-muted-foreground rounded-xl px-3 py-2"
-                          style={{ background: 'rgba(255,255,255,0.05)' }}>{m.explanation}</p>
+                          style={{ background: 'var(--ink-050)' }}>{m.explanation}</p>
                       )}
                     </div>
                   ))}

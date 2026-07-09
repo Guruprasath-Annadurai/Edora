@@ -74,7 +74,7 @@ function CircularMeter({ score, color }: { score: number; color: string }) {
           cy={80}
           r={r}
           fill="none"
-          stroke="rgba(255,255,255,0.08)"
+          stroke="var(--ink-080)"
           strokeWidth={12}
         />
         {/* Progress */}
@@ -119,14 +119,14 @@ function LegendCard({
   return (
     <div
       className="flex flex-col gap-1 p-2 rounded-2xl text-center flex-1 min-w-0"
-      style={{ background: bg, border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: bg, border: '1px solid var(--ink-070)' }}
     >
       <Icon size={16} style={{ color }} className="mx-auto" />
-      <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color }}>
+      <span className="text-xs font-bold uppercase tracking-wide" style={{ color }}>
         {label}
       </span>
-      <span className="text-[9px] text-muted-foreground font-medium">{range}</span>
-      <span className="text-[9px] text-muted-foreground leading-tight hidden sm:block">{desc}</span>
+      <span className="text-xs text-muted-foreground font-medium">{range}</span>
+      <span className="text-xs text-muted-foreground leading-tight hidden sm:block">{desc}</span>
     </div>
   );
 }
@@ -139,13 +139,13 @@ function TopicCard({ topic, index }: { topic: TopicConfidence; index: number }) 
   return (
     <motion.div
       className="rounded-2xl overflow-hidden"
-      style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.04 }}
     >
       {/* Confidence bar */}
-      <div className="h-1.5 w-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      <div className="h-1.5 w-full" style={{ background: 'var(--ink-080)' }}>
         <motion.div
           className="h-full rounded-full"
           style={{ background: cfg.color }}
@@ -161,7 +161,7 @@ function TopicCard({ topic, index }: { topic: TopicConfidence; index: number }) 
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm text-white truncate">{topic.topic}</span>
               <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
                 style={{ background: cfg.badgeBg, color: cfg.badgeText }}
               >
                 {cfg.label}
@@ -170,7 +170,7 @@ function TopicCard({ topic, index }: { topic: TopicConfidence; index: number }) 
             <p className="text-xs text-muted-foreground italic mt-0.5 leading-snug">
               {topic.drill}
             </p>
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Based on {topic.sample_count} review{topic.sample_count !== 1 ? 's' : ''}
             </p>
           </div>
@@ -253,7 +253,7 @@ function InfoTooltip({ visible }: { visible: boolean }) {
       {visible && (
         <motion.div
           className="absolute right-0 top-8 z-50 w-64 text-white text-xs rounded-2xl p-3 shadow-xl leading-relaxed"
-          style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.12)' }}
+          style={{ background: 'var(--hdr-a-880)', border: '1px solid var(--ink-120)' }}
           initial={{ opacity: 0, y: -6, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -6, scale: 0.95 }}
@@ -366,27 +366,27 @@ export default function ConfidenceScorePage() {
       <div className="flex flex-col h-full bg-gradient-page">
         <div
           className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
         >
-          <div className="w-8 h-8 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
+          <div className="w-8 h-8 rounded-xl animate-pulse" style={{ background: 'var(--ink-080)' }} />
           <div className="flex-1">
-            <div className="h-5 w-36 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <div className="h-3 w-24 rounded-lg animate-pulse mt-1" style={{ background: 'rgba(255,255,255,0.05)' }} />
+            <div className="h-5 w-36 rounded-lg animate-pulse" style={{ background: 'var(--ink-080)' }} />
+            <div className="h-3 w-24 rounded-lg animate-pulse mt-1" style={{ background: 'var(--ink-050)' }} />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto pb-nav px-4 py-4 space-y-3">
           <div
             className="rounded-3xl p-6 flex flex-col items-center gap-4"
-            style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
           >
-            <div className="w-40 h-40 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <div className="h-4 w-32 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="w-40 h-40 rounded-full animate-pulse" style={{ background: 'var(--ink-080)' }} />
+            <div className="h-4 w-32 rounded-lg animate-pulse" style={{ background: 'var(--ink-080)' }} />
           </div>
           {([1, 2, 3] as const).map(i => (
             <div
               key={i}
               className="rounded-2xl h-20 animate-pulse"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
             />
           ))}
         </div>
@@ -401,12 +401,12 @@ export default function ConfidenceScorePage() {
       <div className="flex flex-col h-full bg-gradient-page">
         <div
           className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
         >
           <button
             onClick={() => navigate(-1)}
             className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
           >
             <ArrowLeft size={18} className="text-white" />
           </button>
@@ -440,12 +440,12 @@ export default function ConfidenceScorePage() {
       <div className="flex flex-col h-full bg-gradient-page">
         <div
           className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
         >
           <button
             onClick={() => navigate(-1)}
             className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
           >
             <ArrowLeft size={18} className="text-white" />
           </button>
@@ -504,12 +504,12 @@ export default function ConfidenceScorePage() {
       {/* ── Header ── */}
       <div
         className="px-4 py-3 flex items-center gap-3 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
       >
         <button
           onClick={() => navigate(-1)}
           className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
         >
           <ArrowLeft size={18} className="text-white" />
         </button>
@@ -537,7 +537,7 @@ export default function ConfidenceScorePage() {
         {/* ── Hero: Overall Meter ── */}
         <motion.div
           className="rounded-3xl p-6 flex flex-col items-center gap-3"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -556,7 +556,7 @@ export default function ConfidenceScorePage() {
         {/* ── Legend ── */}
         <motion.div
           className="rounded-3xl p-4"
-          style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
@@ -615,8 +615,8 @@ export default function ConfidenceScorePage() {
                 className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
                 style={
                   selectedSubject === subj
-                    ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'white' }
-                    : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }
+                    ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'var(--ink-950)' }
+                    : { background: 'var(--ink-055)', color: 'var(--ink-500)', border: '1px solid var(--ink-080)' }
                 }
               >
                 {subj}
@@ -640,8 +640,8 @@ export default function ConfidenceScorePage() {
                 className="text-xs px-2.5 py-1 rounded-lg font-medium transition-all"
                 style={
                   sortOrder === opt
-                    ? { background: '#5B6AF5', color: 'white' }
-                    : { background: 'rgba(255,255,255,0.055)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }
+                    ? { background: '#5B6AF5', color: 'var(--ink-950)' }
+                    : { background: 'var(--ink-055)', color: 'var(--ink-500)', border: '1px solid var(--ink-080)' }
                 }
               >
                 {opt === 'weakest' ? 'Weakest First' : opt === 'strongest' ? 'Strongest First' : 'By Subject'}

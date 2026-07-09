@@ -96,7 +96,7 @@ function LoadingDots() {
         <motion.div
           key={i}
           className="w-2 h-2 rounded-full"
-          style={{ background: 'rgba(255,255,255,0.6)' }}
+          style={{ background: 'var(--ink-600)' }}
           animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
         />
@@ -129,7 +129,7 @@ function CyclingStatus() {
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.3 }}
         className="text-sm font-medium"
-        style={{ color: 'rgba(255,255,255,0.7)' }}
+        style={{ color: 'var(--ink-700)' }}
       >
         {STATUS_MESSAGES[idx]}
       </motion.p>
@@ -154,7 +154,7 @@ function RecentRow({ session, onOpen }: { session: VideoSession; onOpen: () => v
     <button
       onClick={onOpen}
       className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-[0.98]"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+      style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}
     >
       <img
         src={thumbUrl(vid)}
@@ -163,7 +163,7 @@ function RecentRow({ session, onOpen }: { session: VideoSession; onOpen: () => v
       />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">{session.title ?? 'Untitled'}</p>
-        <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <p className="text-xs truncate" style={{ color: 'var(--ink-500)' }}>
           {session.channel ?? ''}
         </p>
       </div>
@@ -175,7 +175,7 @@ function RecentRow({ session, onOpen }: { session: VideoSession; onOpen: () => v
       >
         {isComplete ? 'Done' : 'Processing'}
       </span>
-      <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.3)' }} />
+      <ChevronRight size={14} style={{ color: 'var(--ink-300)' }} />
     </button>
   );
 }
@@ -338,7 +338,7 @@ export default function VideoCompanionPage() {
       if (error || !data?.answer) throw new Error(error?.message ?? 'No response');
       const assistantMsg: ChatMessage = { role: 'assistant', content: data.answer };
       setChatMessages(prev => [...prev, assistantMsg]);
-    } catch (err) {
+    } catch {
       if (!mountedRef.current) return;
       const errMsg: ChatMessage = {
         role: 'assistant',
@@ -352,8 +352,8 @@ export default function VideoCompanionPage() {
 
   // ── Glass card style helper ──
   const glassCard = {
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'var(--ink-050)',
+    border: '1px solid var(--ink-100)',
   };
 
   const gradientBtn = {
@@ -401,7 +401,7 @@ export default function VideoCompanionPage() {
                 <h1 className="font-heading text-lg font-bold text-white leading-tight">
                   Video Companion
                 </h1>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
                   Learn from any YouTube lecture
                 </p>
               </div>
@@ -411,7 +411,7 @@ export default function VideoCompanionPage() {
             <div className="px-4 pt-2 pb-4 shrink-0">
               <div
                 className="rounded-2xl p-1 flex items-center gap-2"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+                style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-120)' }}
               >
                 <Youtube size={18} className="ml-3 shrink-0" style={{ color: '#FF4444' }} />
                 <input
@@ -427,7 +427,7 @@ export default function VideoCompanionPage() {
                   <button
                     onClick={() => setUrlInput('')}
                     className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-1"
-                    style={{ background: 'rgba(255,255,255,0.08)' }}
+                    style={{ background: 'var(--ink-080)' }}
                   >
                     <X size={13} className="text-white/50" />
                   </button>
@@ -476,14 +476,14 @@ export default function VideoCompanionPage() {
             {/* Recent sessions */}
             <div className="flex-1 px-4 pb-8">
               {recentLoading ? (
-                <div className="flex gap-2 items-center" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <div className="flex gap-2 items-center" style={{ color: 'var(--ink-300)' }}>
                   <Loader2 size={14} className="animate-spin" />
                   <span className="text-xs">Loading recent videos…</span>
                 </div>
               ) : recentSessions.length > 0 ? (
                 <>
                   <p className="text-xs font-bold mb-3 uppercase tracking-wider"
-                    style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    style={{ color: 'var(--ink-400)' }}>
                     Recent videos
                   </p>
                   <div className="flex flex-col gap-2">
@@ -495,7 +495,7 @@ export default function VideoCompanionPage() {
               ) : (
                 <>
                   <p className="text-xs font-bold mb-3 uppercase tracking-wider"
-                    style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    style={{ color: 'var(--ink-400)' }}>
                     What you get
                   </p>
                   <div className="grid grid-cols-1 gap-3">
@@ -514,7 +514,7 @@ export default function VideoCompanionPage() {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-white">{f.title}</p>
-                          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{f.sub}</p>
+                          <p className="text-xs" style={{ color: 'var(--ink-500)' }}>{f.sub}</p>
                         </div>
                       </motion.div>
                     ))}
@@ -547,7 +547,7 @@ export default function VideoCompanionPage() {
             <div className="flex flex-col items-center gap-3">
               <LoadingDots />
               <CyclingStatus />
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <p className="text-xs" style={{ color: 'var(--ink-300)' }}>
                 This usually takes 15–30 seconds
               </p>
             </div>
@@ -555,7 +555,7 @@ export default function VideoCompanionPage() {
             <button
               onClick={() => setPhase('input')}
               className="text-xs flex items-center gap-1.5 px-4 py-2 rounded-full"
-              style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}
+              style={{ color: 'var(--ink-400)', background: 'var(--ink-060)' }}
             >
               <X size={12} /> Cancel
             </button>
@@ -577,7 +577,7 @@ export default function VideoCompanionPage() {
             </div>
             <div>
               <p className="text-base font-bold text-white mb-2">Analysis failed</p>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{errorMsg}</p>
+              <p className="text-sm" style={{ color: 'var(--ink-500)' }}>{errorMsg}</p>
             </div>
             <div className="flex flex-col gap-2 w-full max-w-xs">
               <button
@@ -590,7 +590,7 @@ export default function VideoCompanionPage() {
               <button
                 onClick={() => setPhase('input')}
                 className="py-3 rounded-2xl text-sm font-semibold"
-                style={{ color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.06)' }}
+                style={{ color: 'var(--ink-600)', background: 'var(--ink-060)' }}
               >
                 Back to input
               </button>
@@ -617,7 +617,7 @@ export default function VideoCompanionPage() {
                 <ArrowLeft size={17} className="text-white" />
               </button>
               <h1 className="font-heading text-base font-bold text-white flex-1 truncate">
-                🎬 Video Companion
+                Video Companion
               </h1>
             </div>
 
@@ -640,14 +640,14 @@ export default function VideoCompanionPage() {
                       {session.title ?? 'Untitled Video'}
                     </p>
                     {session.channel && (
-                      <p className="text-sm mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      <p className="text-sm mb-2" style={{ color: 'var(--ink-500)' }}>
                         {session.channel}
                       </p>
                     )}
                     <div className="flex items-center gap-2 flex-wrap">
                       {session.duration_text && (
                         <span className="text-xs px-2 py-0.5 rounded-full"
-                          style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>
+                          style={{ background: 'var(--ink-080)', color: 'var(--ink-600)' }}>
                           {session.duration_text}
                         </span>
                       )}
@@ -666,7 +666,7 @@ export default function VideoCompanionPage() {
                     <button
                       onClick={() => window.open(session.youtube_url, '_blank', 'noopener')}
                       className="mt-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl"
-                      style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
+                      style={{ background: 'var(--ink-080)', color: 'var(--ink-700)' }}
                     >
                       <ExternalLink size={13} /> Watch on YouTube
                     </button>
@@ -693,7 +693,7 @@ export default function VideoCompanionPage() {
               <div className="px-4 mb-4 shrink-0">
                 <div
                   className="flex rounded-2xl p-1 gap-1"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}
                 >
                   {([
                     { key: 'summary',    label: 'Summary'   },
@@ -706,8 +706,8 @@ export default function VideoCompanionPage() {
                       onClick={() => setActiveTab(tab.key)}
                       className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
                       style={activeTab === tab.key
-                        ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#fff' }
-                        : { color: 'rgba(255,255,255,0.45)' }}
+                        ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'var(--ink-950)' }
+                        : { color: 'var(--ink-450)' }}
                     >
                       {tab.label}
                     </button>
@@ -738,7 +738,7 @@ export default function VideoCompanionPage() {
                         <span className="text-xs font-bold uppercase tracking-wider"
                           style={{ color: '#5B6AF5' }}>Summary</span>
                       </div>
-                      <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                      <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-800)' }}>
                         {session.summary ?? 'No summary available.'}
                       </p>
                     </div>
@@ -747,7 +747,7 @@ export default function VideoCompanionPage() {
                     {session.key_concepts.length > 0 && (
                       <div>
                         <p className="text-xs font-bold mb-2 uppercase tracking-wider"
-                          style={{ color: 'rgba(255,255,255,0.4)' }}>Topics</p>
+                          style={{ color: 'var(--ink-400)' }}>Topics</p>
                         <div className="flex flex-wrap gap-2">
                           {session.key_concepts.slice(0, 5).map(k => (
                             <span
@@ -773,7 +773,7 @@ export default function VideoCompanionPage() {
                         : { background: 'rgba(16,185,129,0.15)', color: '#34D399' };
                       return (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Difficulty:</span>
+                          <span className="text-xs" style={{ color: 'var(--ink-400)' }}>Difficulty:</span>
                           <span className="text-xs font-bold px-3 py-1 rounded-full" style={style}>{level}</span>
                         </div>
                       );
@@ -792,7 +792,7 @@ export default function VideoCompanionPage() {
                     className="px-4 pb-8 space-y-2"
                   >
                     {session.key_concepts.length === 0 ? (
-                      <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      <p className="text-sm text-center py-8" style={{ color: 'var(--ink-400)' }}>
                         No key concepts extracted.
                       </p>
                     ) : session.key_concepts.map((k, i) => (
@@ -812,7 +812,7 @@ export default function VideoCompanionPage() {
                           </div>
                           <p className="flex-1 text-sm font-semibold text-white">{k.concept}</p>
                           <motion.div animate={{ rotate: expandedConcept === i ? 90 : 0 }} transition={{ duration: 0.2 }}>
-                            <ChevronRight size={15} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                            <ChevronRight size={15} style={{ color: 'var(--ink-300)' }} />
                           </motion.div>
                         </div>
                         <AnimatePresence>
@@ -825,9 +825,9 @@ export default function VideoCompanionPage() {
                               className="overflow-hidden"
                             >
                               <div className="px-4 pb-4"
-                                style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                style={{ borderTop: '1px solid var(--ink-060)' }}>
                                 <p className="text-sm pt-3 leading-relaxed"
-                                  style={{ color: 'rgba(255,255,255,0.65)' }}>
+                                  style={{ color: 'var(--ink-650)' }}>
                                   {k.explanation}
                                 </p>
                               </div>
@@ -874,7 +874,7 @@ export default function VideoCompanionPage() {
                     </div>
 
                     {session.flashcards.length === 0 ? (
-                      <p className="text-sm text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      <p className="text-sm text-center py-8" style={{ color: 'var(--ink-400)' }}>
                         No flashcards generated.
                       </p>
                     ) : (
@@ -896,7 +896,7 @@ export default function VideoCompanionPage() {
                               </div>
                               <p className="flex-1 text-sm text-white leading-snug">{fc.front}</p>
                               <motion.div animate={{ rotate: expandedCard === i ? 90 : 0 }} transition={{ duration: 0.2 }}>
-                                <ChevronRight size={15} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                                <ChevronRight size={15} style={{ color: 'var(--ink-300)' }} />
                               </motion.div>
                             </div>
                             <AnimatePresence>
@@ -909,14 +909,14 @@ export default function VideoCompanionPage() {
                                   className="overflow-hidden"
                                 >
                                   <div className="px-4 pb-4"
-                                    style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                    style={{ borderTop: '1px solid var(--ink-060)' }}>
                                     <div className="flex items-start gap-3 pt-3">
                                       <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                                         style={{ background: 'rgba(16,185,129,0.2)' }}>
                                         <span className="text-[10px] font-bold" style={{ color: '#10B981' }}>A</span>
                                       </div>
                                       <p className="text-sm leading-relaxed"
-                                        style={{ color: 'rgba(255,255,255,0.7)' }}>
+                                        style={{ color: 'var(--ink-700)' }}>
                                         {fc.back}
                                       </p>
                                     </div>
@@ -949,8 +949,8 @@ export default function VideoCompanionPage() {
                           <div
                             className="max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed"
                             style={msg.role === 'assistant'
-                              ? { background: 'rgba(91,106,245,0.2)', border: '1px solid rgba(91,106,245,0.3)', color: 'rgba(255,255,255,0.9)', borderBottomLeftRadius: '6px' }
-                              : { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)', borderBottomRightRadius: '6px' }}
+                              ? { background: 'rgba(91,106,245,0.2)', border: '1px solid rgba(91,106,245,0.3)', color: 'var(--ink-900)', borderBottomLeftRadius: '6px' }
+                              : { background: 'var(--ink-080)', border: '1px solid var(--ink-100)', color: 'var(--ink-850)', borderBottomRightRadius: '6px' }}
                           >
                             {msg.content}
                           </div>
@@ -975,7 +975,7 @@ export default function VideoCompanionPage() {
                           className="space-y-2 pt-2"
                         >
                           <p className="text-xs font-bold uppercase tracking-wider"
-                            style={{ color: 'rgba(255,255,255,0.35)' }}>
+                            style={{ color: 'var(--ink-350)' }}>
                             Suggested questions
                           </p>
                           {[
@@ -991,7 +991,7 @@ export default function VideoCompanionPage() {
                               className="w-full text-left px-4 py-3 rounded-2xl text-xs font-medium transition-all active:scale-[0.98]"
                               style={glassCard}
                             >
-                              <span style={{ color: 'rgba(255,255,255,0.7)' }}>{q}</span>
+                              <span style={{ color: 'var(--ink-700)' }}>{q}</span>
                             </button>
                           ))}
                         </motion.div>
@@ -1003,13 +1003,13 @@ export default function VideoCompanionPage() {
                     {/* Chat input bar */}
                     <div
                       className="px-4 pb-6 pt-3 shrink-0"
-                      style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+                      style={{ borderTop: '1px solid var(--ink-080)' }}
                     >
                       <div
                         className="flex items-center gap-2 rounded-2xl p-1"
-                        style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}
+                        style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-120)' }}
                       >
-                        <MessageSquare size={16} className="ml-3 shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                        <MessageSquare size={16} className="ml-3 shrink-0" style={{ color: 'var(--ink-300)' }} />
                         <input
                           type="text"
                           value={chatInput}

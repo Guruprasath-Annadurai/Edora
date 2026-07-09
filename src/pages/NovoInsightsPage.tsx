@@ -82,14 +82,14 @@ function ScoreArc({ pct, size = 56 }: { pct: number; size?: number }) {
       <svg width={size} height={size} className="absolute inset-0"
         style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={size/2} cy={size/2} r={r} fill="none"
-          stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+          stroke="var(--ink-080)" strokeWidth={stroke} />
         <circle cx={size/2} cy={size/2} r={r} fill="none"
           stroke={color} strokeWidth={stroke}
           strokeDasharray={circ} strokeDashoffset={offset}
           strokeLinecap="round"
           style={{ transition: 'stroke-dashoffset 1.2s ease' }} />
       </svg>
-      <span className="text-[11px] font-bold" style={{ color }}>{pct}%</span>
+      <span className="text-xs font-bold" style={{ color }}>{pct}%</span>
     </div>
   );
 }
@@ -127,13 +127,13 @@ function DayCard({ day, focus, tasks, index }: RecoveryDay & { index: number }) 
           <Calendar size={15} style={{ color: colors.icon }} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wide"
+          <p className="text-xs font-bold uppercase tracking-wide"
             style={{ color: colors.icon }}>{day}</p>
           <p className="text-sm font-semibold text-white truncate">{focus}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {doneCount > 0 && (
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {doneCount}/{tasks.length}
             </span>
           )}
@@ -214,10 +214,10 @@ export default function NovoInsightsPage() {
     return (
       <div className="flex flex-col h-full bg-gradient-page">
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <Link to="/home"
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={17} className="text-white" />
           </Link>
           <h1 className="font-heading text-lg font-bold text-white">Novo Insights</h1>
@@ -237,10 +237,10 @@ export default function NovoInsightsPage() {
     return (
       <div className="flex flex-col h-full bg-gradient-page">
         <div className="px-4 py-3 flex items-center gap-3 shrink-0"
-          style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+          style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <Link to="/home"
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={17} className="text-white" />
           </Link>
           <h1 className="font-heading text-lg font-bold text-white">Novo Insights</h1>
@@ -261,7 +261,7 @@ export default function NovoInsightsPage() {
               </p>
             </div>
             <div className="rounded-2xl p-4 w-full text-left"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
                 To get your first report, complete any of:
               </p>
@@ -296,17 +296,17 @@ export default function NovoInsightsPage() {
       {/* ── Header ── */}
       <div
         className="px-4 pt-4 pb-5 shrink-0"
-        style={{ background: 'linear-gradient(160deg, #1A1144 0%, #2D1B7E 60%, #3B1FA0 100%)' }}>
+        style={{ background: 'linear-gradient(160deg, var(--grad-purple-header-1) 0%, var(--grad-purple-header-2) 60%, var(--grad-purple-header-3) 100%)' }}>
         <div className="flex items-center gap-3 mb-4">
           <Link to="/home"
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,255,255,0.12)' }}>
+            style={{ background: 'var(--ink-120)' }}>
             <ArrowLeft size={17} className="text-white" />
           </Link>
           <div className="flex-1">
             <div className="flex items-center gap-1.5">
               <Sparkles size={13} className="text-yellow-300" />
-              <span className="text-[11px] font-bold uppercase tracking-widest text-yellow-300">
+              <span className="text-xs font-bold uppercase tracking-widest text-yellow-300">
                 Novo Insights
               </span>
             </div>
@@ -316,14 +316,14 @@ export default function NovoInsightsPage() {
           </div>
           {isCurrentWeek && (
             <div className="px-2.5 py-1 rounded-full shrink-0"
-              style={{ background: 'rgba(255,255,255,0.15)' }}>
-              <span className="text-[10px] font-bold text-white/90 uppercase tracking-wide">This week</span>
+              style={{ background: 'var(--ink-150)' }}>
+              <span className="text-xs font-bold text-white/90 uppercase tracking-wide">This week</span>
             </div>
           )}
         </div>
 
         {/* Week range */}
-        <p className="text-purple-300 text-[11px] mb-3">
+        <p className="text-purple-300 text-xs mb-3">
           {formatWeekRange(insight.week_start)}
         </p>
 
@@ -341,10 +341,10 @@ export default function NovoInsightsPage() {
             { label: 'Mistakes',   value: insight.mistakes_logged,     icon: BookOpen, color: '#F87171' },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="rounded-2xl p-2.5 text-center"
-              style={{ background: 'rgba(255,255,255,0.08)' }}>
+              style={{ background: 'var(--ink-080)' }}>
               <Icon size={16} style={{ color }} className="mx-auto mb-1" />
               <p className="font-heading font-bold text-sm text-white leading-none">{value}</p>
-              <p className="text-[9px] text-purple-300 mt-0.5 leading-tight">{label}</p>
+              <p className="text-xs text-purple-300 mt-0.5 leading-tight">{label}</p>
             </div>
           ))}
         </div>
@@ -368,7 +368,7 @@ export default function NovoInsightsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.08 + i * 0.06 }}
                   className="rounded-2xl p-4 flex gap-3"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid rgba(239,68,68,0.2)' }}>
                   <ScoreArc pct={s.score_pct} size={54} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -403,7 +403,7 @@ export default function NovoInsightsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.14 + i * 0.06 }}
                   className="rounded-2xl p-4 flex gap-3"
-                  style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  style={{ background: 'var(--hdr-b-750)', border: '1px solid rgba(16,185,129,0.2)' }}>
                   <ScoreArc pct={s.score_pct} size={54} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -426,7 +426,7 @@ export default function NovoInsightsPage() {
               <h2 className="font-heading text-base font-bold text-white">Streak Pattern</h2>
             </div>
             <div className="rounded-2xl p-4 flex items-start gap-3"
-              style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(245,158,11,0.2)' }}>
+              style={{ background: 'var(--hdr-b-750)', border: '1px solid rgba(245,158,11,0.2)' }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(245,158,11,0.15)' }}>
                 <Flame size={18} className="text-amber-400" />
@@ -466,12 +466,12 @@ export default function NovoInsightsPage() {
             <p className="text-sm font-medium text-white/85 leading-relaxed italic">
               "{insight.motivation}"
             </p>
-            <p className="text-[11px] text-muted-foreground mt-2 font-medium">— Novo, your AI study coach</p>
+            <p className="text-xs text-muted-foreground mt-2 font-medium">— Novo, your AI study coach</p>
           </motion.div>
         )}
 
         {/* ── Generated timestamp ── */}
-        <p className="text-center text-[10px] text-muted-foreground pb-2">
+        <p className="text-center text-xs text-muted-foreground pb-2">
           Generated {new Date(insight.generated_at).toLocaleString('en-US', {
             month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
           })}

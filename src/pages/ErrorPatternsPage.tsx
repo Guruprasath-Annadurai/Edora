@@ -71,7 +71,7 @@ function OccurrenceBadge({ count }: { count: number }) {
   if (count >= 4) {
     return (
       <span
-        className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold animate-pulse"
+        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold animate-pulse"
         style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}
       >
         {count}×+
@@ -81,7 +81,7 @@ function OccurrenceBadge({ count }: { count: number }) {
   if (count >= 2) {
     return (
       <span
-        className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold"
+        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
         style={{ background: 'rgba(245,158,11,0.15)', color: '#FBBF24' }}
       >
         {count}×
@@ -90,8 +90,8 @@ function OccurrenceBadge({ count }: { count: number }) {
   }
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold"
-      style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+      style={{ background: 'var(--ink-080)', color: 'var(--ink-500)' }}
     >
       1×
     </span>
@@ -166,7 +166,7 @@ function PatternCard({
       exit={{ opacity: 0, x: -40, transition: { duration: 0.22 } }}
       transition={{ delay: index * 0.05, duration: 0.28 }}
       className="rounded-2xl overflow-hidden"
-      style={isResolved ? { opacity: 0.65, background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' } : { background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={isResolved ? { opacity: 0.65, background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' } : { background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
     >
       {/* Card top strip */}
       <div className="h-1 w-full" style={{ background: color }} />
@@ -181,15 +181,15 @@ function PatternCard({
             <AlertTriangle size={15} style={{ color }} />
           </div>
           <span
-            className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide"
+            className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide"
             style={{ background: bg, color }}
           >
             {pattern.subject}
           </span>
           {isResolved && (
             <span
-              className="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold"
-              style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
+              className="ml-auto px-2 py-0.5 rounded-full text-xs font-bold"
+              style={{ background: 'var(--ink-080)', color: 'var(--ink-400)' }}
             >
               Resolved
             </span>
@@ -272,7 +272,7 @@ function PatternCard({
               onClick={() => onResolve?.(pattern)}
               disabled={resolving}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-muted-foreground active:scale-95 transition-all disabled:opacity-50"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-100)' }}
             >
               {resolving ? (
                 <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -287,7 +287,7 @@ function PatternCard({
             <button
               onClick={() => onReopen?.(pattern)}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-muted-foreground active:scale-95 transition-all"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-100)' }}
             >
               <RotateCcw size={13} />
               Re-open
@@ -308,19 +308,19 @@ function SkeletonCard({ index }: { index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
       className="rounded-2xl overflow-hidden"
-      style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
     >
-      <div className="h-1 w-full animate-pulse" style={{ background: 'rgba(255,255,255,0.1)' }} />
+      <div className="h-1 w-full animate-pulse" style={{ background: 'var(--ink-100)' }} />
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
-          <div className="h-5 w-20 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
+          <div className="w-8 h-8 rounded-xl animate-pulse" style={{ background: 'var(--ink-080)' }} />
+          <div className="h-5 w-20 rounded-full animate-pulse" style={{ background: 'var(--ink-080)' }} />
         </div>
-        <div className="h-4 w-3/4 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
-        <div className="h-3 w-1/2 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-4 w-3/4 rounded animate-pulse" style={{ background: 'var(--ink-080)' }} />
+        <div className="h-3 w-1/2 rounded animate-pulse" style={{ background: 'var(--ink-060)' }} />
         <div className="flex gap-2">
-          <div className="flex-1 h-9 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
-          <div className="flex-1 h-9 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
+          <div className="flex-1 h-9 rounded-xl animate-pulse" style={{ background: 'var(--ink-080)' }} />
+          <div className="flex-1 h-9 rounded-xl animate-pulse" style={{ background: 'var(--ink-080)' }} />
         </div>
       </div>
     </motion.div>
@@ -534,7 +534,7 @@ export default function ErrorPatternsPage() {
   }, [user, resolvingId, showToast]);
 
   // ── Re-open ──
-  const handleReopen = useCallback(async (pattern: ErrorPattern) => {
+  const _handleReopen = useCallback(async (pattern: ErrorPattern) => {
     if (!user) return;
     try {
       await resolvePattern(pattern.id); // sets is_resolved=true currently; we need the inverse
@@ -596,12 +596,12 @@ export default function ErrorPatternsPage() {
       {/* ── Header ── */}
       <div
         className="px-4 py-3 shrink-0 flex items-center gap-3"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
       >
         <Link
           to="/home"
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
         >
           <ArrowLeft size={17} className="text-white" />
         </Link>
@@ -650,9 +650,9 @@ export default function ErrorPatternsPage() {
                   ? {
                       background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)',
                       border: '1px solid rgba(91,106,245,0.5)',
-                      color: '#fff',
+                      color: 'var(--ink-950)',
                     }
-                  : { background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }
+                  : { background: 'var(--ink-055)', border: '1px solid var(--ink-100)', color: 'var(--ink-500)' }
               }
             >
               All Subjects
@@ -670,7 +670,7 @@ export default function ErrorPatternsPage() {
                         borderColor: '#5B6AF5',
                         color: '#5B6AF5',
                       }
-                    : { background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }
+                    : { background: 'var(--ink-055)', border: '1px solid var(--ink-100)', color: 'var(--ink-500)' }
                 }
               >
                 {subject}

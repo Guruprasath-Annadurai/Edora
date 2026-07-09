@@ -115,7 +115,7 @@ function StreakDots({
               className="w-6 h-6 rounded-full flex items-center justify-center"
               style={{ background: color }}
             >
-              <span className="text-white text-[9px] font-bold">{dayNum}</span>
+              <span className="text-white text-xs font-bold">{dayNum}</span>
             </motion.div>
           );
         }
@@ -129,7 +129,7 @@ function StreakDots({
               className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
               style={{ borderColor: color, background: `${color}18` }}
             >
-              <span className="text-[9px] font-bold" style={{ color }}>{dayNum}</span>
+              <span className="text-xs font-bold" style={{ color }}>{dayNum}</span>
             </motion.div>
           );
         }
@@ -138,9 +138,9 @@ function StreakDots({
           <div
             key={dayNum}
             className="w-6 h-6 rounded-full flex items-center justify-center"
-            style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}
+            style={{ border: '1px solid var(--ink-120)', background: 'var(--ink-040)' }}
           >
-            <span className="text-[9px] text-muted-foreground">{dayNum}</span>
+            <span className="text-xs text-muted-foreground">{dayNum}</span>
           </div>
         );
       })}
@@ -194,11 +194,11 @@ function GenerateSheet({ onClose, onGenerated }: GenerateSheetProps) {
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 380, damping: 36 }}
         className="rounded-t-3xl px-4 pt-5 pb-8 flex flex-col gap-5"
-        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ background: 'var(--hdr-a-880)', border: '1px solid var(--ink-100)', borderBottom: 'none' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full mx-auto -mt-1" style={{ background: 'rgba(255,255,255,0.2)' }} />
+        <div className="w-10 h-1 rounded-full mx-auto -mt-1" style={{ background: 'var(--ink-200)' }} />
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -207,7 +207,7 @@ function GenerateSheet({ onClose, onGenerated }: GenerateSheetProps) {
             <p className="text-xs text-muted-foreground mt-0.5">Novo will personalise it for you</p>
           </div>
           <button aria-label="Close" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.08)', WebkitTapHighlightColor: 'transparent' }}>
+            style={{ background: 'var(--ink-080)', WebkitTapHighlightColor: 'transparent' }}>
             <X size={16} className="text-muted-foreground" />
           </button>
         </div>
@@ -223,9 +223,9 @@ function GenerateSheet({ onClose, onGenerated }: GenerateSheetProps) {
                 className="py-2 px-2 rounded-xl text-xs font-semibold border transition-all text-center"
                 style={{
                   WebkitTapHighlightColor: 'transparent',
-                  background: subject === s ? `${getSubjectColor(s)}20` : 'rgba(255,255,255,0.04)',
-                  borderColor: subject === s ? getSubjectColor(s) : 'rgba(255,255,255,0.08)',
-                  color: subject === s ? getSubjectColor(s) : 'rgba(255,255,255,0.5)',
+                  background: subject === s ? `${getSubjectColor(s)}20` : 'var(--ink-040)',
+                  borderColor: subject === s ? getSubjectColor(s) : 'var(--ink-080)',
+                  color: subject === s ? getSubjectColor(s) : 'var(--ink-500)',
                 }}
               >
                 {s}
@@ -243,7 +243,7 @@ function GenerateSheet({ onClose, onGenerated }: GenerateSheetProps) {
             value={topic}
             onChange={e => setTopic(e.target.value)}
             className="w-full rounded-2xl px-4 h-11 text-sm text-white placeholder:text-muted-foreground outline-none transition-colors"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
+            style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }}
           />
         </div>
 
@@ -258,9 +258,9 @@ function GenerateSheet({ onClose, onGenerated }: GenerateSheetProps) {
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all"
                 style={{
                   WebkitTapHighlightColor: 'transparent',
-                  background: targetDays === d ? 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' : 'rgba(255,255,255,0.04)',
-                  borderColor: targetDays === d ? '#5B6AF5' : 'rgba(255,255,255,0.08)',
-                  color: targetDays === d ? '#fff' : 'rgba(255,255,255,0.5)',
+                  background: targetDays === d ? 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' : 'var(--ink-040)',
+                  borderColor: targetDays === d ? '#5B6AF5' : 'var(--ink-080)',
+                  color: targetDays === d ? '#fff' : 'var(--ink-500)',
                 }}
               >
                 {d}d
@@ -368,11 +368,11 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 380, damping: 36 }}
         className="rounded-t-3xl px-4 pt-5 pb-8 flex flex-col gap-4 max-h-[88vh] overflow-y-auto"
-        style={{ background: 'rgba(8,6,20,0.88)', border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none' }}
+        style={{ background: 'var(--hdr-a-880)', border: '1px solid var(--ink-100)', borderBottom: 'none' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full mx-auto -mt-1 shrink-0" style={{ background: 'rgba(255,255,255,0.2)' }} />
+        <div className="w-10 h-1 rounded-full mx-auto -mt-1 shrink-0" style={{ background: 'var(--ink-200)' }} />
 
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
@@ -389,7 +389,7 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
             <p className="text-xs text-muted-foreground">{challenge.title}</p>
           </div>
           <button aria-label="Close" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,255,255,0.08)', WebkitTapHighlightColor: 'transparent' }}>
+            style={{ background: 'var(--ink-080)', WebkitTapHighlightColor: 'transparent' }}>
             <X size={16} className="text-muted-foreground" />
           </button>
         </div>
@@ -444,8 +444,8 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
               <>
                 {/* Task */}
                 <div className="rounded-2xl p-4"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Today's Task</p>
+                  style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Today's Task</p>
                   <p className="text-sm text-white font-medium leading-relaxed">{todayTask.task}</p>
                 </div>
 
@@ -481,14 +481,14 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
 
                 {/* Answer input */}
                 <div>
-                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Your Answer</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Your Answer</p>
                   <textarea
                     value={answer}
                     onChange={e => setAnswer(e.target.value)}
                     placeholder="Write your response here…"
                     rows={4}
                     className="w-full rounded-2xl px-4 py-3 text-sm text-white placeholder:text-muted-foreground resize-none outline-none transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', WebkitUserSelect: 'text', userSelect: 'text' }}
+                    style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }}
                   />
                 </div>
 
@@ -547,7 +547,7 @@ function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCar
       exit={{ opacity: 0, x: -40 }}
       transition={{ delay: index * 0.06, duration: 0.28 }}
       className="rounded-3xl overflow-hidden"
-      style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
     >
       {/* Color strip */}
       <div className="h-1" style={{ background: `linear-gradient(90deg, ${color}, ${color}88)` }} />
@@ -574,7 +574,7 @@ function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCar
             <span className="font-heading font-bold text-white text-base">{challenge.current_streak}</span>
             <span className="text-xs text-muted-foreground">day streak</span>
           </div>
-          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
             <motion.div
               className="h-full rounded-full"
               style={{ background: color }}
@@ -665,7 +665,6 @@ export default function StreakChallengePage() {
     if (loadCalled.current) return;
     loadCalled.current = true;
     loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadData() {
@@ -726,11 +725,11 @@ export default function StreakChallengePage() {
 
       {/* Sticky header */}
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 sticky top-0 z-20"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-xl flex items-center justify-center text-white transition-colors"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', WebkitTapHighlightColor: 'transparent' }}
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)', WebkitTapHighlightColor: 'transparent' }}
         >
           <ArrowLeft size={20} />
         </button>
@@ -746,7 +745,7 @@ export default function StreakChallengePage() {
 
       {/* Tab bar */}
       <div className="px-4 pt-2 pb-0 flex gap-0 shrink-0"
-        style={{ background: 'rgba(8,6,20,0.88)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        style={{ background: 'var(--hdr-a-880)', borderBottom: '1px solid var(--ink-060)' }}>
         {(['active', 'history'] as const).map(t => (
           <button
             key={t}
@@ -786,7 +785,7 @@ export default function StreakChallengePage() {
           <div className="flex flex-col gap-3">
             {[0, 1].map(i => (
               <div key={i} className="rounded-3xl h-44 animate-pulse"
-                style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }} />
+                style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }} />
             ))}
           </div>
         )}
@@ -852,8 +851,8 @@ export default function StreakChallengePage() {
                 className="flex flex-col items-center gap-3 py-12 text-center"
               >
                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                    style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <Scroll size={28} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                    style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-100)' }}>
+                    <Scroll size={28} style={{ color: 'var(--ink-400)' }} />
                   </div>
                 <p className="font-heading font-bold text-white text-lg">No history yet</p>
                 <p className="text-sm text-muted-foreground">
@@ -871,7 +870,7 @@ export default function StreakChallengePage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                     className="rounded-2xl p-4 flex gap-3"
-                    style={{ background: 'rgba(15,20,45,0.75)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}
                   >
                     <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
                       style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>

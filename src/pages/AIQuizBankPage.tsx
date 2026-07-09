@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Brain, Sparkles, CheckCircle, XCircle, Flag, ChevronDown, Zap } from 'lucide-react';
+import {ChevronLeft, Brain, Sparkles, CheckCircle, XCircle, Flag, Atom, FlaskConical, Calculator, Dna, Scroll, Globe2} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
 import { AIFeedback, logAIInteraction } from '@/components/ui/AIFeedback';
+import { getFeatureTheme } from '@/lib/featureTheme';
 
 type Phase = 'setup' | 'generating' | 'quiz' | 'result';
 type FlagReason = 'wrong_answer' | 'unclear' | 'too_easy' | 'too_hard' | 'duplicate' | 'other';
@@ -27,12 +28,12 @@ interface AIQuestion {
 }
 
 const SUBJECTS = [
-  { name: 'Physics',   color: '#60A5FA', icon: '⚛️' },
-  { name: 'Chemistry', color: '#34D399', icon: '🧪' },
-  { name: 'Maths',     color: '#A78BFA', icon: '📐' },
-  { name: 'Biology',   color: '#4ADE80', icon: '🧬' },
-  { name: 'History',   color: '#FBBF24', icon: '📜' },
-  { name: 'Geography', color: '#FB923C', icon: '🌏' },
+  { name: 'Physics',   color: '#60A5FA', icon: Atom },
+  { name: 'Chemistry', color: '#34D399', icon: FlaskConical },
+  { name: 'Maths',     color: '#A78BFA', icon: Calculator },
+  { name: 'Biology',   color: '#4ADE80', icon: Dna },
+  { name: 'History',   color: '#FBBF24', icon: Scroll },
+  { name: 'Geography', color: '#FB923C', icon: Globe2 },
 ];
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
@@ -47,6 +48,7 @@ const FLAG_REASONS: { id: FlagReason; label: string }[] = [
 ];
 
 export default function AIQuizBankPage() {
+  const ft = getFeatureTheme('sprint');
   const { profile }  = useAuth();
   const [phase, setPhase]     = useState<Phase>('setup');
   const [subject, setSubject] = useState('Physics');
@@ -89,8 +91,7 @@ export default function AIQuizBankPage() {
     const diffMap: Record<string, string> = {
       hard: 'hard (advanced level)',
       medium: 'medium (moderate application)',
-      easy: 'easy (basic recall)',
-    };
+      easy: 'easy (basic recall)' };
     const targetDiff = abilityScore > 0.5 ? 'hard' : abilityScore < -0.5 ? 'easy' : 'medium';
     const prompt = `Generate ${count} novel ${diffMap[targetDiff]} ${subject} MCQ questions${chapter ? ` on "${chapter}"` : ' covering diverse topics'}.
 These must be ORIGINAL questions — not copied from any textbook. Test deep conceptual understanding.${langInstr}
@@ -99,8 +100,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
     try {
       const resp = await fetch('/api/ai-questions', {
         method: 'POST',
-        body: JSON.stringify({ prompt, count }),
-      }).then(r => r.json()).catch(() => null);
+        body: JSON.stringify({ prompt, count }) }).then(r => r.json()).catch(() => null);
 
       let parsed: AIQuestion[] | null = null;
       if (resp?.questions) {
@@ -108,8 +108,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
       } else {
         // Fallback: generate via supabase edge function
         const { data: fnData } = await supabase.functions.invoke('ai-question-gen', {
-          body: { subject, chapter, count, ability_score: abilityScore, language: profile.preferred_language ?? 'en' },
-        });
+          body: { subject, chapter, count, ability_score: abilityScore, language: profile.preferred_language ?? 'en' } });
         parsed = fnData?.questions ?? null;
       }
 
@@ -135,9 +134,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
     try {
       const { data } = await supabase.functions.invoke('gemini-chat', {
         body: {
-          prompt: `Explain why "${q.options[q.correct_idx]}" is correct for: ${q.question}. Be concise (80 words max).${langInstr}`,
-        },
-      });
+          prompt: `Explain why "${q.options[q.correct_idx]}" is correct for: ${q.question}. Be concise (80 words max).${langInstr}` } });
       const explanation = data?.text ?? q.explanation;
       setNovoExp(explanation);
 
@@ -152,8 +149,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
           topic:       q.concept,
           modelUsed:   'gemini-2.0-flash',
           responseMs:  Date.now() - startMs,
-          language:    profile.preferred_language ?? 'en',
-        }).then(id => { if (id) setExpInteractionId(id); });
+          language:    profile.preferred_language ?? 'en' }).then(id => { if (id) setExpInteractionId(id); });
       }
     } catch { setNovoExp(q.explanation); }
     setLoadingExp(false);
@@ -191,12 +187,10 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
         question_id:   q.id.startsWith('ai_') ? null : q.id,
         question_text: q.question,
         report_type:   reportType,
-        details:       `Flagged as: ${reason}. Subject: ${subject}, Chapter: ${q.chapter ?? 'N/A'}`,
-      }),
+        details:       `Flagged as: ${reason}. Subject: ${subject}, Chapter: ${q.chapter ?? 'N/A'}` }),
       // Legacy table — keep for backwards compat
       !q.id.startsWith('ai_') && supabase.from('ai_question_flags').upsert({
-        question_id: q.id, user_id: profile.id, reason,
-      }, { onConflict: 'question_id,user_id' }),
+        question_id: q.id, user_id: profile.id, reason }, { onConflict: 'question_id,user_id' }),
     ]);
     setFlagging(false);
     setFlagModal(false);
@@ -221,9 +215,11 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
   const correctCount = answers.filter((a, i) => a === questions[i]?.correct_idx).length;
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="h-full overflow-y-auto"
+      data-feature="sprint"
+      style={{ backgroundImage: ft.meshGradient, backgroundAttachment: 'fixed' }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3"
+      <div className="page-hero flex items-center gap-3 px-4 pt-safe-top pt-4 pb-3"
            style={{ borderBottom: '1px solid var(--color-border)' }}>
         <motion.button whileTap={{ scale: 0.92 }}
           onClick={() => phase !== 'setup' ? setPhase('setup') : undefined}
@@ -234,17 +230,19 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
             <ChevronLeft size={20} style={{ color: 'var(--color-text-secondary)' }} />
           )}
         </motion.button>
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+          style={{ background: ft.gradient, boxShadow: `0 4px 14px ${ft.glowRgba}` }}>
+          <Brain size={18} className="text-white" />
+        </div>
         <div>
-          <h1 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>AI Question Bank</h1>
-          <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-            Infinite practice, calibrated to your level
-          </p>
+          <h1 className="text-title">AI Question Bank</h1>
+          <p className="text-body-sm">Infinite practice, calibrated to your level</p>
         </div>
         {phase === 'quiz' && streak >= 3 && (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
             className="ml-auto px-3 py-1 rounded-full text-xs font-bold"
             style={{ background: 'rgba(251,191,36,0.2)', color: '#FBBF24' }}>
-            🔥 {streak} streak!
+            {streak} streak
           </motion.div>
         )}
       </div>
@@ -275,9 +273,8 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                     className="p-2 rounded-2xl text-center transition-all"
                     style={{
                       background: subject === s.name ? `${s.color}20` : 'var(--color-surface)',
-                      border: `1.5px solid ${subject === s.name ? s.color : 'var(--color-border)'}`,
-                    }}>
-                    <span className="text-2xl">{s.icon}</span>
+                      border: `1.5px solid ${subject === s.name ? s.color : 'var(--color-border)'}` }}>
+                    <s.icon size={22} className="mx-auto" style={{ color: s.color }} strokeWidth={1.7} />
                     <p className="text-xs font-semibold mt-1" style={{ color: subject === s.name ? s.color : 'var(--color-text)' }}>
                       {s.name}
                     </p>
@@ -307,14 +304,13 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                     style={{
                       background: count === n ? `${subjectConfig.color}20` : 'var(--color-surface)',
                       color: count === n ? subjectConfig.color : 'var(--color-text-secondary)',
-                      border: `1px solid ${count === n ? subjectConfig.color : 'var(--color-border)'}`,
-                    }}>{n}</button>
+                      border: `1px solid ${count === n ? subjectConfig.color : 'var(--color-border)'}` }}>{n}</button>
                 ))}
               </div>
             </div>
 
             <Button onClick={generateQuestions} className="w-full h-12 rounded-2xl font-bold"
-              style={{ background: subjectConfig.color, color: '#0A0A0F' }}>
+              style={{ background: subjectConfig.color, color: 'var(--color-on-accent)' }}>
               <Brain size={18} className="mr-2" /> Generate Questions
             </Button>
           </motion.div>
@@ -420,7 +416,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
             </AnimatePresence>
             {revealed && (
               <Button onClick={nextQuestion} className="w-full h-12 rounded-2xl font-bold"
-                style={{ background: subjectConfig.color, color: '#0A0A0F' }}>
+                style={{ background: subjectConfig.color, color: 'var(--color-on-accent)' }}>
                 {current >= questions.length - 1 ? 'See Results' : 'Next →'}
               </Button>
             )}
@@ -431,7 +427,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                 <motion.div key="flag" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 40 }}
                   className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl p-5 space-y-3"
-                  style={{ background: 'rgba(8,6,20,0.90)', backdropFilter: 'blur(64px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(200%) brightness(1.04)', borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+                  style={{ background: 'var(--hdr-a-900)', backdropFilter: 'blur(64px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(200%) brightness(1.04)', borderTop: '1px solid var(--ink-100)' }}>
                   <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Report this question</p>
                   {FLAG_REASONS.map(r => (
                     <button key={r.id} onClick={() => flagQuestion(r.id)}
@@ -467,7 +463,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
               {[
                 { l: 'Correct',  v: correctCount,                     c: '#34D399' },
                 { l: 'Wrong',    v: questions.length - correctCount,   c: '#F87171' },
-                { l: 'Streak',   v: `${streak}🔥`,                    c: '#FBBF24' },
+                { l: 'Streak',   v: `${streak}`,                    c: '#FBBF24' },
               ].map(s => (
                 <div key={s.l} className="p-3 rounded-2xl"
                   style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
@@ -479,7 +475,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
             <div className="space-y-3">
               <Button onClick={() => { setPhase('setup'); setQuestions([]); setAnswers([]); }}
                 className="w-full h-12 rounded-2xl font-bold"
-                style={{ background: subjectConfig.color, color: '#0A0A0F' }}>
+                style={{ background: subjectConfig.color, color: 'var(--color-on-accent)' }}>
                 <Brain size={16} className="mr-2" /> Generate More
               </Button>
               <Link to="/tools">

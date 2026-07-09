@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, CheckCircle, Lock, BookOpen, Clock,
   Star, Trophy, Zap, Target, ChevronRight, PlayCircle,
-  RotateCcw, ArrowRight, Lightbulb, GraduationCap,
+  ArrowRight, Lightbulb, GraduationCap,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -98,7 +98,7 @@ function ClassSelector({ onSelect }: { onSelect: (classNum: number) => void }) {
         </div>
         <div>
           <h2 className="font-heading text-xl font-bold text-white">My Courses</h2>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Select your class to begin</p>
+          <p className="text-xs" style={{ color: 'var(--ink-400)' }}>Select your class to begin</p>
         </div>
       </div>
 
@@ -112,20 +112,22 @@ function ClassSelector({ onSelect }: { onSelect: (classNum: number) => void }) {
             onClick={() => onSelect(c.classNum)}
             className="relative p-4 rounded-3xl text-left overflow-hidden"
             style={{
-              background: 'rgba(15,17,23,0.7)',
-              border: '1.5px solid rgba(255,255,255,0.07)',
+              background: 'var(--surface-elev-07)',
+              border: '1.5px solid var(--ink-070)',
             }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
           >
             <div className="absolute top-0 right-0 w-20 h-20 rounded-full pointer-events-none"
               style={{ background: 'radial-gradient(circle, rgba(91,106,245,0.15), transparent 70%)', transform: 'translate(30%, -30%)' }} />
-            <span className="text-2xl mb-2 block">{c.classNum >= 11 ? '🎯' : '📗'}</span>
+            {c.classNum >= 11
+              ? <Target size={22} className="mb-2" style={{ color: '#A0AEFF' }} strokeWidth={1.7} />
+              : <BookOpen size={22} className="mb-2" style={{ color: '#A0AEFF' }} strokeWidth={1.7} />}
             <p className="font-heading font-bold text-white text-sm leading-tight">{c.label}</p>
-            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="text-xs mt-1" style={{ color: 'var(--ink-350)' }}>
               {c.subjects.length} subjects
             </p>
-            <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.25)', position: 'absolute', right: 12, bottom: 16 }} />
+            <ChevronRight size={14} style={{ color: 'var(--ink-250)', position: 'absolute', right: 12, bottom: 16 }} />
           </motion.button>
         ))}
       </div>
@@ -139,7 +141,7 @@ function ClassSelector({ onSelect }: { onSelect: (classNum: number) => void }) {
         </div>
         <div>
           <p className="text-xs font-semibold" style={{ color: '#A0AEFF' }}>Free for Everyone</p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>NCERT-aligned · Classes 9–12</p>
+          <p className="text-xs" style={{ color: 'var(--ink-350)' }}>NCERT-aligned · Classes 9–12</p>
         </div>
       </div>
     </div>
@@ -147,9 +149,9 @@ function ClassSelector({ onSelect }: { onSelect: (classNum: number) => void }) {
 }
 
 function SubjectGrid({
-  classNum, subjects, progress, onSelect,
+  subjects, progress, onSelect,
 }: {
-  classNum: number;
+  classNum?: number;
   subjects: Subject[];
   progress: Record<string, LessonProgress>;
   onSelect: (subject: Subject) => void;
@@ -177,20 +179,20 @@ function SubjectGrid({
             onClick={() => onSelect(s)}
             className="relative p-4 rounded-3xl text-left overflow-hidden"
             style={{
-              background: 'rgba(15,17,23,0.7)',
-              border: `1.5px solid ${pct > 0 ? s.color + '30' : 'rgba(255,255,255,0.07)'}`,
+              background: 'var(--surface-elev-07)',
+              border: `1.5px solid ${pct > 0 ? s.color + '30' : 'var(--ink-070)'}`,
             }}
             whileTap={{ scale: 0.96 }}
           >
             <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle at 80% 20%, ${s.glowColor}, transparent 65%)` }} />
             <span className="text-3xl mb-3 block">{s.emoji}</span>
             <p className="font-heading font-bold text-white text-sm">{s.name}</p>
-            <p className="text-xs mt-0.5 mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--ink-350)' }}>
               {s.chapters.length} chapters
             </p>
 
             {/* Progress bar */}
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-060)' }}>
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: s.color }}
@@ -239,12 +241,12 @@ function ChapterList({
             style={{
               background: isComplete
                 ? `linear-gradient(135deg, ${subject.color}18, ${subject.color}08)`
-                : 'rgba(15,17,23,0.7)',
+                : 'var(--surface-elev-07)',
               border: isComplete
                 ? `1.5px solid ${subject.color}40`
                 : isStarted
                   ? `1.5px solid ${subject.color}20`
-                  : '1.5px solid rgba(255,255,255,0.07)',
+                  : '1.5px solid var(--ink-070)',
             }}
             whileTap={{ scale: 0.98 }}
           >
@@ -264,13 +266,13 @@ function ChapterList({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-heading font-semibold text-white text-sm leading-tight pr-6">{ch.title}</p>
-                  <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
+                  <ChevronRight size={14} style={{ color: 'var(--ink-250)', flexShrink: 0 }} />
                 </div>
-                <p className="text-xs mt-1 line-clamp-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{ch.description}</p>
+                <p className="text-xs mt-1 line-clamp-1" style={{ color: 'var(--ink-400)' }}>{ch.description}</p>
 
                 {/* Progress row */}
                 <div className="flex items-center gap-2 mt-2.5">
-                  <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--ink-060)' }}>
                     <motion.div
                       className="h-full rounded-full"
                       style={{ background: subject.color }}
@@ -279,7 +281,7 @@ function ChapterList({
                       transition={{ duration: 0.6, delay: i * 0.05 + 0.15, ease: 'easeOut' }}
                     />
                   </div>
-                  <span className="text-xs font-medium flex-shrink-0" style={{ color: isStarted ? subject.color : 'rgba(255,255,255,0.2)' }}>
+                  <span className="text-xs font-medium flex-shrink-0" style={{ color: isStarted ? subject.color : 'var(--ink-200)' }}>
                     {done}/{total}
                   </span>
                 </div>
@@ -312,12 +314,12 @@ function LessonList({
         style={{ background: `linear-gradient(135deg, ${subject.color}18, ${subject.color}06)`, border: `1px solid ${subject.color}25` }}>
         <p className="text-xs font-semibold mb-0.5" style={{ color: subject.color }}>Chapter {chapter.num}</p>
         <h3 className="font-heading font-bold text-white text-base leading-tight">{chapter.title}</h3>
-        <p className="text-xs mt-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{chapter.description}</p>
+        <p className="text-xs mt-1.5" style={{ color: 'var(--ink-400)' }}>{chapter.description}</p>
         <div className="flex items-center gap-4 mt-3">
-          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--ink-400)' }}>
             <BookOpen size={12} /> {chapter.lessons.length} lessons
           </span>
-          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--ink-400)' }}>
             <Clock size={12} /> {chapter.lessons.reduce((a, l) => a + l.duration, 0)} min
           </span>
         </div>
@@ -338,10 +340,10 @@ function LessonList({
             style={{
               background: isDone
                 ? `linear-gradient(135deg, ${subject.color}14, ${subject.color}06)`
-                : 'rgba(15,17,23,0.7)',
+                : 'var(--surface-elev-07)',
               border: isDone
                 ? `1.5px solid ${subject.color}35`
-                : '1.5px solid rgba(255,255,255,0.07)',
+                : '1.5px solid var(--ink-070)',
               opacity: unlocked ? 1 : 0.5,
             }}
             whileTap={unlocked ? { scale: 0.97 } : {}}
@@ -350,14 +352,14 @@ function LessonList({
               {/* Status icon */}
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
                 style={{
-                  background: isDone ? subject.color : unlocked ? subject.iconBg : 'rgba(255,255,255,0.04)',
+                  background: isDone ? subject.color : unlocked ? subject.iconBg : 'var(--ink-040)',
                   border: `1px solid ${isDone ? 'transparent' : subject.color + '25'}`,
                 }}>
                 {isDone
                   ? <CheckCircle size={20} className="text-white" />
                   : unlocked
                     ? <PlayCircle size={20} style={{ color: subject.color }} />
-                    : <Lock size={16} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                    : <Lock size={16} style={{ color: 'var(--ink-200)' }} />
                 }
               </div>
 
@@ -372,11 +374,11 @@ function LessonList({
                 </div>
                 <p className="font-heading font-semibold text-sm text-white leading-tight">{lesson.title}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-350)' }}>
                     <Clock size={10} /> {lesson.duration} min
                   </span>
                   {!unlocked && (
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    <span className="text-xs" style={{ color: 'var(--ink-250)' }}>
                       Complete lesson {i} to unlock
                     </span>
                   )}
@@ -384,7 +386,7 @@ function LessonList({
               </div>
 
               {unlocked && !isDone && (
-                <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                <ChevronRight size={16} style={{ color: 'var(--ink-200)', flexShrink: 0 }} />
               )}
             </div>
           </motion.button>
@@ -434,7 +436,7 @@ function LessonViewer({
           <Trophy size={40} style={{ color: subject.color }} />
         </motion.div>
         <h2 className="font-heading text-2xl font-bold text-white mb-2">Lesson Complete!</h2>
-        <p className="text-sm mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{lesson.title}</p>
+        <p className="text-sm mb-2" style={{ color: 'var(--ink-500)' }}>{lesson.title}</p>
         <div className="flex items-center gap-2 px-4 py-2 rounded-2xl mb-8"
           style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)' }}>
           <Zap size={16} style={{ color: '#FBBF24' }} />
@@ -459,7 +461,7 @@ function LessonViewer({
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
             style={{ background: meta.bg, color: meta.color }}>{meta.label}</span>
-          <span className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-350)' }}>
             <Clock size={10} /> {lesson.duration} min
           </span>
           {isComplete && (
@@ -469,7 +471,7 @@ function LessonViewer({
           )}
         </div>
         <h1 className="font-heading text-xl font-bold text-white leading-tight">{lesson.title}</h1>
-        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-xs mt-1" style={{ color: 'var(--ink-400)' }}>
           {subject.name} · Chapter {chapter.num}
         </p>
       </div>
@@ -477,13 +479,13 @@ function LessonViewer({
       {/* Content */}
       <div className="flex-1 px-4 space-y-4 pb-6">
         {/* Summary */}
-        <div className="p-4 rounded-3xl" style={{ background: 'rgba(15,17,23,0.7)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="p-4 rounded-3xl" style={{ background: 'var(--surface-elev-07)', border: '1px solid var(--ink-070)' }}>
           <h3 className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: subject.color }}>Summary</h3>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>{lesson.summary}</p>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-800)' }}>{lesson.summary}</p>
         </div>
 
         {/* Key Points */}
-        <div className="p-4 rounded-3xl" style={{ background: 'rgba(15,17,23,0.7)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="p-4 rounded-3xl" style={{ background: 'var(--surface-elev-07)', border: '1px solid var(--ink-070)' }}>
           <h3 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: subject.color }}>Key Points</h3>
           <div className="space-y-2.5">
             {lesson.keyPoints.map((pt, i) => (
@@ -498,7 +500,7 @@ function LessonViewer({
                   style={{ background: subject.iconBg, border: `1px solid ${subject.color}30` }}>
                   <span className="text-xs font-bold" style={{ color: subject.color }}>{i + 1}</span>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>{pt}</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-750)' }}>{pt}</p>
               </motion.div>
             ))}
           </div>
@@ -542,7 +544,7 @@ function LessonViewer({
           <div className="p-4 rounded-3xl flex items-start gap-3"
             style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)' }}>
             <Lightbulb size={16} style={{ color: '#60A5FA', flexShrink: 0, marginTop: 2 }} />
-            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--ink-600)' }}>
               This is a practice session. Work through each point carefully, attempt the questions on paper, then verify. Rushed practice builds false confidence.
             </p>
           </div>
@@ -623,11 +625,11 @@ function PageHeader({
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      style={{ borderBottom: '1px solid var(--ink-060)' }}>
       <motion.button
         onClick={handleBack}
         className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-080)' }}
         whileTap={{ scale: 0.9 }}
       >
         <ChevronLeft size={18} className="text-white" />
@@ -636,7 +638,7 @@ function PageHeader({
       <div className="flex-1 min-w-0">
         <h1 className="font-heading font-bold text-white text-base leading-tight truncate">{title()}</h1>
         {subtitle() && (
-          <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{subtitle()}</p>
+          <p className="text-xs truncate" style={{ color: 'var(--ink-350)' }}>{subtitle()}</p>
         )}
       </div>
 
@@ -689,6 +691,7 @@ export default function CoursePage() {
         setPhase('subjects');
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function selectClass(cn: number) {

@@ -15,6 +15,8 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { geminiJSON } from '@/lib/gemini';
+import { indexUserItem } from '@/lib/userContentIndex';
+import { getFeatureTheme } from '@/lib/featureTheme';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,7 +119,7 @@ function KeyTermChip({ term, definition }: KeyTerm) {
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border whitespace-nowrap shrink-0 transition-all active:scale-95"
+        className="px-2.5 py-1 rounded-lg text-xs font-semibold border whitespace-nowrap shrink-0 transition-all active:scale-95"
         style={
           open
             ? {
@@ -126,8 +128,8 @@ function KeyTermChip({ term, definition }: KeyTerm) {
                 color: '#8B9FFF',
               }
             : {
-                background: 'rgba(255,255,255,0.06)',
-                borderColor: 'rgba(255,255,255,0.12)',
+                background: 'var(--ink-060)',
+                borderColor: 'var(--ink-120)',
                 color: 'var(--muted-foreground)',
               }
         }
@@ -143,7 +145,7 @@ function KeyTermChip({ term, definition }: KeyTerm) {
             transition={{ duration: 0.15 }}
             className="absolute bottom-full left-0 mb-2 z-20 w-56 rounded-2xl p-3 shadow-xl"
             style={{
-              background: 'rgba(25,25,40,0.95)',
+              background: 'var(--surface-scrim)',
               border: '1px solid rgba(91,106,245,0.3)',
               backdropFilter: 'blur(12px)',
             }}
@@ -197,9 +199,9 @@ function ComprehensionCheck({
           const isCorrect = idx === question.correct_idx;
           const isSelected = idx === selected;
 
-          let bg = 'rgba(255,255,255,0.05)';
-          let border = 'rgba(255,255,255,0.1)';
-          let textColor = 'rgba(255,255,255,0.85)';
+          let bg = 'var(--ink-050)';
+          let border = 'var(--ink-100)';
+          let textColor = 'var(--ink-850)';
 
           if (answered) {
             if (isCorrect) {
@@ -222,13 +224,13 @@ function ComprehensionCheck({
               style={{ background: bg, border: `1px solid ${border}` }}
             >
               <span
-                className="w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
+                className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
                 style={{
                   background: answered && isCorrect
                     ? 'rgba(16,185,129,0.25)'
                     : answered && isSelected
                     ? 'rgba(239,68,68,0.2)'
-                    : 'rgba(255,255,255,0.08)',
+                    : 'var(--ink-080)',
                   color: textColor,
                 }}
               >
@@ -276,7 +278,7 @@ function ParagraphCard({
       {/* Paragraph label */}
       <div className="flex items-center gap-2">
         <span
-          className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+          className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide"
           style={{
             background: 'rgba(91,106,245,0.15)',
             border: '1px solid rgba(91,106,245,0.25)',
@@ -300,7 +302,7 @@ function ParagraphCard({
       >
         <div className="flex items-center gap-2 mb-2">
           <Brain size={13} style={{ color: '#818CF8' }} />
-          <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: '#818CF8' }}>
+          <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#818CF8' }}>
             Novo's Take
           </p>
         </div>
@@ -351,7 +353,7 @@ function ParagraphCard({
       )}
 
       {/* Divider */}
-      <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="h-px" style={{ background: 'var(--ink-060)' }} />
     </motion.div>
   );
 }
@@ -367,7 +369,7 @@ function ProgressRing({ correct, total }: { correct: number; total: number }) {
   return (
     <div className="relative w-24 h-24 flex items-center justify-center">
       <svg width="96" height="96" className="-rotate-90">
-        <circle cx="48" cy="48" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+        <circle cx="48" cy="48" r={radius} fill="none" stroke="var(--ink-080)" strokeWidth="8" />
         <circle
           cx="48"
           cy="48"
@@ -387,7 +389,7 @@ function ProgressRing({ correct, total }: { correct: number; total: number }) {
       </svg>
       <div className="absolute text-center">
         <p className="font-heading font-bold text-white text-lg leading-none">{correct}/{total}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">correct</p>
+        <p className="text-xs text-muted-foreground mt-0.5">correct</p>
       </div>
     </div>
   );
@@ -455,6 +457,7 @@ function ProcessingScreen() {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function NovoReadsPage() {
+  const ft = getFeatureTheme('reads');
   const { user } = useAuth();
 
   const [phase, setPhase] = useState<Phase>('input');
@@ -572,9 +575,9 @@ For all other paragraphs set question to null.`;
       setSession(sessionData);
       setCurrentParagraphIdx(0);
       setPhase('reading');
-    } catch (err: any) {
+    } catch (err) {
       if (!mountedRef.current) return;
-      setError(err.message ?? 'Something went wrong. Please try again.');
+      setError((err as Error).message ?? 'Something went wrong. Please try again.');
       setPhase('input');
     }
   }
@@ -623,19 +626,20 @@ For all other paragraphs set question to null.`;
         .map((kc) => `• ${kc.concept}: ${kc.explanation}`)
         .join('\n');
 
-      const { error: insertError } = await supabase.from('study_notes').insert({
+      const { data: noteData, error: insertError } = await supabase.from('study_notes').insert({
         user_id: user.id,
         title: title || 'Novo Reading Session',
         content: `${noteContent}\n\n## Key Concepts\n${keyConcepts}`,
         subject: subject || null,
-      });
+      }).select('id').single();
 
       if (insertError) throw new Error(insertError.message);
+      if (noteData?.id) indexUserItem('study_note', noteData.id).catch(() => {});
       if (!mountedRef.current) return;
       showToast('Saved to Study Notes!', 'success');
-    } catch (err: any) {
+    } catch (err) {
       if (!mountedRef.current) return;
-      showToast(err.message ?? 'Failed to save note.', 'error');
+      showToast((err as Error).message ?? 'Failed to save note.', 'error');
     } finally {
       if (mountedRef.current) setSavingNote(false);
     }
@@ -652,7 +656,9 @@ For all other paragraphs set question to null.`;
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full bg-gradient-page">
+    <div className="flex flex-col h-full bg-gradient-page"
+      data-feature="reads"
+      style={{ backgroundImage: ft.meshGradient, backgroundAttachment: 'fixed' }}>
 
       {/* Toasts */}
       <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
@@ -665,11 +671,10 @@ For all other paragraphs set question to null.`;
 
       {/* Header */}
       <div
-        className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+        className="page-hero shrink-0 flex items-center gap-3 px-4 py-3 border-b"
         style={{
-          background: 'rgba(15,15,25,0.8)',
           backdropFilter: 'blur(20px)',
-          borderColor: 'rgba(255,255,255,0.08)',
+          borderColor: 'var(--ink-080)',
         }}
       >
         <Link
@@ -680,7 +685,7 @@ For all other paragraphs set question to null.`;
         </Link>
         <div
           className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-          style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
+          style={{ background: ft.gradient, boxShadow: `0 4px 14px ${ft.glowRgba}` }}
         >
           <BookOpen size={20} className="text-white" />
         </div>
@@ -740,16 +745,17 @@ For all other paragraphs set question to null.`;
                   style={{
                     minHeight: 200,
                     resize: 'vertical',
-                    background: 'rgba(255,255,255,0.04)',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    background: 'var(--v2-card)',
+                    borderColor: 'var(--v2-border)',
+                    color: 'var(--v2-text-1)',
                     WebkitUserSelect: 'text',
                     userSelect: 'text',
                   }}
                 />
                 <div
-                  className="absolute bottom-3 right-3 text-[11px] font-semibold px-2 py-0.5 rounded-lg"
+                  className="absolute bottom-3 right-3 text-xs font-semibold px-2 py-0.5 rounded-lg"
                   style={{
-                    background: 'rgba(15,15,25,0.8)',
+                    background: 'var(--surface-scrim)',
                     color: wordCount >= 50 ? '#10B981' : 'var(--muted-foreground)',
                   }}
                 >
@@ -766,8 +772,9 @@ For all other paragraphs set question to null.`;
                   onChange={(e) => setSubject(e.target.value)}
                   className="w-full rounded-2xl px-4 h-11 bg-transparent text-white placeholder:text-muted-foreground/60 text-sm outline-none border"
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    background: 'var(--v2-card)',
+                    borderColor: 'var(--v2-border)',
+                    color: 'var(--v2-text-1)',
                     WebkitUserSelect: 'text',
                     userSelect: 'text',
                   }}
@@ -779,8 +786,9 @@ For all other paragraphs set question to null.`;
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full rounded-2xl px-4 h-11 bg-transparent text-white placeholder:text-muted-foreground/60 text-sm outline-none border"
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    background: 'var(--v2-card)',
+                    borderColor: 'var(--v2-border)',
+                    color: 'var(--v2-text-1)',
                     WebkitUserSelect: 'text',
                     userSelect: 'text',
                   }}
@@ -835,7 +843,7 @@ For all other paragraphs set question to null.`;
                     </span>
                     {subject && (
                       <span
-                        className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                        className="px-2 py-0.5 rounded-full text-xs font-bold"
                         style={{
                           background: 'rgba(91,106,245,0.15)',
                           border: '1px solid rgba(91,106,245,0.2)',
@@ -850,10 +858,10 @@ For all other paragraphs set question to null.`;
                     {Math.round(((currentParagraphIdx + 1) / session.paragraphs.length) * 100)}%
                   </span>
                 </div>
-                <div className="w-full h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--v2-border)' }}>
                   <motion.div
                     className="h-1.5 rounded-full"
-                    style={{ background: 'linear-gradient(90deg, #5B6AF5, #8B5CF6)' }}
+                    style={{ background: 'var(--v2-primary)' }}
                     animate={{
                       width: `${((currentParagraphIdx + 1) / session.paragraphs.length) * 100}%`,
                     }}
@@ -885,16 +893,16 @@ For all other paragraphs set question to null.`;
               <div
                 className="sticky bottom-0 px-4 py-4 border-t"
                 style={{
-                  background: 'rgba(15,15,25,0.92)',
+                  background: 'var(--surface-scrim)',
                   backdropFilter: 'blur(16px)',
-                  borderColor: 'rgba(255,255,255,0.06)',
+                  borderColor: 'var(--ink-060)',
                 }}
               >
                 <button
                   onClick={advanceParagraph}
                   disabled={currentParaHasUnansweredQ}
-                  className="w-full rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold text-white transition-all active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', height: 52 }}
+                  className="w-full rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold text-white transition-all active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed v2-btn-primary"
+                  style={{ height: 52 }}
                 >
                   {currentParagraphIdx >= session.paragraphs.length - 1 ? (
                     <>
@@ -930,11 +938,11 @@ For all other paragraphs set question to null.`;
               <div className="text-center">
                 <div
                   className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4"
-                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
+                  style={{ background: 'var(--v2-primary)' }}
                 >
                   <BookOpen size={36} className="text-white" />
                 </div>
-                <h2 className="font-heading text-2xl font-bold text-white">Reading Complete!</h2>
+                <h2 className="font-heading text-2xl font-bold text-white">Reading Complete</h2>
                 <p className="text-sm text-muted-foreground mt-1">Great work finishing the session.</p>
               </div>
 
@@ -947,14 +955,10 @@ For all other paragraphs set question to null.`;
                 ].map(({ value, label }) => (
                   <div
                     key={label}
-                    className="rounded-2xl p-3 text-center"
-                    style={{
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                    }}
+                    className="rounded-2xl p-3 text-center v2-card"
                   >
-                    <p className="font-heading font-bold text-white text-xl leading-none">{value}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
+                    <p className="font-heading font-bold text-white text-xl leading-none v2-tnum">{value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{label}</p>
                   </div>
                 ))}
               </div>
@@ -1026,9 +1030,9 @@ For all other paragraphs set question to null.`;
                   className="w-full rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold border transition-all active:scale-98"
                   style={{
                     height: 52,
-                    borderColor: 'rgba(255,255,255,0.12)',
+                    borderColor: 'var(--ink-120)',
                     color: 'var(--muted-foreground)',
-                    background: 'rgba(255,255,255,0.04)',
+                    background: 'var(--ink-040)',
                   }}
                 >
                   <RotateCcw size={16} />

@@ -213,7 +213,7 @@ function ScoreInput({ label, max, value, onChange, color }: ScoreInputProps) {
         onChange={e => onChange(Number(e.target.value))}
         className="w-full h-2 rounded-full appearance-none cursor-pointer"
         style={{
-          background: `linear-gradient(to right, ${color} ${((value - (-max * 0.1)) / (max * 1.1)) * 100}%, rgba(255,255,255,0.1) 0%)`,
+          background: `linear-gradient(to right, ${color} ${((value - (-max * 0.1)) / (max * 1.1)) * 100}%, var(--ink-100) 0%)`,
           WebkitAppearance: 'none',
         }}
       />
@@ -264,7 +264,7 @@ export default function RankPredictorPage() {
         <div className="flex items-center gap-3">
           <Link to="/home"
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={18} className="text-white" strokeWidth={1.75} />
           </Link>
           <div>
@@ -284,7 +284,7 @@ export default function RankPredictorPage() {
           <button
             onClick={() => setExamOpen(v => !v)}
             className="w-full flex items-center justify-between px-4 py-3 rounded-2xl"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-100)' }}>
             <span className="font-bold text-white">{examLabels[examKey]}</span>
             <ChevronDown size={16} className="text-white/40" style={{ transform: examOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }} />
           </button>
@@ -295,13 +295,13 @@ export default function RankPredictorPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 className="absolute top-full left-0 right-0 z-10 mt-1 rounded-2xl overflow-hidden"
-                style={{ background: 'rgba(15,20,45,0.98)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                style={{ background: 'var(--hdr-b-980)', border: '1px solid var(--ink-100)' }}>
                 {Object.entries(examLabels).map(([key, label]) => (
                   <button
                     key={key}
                     onClick={() => { setExamKey(key); setExamOpen(false); }}
                     className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-white/5 transition-colors"
-                    style={{ color: key === examKey ? '#A0AEFF' : 'rgba(255,255,255,0.7)' }}>
+                    style={{ color: key === examKey ? '#A0AEFF' : 'var(--ink-700)' }}>
                     {label}
                   </button>
                 ))}
@@ -312,13 +312,13 @@ export default function RankPredictorPage() {
 
         {/* Score inputs */}
         <div className="p-4 rounded-3xl flex flex-col gap-5"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
           <h3 className="text-white font-bold text-sm">Expected Marks</h3>
           <ScoreInput label="Physics" max={subjectMax} value={physics} onChange={setPhysics} color="#5B6AF5" />
           <ScoreInput label="Chemistry" max={subjectMax} value={chemistry} onChange={setChemistry} color="#10B981" />
           <ScoreInput label={examKey === 'neet' ? 'Biology' : 'Maths'} max={subjectMax} value={maths} onChange={setMaths} color="#F59E0B" />
 
-          <div className="pt-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+          <div className="pt-1 border-t" style={{ borderColor: 'var(--ink-070)' }}>
             <div className="flex items-center justify-between">
               <span className="text-white/50 text-sm">Total Score</span>
               <span className="text-2xl font-black text-white">{totalScore}
@@ -353,7 +353,7 @@ export default function RankPredictorPage() {
             </div>
 
             {/* Detailed percentiles */}
-            <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="p-4 rounded-2xl" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
               <p className="text-xs font-bold text-white/40 mb-3 uppercase tracking-wider">Rank distribution</p>
               <div className="flex flex-col gap-2">
                 {[
@@ -374,7 +374,7 @@ export default function RankPredictorPage() {
             </div>
 
             {/* Bell curve */}
-            <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="p-4 rounded-2xl" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
               <p className="text-xs font-bold text-white/40 mb-3 uppercase tracking-wider">Score distribution</p>
               <div className="flex justify-center">
                 <BellCurve buckets={result.rankBuckets} studentBucket={Math.max(0, Math.min(19, studentBucket))} color={rankColor} />
@@ -384,7 +384,7 @@ export default function RankPredictorPage() {
 
             {/* College predictions */}
             {result.topColleges.length > 0 && (
-              <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="p-4 rounded-2xl" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
                 <p className="text-xs font-bold text-white/40 mb-3 uppercase tracking-wider">Likely colleges at median rank</p>
                 {result.topColleges.map((college, i) => (
                   <div key={i} className="flex items-center gap-2 py-1.5">

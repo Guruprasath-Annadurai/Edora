@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  CalendarDays, ChevronLeft, Sparkles, CheckCircle2, Circle,
-  Clock, AlertTriangle, BookOpen, Zap, Trophy, RefreshCw,
-  ChevronRight, ChevronDown, CalendarCheck, Target, X,
-} from 'lucide-react';
+import {CalendarDays, ChevronLeft, Sparkles, CheckCircle2, Circle, AlertTriangle, Trophy, RefreshCw,
+  ChevronRight, ChevronDown, CalendarCheck, Target, X} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -48,15 +45,13 @@ interface StatusInfo {
 const PRIORITY_STYLE = {
   high:   { color: '#EF4444', bg: 'rgba(239,68,68,0.1)',   label: 'High' },
   medium: { color: '#F59E0B', bg: 'rgba(245,158,11,0.1)',  label: 'Medium' },
-  low:    { color: '#6EE7B7', bg: 'rgba(16,185,129,0.1)',  label: 'Low' },
-};
+  low:    { color: '#6EE7B7', bg: 'rgba(16,185,129,0.1)',  label: 'Low' } };
 
 const CHAPTER_LISTS: Record<string, string[]> = {
   Physics:     ['Physical World & Units','Motion in a Straight Line','Motion in a Plane','Laws of Motion','Work Energy & Power','System of Particles & Rotational Motion','Gravitation','Mechanical Properties of Solids','Mechanical Properties of Fluids','Thermal Properties of Matter','Thermodynamics','Kinetic Theory','Oscillations','Waves','Electric Charges & Fields','Electrostatic Potential & Capacitance','Current Electricity','Moving Charges & Magnetism','Magnetism & Matter','Electromagnetic Induction','Alternating Current','Electromagnetic Waves','Ray Optics','Wave Optics','Dual Nature of Radiation','Atoms','Nuclei','Semiconductor Electronics'],
   Chemistry:   ['Some Basic Concepts','Structure of Atom','Classification of Elements','Chemical Bonding','States of Matter','Thermodynamics','Equilibrium','Redox Reactions','Hydrogen','s-Block Elements','p-Block Elements (11)','Organic Chemistry - Basic','Hydrocarbons','Environmental Chemistry','Solid State','Solutions','Electrochemistry','Chemical Kinetics','Surface Chemistry','Isolation of Elements','p-Block Elements (12)','d & f Block Elements','Coordination Compounds','Haloalkanes & Haloarenes','Alcohols Phenols & Ethers','Aldehydes & Ketones','Carboxylic Acids','Amines','Biomolecules','Polymers','Chemistry in Everyday Life'],
   Mathematics: ['Sets','Relations & Functions','Trigonometric Functions','Mathematical Induction','Complex Numbers','Linear Inequalities','Permutations & Combinations','Binomial Theorem','Sequences & Series','Straight Lines','Conic Sections','3D Geometry (11)','Limits & Derivatives','Mathematical Reasoning','Statistics','Probability (11)','Relations & Functions (12)','Inverse Trig','Matrices','Determinants','Continuity & Differentiability','Applications of Derivatives','Integrals','Applications of Integrals','Differential Equations','Vectors','3D Geometry (12)','Linear Programming','Probability (12)'],
-  Biology:     ['Living World','Biological Classification','Plant Kingdom','Animal Kingdom','Morphology of Flowering Plants','Anatomy of Flowering Plants','Structural Organisation in Animals','Cell — Unit of Life','Biomolecules','Cell Cycle & Cell Division','Transport in Plants','Mineral Nutrition','Photosynthesis','Respiration in Plants','Plant Growth & Development','Digestion & Absorption','Breathing & Exchange of Gases','Body Fluids & Circulation','Excretory Products & Elimination','Locomotion & Movement','Neural Control & Coordination','Chemical Coordination','Reproduction in Organisms','Sexual Reproduction in Flowering Plants','Human Reproduction','Reproductive Health','Heredity & Variation','Molecular Basis of Inheritance','Evolution','Human Health & Disease','Strategies for Food Production','Microbes in Human Welfare','Biotechnology - Principles','Biotechnology — Applications','Organisms & Populations','Ecosystem','Biodiversity','Environmental Issues'],
-};
+  Biology:     ['Living World','Biological Classification','Plant Kingdom','Animal Kingdom','Morphology of Flowering Plants','Anatomy of Flowering Plants','Structural Organisation in Animals','Cell — Unit of Life','Biomolecules','Cell Cycle & Cell Division','Transport in Plants','Mineral Nutrition','Photosynthesis','Respiration in Plants','Plant Growth & Development','Digestion & Absorption','Breathing & Exchange of Gases','Body Fluids & Circulation','Excretory Products & Elimination','Locomotion & Movement','Neural Control & Coordination','Chemical Coordination','Reproduction in Organisms','Sexual Reproduction in Flowering Plants','Human Reproduction','Reproductive Health','Heredity & Variation','Molecular Basis of Inheritance','Evolution','Human Health & Disease','Strategies for Food Production','Microbes in Human Welfare','Biotechnology - Principles','Biotechnology — Applications','Organisms & Populations','Ecosystem','Biodiversity','Environmental Issues'] };
 
 // ── Status bar ────────────────────────────────────────────────────────────────
 function StatusBanner({ info }: { info: StatusInfo }) {
@@ -66,7 +61,7 @@ function StatusBanner({ info }: { info: StatusInfo }) {
         style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
         <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
         <div>
-          <p className="text-sm font-bold text-emerald-300">You're on track 🎯</p>
+          <p className="text-sm font-bold text-emerald-300">You're on track</p>
           <p className="text-xs text-white/50">{info.chapters_done}/{info.chapters_total} chapters done</p>
         </div>
       </div>
@@ -83,6 +78,44 @@ function StatusBanner({ info }: { info: StatusInfo }) {
         {info.recommendation && (
           <p className="text-xs text-white/50 mt-0.5">{info.recommendation}</p>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Today's Focus ─────────────────────────────────────────────────────────────
+function TodayFocus({ plan, onToggle }: { plan: RevisionPlan; onToggle: (id: string) => void }) {
+  const elapsed = Math.ceil((Date.now() - new Date(plan.created_at).getTime()) / 86400000);
+  const weekIdx = Math.max(0, Math.min(Math.floor(elapsed / 7), plan.weeks.length - 1));
+  const week = plan.weeks[weekIdx];
+  if (!week) return null;
+  const pending = week.chapters.filter(c => !c.done).slice(0, 3);
+  if (!pending.length) return (
+    <div className="flex items-center gap-2 px-4 py-3 rounded-2xl mb-4"
+      style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
+      <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+      <p className="text-sm font-semibold text-emerald-300">This week's chapters done</p>
+    </div>
+  );
+  return (
+    <div className="mb-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-white/40 mb-2">Today's Focus</p>
+      <div className="space-y-2">
+        {pending.map(ch => {
+          const p = PRIORITY_STYLE[ch.priority];
+          return (
+            <button key={ch.id} onClick={() => onToggle(ch.id)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left active:scale-98 transition-all"
+              style={{ background: 'rgba(91,106,245,0.07)', border: '1px solid rgba(91,106,245,0.15)' }}>
+              <Circle size={15} className="text-white/25 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{ch.chapter}</p>
+                <p className="text-xs text-white/35">{ch.subject} · ~{ch.hours}h</p>
+              </div>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: p.bg, color: p.color }}>{p.label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -127,19 +160,18 @@ function HeatmapBar({ plan }: { plan: RevisionPlan }) {
                 : c.isPast
                   ? `rgba(91,106,245,${0.15 + c.intensity * 0.85})`
                   : `rgba(255,255,255,${c.intensity * 0.1})`,
-              border: c.isToday ? '1.5px solid #8B9BFA' : '1px solid rgba(255,255,255,0.04)',
-            }}
+              border: c.isToday ? '1.5px solid #8B9BFA' : '1px solid var(--ink-040)' }}
           />
         ))}
       </div>
       <div className="flex items-center justify-between mt-1.5">
-        <p className="text-[9px] text-white/25">Less</p>
+        <p className="text-xs text-white/25">Less</p>
         <div className="flex gap-0.5">
           {[0.15, 0.3, 0.5, 0.7, 0.9].map(o => (
             <div key={o} className="w-3 h-3 rounded-sm" style={{ background: `rgba(91,106,245,${o})` }} />
           ))}
         </div>
-        <p className="text-[9px] text-white/25">More</p>
+        <p className="text-xs text-white/25">More</p>
       </div>
     </div>
   );
@@ -152,7 +184,7 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
   const total = week.chapters.length;
 
   return (
-    <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.07)' }}>
+    <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
       <button className="w-full px-4 py-3.5 flex items-center justify-between" onClick={() => setOpen(o => !o)}>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center"
@@ -164,7 +196,7 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
           </div>
           <div className="text-left">
             <p className="text-sm font-bold text-white">{week.label}</p>
-            <p className="text-[10px] text-white/40 mt-0.5">
+            <p className="text-xs text-white/40 mt-0.5">
               {done}/{total} chapters {week.mock_test ? '· Mock test' : ''}
               {week.buffer_day ? '· Buffer day' : ''}
             </p>
@@ -172,7 +204,7 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
         </div>
         <div className="flex items-center gap-2">
           {/* Mini progress */}
-          <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+          <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-100)' }}>
             <div className="h-full rounded-full transition-all" style={{ width: `${total ? (done/total)*100 : 0}%`, background: '#5B6AF5' }} />
           </div>
           {open ? <ChevronDown size={14} className="text-white/30" /> : <ChevronRight size={14} className="text-white/30" />}
@@ -190,7 +222,7 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
                     key={ch.id}
                     onClick={() => onToggle(ch.id)}
                     className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all active:scale-98"
-                    style={{ background: ch.done ? 'rgba(16,185,129,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${ch.done ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)'}` }}
+                    style={{ background: ch.done ? 'rgba(16,185,129,0.07)' : 'var(--ink-030)', border: `1px solid ${ch.done ? 'rgba(16,185,129,0.15)' : 'var(--ink-050)'}` }}
                   >
                     {ch.done
                       ? <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
@@ -198,9 +230,9 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
                     }
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-semibold leading-tight ${ch.done ? 'text-white/40 line-through' : 'text-white'}`}>{ch.chapter}</p>
-                      <p className="text-[10px] text-white/35 mt-0.5">{ch.subject} · ~{ch.hours}h</p>
+                      <p className="text-xs text-white/35 mt-0.5">{ch.subject} · ~{ch.hours}h</p>
                     </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: p.bg, color: p.color }}>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: p.bg, color: p.color }}>
                       {p.label}
                     </span>
                   </button>
@@ -239,12 +271,12 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
       initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
       transition={{ type: 'spring', stiffness: 340, damping: 36 }}
       className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl px-4 pb-10 pt-5"
-      style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)' }}
+      style={{ background: 'var(--surface-sheet)', border: '1px solid var(--ink-100)' }}
     >
       <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-heading text-lg font-bold text-white">Build Revision Plan</h2>
-        <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
+        <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--ink-080)' }}>
           <X size={16} className="text-white/60" />
         </button>
       </div>
@@ -263,7 +295,7 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
           <AlertTriangle size={14} className="text-amber-400" />
           <div>
             <p className="text-xs text-amber-300">No exam date set</p>
-            <p className="text-[10px] text-white/40">Set your exam date in Profile → Settings for a better plan</p>
+            <p className="text-xs text-white/40">Set your exam date in Profile → Settings for a better plan</p>
           </div>
         </div>
       )}
@@ -273,7 +305,7 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
         {Object.keys(CHAPTER_LISTS).map(s => (
           <button key={s} onClick={() => toggleSubject(s)}
             className="px-3.5 py-1.5 rounded-xl text-sm font-bold transition-all"
-            style={{ background: subjects.includes(s) ? '#5B6AF5' : 'rgba(255,255,255,0.07)', color: subjects.includes(s) ? 'white' : 'rgba(255,255,255,0.4)' }}>
+            style={{ background: subjects.includes(s) ? '#5B6AF5' : 'var(--ink-070)', color: subjects.includes(s) ? 'white' : 'var(--ink-400)' }}>
             {s}
           </button>
         ))}
@@ -284,7 +316,7 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
         {[2, 3, 4, 5, 6, 8].map(h => (
           <button key={h} onClick={() => setDailyHours(h)}
             className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
-            style={{ background: dailyHours === h ? '#5B6AF5' : 'rgba(255,255,255,0.07)', color: dailyHours === h ? 'white' : 'rgba(255,255,255,0.4)' }}>
+            style={{ background: dailyHours === h ? '#5B6AF5' : 'var(--ink-070)', color: dailyHours === h ? 'white' : 'var(--ink-400)' }}>
             {h}h
           </button>
         ))}
@@ -306,7 +338,7 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function RevisionPlannerPage() {
   const { user, profile } = useAuth();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const [plan, setPlan]         = useState<RevisionPlan | null>(null);
   const [loading, setLoading]   = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -405,8 +437,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
         weeks: result.weeks ?? [],
         chapters_count: allChapters.length,
         daily_hours: dailyHours,
-        created_at: new Date().toISOString(),
-      };
+        created_at: new Date().toISOString() };
 
       await supabase.from('revision_plans').upsert({ ...newPlan, user_id: user.id });
       setPlan(newPlan);
@@ -427,9 +458,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
         ...w,
         chapters: w.chapters.map(ch =>
           ch.id === chapterId ? { ...ch, done: !ch.done } : ch
-        ),
-      })),
-    };
+        ) })) };
     setPlan(updated);
     computeStatus(updated);
     await supabase.from('revision_plans').update({ weeks: updated.weeks }).eq('id', plan.id).eq('user_id', user.id);
@@ -442,7 +471,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
       {/* Header */}
       <div className="shrink-0 px-4 pb-3" style={{ paddingTop: 'max(16px,env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-4">
-          <Link aria-label="Go back" to="/learning" className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <Link aria-label="Go back" to="/learning" className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--ink-080)' }}>
             <ChevronLeft size={18} className="text-white" />
           </Link>
           <h1 className="font-heading text-base font-bold text-white">Revision Planner</h1>
@@ -466,7 +495,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
             </div>
             <div className="text-right">
               <p className="text-2xl font-extrabold text-white">{Math.max(0, daysLeft)}</p>
-              <p className="text-[10px] text-white/40">days left</p>
+              <p className="text-xs text-white/40">days left</p>
             </div>
           </div>
         )}
@@ -476,7 +505,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
       <div className="flex-1 overflow-y-auto px-fluid pb-nav">
         {loading ? (
           <div className="space-y-3">
-            {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'rgba(255,255,255,0.05)' }} />)}
+            {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'var(--ink-050)' }} />)}
           </div>
         ) : generating ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -503,6 +532,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
         ) : (
           <>
             {status && <StatusBanner info={status} />}
+            <TodayFocus plan={plan} onToggle={toggleChapter} />
             <HeatmapBar plan={plan} />
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-bold text-white/50 uppercase tracking-wider">Week by Week</p>

@@ -7,11 +7,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, Search, UserPlus, Check, X, Flame, Zap,
-  Bell, Share2, QrCode, Users as UsersIcon, Clock,
+  Bell, Share2, QrCode, Users as UsersIcon, Clock, MailX,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Share } from '@capacitor/share';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
@@ -58,7 +57,7 @@ function Avatar({ url, name, size = 44 }: { url: string | null; name: string; si
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.36, fontWeight: 700, color: '#fff', flexShrink: 0,
+      fontSize: size * 0.36, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0,
     }}>{initials}</div>
   );
 }
@@ -84,6 +83,7 @@ export default function FriendsPage() {
   const [nudging, setNudging]     = useState<string | null>(null);
   const [toast, setToast]         = useState('');
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll(); }, [profile?.id]);
 
   useEffect(() => {
@@ -140,11 +140,14 @@ export default function FriendsPage() {
       .eq('friend_id', profile.id)
       .eq('status', 'pending');
 
-    setRequests((data ?? []).map((r: any) => ({
-      friendship_id: r.id,
-      id: r.profiles.id, full_name: r.profiles.full_name ?? 'Student',
-      avatar_url: r.profiles.avatar_url, username: r.profiles.username,
-    })));
+    setRequests((data ?? []).map((r: { id: string; profiles: { id: string; full_name: string | null; avatar_url: string | null; username: string | null }[] }) => {
+      const p = r.profiles[0];
+      return {
+        friendship_id: r.id,
+        id: p.id, full_name: p.full_name ?? 'Student',
+        avatar_url: p.avatar_url, username: p.username,
+      };
+    }));
   }
 
   const search = useCallback(async (q: string) => {
@@ -197,7 +200,7 @@ export default function FriendsPage() {
   async function acceptRequest(friendshipId: string) {
     await supabase.rpc('accept_friend_request', { p_friendship_id: friendshipId });
     setRequests(prev => prev.filter(r => r.friendship_id !== friendshipId));
-    setToast('Friend added! 🎉');
+    setToast('Friend added');
     loadFriends();
   }
 
@@ -209,8 +212,8 @@ export default function FriendsPage() {
   async function sendNudge(toId: string, name: string) {
     setNudging(toId);
     try {
-      await supabase.rpc('send_nudge', { p_to_user: toId, p_message: `Your friend nudged you to study! 🔥` });
-      setToast(`Nudged ${name}! 🔥`);
+      await supabase.rpc('send_nudge', { p_to_user: toId, p_message: `Your friend nudged you to study!` });
+      setToast(`Nudged ${name}`);
       track('friend_nudge_sent', { to: toId });
     } catch {
       setToast('Already nudged today');
@@ -224,7 +227,7 @@ export default function FriendsPage() {
     try {
       await Share.share({
         title: 'Study with me on Edora!',
-        text: 'Join me on Edora — AI-powered exam prep for JEE/NEET/boards. Let\'s keep each other accountable! 🔥',
+        text: 'Join me on Edora — AI-powered exam prep for JEE/NEET/boards. Let\'s keep each other accountable.',
         url: link,
         dialogTitle: 'Invite a friend',
       });
@@ -238,7 +241,7 @@ export default function FriendsPage() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <button aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <button aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'var(--ink-060)' }}>
           <ChevronLeft className="w-5 h-5 text-white" />
         </button>
         <h1 className="font-heading text-lg font-bold text-white flex-1">Friends</h1>
@@ -257,8 +260,8 @@ export default function FriendsPage() {
           <button key={t.id} onClick={() => setTab(t.id)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-colors"
             style={tab === t.id
-              ? { background: cfg.gradient, color: '#fff' }
-              : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }
+              ? { background: cfg.gradient, color: 'var(--ink-950)' }
+              : { background: 'var(--ink-050)', color: 'var(--ink-500)' }
             }>
             <t.icon className="w-3.5 h-3.5" />
             {t.label}
@@ -288,7 +291,7 @@ export default function FriendsPage() {
                 return (
                   <motion.div key={f.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     className="flex items-center gap-3 p-3 rounded-2xl"
-                    style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}>
                     <Avatar url={f.avatar_url} name={f.full_name} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white truncate">{f.full_name}</p>
@@ -312,7 +315,7 @@ export default function FriendsPage() {
                         disabled={nudging === f.id}
                         className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 flex-shrink-0"
                         style={{ background: 'rgba(251,146,60,0.15)', color: '#FB923C' }}>
-                        🔥 Nudge
+                        <Flame size={12} strokeWidth={1.8} /> Nudge
                       </button>
                     )}
                   </motion.div>
@@ -326,7 +329,7 @@ export default function FriendsPage() {
         {tab === 'requests' && (
           requests.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-              <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl" style={{ background: 'rgba(91,106,245,0.12)' }}>📭</div>
+              <div className="w-16 h-16 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)' }}><MailX size={26} style={{ color: '#A0AEFF' }} strokeWidth={1.6} /></div>
               <p className="text-white/60 text-sm">No pending requests</p>
             </div>
           ) : (
@@ -334,7 +337,7 @@ export default function FriendsPage() {
               {requests.map(r => (
                 <motion.div key={r.friendship_id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="flex items-center gap-3 p-3 rounded-2xl"
-                  style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}>
                   <Avatar url={r.avatar_url} name={r.full_name} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate">{r.full_name}</p>
@@ -357,7 +360,7 @@ export default function FriendsPage() {
         {/* ── Add friend / search ──────────────────────────────────────────── */}
         {tab === 'add' && (
           <div className="pt-1">
-            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl mb-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl mb-4" style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-070)' }}>
               <Search className="w-4.5 h-4.5 text-white/40 flex-shrink-0" />
               <input
                 value={query}
@@ -378,7 +381,7 @@ export default function FriendsPage() {
             <div className="flex flex-col gap-2.5">
               {results.map(r => (
                 <div key={r.id} className="flex items-center gap-3 p-3 rounded-2xl"
-                  style={{ background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}>
                   <Avatar url={r.avatar_url} name={r.full_name} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate">{r.full_name}</p>
@@ -387,12 +390,12 @@ export default function FriendsPage() {
                   {r.rel === 'none' && (
                     <button onClick={() => sendRequest(r.id)}
                       className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 flex-shrink-0"
-                      style={{ background: cfg.gradient, color: '#fff' }}>
+                      style={{ background: cfg.gradient, color: 'var(--ink-950)' }}>
                       <UserPlus className="w-3.5 h-3.5" /> Add
                     </button>
                   )}
                   {r.rel === 'pending_sent' && (
-                    <span className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>Pending</span>
+                    <span className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'var(--ink-060)', color: 'var(--ink-500)' }}>Pending</span>
                   )}
                   {r.rel === 'pending_received' && (
                     <button onClick={() => setTab('requests')}
@@ -413,7 +416,7 @@ export default function FriendsPage() {
         {toast && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
             className="fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-white z-50"
-            style={{ background: 'rgba(20,25,50,0.95)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ background: 'var(--surface-scrim)', border: '1px solid var(--ink-100)' }}>
             {toast}
           </motion.div>
         )}

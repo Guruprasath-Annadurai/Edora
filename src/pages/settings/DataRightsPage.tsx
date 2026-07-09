@@ -6,11 +6,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronLeft, Shield, Download, Trash2, Edit3,
-  CheckCircle2, Loader2, AlertTriangle, Mail, Clock,
-  FileText, Lock, User,
-} from 'lucide-react';
+import {ChevronLeft, Shield, Download, Trash2, Edit3,
+  CheckCircle2, Loader2, AlertTriangle, Mail, Lock} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,8 +34,7 @@ export default function DataRightsPage() {
     setExportStatus('loading');
     try {
       const { data, error } = await supabase.functions.invoke('export-user-data', {
-        body: { user_id: user.id },
-      });
+        body: { user_id: user.id } });
       if (error) throw error;
       // data contains a signed URL — open it
       if (data?.url) {
@@ -60,8 +56,7 @@ export default function DataRightsPage() {
     setDeleteStatus('loading');
     try {
       await supabase.functions.invoke('delete-account', {
-        body: { user_id: user.id },
-      });
+        body: { user_id: user.id } });
       setDeleteStatus('done');
       track('account_deletion_requested');
       await Toast.show({ text: 'Account deletion scheduled. You will receive a confirmation email.', duration: 'long' });
@@ -75,9 +70,9 @@ export default function DataRightsPage() {
     <div className="h-full flex flex-col" style={{ background: 'transparent' }}>
       {/* Header */}
       <div className="shrink-0 px-4 py-3 flex items-center gap-3"
-        style={{ background: 'rgba(8,6,20,0.82)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(64px)' }}>
+        style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-060)', backdropFilter: 'blur(64px)' }}>
         <Link to="/account" className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-080)' }}>
           <ChevronLeft size={18} className="text-white" />
         </Link>
         <div className="flex-1">
@@ -161,18 +156,18 @@ export default function DataRightsPage() {
                     <div className="rounded-xl px-3 py-2 flex items-start gap-2"
                       style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                       <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
-                      <p className="text-[11px] text-red-300/80">
+                      <p className="text-xs text-red-300/80">
                         Type <strong>DELETE</strong> to confirm. All your data — progress, streaks, certificates — will be permanently erased.
                       </p>
                     </div>
                     <input value={deleteInput} onChange={e => setDeleteInput(e.target.value)}
                       placeholder="Type DELETE to confirm"
                       className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none"
-                      style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(239,68,68,0.3)' }} />
+                      style={{ background: 'var(--ink-070)', border: '1px solid rgba(239,68,68,0.3)' }} />
                     <div className="flex gap-2">
                       <button onClick={() => { setConfirmDelete(false); setDeleteInput(''); }}
                         className="flex-1 py-3 rounded-xl text-sm font-semibold text-white/50"
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}>
                         Cancel
                       </button>
                       <motion.button whileTap={{ scale: 0.97 }}
@@ -180,10 +175,9 @@ export default function DataRightsPage() {
                         disabled={deleteInput !== 'DELETE' || deleteStatus === 'loading'}
                         className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-1"
                         style={{
-                          background: deleteInput === 'DELETE' ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.04)',
-                          border: `1px solid ${deleteInput === 'DELETE' ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.07)'}`,
-                          color: deleteInput === 'DELETE' ? '#F87171' : 'rgba(255,255,255,0.2)',
-                        }}>
+                          background: deleteInput === 'DELETE' ? 'rgba(239,68,68,0.2)' : 'var(--ink-040)',
+                          border: `1px solid ${deleteInput === 'DELETE' ? 'rgba(239,68,68,0.4)' : 'var(--ink-070)'}`,
+                          color: deleteInput === 'DELETE' ? '#F87171' : 'var(--ink-200)' }}>
                         {deleteStatus === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                         {deleteStatus === 'loading' ? 'Deleting…' : deleteStatus === 'done' ? 'Requested' : 'Delete'}
                       </motion.button>
@@ -211,7 +205,7 @@ export default function DataRightsPage() {
 
         {/* Grievance / DPO */}
         <div className="rounded-2xl p-4"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          style={{ background: 'var(--ink-030)', border: '1px solid var(--ink-070)' }}>
           <p className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-3">Grievance Redressal</p>
           <p className="text-xs text-white/50 leading-relaxed mb-3">
             If you believe your data rights under the DPDP Act 2023 have been violated, you may file a complaint with the <strong className="text-white/70">Data Protection Board of India</strong> after exhausting our internal grievance mechanism.
@@ -224,7 +218,7 @@ export default function DataRightsPage() {
           </div>
         </div>
 
-        <p className="text-center text-[10px] text-white/20 pb-4">
+        <p className="text-center text-xs text-white/20 pb-4">
           Edora is committed to the Digital Personal Data Protection Act 2023.
           Policy version: {profile?.dpdp_consent_version ?? 'v2026.06'}
         </p>
@@ -246,7 +240,7 @@ function RightCard({ icon: Icon, title, desc, color, children }: {
   icon: React.ElementType; title: string; desc: string; color: string; children?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+    <div className="rounded-2xl p-4" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
