@@ -203,14 +203,14 @@ export default function ToolsPage() {
           <Sparkles size={20} className="text-white" />
         </div>
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Power Features</p>
+          <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground">Power Features</p>
           <h1 className="font-heading text-2xl font-extrabold text-foreground leading-tight">Study Tools</h1>
         </div>
       </div>
 
       {/* ── Analytics & Reporting ─────────────────────────────── */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
           Analytics & Reporting
         </p>
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-2.5">
@@ -241,7 +241,7 @@ export default function ToolsPage() {
                     <Icon size={16} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <p className="font-semibold text-foreground text-xs leading-tight">{title}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </Link>
             </motion.div>
@@ -259,7 +259,7 @@ export default function ToolsPage() {
                     <Icon size={16} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <p className="font-semibold text-foreground text-xs leading-tight">{title}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </Link>
             </motion.div>
@@ -269,7 +269,7 @@ export default function ToolsPage() {
 
       {/* ── Exam Prep ─────────────────────────────────────────── */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
           Exam Prep
         </p>
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-2.5">
@@ -283,7 +283,7 @@ export default function ToolsPage() {
                 <p className="font-semibold text-foreground text-sm leading-tight">Mock Full Test</p>
                 <p className="text-xs text-muted-foreground leading-tight mt-0.5">3hr JEE / 3.5hr NEET timed simulation · auto-score + percentile</p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(96,165,250,0.2)', color: '#60A5FA' }}>NEW</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(96,165,250,0.2)', color: '#60A5FA' }}>NEW</span>
             </div>
           </Link>
         </motion.div>
@@ -291,6 +291,7 @@ export default function ToolsPage() {
           {[
             { title: 'PYQ Bank', desc: '10yr JEE·NEET·CBSE archive', icon: History, to: '/pyq-bank', color: '#FB923C', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.25)' },
             { title: 'AI Quiz Bank', desc: 'Infinite adaptive questions', icon: Brain, to: '/ai-quiz', color: '#A78BFA', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)' },
+            { title: 'Mains & Long-Answer', desc: 'UPSC Essay/GS · CBSE Boards · AI feedback', icon: PenLine, to: '/upsc-mains', color: '#818CF8', bg: 'rgba(129,140,248,0.08)', border: 'rgba(129,140,248,0.25)' },
           ].map(({ title, desc, icon: Icon, to, color, bg, border }, i) => (
             <motion.div key={to} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Link to={to}>
@@ -299,7 +300,7 @@ export default function ToolsPage() {
                     <Icon size={16} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <p className="font-semibold text-foreground text-xs leading-tight">{title}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </Link>
             </motion.div>
@@ -317,7 +318,7 @@ export default function ToolsPage() {
                     <Icon size={16} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <p className="font-semibold text-foreground text-xs leading-tight">{title}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </Link>
             </motion.div>
@@ -327,7 +328,7 @@ export default function ToolsPage() {
 
       {/* ── Competitive & Social ──────────────────────────────── */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
           Competitive & Social
         </p>
         {/* Leaderboard — wide featured card */}
@@ -340,9 +341,9 @@ export default function ToolsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-white text-sm leading-tight">Leaderboard</p>
-                <p className="text-xs leading-tight mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Global · State · City · School · Friends rankings</p>
+                <p className="text-xs leading-tight mt-0.5" style={{ color: 'var(--ink-450)' }}>Global · State · City · School · Friends rankings</p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(96,165,250,0.2)', color: '#60A5FA' }}>LIVE</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(96,165,250,0.2)', color: '#60A5FA' }}>LIVE</span>
             </div>
           </Link>
         </motion.div>
@@ -363,7 +364,7 @@ export default function ToolsPage() {
                     <Icon size={16} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <p className="font-semibold text-foreground text-xs leading-tight">{title}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </Link>
             </motion.div>
@@ -373,7 +374,7 @@ export default function ToolsPage() {
 
       {/* ── Gamified & Social ──────────────────────────────────── */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
           Gamified & Social
         </p>
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-2.5">
@@ -385,9 +386,9 @@ export default function ToolsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-white text-sm leading-tight">Daily Boss Challenge</p>
-                <p className="text-xs leading-tight mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Hardest problem of the day · 2× XP · timed</p>
+                <p className="text-xs leading-tight mt-0.5" style={{ color: 'var(--ink-450)' }}>Hardest problem of the day · 2× XP · timed</p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.2)', color: '#FBBF24' }}>2× XP</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.2)', color: '#FBBF24' }}>2× XP</span>
             </div>
           </Link>
         </motion.div>
@@ -404,7 +405,7 @@ export default function ToolsPage() {
                     <Icon size={16} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <p className="font-semibold text-foreground text-xs leading-tight">{title}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </Link>
             </motion.div>
@@ -423,7 +424,7 @@ export default function ToolsPage() {
                     <Icon size={16} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <p className="font-semibold text-foreground text-xs leading-tight">{title}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </Link>
             </motion.div>
@@ -433,7 +434,7 @@ export default function ToolsPage() {
 
       {/* ── Voice & Multimodal ──────────────────────────────── */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
           Voice & Multimodal
         </p>
         {/* Featured large */}
@@ -466,7 +467,7 @@ export default function ToolsPage() {
                     <Icon size={16} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <p className="font-semibold text-foreground text-xs leading-tight">{title}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </Link>
             </motion.div>
@@ -476,7 +477,7 @@ export default function ToolsPage() {
 
       {/* ── Novo Tutor Intelligence ─────────────────────────── */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
           Novo AI Tutor
         </p>
         <div className="flex flex-col gap-2.5">
@@ -504,7 +505,7 @@ export default function ToolsPage() {
 
       {/* ── Personalised Learning Paths ────────────────────────── */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
           Learning Paths
         </p>
         {/* Featured large card */}
@@ -537,7 +538,7 @@ export default function ToolsPage() {
                     <Icon size={16} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <p className="font-semibold text-foreground text-xs leading-tight">{title}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </Link>
             </motion.div>
