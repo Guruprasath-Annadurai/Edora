@@ -7,7 +7,7 @@ android {
         applicationId "com.edora.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 40
+        versionCode 41
         versionName "3.8.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
