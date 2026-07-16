@@ -7,7 +7,6 @@
 -- Explicitly NOT included: index pairs that differ in sort order (DESC) or
 -- carry a partial WHERE clause (e.g. novo_proactive_messages' unread-only
 -- index) — those serve distinct query patterns despite matching column lists.
-
 drop index if exists public.idx_exam_predictions_user;
 drop index if exists public.idx_institutions_join_code;
 drop index if exists public.knowledge_graph_slug_idx;

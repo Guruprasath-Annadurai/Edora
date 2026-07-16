@@ -1,3 +1,4 @@
+
 -- cleanup_edge_function_errors() has no internal auth check and is meant to run
 -- only via the monitoring-check cron job (service_role). It was left grantable to
 -- anon/authenticated when added in add_observability_infra, letting any
