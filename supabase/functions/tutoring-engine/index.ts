@@ -25,19 +25,69 @@ import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 // ── CORS ─────────────────────────────────────────────────────────────────────
 
-// ── Gemini ───────────────────────────────────────────────────────────────────
+// ── AI provider chain ─────────────────────────────────────────────────────────
+// Primary: Groq (generous free-tier TPM, fast). Falls back to a smaller Groq
+// model on rate-limit, then to Gemini as a last resort if both Groq models are
+// exhausted. Mirrors the resilience pattern already proven in gemini-chat —
+// function names kept as callGemini/callGeminiJSON so none of this file's
+// call sites need to change.
+const GROQ_KEY            = Deno.env.get('GROQ_API_KEY') ?? '';
+const GROQ_URL             = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL_PRIMARY   = 'llama-3.3-70b-versatile';
+const GROQ_MODEL_FALLBACK  = 'llama-3.1-8b-instant';
+
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
 const GEMINI_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
 
 interface GeminiTurn { role: 'user' | 'model'; parts: Array<{ text: string }> }
 
-async function callGemini(
+function toGroqMessages(systemPrompt: string, history: GeminiTurn[], userMessage: string) {
+  return [
+    { role: 'system' as const, content: systemPrompt },
+    ...history.map(h => ({
+      role:    h.role === 'model' ? 'assistant' as const : 'user' as const,
+      content: h.parts.map(p => p.text).join('\n'),
+    })),
+    { role: 'user' as const, content: userMessage },
+  ];
+}
+
+async function callGroq(
+  model: string,
   systemPrompt: string,
   history: GeminiTurn[],
   userMessage: string,
-  jsonMode = false,
-  temperature = 0.7,
+  jsonMode: boolean,
+  temperature: number,
+): Promise<string> {
+  const res = await fetch(GROQ_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_KEY}` },
+    body: JSON.stringify({
+      model,
+      messages:    toGroqMessages(systemPrompt, history, userMessage),
+      temperature,
+      max_tokens:  jsonMode ? 1024 : 2048,
+      ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Groq ${model} ${res.status}: ${err.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? '';
+}
+
+async function callGeminiRaw(
+  systemPrompt: string,
+  history: GeminiTurn[],
+  userMessage: string,
+  jsonMode: boolean,
+  temperature: number,
 ): Promise<string> {
   const body: Record<string, unknown> = {
     system_instruction: { parts: [{ text: systemPrompt }] },
@@ -62,6 +112,28 @@ async function callGemini(
 
   const data = await res.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+}
+
+async function callGemini(
+  systemPrompt: string,
+  history: GeminiTurn[],
+  userMessage: string,
+  jsonMode = false,
+  temperature = 0.7,
+): Promise<string> {
+  if (GROQ_KEY) {
+    try {
+      return await callGroq(GROQ_MODEL_PRIMARY, systemPrompt, history, userMessage, jsonMode, temperature);
+    } catch (primaryErr) {
+      console.warn('[tutoring-engine] Groq primary failed, trying fallback model:', (primaryErr as Error).message);
+      try {
+        return await callGroq(GROQ_MODEL_FALLBACK, systemPrompt, history, userMessage, jsonMode, temperature);
+      } catch (fallbackErr) {
+        console.warn('[tutoring-engine] Groq fallback failed, falling back to Gemini:', (fallbackErr as Error).message);
+      }
+    }
+  }
+  return callGeminiRaw(systemPrompt, history, userMessage, jsonMode, temperature);
 }
 
 async function callGeminiJSON<T>(

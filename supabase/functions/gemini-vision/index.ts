@@ -25,6 +25,27 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
 const VISION_MODEL = 'gemini-1.5-flash';
 const GEMINI_BASE  = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent`;
 
+// Gemini's free tier returns 429 under burst load well before any per-user
+// limit here is hit. Retrying with backoff smooths over those transient
+// rate-limit windows without touching the model or prompts — same answers,
+// just resilient to momentary contention at higher concurrent user counts.
+async function fetchGeminiWithRetry(body: unknown, maxRetries = 2): Promise<Response> {
+  let lastRes: Response | undefined;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(`${GEMINI_BASE}?key=${GEMINI_API_KEY}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+    });
+    if (res.ok || (res.status !== 429 && res.status !== 503)) return res;
+    lastRes = res;
+    if (attempt < maxRetries) {
+      await new Promise(r => setTimeout(r, 400 * Math.pow(3, attempt)));
+    }
+  }
+  return lastRes!;
+}
+
 // ── Per-user rate limit: 20 vision calls / hour ───────────────────────────────
 async function checkRateLimit(
   serviceDb: ReturnType<typeof createClient>,
@@ -64,11 +85,7 @@ async function callGeminiVision(
     generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
   };
 
-  const res = await fetch(`${GEMINI_BASE}?key=${GEMINI_API_KEY}`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body),
-  });
+  const res = await fetchGeminiWithRetry(body);
 
   if (!res.ok) {
     const err = await res.text();
@@ -101,11 +118,7 @@ async function callGeminiVisionJSON<T>(
     },
   };
 
-  const res = await fetch(`${GEMINI_BASE}?key=${GEMINI_API_KEY}`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body),
-  });
+  const res = await fetchGeminiWithRetry(body);
 
   if (!res.ok) throw new Error(`Gemini Vision JSON error ${res.status}`);
   const data = await res.json();
