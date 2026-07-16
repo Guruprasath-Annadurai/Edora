@@ -54,6 +54,11 @@ interface CronHealthRow {
   last_summary: Record<string, unknown> | null;
 }
 
+interface ObservabilityFnRow {
+  function_name: string; count_1h: number; count_24h: number; last_error: string; last_seen: string;
+}
+interface ConnectionStats { current_connections: number; max_connections: number; active_queries: number }
+
 async function callFn(fn: string, action: string, body: Record<string, unknown> = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   return supabase.functions.invoke(fn, {
@@ -89,7 +94,7 @@ async function callAdminConsole(action: string, body: Record<string, unknown> = 
 
 export default function AdminConsolePage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<'events' | 'audit' | 'admins' | 'quality' | 'anomalies' | 'pyqcontent' | 'mainsqa' | 'cronhealth'>('events');
+  const [tab, setTab] = useState<'events' | 'audit' | 'admins' | 'quality' | 'anomalies' | 'pyqcontent' | 'mainsqa' | 'cronhealth' | 'observability'>('events');
   const [forbidden, setForbidden] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -125,6 +130,10 @@ export default function AdminConsolePage() {
 
   const [cronRows, setCronRows] = useState<CronHealthRow[]>([]);
   const [cronLoading, setCronLoading] = useState(false);
+
+  const [obsFunctions, setObsFunctions] = useState<ObservabilityFnRow[] | null>(null);
+  const [obsConnStats, setObsConnStats] = useState<ConnectionStats | null>(null);
+  const [obsLoading, setObsLoading] = useState(false);
 
   const loadQualityFlags = useCallback(async () => {
     setQFlagsLoading(true);
@@ -236,6 +245,16 @@ export default function AdminConsolePage() {
     setCronLoading(false);
   }, []);
 
+  const loadObservability = useCallback(async () => {
+    setObsLoading(true);
+    const { data, error } = await callAdminConsole('get_observability');
+    if (!error && !data?.error) {
+      setObsFunctions(data.functions ?? []);
+      setObsConnStats(data.connection_stats ?? null);
+    }
+    setObsLoading(false);
+  }, []);
+
   const loadEvents = useCallback(async () => {
     const { data, error } = await callAdminConsole('list_live_events');
     if (error || data?.error) { setForbidden(true); return; }
@@ -294,6 +313,7 @@ export default function AdminConsolePage() {
     if (tab === 'mainsqa' && msSubs.length === 0 && !msLoading) loadMainsSubs();
     if (tab === 'mainsqa' && bandStats === null) loadBandStats();
     if (tab === 'cronhealth' && cronRows.length === 0 && !cronLoading) loadCronHealth();
+    if (tab === 'observability' && obsFunctions === null && !obsLoading) loadObservability();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -329,13 +349,13 @@ export default function AdminConsolePage() {
       </div>
 
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto">
-        {(['events', 'audit', 'admins', 'quality', 'anomalies', 'pyqcontent', 'mainsqa', 'cronhealth'] as const).map(t => (
+        {(['events', 'audit', 'admins', 'quality', 'anomalies', 'pyqcontent', 'mainsqa', 'cronhealth', 'observability'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="shrink-0 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
             style={t === tab
               ? { background: 'var(--v2-primary-tint-2)', color: 'var(--v2-primary)', border: '1px solid var(--v2-primary)' }
               : { background: 'var(--v2-card)', color: 'var(--v2-text-4)', border: '1px solid var(--v2-border)' }}>
-            {t === 'events' ? 'Live Events' : t === 'audit' ? 'Audit Log' : t === 'admins' ? 'Admins' : t === 'quality' ? 'Question QA' : t === 'anomalies' ? 'Anomalies' : t === 'pyqcontent' ? 'Content QA' : t === 'mainsqa' ? 'Mains QA' : 'Cron Health'}
+            {t === 'events' ? 'Live Events' : t === 'audit' ? 'Audit Log' : t === 'admins' ? 'Admins' : t === 'quality' ? 'Question QA' : t === 'anomalies' ? 'Anomalies' : t === 'pyqcontent' ? 'Content QA' : t === 'mainsqa' ? 'Mains QA' : t === 'cronhealth' ? 'Cron Health' : 'Observability'}
           </button>
         ))}
       </div>
@@ -744,6 +764,54 @@ export default function AdminConsolePage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {tab === 'observability' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-white/40">Edge function error rates (last 24h) and live DB connection load.</p>
+              <button onClick={loadObservability} disabled={obsLoading}
+                className="shrink-0 ml-2 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--ink-060)' }}>
+                <RefreshCw size={14} className={`text-white/60 ${obsLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+
+            {obsLoading ? (
+              <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-white/40 animate-spin" /></div>
+            ) : (
+              <>
+                {obsConnStats && (
+                  <div className="rounded-2xl p-3 flex items-center justify-between" style={{ background: 'var(--ink-040)' }}>
+                    <span className="text-sm font-semibold text-white">DB connections</span>
+                    <span className="text-sm font-bold" style={{
+                      color: obsConnStats.current_connections / obsConnStats.max_connections >= 0.8 ? '#F87171' : '#4ADE80',
+                    }}>
+                      {obsConnStats.current_connections}/{obsConnStats.max_connections}
+                      {' '}({Math.round((obsConnStats.current_connections / obsConnStats.max_connections) * 100)}%)
+                    </span>
+                  </div>
+                )}
+
+                {!obsFunctions || obsFunctions.length === 0 ? (
+                  <p className="text-white/40 text-sm text-center py-10">No edge function errors in the last 24h. 🎉</p>
+                ) : obsFunctions.map(r => (
+                  <div key={r.function_name} className="rounded-2xl p-3" style={{ background: 'var(--ink-040)' }}>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <span className="text-sm font-semibold text-white">{r.function_name}</span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{
+                        background: r.count_1h >= 10 ? '#F8717122' : r.count_1h > 0 ? '#FBBF2422' : '#4ADE8022',
+                        color:      r.count_1h >= 10 ? '#F87171'   : r.count_1h > 0 ? '#FBBF24'   : '#4ADE80',
+                      }}>
+                        {r.count_1h}/1h · {r.count_24h}/24h
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-white/40">last seen {new Date(r.last_seen).toLocaleString()}</p>
+                    <p className="text-[11px] text-white/30 mt-1 truncate">{r.last_error}</p>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>

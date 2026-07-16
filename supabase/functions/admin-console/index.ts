@@ -197,12 +197,43 @@ serve(withSentry('admin-console', async (req) => {
     });
   }
 
+  // ── get_observability — error rates per edge function + DB connection load ──
+  if (action === 'get_observability') {
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const since1h  = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    const { data: errors24h } = await serviceDb
+      .from('edge_function_errors')
+      .select('function_name, error_message, created_at')
+      .gte('created_at', since24h)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+
+    const byFunction: Record<string, { count_1h: number; count_24h: number; last_error: string; last_seen: string }> = {};
+    for (const row of (errors24h ?? []) as { function_name: string; error_message: string; created_at: string }[]) {
+      const bucket = byFunction[row.function_name] ??= { count_1h: 0, count_24h: 0, last_error: row.error_message, last_seen: row.created_at };
+      bucket.count_24h += 1;
+      if (row.created_at >= since1h) bucket.count_1h += 1;
+    }
+
+    const { data: connStats } = await serviceDb.rpc('get_connection_stats');
+
+    return json({
+      functions: Object.entries(byFunction)
+        .map(([function_name, stats]) => ({ function_name, ...stats }))
+        .sort((a, b) => b.count_24h - a.count_24h),
+      total_errors_24h: errors24h?.length ?? 0,
+      connection_stats: connStats ?? null,
+      checked_at: new Date().toISOString(),
+    });
+  }
+
   // Note: role granting/revoking (grant_role / revoke_role) is intentionally
   // NOT implemented here. Elevating a user to admin/moderator is a real
   // privilege-escalation action — do it via a direct SQL migration reviewed
   // by a human, not a self-service edge-function button.
 
   return json({
-    error: 'Unknown action. Use: create_live_event | list_live_events | cancel_live_event | list_audit_log | list_audit_actions | list_admins',
+    error: 'Unknown action. Use: create_live_event | list_live_events | cancel_live_event | list_audit_log | list_audit_actions | list_admins | get_observability',
   }, 400);
 }));
