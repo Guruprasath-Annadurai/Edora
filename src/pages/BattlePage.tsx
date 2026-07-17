@@ -73,9 +73,9 @@ function getEloTier(elo: number): EloTier {
   return [...ELO_TIERS].reverse().find(t => elo >= t.min) ?? ELO_TIERS[0];
 }
 
-function calcEloDelta(myElo: number, oppElo: number, won: boolean, K = 32): number {
+function calcEloDelta(myElo: number, oppElo: number, actualScore: number, K = 32): number {
   const expected = 1 / (1 + Math.pow(10, (oppElo - myElo) / 400));
-  return Math.round(K * ((won ? 1 : 0) - expected));
+  return Math.round(K * (actualScore - expected));
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
@@ -424,8 +424,12 @@ export default function BattlePage() {
     setPhase('result');
     if (!battle || !user) return;
 
-    const iWon = finalScore > oppScore || (finalScore === oppScore);
-    track('battle_completed', { subject, score: finalScore, total: qs.length, is_bot: isBotBattleRef.current });
+    // A tie is not a win — treating finalScore === oppScore as iWon meant both
+    // players' independent clients each believed they'd won on a draw.
+    const isTie = finalScore === oppScore;
+    const iWon = finalScore > oppScore;
+    const actualScore = isTie ? 0.5 : (iWon ? 1 : 0);
+    track('battle_completed', { subject, score: finalScore, total: qs.length, is_bot: isBotBattleRef.current, is_tie: isTie });
 
     if (iWon) {
       Haptics.notification({ type: NotificationType.Success }).catch(() => {});
@@ -433,7 +437,7 @@ export default function BattlePage() {
 
     // ── ELO update ────────────────────────────────────────────────────────────
     if (!isBotBattleRef.current) {
-      const delta = calcEloDelta(myElo, oppElo, iWon);
+      const delta = calcEloDelta(myElo, oppElo, actualScore);
       const newElo = Math.max(100, myElo + delta);
       setEloDelta(delta);
       setMyElo(newElo);
@@ -443,7 +447,7 @@ export default function BattlePage() {
         .then();
     } else {
       // Vs bot: small fixed delta
-      const botDelta = iWon ? 8 : -4;
+      const botDelta = isTie ? 2 : (iWon ? 8 : -4);
       setEloDelta(botDelta);
       setMyElo(e => Math.max(100, e + botDelta));
       supabase.from('profiles')
@@ -455,7 +459,14 @@ export default function BattlePage() {
     if (isBotBattleRef.current) {
       if (iWon) {
         await supabase.rpc('increment_xp', { user_id: user.id, amount: 75 });
+      } else if (isTie) {
+        await supabase.rpc('increment_xp', { user_id: user.id, amount: 25 });
       }
+    } else if (isTie) {
+      // record_battle_tie and record_battle_result are both idempotent
+      // server-side (guarded on battles.status), since both players'
+      // clients call this independently for the same battle_id.
+      await supabase.rpc('record_battle_tie', { p_battle_id: battle.id });
     } else {
       const winnerId = iWon ? user.id : (opponent?.id ?? user.id);
       const loserId  = iWon ? (opponent?.id ?? user.id) : user.id;
@@ -466,7 +477,7 @@ export default function BattlePage() {
       });
     }
 
-    setBattle(prev => prev ? { ...prev, winner_id: iWon ? user.id : (opponent?.id ?? ''), status: 'completed' } : prev);
+    setBattle(prev => prev ? { ...prev, winner_id: isTie ? null : (iWon ? user.id : (opponent?.id ?? '')), status: 'completed' } : prev);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -830,25 +841,28 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
   eloDelta: number | null;
   onRematch: () => void; onHome: () => void;
 }) {
+  const isTie = myScore === oppScore;
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: '0 0 80px' }}>
       {/* Banner */}
       <div style={{
         padding: '40px 20px',
-        background: won
+        background: isTie
+          ? 'linear-gradient(135deg,rgba(148,163,184,0.2),rgba(100,116,139,0.1))'
+          : won
           ? 'linear-gradient(135deg,rgba(16,185,129,0.2),rgba(5,150,105,0.1))'
           : 'linear-gradient(135deg,rgba(239,68,68,0.2),rgba(185,28,28,0.1))',
         textAlign: 'center',
         borderBottom: '1px solid var(--color-border)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-          <Trophy size={56} color={won ? '#F59E0B' : 'var(--v2-text-4)'} strokeWidth={1.5} />
+          <Trophy size={56} color={isTie ? 'var(--v2-text-4)' : won ? '#F59E0B' : 'var(--v2-text-4)'} strokeWidth={1.5} />
         </div>
-        <div style={{ fontWeight: 900, fontSize: 28, color: won ? '#10B981' : '#EF4444', marginBottom: 4 }}>
-          {won ? 'Victory!' : 'Defeated'}
+        <div style={{ fontWeight: 900, fontSize: 28, color: isTie ? 'var(--color-text)' : won ? '#10B981' : '#EF4444', marginBottom: 4 }}>
+          {isTie ? 'Draw!' : won ? 'Victory!' : 'Defeated'}
         </div>
         <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
-          {won ? (isBotBattle ? '+75 XP earned!' : '+150 XP earned!') : 'Better luck next time'}
+          {isTie ? (isBotBattle ? '+25 XP earned!' : '+40 XP earned!') : won ? (isBotBattle ? '+75 XP earned!' : '+150 XP earned!') : 'Better luck next time'}
         </div>
       </div>
 
