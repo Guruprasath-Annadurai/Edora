@@ -15,6 +15,18 @@ function daysAgo(n: number): string {
   return new Date(Date.now() - n * 86400000).toISOString();
 }
 
+// Must mirror src/lib/trial.ts exactly. The frontend treats free-trial users
+// as Pro-eligible and calls get_stats for them, but this check previously
+// only looked at profile.is_pro — every trial user hit a 403 here that the
+// frontend didn't expect, surfacing as a generic "Something went wrong"
+// instead of the analytics dashboard.
+const TRIAL_DAYS = 30;
+function isInFreeTrial(createdAt: string): boolean {
+  const end = new Date(createdAt);
+  end.setDate(end.getDate() + TRIAL_DAYS);
+  return Date.now() < end.getTime();
+}
+
 serve(withSentry('novo-analytics', async (req) => {
   const CORS = getCors(req);
   const json = (data: unknown, status = 200) =>
@@ -76,9 +88,10 @@ serve(withSentry('novo-analytics', async (req) => {
       .eq('id', user.id)
       .single();
 
-    const isPro = profile?.is_pro && (
+    const hasProSubscription = profile?.is_pro && (
       !profile.pro_expires_at || new Date(profile.pro_expires_at) > new Date()
     );
+    const isPro = hasProSubscription || isInFreeTrial(user.created_at);
     if (!isPro) return json({ error: 'Novo Pro required', pro_required: true }, 403);
 
     const since30d = daysAgo(30);
