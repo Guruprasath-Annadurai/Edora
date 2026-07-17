@@ -132,7 +132,11 @@ export function useVoiceStudy(
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
   useEffect(() => { turnsRef.current      = turns;   }, [turns]);
 
-  // Check device support on mount
+  // True if language requires GCP STT (non-English)
+  const useGcpStt = langOption && langOption.code !== 'en';
+
+  // Check device support on mount, and re-check if the language (and thus
+  // which STT path applies) changes while the hook stays mounted.
   useEffect(() => {
     checkAvailability();
     return () => {
@@ -140,13 +144,22 @@ export function useVoiceStudy(
       cleanupListener();
       clearSilenceTimer();
     };
-  }, []);
-
-  // True if language requires GCP STT (non-English)
-  const useGcpStt = langOption && langOption.code !== 'en';
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useGcpStt]);
 
   // ── Availability check ──────────────────────────────────────────────────────
   async function checkAvailability() {
+    // The GCP STT path (non-English languages) only needs microphone access
+    // via getUserMedia/MediaRecorder — it never touches the native
+    // SpeechRecognition plugin. Gating it behind SpeechRecognition.available()
+    // incorrectly disabled voice entirely on devices without Google Speech
+    // Services (common outside the US, custom ROMs, some OEM skins) even
+    // though this path would work fine on them.
+    if (useGcpStt) {
+      setIsAvailable(!!navigator.mediaDevices?.getUserMedia);
+      setIsAvailabilityChecked(true);
+      return;
+    }
     if (!Capacitor.isNativePlatform()) {
       const hasSpeech = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
       const hasMedia  = !!(navigator.mediaDevices?.getUserMedia);

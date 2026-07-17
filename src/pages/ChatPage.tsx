@@ -129,9 +129,17 @@ export default function ChatPage() {
   const { ctx: studyCtx } = useStudyContext(user?.id, profile?.streak_count ?? 0);
 
   // ── Voice availability ───────────────────────────────────────────────────
+  // Non-English languages use GCP STT (getUserMedia/MediaRecorder), which
+  // never touches the native SpeechRecognition plugin — gating the mic
+  // button on SpeechRecognition.available() hid voice entirely on devices
+  // without Google Speech Services even when the GCP path would work fine.
   useEffect(() => {
     async function checkVoice() {
       try {
+        if (langOption && langOption.code !== 'en') {
+          setVoiceAvailable(!!navigator.mediaDevices?.getUserMedia);
+          return;
+        }
         if (!Capacitor.isNativePlatform()) {
           setVoiceAvailable('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
           return;
@@ -141,7 +149,7 @@ export default function ChatPage() {
       } catch { setVoiceAvailable(false); }
     }
     checkVoice();
-  }, []);
+  }, [langOption]);
 
   // ── Emotional check-in: show once per day ────────────────────────────────
   useEffect(() => {
