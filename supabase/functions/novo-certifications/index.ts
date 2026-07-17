@@ -179,10 +179,13 @@ serve(withSentry('novo-certifications', async (req) => {
     const { data: profile } = await supabase
       .from('profiles').select('study_level,full_name').eq('id', user.id).single();
 
-    // Generate 10 MCQ questions via Gemini with retry
-    let questions: AssessmentQuestion[] = [];
-    try {
-      questions = await geminiJSONWithRetry<AssessmentQuestion[]>(`
+    // Generate 10 MCQ questions via Gemini. A response can parse as valid JSON
+    // but still fail structural validation (wrong count, missing field, etc.) —
+    // that used to fail the whole request immediately with no retry. Now the
+    // generate+validate cycle itself retries, since a fresh generation attempt
+    // is far more likely to fix a structural miss than repeating the identical
+    // failure would.
+    const prompt = `
 You are Novo, an expert AI examiner. Generate exactly ${TOTAL_QUESTIONS} multiple-choice questions
 to assess mastery of "${topic}" in ${subject}.
 
@@ -206,15 +209,23 @@ Return a JSON array of exactly ${TOTAL_QUESTIONS} objects:
     "explanation": "Brief explanation of why this is correct."
   }
 ]
-`);
-    } catch (e) {
-      return json({ error: `Failed to generate questions after retries: ${e}` }, 500);
-    }
+`;
 
-    // Strict per-question validation (catches every malformed field)
-    const validationError = validateQuestions(questions);
-    if (validationError) {
-      return json({ error: `Question validation failed: ${validationError}` }, 500);
+    let questions: AssessmentQuestion[] = [];
+    let lastError = '';
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        const candidate = await geminiJSONWithRetry<AssessmentQuestion[]>(prompt);
+        const validationError = validateQuestions(candidate);
+        if (!validationError) { questions = candidate; break; }
+        lastError = validationError;
+      } catch (e) {
+        lastError = `Generation failed: ${e}`;
+      }
+    }
+    if (questions.length === 0) {
+      return json({ error: `Failed to generate a valid assessment after ${MAX_ATTEMPTS} attempts: ${lastError}` }, 500);
     }
 
     const { data: assessment, error: insertErr } = await supabase

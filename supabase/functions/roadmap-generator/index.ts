@@ -159,7 +159,7 @@ function todayStudyDayIndex(startDate: string, daysPerWeek: number): number {
 }
 
 // ── Gemini call ───────────────────────────────────────────────────────────────
-async function callGemini(systemPrompt: string, userPrompt: string, apiKey: string): Promise<GeminiRoadmap> {
+async function callGeminiOnce(systemPrompt: string, userPrompt: string, apiKey: string): Promise<GeminiRoadmap> {
   const ctrl = new AbortController();
   const tid  = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
 
@@ -186,10 +186,33 @@ async function callGemini(systemPrompt: string, userPrompt: string, apiKey: stri
     }
     const json = await resp.json();
     const raw  = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
-    return JSON.parse(raw) as GeminiRoadmap;
+    const parsed = JSON.parse(raw) as GeminiRoadmap;
+    if (!Array.isArray(parsed.weeks) || parsed.weeks.length === 0) {
+      throw new Error('Gemini returned no weeks');
+    }
+    return parsed;
   } finally {
     clearTimeout(tid);
   }
+}
+
+// Previously a single attempt — any transient Gemini error (5xx, timeout,
+// empty/malformed weeks) failed the whole request immediately with no retry.
+// This was the direct cause of "edge function returned a non-2xx status
+// code" reports for roadmap generation.
+async function callGemini(systemPrompt: string, userPrompt: string, apiKey: string, maxRetries = 2): Promise<GeminiRoadmap> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await callGeminiOnce(systemPrompt, userPrompt, apiKey);
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 // ── Experimental: Nemotron-powered recalibration ─────────────────────────────

@@ -202,9 +202,7 @@ serve(withSentry('lesson-planner', async (req) => {
       .map((m: { memory_type: string; content: string }) => `[${m.memory_type}] ${m.content}`)
       .join('\n') || 'No memories yet.';
 
-    let planData: PlanData;
-    try {
-      planData = await geminiJSONWithRetry<PlanData>(`
+    const prompt = `
 You are Novo, an expert AI study planner. Generate a full 7-day lesson plan for a student studying ${subject}.
 
 Student context:
@@ -252,24 +250,39 @@ Return EXACTLY this JSON structure:
     }
   ]
 }
-`);
-    } catch (e) {
-      return json({ error: `Plan generation failed after retries: ${e}` }, 500);
-    }
+`;
 
-    // Validate structure before touching the DB
-    if (!planData.days || planData.days.length !== 7) {
-      return json({ error: 'Plan generation failed — returned wrong number of days' }, 500);
-    }
-    for (const day of planData.days) {
-      if (!Array.isArray(day.tasks) || day.tasks.length === 0) {
-        return json({ error: `Plan generation failed — day ${day.day} has no tasks` }, 500);
-      }
-      for (const task of day.tasks) {
-        if (!task.title || !task.type || typeof task.duration_min !== 'number') {
-          return json({ error: 'Plan generation failed — malformed task' }, 500);
+    // A response can parse as valid JSON but still fail structural validation
+    // (wrong day count, malformed task) — that used to fail the request
+    // immediately with no retry. Now the generate+validate cycle retries as a
+    // whole, since a fresh generation is far more likely to fix a structural
+    // miss than repeating the identical failure would.
+    function validatePlan(p: PlanData): string | null {
+      if (!p.days || p.days.length !== 7) return 'returned wrong number of days';
+      for (const day of p.days) {
+        if (!Array.isArray(day.tasks) || day.tasks.length === 0) return `day ${day.day} has no tasks`;
+        for (const task of day.tasks) {
+          if (!task.title || !task.type || typeof task.duration_min !== 'number') return 'malformed task';
         }
       }
+      return null;
+    }
+
+    let planData: PlanData | null = null;
+    let lastError = '';
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        const candidate = await geminiJSONWithRetry<PlanData>(prompt);
+        const validationError = validatePlan(candidate);
+        if (!validationError) { planData = candidate; break; }
+        lastError = validationError;
+      } catch (e) {
+        lastError = `Generation failed: ${e}`;
+      }
+    }
+    if (!planData) {
+      return json({ error: `Plan generation failed after ${MAX_ATTEMPTS} attempts: ${lastError}` }, 500);
     }
 
     const totalTasks = planData.days.reduce((sum, d) => sum + d.tasks.length, 0);
@@ -435,9 +448,7 @@ Return EXACTLY this JSON structure:
       description: string;
     };
 
-    let newTasks: TaskRaw[];
-    try {
-      newTasks = await geminiJSONWithRetry<TaskRaw[]>(`
+    const dayPrompt = `
 Generate 2-4 fresh study tasks for ${dayName} in the subject "${plan.subject}".
 Week plan goal: ${plan.goal}
 Day theme: ${existingDay?.theme ?? 'General study'}
@@ -451,20 +462,31 @@ Return a JSON array of task objects:
   "duration_min": 25,
   "description": "..."
 }]
-`);
-    } catch (e) {
-      return json({ error: `Day regeneration failed after retries: ${e}` }, 500);
-    }
+`;
 
-    if (!Array.isArray(newTasks) || newTasks.length === 0) {
-      return json({ error: 'Day regeneration returned no tasks' }, 500);
-    }
-
-    // Validate each task
-    for (const t of newTasks) {
-      if (!t.title || !t.type || typeof t.duration_min !== 'number') {
-        return json({ error: 'Malformed task returned from AI' }, 500);
+    function validateTasks(tasks: unknown): string | null {
+      if (!Array.isArray(tasks) || tasks.length === 0) return 'no tasks returned';
+      for (const t of tasks as Partial<TaskRaw>[]) {
+        if (!t.title || !t.type || typeof t.duration_min !== 'number') return 'malformed task returned from AI';
       }
+      return null;
+    }
+
+    let newTasks: TaskRaw[] | null = null;
+    let lastError = '';
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        const candidate = await geminiJSONWithRetry<TaskRaw[]>(dayPrompt);
+        const validationError = validateTasks(candidate);
+        if (!validationError) { newTasks = candidate; break; }
+        lastError = validationError;
+      } catch (e) {
+        lastError = `Generation failed: ${e}`;
+      }
+    }
+    if (!newTasks) {
+      return json({ error: `Day regeneration failed after ${MAX_ATTEMPTS} attempts: ${lastError}` }, 500);
     }
 
     await supabase.from('lesson_plan_tasks')

@@ -14,7 +14,7 @@ import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 const GEMINI_MODEL = 'gemini-1.5-flash';
 
-async function callGemini(prompt: string, apiKey: string): Promise<unknown> {
+async function callGeminiOnce(prompt: string, apiKey: string): Promise<unknown> {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
     {
@@ -31,6 +31,25 @@ async function callGemini(prompt: string, apiKey: string): Promise<unknown> {
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
   return JSON.parse(match ? match[1] : text);
+}
+
+// This function previously made a single attempt with zero retries at all —
+// any transient Gemini hiccup (rate limit, timeout, malformed JSON) failed
+// the whole request immediately. This was the direct cause of "revision plan
+// failing to generate" reports.
+async function callGemini(prompt: string, apiKey: string, maxRetries = 2): Promise<unknown> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await callGeminiOnce(prompt, apiKey);
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 serve(withSentry('revision-planner', async (req) => {
