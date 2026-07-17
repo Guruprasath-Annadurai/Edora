@@ -50,6 +50,13 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  // Source the app version straight from package.json so it can never drift
+  // out of sync with a manually-maintained VITE_APP_VERSION in .env — this
+  // value feeds Sentry's release tag and PostHog's app_version property,
+  // both used to correlate crashes/events with the actual shipped build.
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
+  },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
