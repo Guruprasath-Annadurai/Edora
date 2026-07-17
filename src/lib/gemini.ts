@@ -163,10 +163,42 @@ export async function geminiCall(prompt: string, options: GeminiOptions = {}): P
 }
 
 // ── JSON helper — strips markdown fences before parsing ──────────────────────
+// Extracts the first {...} or [...] block rather than assuming the fence is
+// exactly at the start/end of the string — Gemini sometimes prefixes a
+// sentence of prose before the fence, or the fence is malformed, and the old
+// strict prefix/suffix strip would then fail to parse valid JSON that was
+// still in the response.
+function extractJSON(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const candidate = fenced ? fenced[1] : text;
+  const match = candidate.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  return (match ? match[1] : candidate).trim();
+}
+
+// A response can come back with everything working (network fine, no rate
+// limit) but still fail to parse — extra prose, a truncated array, a stray
+// trailing comma. That used to throw straight out of this function with no
+// retry, silently breaking any caller that expects structured output (quiz
+// generation, study rooms, battles, etc. all failed this way with no
+// visible error beyond "something didn't happen"). Retry the whole
+// generate+parse cycle, since a fresh generation is usually enough to fix it.
 export async function geminiJSON<T>(prompt: string, options: GeminiOptions = {}): Promise<T> {
-  const text = await geminiCall(prompt, options);
-  const cleaned = text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
-  return JSON.parse(cleaned) as T;
+  const MAX_ATTEMPTS = 3;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const text = await geminiCall(prompt, options);
+      return JSON.parse(extractJSON(text)) as T;
+    } catch (e) {
+      // Typed errors (rate limit / timeout / network) are real, not a parse
+      // fluke — no point retrying the same failure immediately.
+      if (e instanceof GeminiRateLimitError || e instanceof GeminiTimeoutError || e instanceof GeminiNetworkError) {
+        throw e;
+      }
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
 }
 
 // ── Chat helper — passes full conversation history ───────────────────────────
