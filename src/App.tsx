@@ -175,7 +175,19 @@ function useOAuthDeepLink() {
       // ── Supabase PKCE login callback ──────────────────────────────────────
       if (url.includes('auth/callback')) {
         const { error } = await supabase.auth.exchangeCodeForSession(url);
-        if (error) console.error('[OAuth] exchangeCodeForSession failed:', error.message);
+        if (error) {
+          console.error('[OAuth] exchangeCodeForSession failed:', error.message);
+          return;
+        }
+        // Session is live at this point, but nothing here navigates away from
+        // whatever screen the app resumed on (often still /login) — the app
+        // was relying entirely on the /login route's own inline redirect
+        // reacting to the user state change, which real Google sign-ins
+        // showed isn't reliable after returning from a native deep link.
+        // Navigate explicitly, same as the Classroom OAuth branch above.
+        // AuthGuard already redirects on to /onboarding if there's no
+        // profile yet, so /home is a safe target for brand-new users too.
+        navigateRef.current?.('/home');
       }
     });
 
