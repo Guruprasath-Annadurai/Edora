@@ -45,8 +45,10 @@ const LANGUAGES: Language[] = [
   { code:'gu', name:'Gujarati',native:'ગુજરાતી',  script:'Gujarati' },
 ];
 
-// ── Sample PYQ questions ──────────────────────────────────────────────────────
-const SAMPLE_QUESTIONS: PYQQuestion[] = [
+// ── Fallback questions ─────────────────────────────────────────────────────────
+// Used only if the live pyq_content query fails (e.g. offline) — the real
+// question set is loaded from the database in loadQuestions() below.
+const FALLBACK_QUESTIONS: PYQQuestion[] = [
   { id:'q1', subject:'Physics', year:2023, exam:'NEET', topic:'Electrostatics',
     question_en:'The electric potential at a point due to a point charge q at distance r is:',
     options_en:['kq/r','kq/r²','kq²/r','kq/2r'], correct_idx:0,
@@ -68,6 +70,31 @@ const SAMPLE_QUESTIONS: PYQQuestion[] = [
     options_en:['angle of incidence > critical angle','angle of incidence < critical angle','angle of incidence = 0°','angle of refraction = 90°'], correct_idx:0,
     explanation_en:'TIR occurs when angle of incidence exceeds the critical angle (θc = sin⁻¹(1/μ)). The light is completely reflected back into the denser medium.' },
 ];
+
+interface PyqContentRow {
+  id: string;
+  exam: string;
+  year: number;
+  subject: string;
+  chapter: string | null;
+  question_text: string;
+  options: { text: string; label: string; correct: boolean }[];
+  solution_text: string | null;
+}
+
+function mapPyqRow(row: PyqContentRow): PYQQuestion {
+  return {
+    id: row.id,
+    subject: row.subject,
+    year: row.year,
+    exam: row.exam,
+    question_en: row.question_text,
+    options_en: row.options.map(o => o.text),
+    correct_idx: Math.max(0, row.options.findIndex(o => o.correct)),
+    explanation_en: row.solution_text ?? '',
+    topic: row.chapter ?? '',
+  };
+}
 
 // ── Question card ─────────────────────────────────────────────────────────────
 function QuestionCard({ q, translation, lang, onTranslate }: {
@@ -170,8 +197,25 @@ export default function RegionalLanguagePage() {
   const [search, setSearch]             = useState('');
   const [translatingAll, setTranslatingAll] = useState(false);
   const [phase, setPhase]               = useState<'pick' | 'questions'>('pick');
+  const [questions, setQuestions]       = useState<PYQQuestion[]>(FALLBACK_QUESTIONS);
 
   const SUBJECTS = ['All', 'Physics', 'Chemistry', 'Mathematics', 'Biology'];
+
+  // Load real PYQ questions from the DB — this page previously only ever
+  // showed 5 hardcoded sample questions regardless of subject/exam, which
+  // made it look permanently broken/stuck even though pyq_content has
+  // hundreds of real rows across NEET/JEE/BOARDS/CAT.
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('pyq_content')
+        .select('id, exam, year, subject, chapter, question_text, options, solution_text')
+        .eq('is_active', true)
+        .limit(60);
+      if (data && data.length > 0) {
+        setQuestions((data as PyqContentRow[]).map(mapPyqRow));
+      }
+    })();
+  }, []);
 
   // Pre-load saved translations from DB
   useEffect(() => {
@@ -188,18 +232,18 @@ export default function RegionalLanguagePage() {
   }, [selLang]);
 
   const filtered = useMemo(() => {
-    let list = SAMPLE_QUESTIONS;
+    let list = questions;
     if (subject !== 'All') list = list.filter(q => q.subject === subject);
     if (search.trim()) {
       const sq = search.toLowerCase();
       list = list.filter(q => q.question_en.toLowerCase().includes(sq) || q.topic.toLowerCase().includes(sq));
     }
     return list;
-  }, [subject, search]);
+  }, [questions, subject, search]);
 
   async function translateQuestion(questionId: string) {
     if (!selLang) return;
-    const q = SAMPLE_QUESTIONS.find(q => q.id === questionId);
+    const q = questions.find(q => q.id === questionId);
     if (!q) return;
 
     // Mark as pending
@@ -229,7 +273,7 @@ Return ONLY JSON:
 
       // Save to DB
       await supabase.from('question_translations').upsert({
-        question_id: questionId, lang_code: selLang.code, source_table: 'pyq_questions',
+        question_id: questionId, lang_code: selLang.code, source_table: 'pyq_content',
         translated_question: result.question_text,
         translated_options: result.options,
         translated_explanation: result.explanation,
