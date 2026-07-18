@@ -180,7 +180,7 @@ function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: MEMORY_TYPE_COLORS[m.memory_type], textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
                   {MEMORY_TYPE_LABELS[m.memory_type]}
-                  {m.subject && <span style={{ color: 'var(--ink-300)', fontWeight: 500 }}> · {m.subject}</span>}
+                  {m.subject && <span style={{ color: 'var(--ink-500)', fontWeight: 500 }}> · {m.subject}</span>}
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--ink-750)', lineHeight: 1.4 }}>{m.content}</p>
               </div>

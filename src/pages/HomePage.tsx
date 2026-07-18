@@ -219,7 +219,7 @@ function ExamCountdownHeroCard({ examName, days, coveragePct }: { examName: stri
                 >
                   {days}
                 </p>
-                <p className="text-xs font-semibold -mt-1" style={{ color: 'var(--ink-350)' }}>days left</p>
+                <p className="text-xs font-semibold -mt-1" style={{ color: 'var(--ink-500)' }}>days left</p>
               </div>
             </div>
             {coveragePct !== undefined && (
@@ -360,7 +360,7 @@ function Day7FirstResultModal({ stats, onClose }: { stats: Day7Stats; onClose: (
           </motion.button>
           <button
             className="w-full mt-3 py-3 text-sm font-medium active:opacity-70"
-            style={{ color: 'var(--ink-350)' }}
+            style={{ color: 'var(--ink-500)' }}
             onClick={onClose}
           >
             Dismiss
@@ -454,7 +454,7 @@ function CourseResumeCard({ resume, delay = 0.11 }: { resume: ResumeLesson | nul
             <Icon size={22} style={{ color }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--ink-320)' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--ink-500)' }}>
               Continue Course
             </p>
             <p className="text-sm font-bold text-white leading-snug truncate">{mainLabel}</p>
@@ -656,7 +656,7 @@ function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: (
               key={task.id}
               onClick={(e) => { e.stopPropagation(); markDoneOptimistic(task.id); }}
               className="text-xs font-semibold px-2.5 py-1 rounded-full active:scale-95 transition-transform"
-              style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)', color: 'var(--ink-350)' }}
+              style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)', color: 'var(--ink-500)' }}
             >
               Mark {task.id} done ✓
             </button>

@@ -164,7 +164,7 @@ export function MoodHeatmap({ userId }: { userId: string }) {
         {Object.entries(MOOD_LABELS).map(([mood, label]) => (
           <div key={mood} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: MOOD_COLORS[mood], display: 'inline-block' }} />
-            <span style={{ fontSize: 12, color: 'var(--ink-350)' }}>{label}</span>
+            <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>{label}</span>
           </div>
         ))}
       </div>

@@ -7,7 +7,7 @@ export default function WhiteboardPage() {
   return (
     <div className="min-h-screen bg-[var(--color-base)] flex flex-col">
       <div className="flex items-center gap-3 px-4 pt-safe-top pb-3 border-b border-white/5">
-        <button
+        <button aria-label="Go back"
           onClick={() => navigate(-1)}
           className="w-9 h-9 flex items-center justify-center rounded-xl active:opacity-70"
         >

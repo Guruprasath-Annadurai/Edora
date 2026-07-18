@@ -16,6 +16,7 @@ import {Shield, ChevronRight, Check,
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import { Link } from 'react-router-dom';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 const CONSENT_VERSION = 'v2026.06';
 
@@ -64,10 +65,17 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
     finally { setSaving(false); }
   }
 
+  const dialogRef = useModalA11y<HTMLDivElement>(true);
+
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center"
       style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dpdp-consent-title"
+        tabIndex={-1}
         initial={{ y: '100%' }} animate={{ y: 0 }} transition={spring.sheet}
         className="w-full max-w-md rounded-t-3xl overflow-hidden"
         style={{ background: 'var(--surface-sheet)', border: '1px solid var(--ink-080)', maxHeight: '92vh' }}>
@@ -80,7 +88,7 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
             <Shield size={20} style={{ color: '#5B6AF5' }} />
           </div>
           <div>
-            <h2 className="font-heading font-bold text-white text-base">Your Privacy Matters</h2>
+            <h2 id="dpdp-consent-title" className="font-heading font-bold text-white text-base">Your Privacy Matters</h2>
             <p className="text-xs text-white/40">DPDP Act 2023 — Required consent</p>
           </div>
         </div>

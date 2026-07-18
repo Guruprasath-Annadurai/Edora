@@ -10,6 +10,7 @@ import { X, Mic, MicOff, Square, RefreshCw, AlertCircle, Brain, Zap } from 'luci
 import { Button } from '@/components/ui/button';
 import { useVoiceStudy, VoicePhase, VOICE_SYSTEM_PROMPTS } from '@/hooks/useVoiceStudy';
 import type { LanguageOption } from '@/hooks/useLanguage';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface VoiceStudyOverlayProps {
   visible: boolean;
@@ -135,11 +136,18 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
   const canPress   = phase !== 'requesting' && phase !== 'processing';
   const showOrb    = phase === 'idle' || phase === 'requesting' || phase === 'processing';
 
+  const dialogRef = useModalA11y<HTMLDivElement>(visible, handleClose);
+
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
           key="voice-overlay"
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={voiceMode === 'quiz' ? 'Voice quiz' : 'Voice study'}
+          tabIndex={-1}
           initial={{ opacity: 0, y: '100%' }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: '100%' }}
@@ -165,7 +173,7 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
                 </p>
               </div>
             </div>
-            <button
+            <button aria-label="Close"
               onClick={handleClose}
               className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-90"
               style={{ background: 'var(--ink-100)' }}>
@@ -185,7 +193,7 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
                   border: `1.5px solid ${m === 'quiz' ? 'rgba(245,158,11,0.4)' : 'rgba(91,106,245,0.4)'}`,
                 } : {
                   background: 'var(--ink-050)',
-                  color: 'var(--ink-350)',
+                  color: 'var(--ink-500)',
                   border: '1px solid var(--ink-080)',
                 }}>
                 {m === 'study' ? 'Study' : 'Quiz Me'}

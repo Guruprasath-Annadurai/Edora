@@ -275,7 +275,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
       {phase === 'setup' && (
         <div className="flex flex-col h-full px-4 pt-4 pb-nav">
           <div className="flex items-center gap-3 mb-6">
-            <Link to="/home"
+            <Link aria-label="Go back" to="/home"
               className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
               style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
               <ArrowLeft size={18} className="text-white" />

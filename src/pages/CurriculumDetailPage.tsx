@@ -673,7 +673,7 @@ export default function CurriculumDetailPage() {
         style={{ borderBottom: '1px solid var(--ink-070)' }}
       >
         <div className="flex items-start gap-3">
-          <button
+          <button aria-label="Go back"
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
             style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-100)' }}

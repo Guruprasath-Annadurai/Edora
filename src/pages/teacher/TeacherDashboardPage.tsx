@@ -162,7 +162,7 @@ export default function TeacherDashboardPage() {
           flexDirection:  'column',
         }}
       >
-        <Link to="/home" style={{ color: 'var(--ink-500)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', marginBottom: '24px' }}>
+        <Link aria-label="Go back" to="/home" style={{ color: 'var(--ink-500)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', marginBottom: '24px' }}>
           <ArrowLeft size={16} /> Home
         </Link>
 
@@ -218,7 +218,7 @@ export default function TeacherDashboardPage() {
       {/* Header */}
       <div style={{ padding: '20px 20px 0', maxWidth: '640px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-          <Link to="/home" style={{ color: 'var(--ink-500)', display: 'flex', alignItems: 'center' }}>
+          <Link aria-label="Go back" to="/home" style={{ color: 'var(--ink-500)', display: 'flex', alignItems: 'center' }}>
             <ArrowLeft size={20} />
           </Link>
           <div style={{ flex: 1 }}>
@@ -748,7 +748,7 @@ export default function TeacherDashboardPage() {
                             {ev.meet_link && (
                               <a href={ev.meet_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#06B6D4', fontWeight: 600, textDecoration: 'none' }}>Join</a>
                             )}
-                            <button aria-label="Delete event" onClick={() => gs.deleteCalendarEvent(ev.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-300)', cursor: 'pointer', padding: '0' }}><X size={14} /></button>
+                            <button aria-label="Delete event" onClick={() => gs.deleteCalendarEvent(ev.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-500)', cursor: 'pointer', padding: '0' }}><X size={14} /></button>
                           </div>
                         ))}
                       </div>
@@ -871,7 +871,7 @@ export default function TeacherDashboardPage() {
                               <ExternalLink size={11} />
                               Open
                             </a>
-                            <button onClick={() => gs.deleteDriveFile(f.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-300)', cursor: 'pointer', padding: '0' }}><Trash2 size={14} /></button>
+                            <button onClick={() => gs.deleteDriveFile(f.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-500)', cursor: 'pointer', padding: '0' }}><Trash2 size={14} /></button>
                           </div>
                         ))}
                       </div>
@@ -912,7 +912,7 @@ export default function TeacherDashboardPage() {
                   <Video size={20} style={{ color: '#06B6D4' }} />
                   <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--ink-950)' }}>Schedule Meet Session</h3>
                 </div>
-                <button onClick={() => { setShowMeetModal(false); setMeetResult(null); }} style={{ background: 'none', border: 'none', color: 'var(--ink-500)', cursor: 'pointer' }}><X size={20} /></button>
+                <button aria-label="Close" onClick={() => { setShowMeetModal(false); setMeetResult(null); }} style={{ background: 'none', border: 'none', color: 'var(--ink-500)', cursor: 'pointer' }}><X size={20} /></button>
               </div>
 
               {meetResult ? (
@@ -1012,7 +1012,7 @@ export default function TeacherDashboardPage() {
                     {emailAction === 'notify' ? 'Notify Students' : 'Send Reminder'}
                   </h3>
                 </div>
-                <button onClick={() => { setShowEmailModal(false); setEmailRecipients(''); setEmailResult(null); }} style={{ background: 'none', border: 'none', color: 'var(--ink-500)', cursor: 'pointer' }}><X size={20} /></button>
+                <button aria-label="Close" onClick={() => { setShowEmailModal(false); setEmailRecipients(''); setEmailResult(null); }} style={{ background: 'none', border: 'none', color: 'var(--ink-500)', cursor: 'pointer' }}><X size={20} /></button>
               </div>
 
               {emailResult ? (

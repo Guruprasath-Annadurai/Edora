@@ -72,7 +72,7 @@ function InlinePaywall({ featureName, featureDesc }: { featureName: string; feat
           <Crown size={16} /> Upgrade to Pro
         </motion.button>
 
-        <p className="text-xs" style={{ color: 'var(--ink-300)' }}>
+        <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
           From ₹58/month · Cancel anytime
         </p>
       </motion.div>
@@ -102,7 +102,7 @@ function SheetPaywall({
 
             {/* Dismiss */}
             {onClose && (
-              <button onClick={onClose}
+              <button aria-label="Close" onClick={onClose}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: 'var(--ink-060)' }}>
                 <X size={15} className="text-white" />
@@ -145,7 +145,7 @@ function SheetPaywall({
               <Crown size={15} /> Upgrade to Pro
             </motion.button>
 
-            <p className="text-center text-xs" style={{ color: 'var(--ink-300)' }}>
+            <p className="text-center text-xs" style={{ color: 'var(--ink-500)' }}>
               From ₹58/month · Cancel anytime
             </p>
           </motion.div>

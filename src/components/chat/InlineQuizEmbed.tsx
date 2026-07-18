@@ -84,7 +84,7 @@ export function InlineQuizEmbed({ questions, topic, onComplete }: Props) {
         </div>
         <div style={{ fontSize: 36, fontWeight: 800, color: pct >= 60 ? '#10B981' : '#F87171', marginBottom: 4 }}>{pct}%</div>
         <div style={{ fontSize: 13, color: 'var(--ink-600)', marginBottom: 4 }}>{score} / {questions.length} correct · {msg}</div>
-        <div style={{ fontSize: 12, color: 'var(--ink-350)', marginTop: 8 }}>Topic: {topic}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 8 }}>Topic: {topic}</div>
       </motion.div>
     );
   }
@@ -101,7 +101,7 @@ export function InlineQuizEmbed({ questions, topic, onComplete }: Props) {
     >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-350)', letterSpacing: 0.5 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)', letterSpacing: 0.5 }}>
           Q {current + 1} / {questions.length} · {topic}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

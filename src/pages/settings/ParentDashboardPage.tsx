@@ -436,7 +436,7 @@ export default function ParentDashboardPage() {
                   Week of {formatWeek(report.week_start)}
                 </p>
               </div>
-              <button
+              <button aria-label="Close"
                 onClick={() => setShowModal(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-white"
                 style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-100)' }}>

@@ -686,7 +686,7 @@ export default function StudyRoomPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
         style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
-        <Link to="/sprint" className="touch-target">
+        <Link aria-label="Go back" to="/sprint" className="touch-target">
           <ArrowLeft size={20} className="text-white" strokeWidth={1.75} />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"

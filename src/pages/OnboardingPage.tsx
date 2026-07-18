@@ -428,7 +428,7 @@ export default function OnboardingPage() {
                 )}
 
                 {/* Skip hint */}
-                <p style={{ fontSize: 12, color: 'var(--ink-300)', textAlign: 'center', marginTop: 4 }}>
+                <p style={{ fontSize: 12, color: 'var(--ink-500)', textAlign: 'center', marginTop: 4 }}>
                   Skip if not sure — you can set this later in Profile
                 </p>
               </div>
@@ -534,7 +534,7 @@ export default function OnboardingPage() {
               background: canProceed()
                 ? 'linear-gradient(135deg, #7C3AED, #A855F7)'
                 : 'var(--ink-060)',
-              color: canProceed() ? 'white' : 'var(--ink-300)',
+              color: canProceed() ? 'white' : 'var(--ink-500)',
               fontSize: 15, fontWeight: 700,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               border: 'none', cursor: canProceed() ? 'pointer' : 'not-allowed',
@@ -550,7 +550,7 @@ export default function OnboardingPage() {
           {(step === 4 || step === 6) && (
             <button
               onClick={nextStep}
-              style={{ fontSize: 12, color: 'var(--ink-300)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', minHeight: 32 }}
+              style={{ fontSize: 12, color: 'var(--ink-500)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', minHeight: 32 }}
             >
               Skip for now
             </button>

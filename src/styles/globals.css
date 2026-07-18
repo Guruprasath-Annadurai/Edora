@@ -292,7 +292,7 @@
   }
 
   ::placeholder {
-    color: var(--ink-300);
+    color: var(--ink-500);
   }
 
   option {
@@ -1229,7 +1229,7 @@ html.perf-low [style*="will-change"] {
 .text-heading  { color: var(--ink-950); }
 .text-body     { color: var(--ink-800); }
 .text-support  { color: var(--ink-550); }
-.text-muted-ui { color: var(--ink-350); }
+.text-muted-ui { color: var(--ink-500); }
 
 /* ════════════════════════════════════════════════════════════════════════════
    CARD VISUAL HIERARCHY — Issue 5

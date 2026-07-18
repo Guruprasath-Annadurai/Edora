@@ -276,7 +276,7 @@ export default function ParentPortalPage() {
     return (
       <div className="h-full text-white flex flex-col">
         <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: 'var(--hdr-a-820)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
-          <Link to="/home" className="p-2 rounded-xl hover:bg-white/5">
+          <Link aria-label="Go back" to="/home" className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </Link>
           <div className="flex-1">
@@ -396,7 +396,7 @@ export default function ParentPortalPage() {
     return (
       <div className="h-full text-white flex flex-col">
         <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: 'var(--hdr-a-820)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
-          <button onClick={() => setPhase('student_setup')} className="p-2 rounded-xl hover:bg-white/5">
+          <button aria-label="Go back" onClick={() => setPhase('student_setup')} className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </button>
           <div className="flex-1">
@@ -446,7 +446,7 @@ export default function ParentPortalPage() {
       {/* Header */}
       <div className="sticky top-0 z-20 backdrop-blur border-b border-white/5 px-4 py-3 shrink-0">
         <div className="flex items-center gap-3">
-          <Link to="/home" className="p-2 rounded-xl hover:bg-white/5">
+          <Link aria-label="Go back" to="/home" className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </Link>
           <div className="flex-1">

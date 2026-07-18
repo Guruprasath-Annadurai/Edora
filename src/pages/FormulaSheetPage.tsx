@@ -590,7 +590,7 @@ export default function FormulaSheetPage() {
             style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-090)' }}
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+            <button aria-label="Close" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
               <X size={14} className="text-white/40" />
             </button>
           )}

@@ -754,7 +754,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
       {/* ── Header ── */}
       <div className="page-hero px-4 pt-4 pb-3 shrink-0">
         <div className="flex items-center gap-3">
-          <Link to="/home" className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-90"
+          <Link aria-label="Go back" to="/home" className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-90"
             style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={18} className="text-white" strokeWidth={1.75} />
           </Link>
@@ -1044,7 +1044,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
       {/* ── Free AI usage counter pill ── */}
       {!isPro && aiUsageCount > 0 && aiUsageCount < FREE_AI_DAILY_LIMIT && (
         <div className="px-4 pb-1.5 flex items-center justify-between">
-          <span className="text-xs" style={{ color: 'var(--ink-300)' }}>
+          <span className="text-xs" style={{ color: 'var(--ink-500)' }}>
             {FREE_AI_DAILY_LIMIT - aiUsageCount} of {FREE_AI_DAILY_LIMIT} free answers left today
           </span>
           <button
@@ -1204,7 +1204,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
                 style={{ background: 'linear-gradient(135deg,#7C3AED,#A855F7)', boxShadow: '0 0 20px rgba(124,58,237,0.35)' }}>
                 <Crown size={15} /> Upgrade to Pro
               </motion.button>
-              <p className="text-center text-xs" style={{ color: 'var(--ink-300)' }}>
+              <p className="text-center text-xs" style={{ color: 'var(--ink-500)' }}>
                 From ₹58/month · Cancel anytime
               </p>
             </motion.div>

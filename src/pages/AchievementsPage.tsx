@@ -168,7 +168,7 @@ export default function AchievementsPage() {
                           style={isUnlocked
                             ? { background: `${a.color}18`, border: `1px solid ${a.color}30` }
                             : { background: 'var(--ink-050)', filter: 'grayscale(1)' }}>
-                          <AchievementIcon id={a.id} color={isUnlocked ? a.color : 'var(--ink-350)'} />
+                          <AchievementIcon id={a.id} color={isUnlocked ? a.color : 'var(--ink-500)'} />
                         </div>
                         {!isUnlocked && (
                           <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
@@ -179,7 +179,7 @@ export default function AchievementsPage() {
                       </div>
                       <div>
                         <p className="font-heading font-bold text-white text-sm">{a.title}</p>
-                        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: isUnlocked ? 'var(--ink-400)' : 'var(--ink-300)' }}>
+                        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: isUnlocked ? 'var(--ink-400)' : 'var(--ink-500)' }}>
                           {a.desc}
                         </p>
                       </div>
@@ -187,12 +187,12 @@ export default function AchievementsPage() {
                         style={isUnlocked
                           ? { background: `${a.color}18`, border: `1px solid ${a.color}28` }
                           : { background: 'var(--ink-050)' }}>
-                        <span className="text-xs font-bold" style={{ color: isUnlocked ? a.color : 'var(--ink-300)' }}>
+                        <span className="text-xs font-bold" style={{ color: isUnlocked ? a.color : 'var(--ink-500)' }}>
                           +{a.xp} XP
                         </span>
                       </div>
                       {isUnlocked && unlockedDates[a.id] && (
-                        <p className="text-xs" style={{ color: 'var(--ink-300)' }}>
+                        <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
                           {new Date(unlockedDates[a.id]).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         </p>
                       )}

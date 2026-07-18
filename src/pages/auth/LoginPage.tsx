@@ -425,7 +425,8 @@ export default function LoginPage() {
                       <User size={18} color="#9CA3AF" />
                       <input type="text" placeholder="Your full name" value={name}
                         onChange={e => setName(e.target.value)}
-                        className={inputClass} style={inputStyle} autoComplete="name" />
+                        className={inputClass} style={inputStyle} autoComplete="name"
+                        aria-label="Full name" />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -443,7 +444,8 @@ export default function LoginPage() {
                   <input type={showPass ? 'text' : 'password'} placeholder="Password"
                     value={password} onChange={e => setPassword(e.target.value)}
                     className={inputClass} style={inputStyle}
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    aria-label="Password" />
                   <button type="button" onClick={() => setShowPass(v => !v)} className="shrink-0"
                     aria-label={showPass ? 'Hide password' : 'Show password'}>
                     {showPass ? <EyeOff size={18} color="#9CA3AF" /> : <Eye size={18} color="#9CA3AF" />}
@@ -458,7 +460,8 @@ export default function LoginPage() {
                       <Lock size={18} color="#9CA3AF" />
                       <input type={showConfirm ? 'text' : 'password'} placeholder="Confirm password"
                         value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
-                        className={inputClass} style={inputStyle} autoComplete="new-password" />
+                        className={inputClass} style={inputStyle} autoComplete="new-password"
+                        aria-label="Confirm password" />
                       <button type="button" onClick={() => setShowConfirm(v => !v)} className="shrink-0"
                         aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}>
                         {showConfirm ? <EyeOff size={18} color="#9CA3AF" /> : <Eye size={18} color="#9CA3AF" />}
@@ -559,7 +562,8 @@ export default function LoginPage() {
                       <Mail size={18} color="#9CA3AF" />
                       <input type="email" placeholder="Email address" value={otpEmail}
                         onChange={e => setOtpEmail(e.target.value)}
-                        className={inputClass} style={inputStyle} autoComplete="email" />
+                        className={inputClass} style={inputStyle} autoComplete="email"
+                        aria-label="Email address" />
                     </div>
 
                     {/* DPDP consent for OTP */}
@@ -722,7 +726,8 @@ export default function LoginPage() {
                     <Mail size={18} color="#9CA3AF" />
                     <input type="email" placeholder="Email address" value={forgotEmail}
                       onChange={e => { setForgotEmail(e.target.value); setForgotError(''); }}
-                      className={inputClass} style={inputStyle} autoFocus />
+                      className={inputClass} style={inputStyle} autoFocus
+                      aria-label="Email address" />
                   </div>
                   {forgotError && (
                     <p className="mt-2 text-sm text-red-400 flex items-center gap-1.5">

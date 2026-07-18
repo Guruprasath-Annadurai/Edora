@@ -106,7 +106,7 @@ export default function PrivacyPolicyPage() {
 
       {/* ── Header ── */}
       <div className="flex items-center px-5 py-3 shrink-0">
-        <button
+        <button aria-label="Go back"
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform"
           style={{ background: '#FFF', boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}

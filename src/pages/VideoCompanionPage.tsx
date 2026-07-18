@@ -175,7 +175,7 @@ function RecentRow({ session, onOpen }: { session: VideoSession; onOpen: () => v
       >
         {isComplete ? 'Done' : 'Processing'}
       </span>
-      <ChevronRight size={14} style={{ color: 'var(--ink-300)' }} />
+      <ChevronRight size={14} style={{ color: 'var(--ink-500)' }} />
     </button>
   );
 }
@@ -390,7 +390,7 @@ export default function VideoCompanionPage() {
           >
             {/* Header */}
             <div className="px-4 pt-safe pt-4 pb-3 flex items-center gap-3 shrink-0">
-              <Link
+              <Link aria-label="Go back"
                 to="/tools"
                 className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
                 style={glassCard}
@@ -424,7 +424,7 @@ export default function VideoCompanionPage() {
                   style={{ resize: 'none' }}
                 />
                 {urlInput && (
-                  <button
+                  <button aria-label="Close"
                     onClick={() => setUrlInput('')}
                     className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-1"
                     style={{ background: 'var(--ink-080)' }}
@@ -476,7 +476,7 @@ export default function VideoCompanionPage() {
             {/* Recent sessions */}
             <div className="flex-1 px-4 pb-8">
               {recentLoading ? (
-                <div className="flex gap-2 items-center" style={{ color: 'var(--ink-300)' }}>
+                <div className="flex gap-2 items-center" style={{ color: 'var(--ink-500)' }}>
                   <Loader2 size={14} className="animate-spin" />
                   <span className="text-xs">Loading recent videos…</span>
                 </div>
@@ -547,12 +547,12 @@ export default function VideoCompanionPage() {
             <div className="flex flex-col items-center gap-3">
               <LoadingDots />
               <CyclingStatus />
-              <p className="text-xs" style={{ color: 'var(--ink-300)' }}>
+              <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
                 This usually takes 15–30 seconds
               </p>
             </div>
 
-            <button
+            <button aria-label="Close"
               onClick={() => setPhase('input')}
               className="text-xs flex items-center gap-1.5 px-4 py-2 rounded-full"
               style={{ color: 'var(--ink-400)', background: 'var(--ink-060)' }}
@@ -609,7 +609,7 @@ export default function VideoCompanionPage() {
           >
             {/* Back header */}
             <div className="px-4 pt-safe pt-3 pb-2 flex items-center gap-3 shrink-0">
-              <button
+              <button aria-label="Go back"
                 onClick={() => setPhase('input')}
                 className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
                 style={glassCard}
@@ -812,7 +812,7 @@ export default function VideoCompanionPage() {
                           </div>
                           <p className="flex-1 text-sm font-semibold text-white">{k.concept}</p>
                           <motion.div animate={{ rotate: expandedConcept === i ? 90 : 0 }} transition={{ duration: 0.2 }}>
-                            <ChevronRight size={15} style={{ color: 'var(--ink-300)' }} />
+                            <ChevronRight size={15} style={{ color: 'var(--ink-500)' }} />
                           </motion.div>
                         </div>
                         <AnimatePresence>
@@ -896,7 +896,7 @@ export default function VideoCompanionPage() {
                               </div>
                               <p className="flex-1 text-sm text-white leading-snug">{fc.front}</p>
                               <motion.div animate={{ rotate: expandedCard === i ? 90 : 0 }} transition={{ duration: 0.2 }}>
-                                <ChevronRight size={15} style={{ color: 'var(--ink-300)' }} />
+                                <ChevronRight size={15} style={{ color: 'var(--ink-500)' }} />
                               </motion.div>
                             </div>
                             <AnimatePresence>
@@ -975,7 +975,7 @@ export default function VideoCompanionPage() {
                           className="space-y-2 pt-2"
                         >
                           <p className="text-xs font-bold uppercase tracking-wider"
-                            style={{ color: 'var(--ink-350)' }}>
+                            style={{ color: 'var(--ink-500)' }}>
                             Suggested questions
                           </p>
                           {[
@@ -1009,7 +1009,7 @@ export default function VideoCompanionPage() {
                         className="flex items-center gap-2 rounded-2xl p-1"
                         style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-120)' }}
                       >
-                        <MessageSquare size={16} className="ml-3 shrink-0" style={{ color: 'var(--ink-300)' }} />
+                        <MessageSquare size={16} className="ml-3 shrink-0" style={{ color: 'var(--ink-500)' }} />
                         <input
                           type="text"
                           value={chatInput}

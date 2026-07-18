@@ -549,7 +549,7 @@ export default function AdminConsolePage() {
                         style={{ background: 'rgba(139,92,246,0.15)', color: '#8B5CF6' }}>
                         <CheckIcon size={12} /> Approve into bank
                       </button>
-                      <button onClick={() => rejectCorrection(f.id, f.correction_bank_id!)}
+                      <button aria-label="Close" onClick={() => rejectCorrection(f.id, f.correction_bank_id!)}
                         className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-semibold"
                         style={{ background: 'var(--ink-060)', color: 'var(--ink-500)' }}>
                         <X size={12} /> Reject
@@ -564,7 +564,7 @@ export default function AdminConsolePage() {
                     style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399' }}>
                     <CheckIcon size={13} /> Actioned
                   </button>
-                  <button onClick={() => resolveQualityFlag(f.id, 'dismissed')}
+                  <button aria-label="Close" onClick={() => resolveQualityFlag(f.id, 'dismissed')}
                     className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-semibold"
                     style={{ background: 'var(--ink-060)', color: 'var(--ink-500)' }}>
                     <X size={13} /> Dismiss
@@ -612,7 +612,7 @@ export default function AdminConsolePage() {
                     style={{ background: 'rgba(239,68,68,0.12)', color: '#F87171' }}>
                     <CheckIcon size={13} /> Actioned
                   </button>
-                  <button onClick={() => resolveAnomalyFlag(f.id, 'dismissed')}
+                  <button aria-label="Close" onClick={() => resolveAnomalyFlag(f.id, 'dismissed')}
                     className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-semibold"
                     style={{ background: 'var(--ink-060)', color: 'var(--ink-500)' }}>
                     <X size={13} /> Dismiss
@@ -656,7 +656,7 @@ export default function AdminConsolePage() {
                     style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399' }}>
                     <CheckIcon size={13} /> Approve (keep live)
                   </button>
-                  <button onClick={() => rejectPyqFlag(f.id)}
+                  <button aria-label="Close" onClick={() => rejectPyqFlag(f.id)}
                     className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-semibold"
                     style={{ background: 'rgba(239,68,68,0.12)', color: '#F87171' }}>
                     <X size={13} /> Retire question
@@ -861,7 +861,7 @@ function CreateLiveEventModal({ onClose, onCreated }: { onClose: () => void; onC
       <div className="w-full rounded-t-3xl p-5" style={{ background: 'var(--surface-sheet)', border: '1px solid var(--ink-080)' }}>
         <div className="flex items-center justify-between mb-4">
           <p className="font-heading font-bold text-white text-lg">Schedule Live Event</p>
-          <button onClick={onClose}><X size={18} className="text-white/50" /></button>
+          <button aria-label="Close" onClick={onClose}><X size={18} className="text-white/50" /></button>
         </div>
 
         <div className="flex flex-col gap-3">

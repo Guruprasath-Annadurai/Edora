@@ -291,7 +291,7 @@ ${editedText.slice(0, 3000)}`
       style={{ backgroundImage: ft.meshGradient, backgroundAttachment: 'fixed' }}>
       {/* Header */}
       <div className="page-hero glass-strong border-b border-border px-4 py-3 flex items-center gap-3 shrink-0">
-        <Link to="/tools" className="touch-target">
+        <Link aria-label="Go back" to="/tools" className="touch-target">
           <ArrowLeft size={22} className="text-white" strokeWidth={1.75} />
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"

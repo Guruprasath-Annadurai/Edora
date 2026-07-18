@@ -276,7 +276,7 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
       <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-heading text-lg font-bold text-white">Build Revision Plan</h2>
-        <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--ink-080)' }}>
+        <button aria-label="Close" onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--ink-080)' }}>
           <X size={16} className="text-white/60" />
         </button>
       </div>

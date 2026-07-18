@@ -545,7 +545,7 @@ export default function PhotoSolverPage() {
           borderColor: 'var(--ink-080)',
         }}
       >
-        <Link to="/tools" className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center shrink-0">
+        <Link aria-label="Go back" to="/tools" className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center shrink-0">
           <ArrowLeft size={17} className="text-white" />
         </Link>
         <div
@@ -783,7 +783,7 @@ export default function PhotoSolverPage() {
                   <div className="mt-4 rounded-2xl p-4 text-left"
                     style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
                     <p className="text-xs font-bold uppercase tracking-wider mb-2"
-                      style={{ color: 'var(--ink-300)' }}>Scanned text</p>
+                      style={{ color: 'var(--ink-500)' }}>Scanned text</p>
                     <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-600)' }}>
                       {ocrText.slice(0, 200)}{ocrText.length > 200 ? '…' : ''}
                     </p>

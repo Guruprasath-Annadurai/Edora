@@ -67,7 +67,7 @@ function TabButton({ to, icon: Icon, label }: { to: string; icon: LucideIcon; la
                 color: '#A78BFA',
                 filter: 'drop-shadow(0 0 6px rgba(167,139,250,0.65))',
               } : {
-                color: 'var(--ink-320)',
+                color: 'var(--ink-500)',
               }}
             />
           </motion.div>
@@ -76,7 +76,7 @@ function TabButton({ to, icon: Icon, label }: { to: string; icon: LucideIcon; la
             className="tab-label"
             animate={isActive
               ? { color: 'var(--ink-880)', opacity: 1 }
-              : { color: 'var(--ink-280)', opacity: 1 }
+              : { color: 'var(--ink-500)', opacity: 1 }
             }
             transition={{ duration: dur.fast }}
             style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1 }}
@@ -170,7 +170,7 @@ function NovoCenterButton() {
         className="tab-label"
         animate={isActive
           ? { color: 'var(--ink-920)', textShadow: '0 0 10px rgba(168,85,247,0.55)' }
-          : { color: 'var(--ink-280)', textShadow: 'none' }
+          : { color: 'var(--ink-500)', textShadow: 'none' }
         }
         transition={{ duration: 0.2 }}
         style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', marginTop: 4 }}

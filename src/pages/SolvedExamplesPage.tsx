@@ -232,7 +232,7 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {ex.tags.map(t => (
                   <span key={t} className="text-[9px] px-2 py-0.5 rounded-full font-medium"
-                    style={{ background: 'var(--ink-060)', color: 'var(--ink-350)' }}>#{t}</span>
+                    style={{ background: 'var(--ink-060)', color: 'var(--ink-500)' }}>#{t}</span>
                 ))}
               </div>
             </div>
@@ -336,7 +336,7 @@ Return ONLY JSON array:
             placeholder="Search questions, topics…"
             className="w-full pl-8 pr-8 py-2.5 rounded-2xl text-sm text-white placeholder-white/30 outline-none"
             style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-090)' }} />
-          {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={13} className="text-white/40" /></button>}
+          {search && <button aria-label="Close" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={13} className="text-white/40" /></button>}
         </div>
 
         {/* Subject tabs */}
@@ -356,7 +356,7 @@ Return ONLY JSON array:
             {SOURCES.map(s => (
               <button key={s} onClick={() => setSource(s)}
                 className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold"
-                style={{ background: source === s ? 'rgba(139,92,246,0.25)' : 'var(--ink-050)', color: source === s ? '#C4B5FD' : 'var(--ink-350)' }}>
+                style={{ background: source === s ? 'rgba(139,92,246,0.25)' : 'var(--ink-050)', color: source === s ? '#C4B5FD' : 'var(--ink-500)' }}>
                 {s}
               </button>
             ))}
@@ -365,7 +365,7 @@ Return ONLY JSON array:
             {DIFFICULTIES.map(d => (
               <button key={d} onClick={() => setDifficulty(d)}
                 className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold"
-                style={{ background: difficulty === d ? 'rgba(245,158,11,0.2)' : 'var(--ink-050)', color: difficulty === d ? '#FCD34D' : 'var(--ink-350)' }}>
+                style={{ background: difficulty === d ? 'rgba(245,158,11,0.2)' : 'var(--ink-050)', color: difficulty === d ? '#FCD34D' : 'var(--ink-500)' }}>
                 {d}
               </button>
             ))}
@@ -408,7 +408,7 @@ Return ONLY JSON array:
                   </div>
                   <p className="text-sm font-bold text-white">Novo explains</p>
                 </div>
-                <button onClick={() => setNovoQuestion(null)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--ink-080)' }}>
+                <button aria-label="Close" onClick={() => setNovoQuestion(null)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--ink-080)' }}>
                   <X size={14} className="text-white/60" />
                 </button>
               </div>

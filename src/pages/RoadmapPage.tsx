@@ -516,7 +516,7 @@ export default function RoadmapPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0 shrink-0"
         style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
-        <Link to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
+        <Link aria-label="Go back" to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
           style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-100)' }}>
           <ArrowLeft size={17} className="text-white" />
         </Link>
@@ -533,7 +533,7 @@ export default function RoadmapPage() {
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
         style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
-        <Link to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
+        <Link aria-label="Go back" to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
           style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-100)' }}>
           <ArrowLeft size={17} className="text-white" />
         </Link>
@@ -663,7 +663,7 @@ export default function RoadmapPage() {
         style={{ background: 'linear-gradient(160deg, var(--grad-purple-header-1) 0%, var(--grad-purple-header-2) 60%, var(--grad-purple-header-3) 100%)' }}>
         <div className="px-4 pt-4 pb-5">
           <div className="flex items-center gap-3 mb-4">
-            <Link to="/home"
+            <Link aria-label="Go back" to="/home"
               className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
               style={{ background: 'var(--ink-120)' }}>
               <ArrowLeft size={17} className="text-white" />

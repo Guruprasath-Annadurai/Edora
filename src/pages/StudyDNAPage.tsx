@@ -335,7 +335,7 @@ export default function StudyDNAPage() {
       <div className="px-4 pt-4 pb-3 shrink-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link to="/home"
+            <Link aria-label="Go back" to="/home"
               className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
               style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
               <ArrowLeft size={18} className="text-white" />

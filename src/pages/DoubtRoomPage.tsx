@@ -111,7 +111,7 @@ Give a clear, concise explanation (3-5 sentences max). Use simple language. If i
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 shrink-0"
         style={{ borderBottom: '1px solid var(--ink-060)' }}>
-        <button onClick={() => navigate(-1)}
+        <button aria-label="Go back" onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-full flex items-center justify-center"
           style={{ background: 'var(--ink-060)' }}>
           <ArrowLeft size={18} className="text-white" />
@@ -162,7 +162,7 @@ Give a clear, concise explanation (3-5 sentences max). Use simple language. If i
                         {d.subject}
                       </span>
                     )}
-                    <span className="text-xs" style={{ color: 'var(--ink-300)' }}>{timeAgo(d.created_at)}</span>
+                    <span className="text-xs" style={{ color: 'var(--ink-500)' }}>{timeAgo(d.created_at)}</span>
                   </div>
                   <p className="text-sm font-semibold text-white leading-relaxed">{d.question}</p>
                 </div>

@@ -288,7 +288,7 @@ Return ONLY valid JSON array:
               placeholder="Search paragraphs, concepts…"
               className="w-full pl-8 pr-8 py-2.5 rounded-2xl text-sm text-white placeholder-white/30 outline-none"
               style={{ background: 'var(--ink-070)', border: '1px solid var(--ink-090)' }} />
-            {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={13} className="text-white/40" /></button>}
+            {search && <button aria-label="Close" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={13} className="text-white/40" /></button>}
           </div>
         )}
       </div>

@@ -361,11 +361,11 @@ export default function FlashcardPage() {
             {current + 1 < cards.length && (
               <div className="rounded-2xl px-3 py-2.5"
                 style={{ background: 'var(--ink-045)', border: '1px solid var(--ink-060)' }}>
-                <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--ink-350)' }}>Up Next</p>
+                <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--ink-500)' }}>Up Next</p>
                 <div className="flex flex-col gap-1">
                   {cards.slice(current + 1, current + 3).map((c, i) => (
                     <div key={c.id} className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-semibold shrink-0" style={{ color: 'var(--ink-350)' }}>{i + 1}.</span>
+                      <span className="text-xs font-semibold shrink-0" style={{ color: 'var(--ink-500)' }}>{i + 1}.</span>
                       <p className="text-xs truncate" style={{ color: 'var(--ink-700)' }}>{c.front}</p>
                     </div>
                   ))}

@@ -173,7 +173,7 @@ export function StudyBreakPlayer({ open, onClose, breakMin = 10, mood = null, en
                       {formatTime(remaining)}
                     </span>
                   </div>
-                  <button onClick={handleClose} disabled={locked}
+                  <button aria-label="Close" onClick={handleClose} disabled={locked}
                     className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-30"
                     style={{ background: 'var(--ink-060)' }}>
                     {locked ? <Lock size={13} className="text-white" /> : <X size={14} className="text-white" />}

@@ -368,7 +368,7 @@ export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Pr
                         >
                           {giftState === 'gifting' ? <Loader2 size={14} className="animate-spin" /> : 'Gift'}
                         </motion.button>
-                        <button onClick={() => setGiftTarget(null)} className="p-2 rounded-xl text-white/30 hover:text-white/60">
+                        <button aria-label="Close" onClick={() => setGiftTarget(null)} className="p-2 rounded-xl text-white/30 hover:text-white/60">
                           <X size={14} />
                         </button>
                       </motion.div>

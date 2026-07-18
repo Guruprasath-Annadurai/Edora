@@ -160,7 +160,7 @@ function CertDetail({ cert, onBack }: { cert: NovoCertification; onBack: () => v
             <p className="text-xs text-muted-foreground mt-4">
               Issued by <strong className="text-white/70">Novo AI</strong> on {formatDate(cert.issued_at)}
             </p>
-            <p className="text-xs mt-1 font-mono" style={{ color: 'var(--ink-300)' }}>
+            <p className="text-xs mt-1 font-mono" style={{ color: 'var(--ink-500)' }}>
               {cert.share_code.toUpperCase()}
             </p>
           </div>

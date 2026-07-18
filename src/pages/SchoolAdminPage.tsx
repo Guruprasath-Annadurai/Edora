@@ -625,7 +625,7 @@ export default function SchoolAdminPage() {
                   <Search size={14} className="text-white/40 shrink-0" />
                   <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
                     placeholder="Search students…" className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none" />
-                  {searchQ && <button onClick={() => setSearchQ('')}><X size={14} className="text-white/40" /></button>}
+                  {searchQ && <button aria-label="Close" onClick={() => setSearchQ('')}><X size={14} className="text-white/40" /></button>}
                 </div>
                 {sections.length > 0 && (
                   <select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}

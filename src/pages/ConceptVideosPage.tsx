@@ -277,7 +277,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
             style={{ background: '#000' }}>
             <div className="flex items-center justify-between px-4 py-3">
               <p className="text-sm font-semibold text-white truncate flex-1">{activeVideo.title}</p>
-              <button onClick={closeVideo} className="p-2 rounded-xl ml-2"
+              <button aria-label="Close" onClick={closeVideo} className="p-2 rounded-xl ml-2"
                 style={{ background: 'var(--ink-100)' }}>
                 <X size={20} color="#fff" />
               </button>

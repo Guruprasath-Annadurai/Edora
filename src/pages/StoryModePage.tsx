@@ -516,7 +516,7 @@ export default function StoryModePage() {
           className="shrink-0"
           style={{ paddingTop: 'env(safe-area-inset-top)', background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="px-4 py-3 flex items-center gap-3">
-            <button
+            <button aria-label="Go back"
               onClick={() => navigate(-1)}
               className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all"
               style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
@@ -565,7 +565,7 @@ export default function StoryModePage() {
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
                 <AlertCircle size={15} className="text-red-400 shrink-0" />
                 <p className="text-sm text-red-400 flex-1">{selectorError}</p>
-                <button onClick={() => setSelectorError('')} className="text-red-400"><X size={14} /></button>
+                <button aria-label="Close" onClick={() => setSelectorError('')} className="text-red-400"><X size={14} /></button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -691,7 +691,7 @@ export default function StoryModePage() {
         className="shrink-0"
         style={{ paddingTop: 'env(safe-area-inset-top)', background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
         <div className="px-4 py-3 flex items-center gap-3">
-          <button
+          <button aria-label="Go back"
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all shrink-0"
             style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
@@ -712,7 +712,7 @@ export default function StoryModePage() {
               <span className="text-xs font-bold" style={{ color: '#FBBF24' }}>+{totalXp} XP</span>
             </div>
           )}
-          <button
+          <button aria-label="Close"
             onClick={resetToSelector}
             className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-all shrink-0"
             style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>

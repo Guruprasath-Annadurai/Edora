@@ -89,7 +89,7 @@ function FlashcardStep({ card, onDone }: { card: Flashcard; onDone: (knew: boole
       <AnimatePresence>
         {flipped && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
-            <button onClick={() => onDone(false)}
+            <button aria-label="Close" onClick={() => onDone(false)}
               className="flex-1 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
               style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', color: '#F87171' }}>
               <X size={15} /> Didn't know
@@ -322,7 +322,7 @@ export default function DailyPowerSessionPage() {
       {/* Header */}
       <div className="px-4 pt-4 pb-3 shrink-0">
         <div className="flex items-center gap-3">
-          <Link to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
+          <Link aria-label="Go back" to="/home" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
             style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
             <ArrowLeft size={18} className="text-white" strokeWidth={1.75} />
           </Link>

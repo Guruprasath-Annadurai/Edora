@@ -245,7 +245,7 @@ Rules:
     return (
       <div className="h-full text-white">
         <div className="sticky top-0 z-20/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
-          <Link to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
+          <Link aria-label="Go back" to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </Link>
           <div className="flex-1">
@@ -360,7 +360,7 @@ Rules:
     return (
       <div className="h-full text-white flex flex-col">
         <div className="sticky top-0 z-20/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setPhase('select')} className="p-2 rounded-xl hover:bg-white/5">
+          <button aria-label="Go back" onClick={() => setPhase('select')} className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />
           </button>
           <div className="flex-1">
@@ -434,7 +434,7 @@ Rules:
   return (
     <div className="h-full text-white">
       <div className="sticky top-0 z-20/90 backdrop-blur border-b border-white/5 px-4 py-3 flex items-center gap-3">
-        <button onClick={reset} className="p-2 rounded-xl hover:bg-white/5">
+        <button aria-label="Go back" onClick={reset} className="p-2 rounded-xl hover:bg-white/5">
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </button>
         <div className="flex-1">

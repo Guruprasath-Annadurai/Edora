@@ -655,7 +655,7 @@ function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenPr
   return (
     <div className="h-full overflow-y-auto pb-nav">
       <div className="px-4 pt-12 pb-4 flex items-center gap-3">
-        <button
+        <button aria-label="Go back"
           onClick={onBack}
           className="w-9 h-9 rounded-2xl flex items-center justify-center text-white"
           style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}

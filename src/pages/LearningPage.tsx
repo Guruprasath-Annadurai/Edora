@@ -177,7 +177,7 @@ export default function LearningPage() {
               background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
               color: 'var(--ink-950)',
               boxShadow: '0 2px 12px rgba(91,106,245,0.35)' } : {
-              color: 'var(--ink-350)' }}
+              color: 'var(--ink-500)' }}
           >
             {t === 'tools' ? 'Study Tools' : 'My Progress'}
           </button>

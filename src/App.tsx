@@ -2,6 +2,7 @@ import React, { useEffect, useRef, lazy, Suspense } from 'react';
 import { AlertTriangle, Lock as LockIcon } from 'lucide-react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MotionConfig } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
@@ -203,7 +204,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   if (loading || profileLoading) return (
     <div className="flex flex-col items-center justify-center h-full gap-4 bg-gradient-page">
       <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-      <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--ink-300)' }}>
+      <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--ink-500)' }}>
         Loading…
       </p>
     </div>
@@ -534,15 +535,17 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider isPro={profile?.is_pro ?? false}>
-          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <ConnectionGuard>
-              <AppRoutes deepLinkNavigateRef={deepLinkNavigateRef} />
-            </ConnectionGuard>
-          </BrowserRouter>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <MotionConfig reducedMotion="user">
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider isPro={profile?.is_pro ?? false}>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <ConnectionGuard>
+                <AppRoutes deepLinkNavigateRef={deepLinkNavigateRef} />
+              </ConnectionGuard>
+            </BrowserRouter>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

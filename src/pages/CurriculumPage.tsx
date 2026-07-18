@@ -299,7 +299,7 @@ export default function CurriculumPage() {
         style={{ borderBottom: '1px solid var(--v2-border)' }}
       >
         <div className="flex items-center gap-3 mb-1">
-          <button
+          <button aria-label="Go back"
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
             style={{ background: 'var(--v2-elevated)', border: '1px solid var(--v2-border)' }}

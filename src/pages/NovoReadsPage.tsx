@@ -677,7 +677,7 @@ For all other paragraphs set question to null.`;
           borderColor: 'var(--ink-080)',
         }}
       >
-        <Link
+        <Link aria-label="Go back"
           to="/tools"
           className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center shrink-0"
         >

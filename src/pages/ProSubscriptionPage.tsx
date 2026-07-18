@@ -335,7 +335,7 @@ export default function ProSubscriptionPage() {
           {/* Features */}
           <div className="rounded-2xl p-4 flex flex-col gap-3"
             style={{ background: 'var(--ink-040)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '1px solid rgba(124,58,237,0.15)' }}>
-            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--ink-350)' }}>
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--ink-500)' }}>
               Everything you have
             </p>
             {FEATURES.map((f, i) => {
@@ -356,14 +356,14 @@ export default function ProSubscriptionPage() {
           </div>
 
           {platform !== 'web' && (
-            <p className="text-center text-xs" style={{ color: 'var(--ink-300)' }}>
+            <p className="text-center text-xs" style={{ color: 'var(--ink-500)' }}>
               To cancel, manage your subscription in {platform === 'android' ? 'Google Play Store' : 'iPhone Settings'} → Subscriptions.
             </p>
           )}
           {platform === 'web' && (
             <button onClick={() => setCancelConfirm(true)}
               className="text-center text-xs py-2"
-              style={{ color: 'var(--ink-300)' }}>
+              style={{ color: 'var(--ink-500)' }}>
               Cancel subscription
             </button>
           )}
@@ -523,7 +523,7 @@ export default function ProSubscriptionPage() {
 
         {/* Feature cards */}
         <div className="flex flex-col gap-2.5">
-          <p className="text-xs font-bold uppercase tracking-wider px-0.5" style={{ color: 'var(--ink-350)' }}>
+          <p className="text-xs font-bold uppercase tracking-wider px-0.5" style={{ color: 'var(--ink-500)' }}>
             Everything in Pro
           </p>
           {FEATURES.map((f, i) => {
@@ -557,7 +557,7 @@ export default function ProSubscriptionPage() {
             { Icon: GraduationCap, text: 'Built for Indian students, priced fairly' },
           ].map(({ Icon, text }, i) => (
             <div key={i} className="flex items-center gap-2.5">
-              <Icon size={13} style={{ color: 'var(--ink-300)' }} className="shrink-0" />
+              <Icon size={13} style={{ color: 'var(--ink-500)' }} className="shrink-0" />
               <p className="text-xs" style={{ color: 'var(--ink-450)' }}>{text}</p>
             </div>
           ))}
@@ -569,7 +569,7 @@ export default function ProSubscriptionPage() {
             onClick={handleRestore}
             disabled={restoring}
             className="text-center text-xs py-2 flex items-center justify-center gap-1.5 disabled:opacity-50"
-            style={{ color: 'var(--ink-350)' }}>
+            style={{ color: 'var(--ink-500)' }}>
             {restoring ? <RefreshCw size={11} className="animate-spin" /> : null}
             Restore previous purchase
           </button>
@@ -608,7 +608,7 @@ export default function ProSubscriptionPage() {
         </motion.button>
 
         {/* Legally required billing disclosure */}
-        <p className="text-center text-xs mt-2 leading-relaxed" style={{ color: 'var(--ink-280)' }}>
+        <p className="text-center text-xs mt-2 leading-relaxed" style={{ color: 'var(--ink-500)' }}>
           {currentPlan.legalLine}{' '}
           {platform === 'ios'
             ? 'Manage subscription in iPhone Settings → Subscriptions.'

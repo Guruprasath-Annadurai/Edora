@@ -164,7 +164,7 @@ export default function AccountSettingsPage() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}>
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Display Name</p>
           <input type="text" value={name} onChange={e => setName(e.target.value)}
-            placeholder="Your full name"
+            placeholder="Your full name" aria-label="Display name"
             className="rounded-2xl px-4 h-12 text-white placeholder:text-white/30 outline-none w-full text-sm"
             style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
         </motion.div>
@@ -172,9 +172,10 @@ export default function AccountSettingsPage() {
         {/* Study level */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Study Level</p>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" role="radiogroup" aria-label="Study level">
             {STUDY_LEVELS.map(({ value, label }) => (
               <button key={value} onClick={() => setLevel(value as 'school' | 'college' | 'jee_neet' | 'sat_act')}
+                role="radio" aria-checked={level === value}
                 className="flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left"
                 style={level === value
                   ? { background: 'rgba(91,106,245,0.15)', borderColor: 'rgba(91,106,245,0.5)' }
@@ -194,12 +195,13 @@ export default function AccountSettingsPage() {
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Exam Countdown</p>
           <div className="flex flex-col gap-2">
             <input type="text" value={examName} onChange={e => setExamName(e.target.value)}
-              placeholder="Exam name (e.g. JEE Main, NEET, SAT)"
+              placeholder="Exam name (e.g. JEE Main, NEET, SAT)" aria-label="Exam name"
               className="rounded-2xl px-4 h-12 text-white placeholder:text-white/30 outline-none w-full text-sm"
               style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
             <input type="date" value={examDate} onChange={e => setExamDate(e.target.value)}
               min={new Date().toISOString().slice(0, 10)}
               max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
+              aria-label="Exam date"
               className="rounded-2xl px-4 h-12 text-white outline-none w-full text-sm"
               style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', colorScheme: 'dark' }} />
             <p className="text-xs text-muted-foreground px-1">Shows a countdown on your home screen</p>

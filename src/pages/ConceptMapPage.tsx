@@ -973,7 +973,7 @@ export default function ConceptMapPage() {
         className="flex items-center justify-between px-4 pt-safe shrink-0"
         style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 12 }}
       >
-        <Link
+        <Link aria-label="Go back"
           to="/tools"
           className="w-9 h-9 rounded-xl flex items-center justify-center"
           style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}

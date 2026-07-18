@@ -274,7 +274,7 @@ export function OnboardingTour({ onDone }: OnboardingTourProps) {
                 />
               ))}
             </div>
-            <button
+            <button aria-label="Close"
               onClick={skip}
               className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-90 transition-transform"
               style={{ background: 'var(--ink-070)', border: '1px solid var(--b2)', color: 'var(--t3)' }}

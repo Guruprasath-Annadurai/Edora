@@ -125,7 +125,7 @@ export function ConnectionGuard({ children }: { children: React.ReactNode }) {
                   >
                     Download
                   </button>
-                  <button onClick={dismissNudge} className="p-1 active:scale-90 transition-transform">
+                  <button aria-label="Close" onClick={dismissNudge} className="p-1 active:scale-90 transition-transform">
                     <X size={14} className="text-white/30" />
                   </button>
                 </div>

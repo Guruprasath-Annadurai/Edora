@@ -77,7 +77,7 @@ export function NovoMarkdown({ content, isStreaming = false, isUser = false }: N
             }}
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
-          <span style={{ fontSize: '10px', color: 'var(--ink-280)', marginTop: '4px', display: 'block' }}>
+          <span style={{ fontSize: '10px', color: 'var(--ink-500)', marginTop: '4px', display: 'block' }}>
             AI-generated diagram
           </span>
         </span>

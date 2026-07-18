@@ -155,7 +155,7 @@ function TopicRow({ stat }: { stat: TopicStat }) {
     <div className="flex items-center gap-3 py-2">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">{stat.topic}</p>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--ink-350)' }}>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>
           {stat.total_q} questions · {stat.subject}
         </p>
       </div>
@@ -441,7 +441,7 @@ export default function WeaknessRadarPage() {
                 {selectedSubject ?? 'All Topics'}
               </h2>
               {filteredTopics.length === 0 ? (
-                <p className="text-sm text-center py-4" style={{ color: 'var(--ink-300)' }}>
+                <p className="text-sm text-center py-4" style={{ color: 'var(--ink-500)' }}>
                   No data for {selectedSubject}
                 </p>
               ) : (

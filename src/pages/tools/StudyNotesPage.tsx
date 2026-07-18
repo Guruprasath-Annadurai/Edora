@@ -107,7 +107,7 @@ export default function StudyNotesPage() {
             className="absolute inset-0 z-50 bg-gradient-page flex flex-col">
             <div className="px-4 py-3 flex items-center gap-3 shrink-0"
               style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
-              <button onClick={() => setViewing(null)}
+              <button aria-label="Close" onClick={() => setViewing(null)}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
                 style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                 <X size={18} className="text-white" />

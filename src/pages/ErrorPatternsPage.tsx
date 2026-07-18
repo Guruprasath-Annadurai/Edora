@@ -598,7 +598,7 @@ export default function ErrorPatternsPage() {
         className="px-4 py-3 shrink-0 flex items-center gap-3"
         style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}
       >
-        <Link
+        <Link aria-label="Go back"
           to="/home"
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}

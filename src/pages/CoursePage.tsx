@@ -124,7 +124,7 @@ function ClassSelector({ onSelect }: { onSelect: (classNum: number) => void }) {
               ? <Target size={22} className="mb-2" style={{ color: '#A0AEFF' }} strokeWidth={1.7} />
               : <BookOpen size={22} className="mb-2" style={{ color: '#A0AEFF' }} strokeWidth={1.7} />}
             <p className="font-heading font-bold text-white text-sm leading-tight">{c.label}</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--ink-350)' }}>
+            <p className="text-xs mt-1" style={{ color: 'var(--ink-500)' }}>
               {c.subjects.length} subjects
             </p>
             <ChevronRight size={14} style={{ color: 'var(--ink-250)', position: 'absolute', right: 12, bottom: 16 }} />
@@ -141,7 +141,7 @@ function ClassSelector({ onSelect }: { onSelect: (classNum: number) => void }) {
         </div>
         <div>
           <p className="text-xs font-semibold" style={{ color: '#A0AEFF' }}>Free for Everyone</p>
-          <p className="text-xs" style={{ color: 'var(--ink-350)' }}>NCERT-aligned · Classes 9–12</p>
+          <p className="text-xs" style={{ color: 'var(--ink-500)' }}>NCERT-aligned · Classes 9–12</p>
         </div>
       </div>
     </div>
@@ -187,7 +187,7 @@ function SubjectGrid({
             <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle at 80% 20%, ${s.glowColor}, transparent 65%)` }} />
             <span className="text-3xl mb-3 block">{s.emoji}</span>
             <p className="font-heading font-bold text-white text-sm">{s.name}</p>
-            <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--ink-350)' }}>
+            <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--ink-500)' }}>
               {s.chapters.length} chapters
             </p>
 
@@ -374,7 +374,7 @@ function LessonList({
                 </div>
                 <p className="font-heading font-semibold text-sm text-white leading-tight">{lesson.title}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-350)' }}>
+                  <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-500)' }}>
                     <Clock size={10} /> {lesson.duration} min
                   </span>
                   {!unlocked && (
@@ -461,7 +461,7 @@ function LessonViewer({
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
             style={{ background: meta.bg, color: meta.color }}>{meta.label}</span>
-          <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-350)' }}>
+          <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-500)' }}>
             <Clock size={10} /> {lesson.duration} min
           </span>
           {isComplete && (
@@ -638,7 +638,7 @@ function PageHeader({
       <div className="flex-1 min-w-0">
         <h1 className="font-heading font-bold text-white text-base leading-tight truncate">{title()}</h1>
         {subtitle() && (
-          <p className="text-xs truncate" style={{ color: 'var(--ink-350)' }}>{subtitle()}</p>
+          <p className="text-xs truncate" style={{ color: 'var(--ink-500)' }}>{subtitle()}</p>
         )}
       </div>
 

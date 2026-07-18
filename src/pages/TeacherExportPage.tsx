@@ -437,7 +437,7 @@ export default function TeacherExportPage() {
                 <p className="font-semibold text-white text-sm">Teacher Export</p>
                 <p className="text-xs" style={{ color: 'var(--ink-500)' }}>Generated {timeAgo(exportData.generated_at)}</p>
               </div>
-              <button
+              <button aria-label="Close"
                 onClick={() => setShowModal(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-xl text-white"
                 style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-100)' }}>

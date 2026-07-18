@@ -347,7 +347,7 @@ export default function FriendsPage() {
                     className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(16,185,129,0.18)' }}>
                     <Check className="w-4.5 h-4.5" style={{ color: '#34D399' }} />
                   </button>
-                  <button onClick={() => declineRequest(r.friendship_id)}
+                  <button aria-label="Close" onClick={() => declineRequest(r.friendship_id)}
                     className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,0.15)' }}>
                     <X className="w-4.5 h-4.5" style={{ color: '#F87171' }} />
                   </button>

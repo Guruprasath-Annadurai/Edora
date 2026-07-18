@@ -72,7 +72,7 @@ export function SpeedReaderOverlay({ open, onClose, content, title }: Props) {
               <Type size={16} style={{ color: '#A855F7' }} />
               <span className="font-heading font-bold text-white text-sm">{title ?? 'Speed Reader'}</span>
             </div>
-            <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center"
+            <button aria-label="Close" onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center"
               style={{ background: 'var(--ink-060)' }}>
               <X size={16} className="text-white" />
             </button>
@@ -124,7 +124,7 @@ export function SpeedReaderOverlay({ open, onClose, content, title }: Props) {
           {/* Line spacing */}
           <div className="flex items-center gap-3 px-4 py-2 shrink-0"
             style={{ borderBottom: '1px solid var(--ink-040)' }}>
-            <span className="text-xs" style={{ color: 'var(--ink-350)' }}>Line spacing</span>
+            <span className="text-xs" style={{ color: 'var(--ink-500)' }}>Line spacing</span>
             {[1.4, 1.7, 2.1].map(lh => (
               <button key={lh} onClick={() => setLineH(lh)}
                 className="px-2.5 py-0.5 rounded-full text-xs font-medium transition-all"
@@ -158,7 +158,7 @@ export function SpeedReaderOverlay({ open, onClose, content, title }: Props) {
           <div className="shrink-0 px-4 py-3"
             style={{ borderTop: '1px solid var(--ink-050)' }}>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs" style={{ color: 'var(--ink-350)' }}>Progress</span>
+              <span className="text-xs" style={{ color: 'var(--ink-500)' }}>Progress</span>
               <span className="text-xs font-mono" style={{ color: 'var(--ink-450)' }}>
                 {wordIdx}/{words.length} words
               </span>

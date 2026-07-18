@@ -75,7 +75,7 @@ export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nex
             {/* Handle + close */}
             <div className="flex items-center justify-between">
               <div className="w-10 h-1 rounded-full" style={{ background: 'var(--ink-120)' }} />
-              <button onClick={handleClose} className="w-8 h-8 rounded-full flex items-center justify-center"
+              <button aria-label="Close" onClick={handleClose} className="w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: 'var(--ink-060)' }}>
                 <X size={14} className="text-white" />
               </button>
@@ -111,7 +111,7 @@ export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nex
             {/* Topics covered */}
             {topics.length > 0 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ink-350)' }}>
+                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ink-500)' }}>
                   Covered today
                 </p>
                 <div className="flex flex-wrap gap-2">

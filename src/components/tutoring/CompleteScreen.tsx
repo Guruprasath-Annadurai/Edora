@@ -96,7 +96,7 @@ export function CompleteScreen({
                 </div>
                 <span className="text-sm text-white/85">{concept.title}</span>
                 <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide"
-                  style={{ color: concept.status === 'mastered' ? '#34D399' : concept.status === 'partial' ? '#FBBF24' : 'var(--ink-300)' }}>
+                  style={{ color: concept.status === 'mastered' ? '#34D399' : concept.status === 'partial' ? '#FBBF24' : 'var(--ink-500)' }}>
                   {concept.status}
                 </span>
               </div>

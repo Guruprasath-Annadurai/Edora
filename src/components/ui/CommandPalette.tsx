@@ -133,7 +133,7 @@ export function CommandPalette({ open, onClose }: Props) {
                 spellCheck={false}
               />
               {query && (
-                <button onClick={() => setQuery('')}
+                <button aria-label="Close" onClick={() => setQuery('')}
                   className="flex items-center justify-center"
                   style={{ width: 28, height: 28 }}>
                   <X size={14} className="text-white/40" />
@@ -203,7 +203,7 @@ export function CommandPalette({ open, onClose }: Props) {
               {query.trim() && results.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-10 gap-2">
                   <Search size={28} className="text-white/25" strokeWidth={1.6} />
-                  <p className="text-sm" style={{ color: 'var(--ink-350)' }}>
+                  <p className="text-sm" style={{ color: 'var(--ink-500)' }}>
                     No results for <span className="text-white/60">"{query}"</span>
                   </p>
                 </div>
@@ -213,7 +213,7 @@ export function CommandPalette({ open, onClose }: Props) {
               {!query.trim() && recents.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-10 gap-2">
                   <span className="text-3xl">✨</span>
-                  <p className="text-sm" style={{ color: 'var(--ink-350)' }}>
+                  <p className="text-sm" style={{ color: 'var(--ink-500)' }}>
                     Start typing to explore Edora
                   </p>
                 </div>

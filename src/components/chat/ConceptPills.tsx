@@ -18,7 +18,7 @@ export function ConceptPills({ concepts, onTap }: Props) {
       transition={{ delay: 0.15 }}
       style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}
     >
-      <span style={{ fontSize: 12, color: 'var(--ink-300)', fontWeight: 600, alignSelf: 'center', letterSpacing: 0.5 }}>
+      <span style={{ fontSize: 12, color: 'var(--ink-500)', fontWeight: 600, alignSelf: 'center', letterSpacing: 0.5 }}>
         EXPLORE →
       </span>
       {concepts.map((c) => (

@@ -446,7 +446,7 @@ export default function SpacedRepetitionPage() {
 
         {/* Top bar */}
         <div className="shrink-0 px-4 pt-4 pb-2 flex items-center gap-3">
-          <button
+          <button aria-label="Close"
             onClick={handleExitReview}
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
             style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-120)' }}
@@ -675,7 +675,7 @@ export default function SpacedRepetitionPage() {
         className="shrink-0 px-4 py-3 flex items-center gap-3"
         style={{ borderBottom: '1px solid var(--ink-070)' }}
       >
-        <Link
+        <Link aria-label="Go back"
           to="/home"
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
           style={{ background: 'var(--ink-080)', border: '1px solid var(--ink-120)' }}

@@ -271,7 +271,7 @@ export default function OfflineModePage() {
     <div className="h-full text-white">
       {/* Header */}
       <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'var(--hdr-a-820)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
-        <Link to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
+        <Link aria-label="Go back" to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </Link>
         <div className="flex-1">
