@@ -242,7 +242,7 @@ Return JSON:
     await supabase.rpc('increment_xp', { user_id: user.id, amount: total_xp });
 
     // Update profile streak_count if this is the user's longest app streak
-    await supabase.rpc('update_streak_on_challenge', { p_user_id: user.id }).catch(e =>
+    await supabase.rpc('update_streak_on_challenge', { p_user_id: user.id }).catch((e: Error) =>
       console.error('[streak-challenges] update_streak_on_challenge failed:', e?.message)
     );
 
