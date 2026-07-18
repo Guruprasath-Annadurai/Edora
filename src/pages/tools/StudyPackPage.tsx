@@ -7,7 +7,9 @@
 //   2. If text < 100 chars → Cloud Vision OCR on each rendered page
 //      (handles scanned textbooks, photographed slides, printed papers)
 //
-// Generation: study-pack-generator Edge Function (Gemini JSON mode)
+// Generation: queued into document_jobs, processed in the background by
+//             the process-document-jobs edge function (Gemini JSON mode) —
+//             see that function for the retry+validate generation logic.
 // Storage:    Supabase Storage "study-pdfs" bucket (best-effort)
 // ═══════════════════════════════════════════════════════════════
 
@@ -53,13 +55,25 @@ interface StudyPack {
 
 type Tab      = 'summary' | 'flashcards' | 'quiz' | 'terms';
 type Phase    = 'list' | 'generating' | 'viewing';
-type GenStep  = 0 | 1 | 2;
+type GenStep  = 0 | 1;
 
+// Generation itself (step 2 previously) now happens in the background via
+// the document_jobs queue + process-document-jobs worker — a synchronous
+// call here used to block the user on a "generating" screen for up to
+// ~135s (3 retry attempts x 45s Gemini timeout), and lost the whole upload
+// if they backgrounded the app mid-wait. Now the user gets control back as
+// soon as the file is queued.
 const GEN_STEPS = [
-  { label: 'Reading your PDF',        detail: 'Extracting text from all pages…' },
-  { label: 'Novo is analyzing',       detail: 'Understanding key concepts & structure…' },
-  { label: 'Building your study pack', detail: 'Generating flashcards, quiz & summary…' },
+  { label: 'Reading your PDF',  detail: 'Extracting text from all pages…' },
+  { label: 'Queuing for Novo',  detail: 'Uploading and handing off to the background worker…' },
 ];
+
+interface DocumentJob {
+  id: string;
+  file_name: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  error: string | null;
+}
 
 const MAX_PDF_BYTES  = 10 * 1024 * 1024; // 10 MB
 const MAX_OCR_PAGES  = 8;                // Cloud Vision cost/speed limit
@@ -324,6 +338,7 @@ export default function StudyPackPage() {
   const [activeTab,   setActiveTab]   = useState<Tab>('summary');
   const [cardIndex,   setCardIndex]   = useState(0);
   const [deleting,    setDeleting]    = useState<string | null>(null);
+  const [jobs,        setJobs]        = useState<DocumentJob[]>([]);
   // OCR fallback state
   const [isOcrMode,   setIsOcrMode]   = useState(false);
   const [ocrPage,     setOcrPage]     = useState(0);   // current page being OCR'd
@@ -343,6 +358,51 @@ export default function StudyPackPage() {
       setPacks((data as StudyPack[]) ?? []);
       setLoadingList(false);
     })();
+  }, [user]);
+
+  // Load any jobs still in flight (pending/processing) so a queued upload
+  // shows up as "processing" if the user left and came back, and subscribe
+  // to status changes so completion/failure surfaces without polling.
+  useEffect(() => {
+    if (!user) return;
+
+    (async () => {
+      const { data } = await supabase
+        .from('document_jobs')
+        .select('id, file_name, status, error')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'processing'])
+        .order('created_at', { ascending: false });
+      setJobs((data as DocumentJob[]) ?? []);
+    })();
+
+    const channel = supabase
+      .channel(`document_jobs_${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'document_jobs', filter: `user_id=eq.${user.id}` },
+        async (payload) => {
+          const job = payload.new as { id: string; status: string; file_name: string; study_pack_id: string | null; error: string | null };
+
+          if (job.status === 'completed' && job.study_pack_id) {
+            const { data: pack } = await supabase.from('study_packs').select('*').eq('id', job.study_pack_id).single();
+            if (pack) {
+              setPacks(prev => [pack as StudyPack, ...prev]);
+              showToast(`"${job.file_name}" is ready!`);
+            }
+            setJobs(prev => prev.filter(j => j.id !== job.id));
+          } else if (job.status === 'failed') {
+            showToast(`Couldn't generate a study pack for "${job.file_name}" — please try again.`);
+            setJobs(prev => prev.filter(j => j.id !== job.id));
+          } else {
+            setJobs(prev => prev.map(j => j.id === job.id ? { id: job.id, file_name: job.file_name, status: job.status as DocumentJob['status'], error: job.error } : j));
+          }
+        },
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // ── PDF upload & generation pipeline ───────────────────────────────────────
@@ -418,53 +478,29 @@ export default function StudyPackPage() {
         console.warn('[StudyPack] PDF upload exception (non-fatal):', uploadErr);
       }
 
-      setGenStep(2);
-
-      // ── Step 2: Generate study pack via Edge Function ───────────
-      const { data, error: fnError } = await supabase.functions.invoke('study-pack-generator', {
-        body: { text: extractedText, fileName: file.name },
-      });
-
-      if (fnError) {
-        const msg = (fnError as { message?: string }).message ?? 'Generation failed';
-        if (msg.includes('rate_limit')) throw new Error('Too many requests — please wait a moment and try again.');
-        if (msg.includes('timeout'))   throw new Error('Generation timed out — try a shorter PDF.');
-        throw new Error(msg);
-      }
-
-      const pack = (data as { pack: Omit<StudyPack, 'id' | 'user_id' | 'file_name' | 'pdf_path' | 'page_count' | 'char_count' | 'created_at'> }).pack;
-      if (!pack?.summary) throw new Error('Invalid response from server. Please try again.');
-
-      // ── Step 3: Persist to DB ───────────────────────────────────
-      const { data: saved, error: dbErr } = await supabase
-        .from('study_packs')
+      // ── Step 1b: Queue the job — generation runs in the background ──
+      // (see process-document-jobs edge function + document_jobs table).
+      // We hand off here instead of waiting on Gemini synchronously.
+      const { data: job, error: jobErr } = await supabase
+        .from('document_jobs')
         .insert({
-          user_id:    user.id,
-          file_name:  file.name,
-          pdf_path:   pdfPath,
-          summary:    pack.summary,
-          flashcards: pack.flashcards,
-          quiz:       pack.quiz,
-          key_terms:  pack.key_terms,
-          page_count: pageCount || null,
-          char_count: extractedText.length,
+          user_id:        user.id,
+          file_name:      file.name,
+          pdf_path:       pdfPath,
+          extracted_text: extractedText,
+          char_count:     extractedText.length,
+          page_count:     pageCount || null,
         })
-        .select()
+        .select('id, file_name, status, error')
         .single();
 
-      if (dbErr) throw new Error('Failed to save study pack. Please try again.');
+      if (jobErr || !job) throw new Error('Failed to queue your PDF. Please try again.');
 
-      track('study_pack_generate_success', {
-        file_name: file.name,
-        page_count: pageCount,
-        flashcard_count: pack.flashcards.length,
-        quiz_count: pack.quiz.length,
-        key_term_count: pack.key_terms.length,
-      });
+      track('study_pack_generate_queued', { file_name: file.name, page_count: pageCount });
 
-      const newPack = saved as StudyPack;
-      setPacks(prev => [newPack, ...prev]);
-      openPack(newPack);
+      setJobs(prev => [job as DocumentJob, ...prev]);
+      setPhase('list');
+      await showToast(`"${file.name}" is queued — we'll notify you when it's ready (usually under a minute).`);
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
@@ -811,6 +847,32 @@ export default function StudyPackPage() {
             </div>
           ))}
         </div>
+
+        {/* Jobs still processing in the background */}
+        {jobs.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+              Processing
+            </p>
+            {jobs.map(job => (
+              <div key={job.id}
+                className="w-full rounded-2xl p-4 flex items-center gap-3"
+                style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(91,106,245,0.15)' }}>
+                  <motion.div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent"
+                    animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-white text-sm truncate">{job.file_name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Novo is building your study pack…
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Saved packs */}
         {!loadingList && packs.length > 0 && (

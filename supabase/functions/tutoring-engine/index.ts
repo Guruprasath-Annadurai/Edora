@@ -146,6 +146,25 @@ async function callGeminiJSONOnce<T>(
   return JSON.parse(cleaned) as T;
 }
 
+// ── Cheating-prompt guard ────────────────────────────────────────────────
+// Deliberately narrow regex screen, not a full moderation model — checked
+// before any LLM call so a "just do it for me" request never reaches
+// billing. False negatives fall through to normal teaching (fine); false
+// positives would block a legitimate question, so patterns require fairly
+// explicit "for me" / "directly" phrasing rather than any mention of an
+// assignment.
+const CHEATING_PATTERNS: RegExp[] = [
+  /write (my|this|the) (essay|assignment|paper|report)s?\s+for me/i,
+  /do (my|this) (homework|assignment|project)\s+for me/i,
+  /(just\s+)?give me the (answer|solution)s?\s+(directly|straight away|without explaining|right now)/i,
+  /complete (my|this) (assignment|homework|project)\s+for me/i,
+  /can you (just )?do (my|this) (homework|assignment) for me/i,
+];
+
+function isCheatingRequest(text: string): boolean {
+  return CHEATING_PATTERNS.some(re => re.test(text));
+}
+
 // callGemini already has cross-provider fallback (Groq primary/fallback →
 // Gemini), but that only covers provider-level failure — a parseable but
 // structurally-invalid response (or a malformed-JSON response from every
@@ -439,6 +458,17 @@ ${modeInstruction}`;
 async function handleMessage(body: Record<string, unknown>, userId: string, jwt: string, cors: Record<string, string>) {
   const { session_id, message: studentMessage } = body as { session_id: string; message: string };
   if (!session_id || !studentMessage?.trim()) return softError('session_id and message required', 'MISSING_FIELDS', cors);
+
+  if (isCheatingRequest(studentMessage)) {
+    return ok({
+      message: {
+        role: 'novo',
+        content: "I'm here to help you actually learn this, not do it for you — that shortcut just leaves you stuck when the real exam shows up. Tell me which part is tricky and I'll walk you through it step by step, or give it your own shot first and I'll check it.",
+        message_type: 'teaching',
+      },
+      session_state: { phase: 'teaching', teaching_exchanges: 0, show_checkpoint_prompt: false },
+    }, cors);
+  }
 
   const db = adminClient();
 
