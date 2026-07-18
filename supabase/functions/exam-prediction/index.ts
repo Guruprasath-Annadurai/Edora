@@ -112,7 +112,7 @@ async function computeReadinessForUser(
     { data: mockAttempts },
   ] = await Promise.all([
     supabase.from('profiles').select('full_name,xp,level,exam_date,study_level').eq('id', userId).single(),
-    supabase.from('sr_cards').select('subject,topic,ef_factor,repetitions,last_reviewed_at,next_review_date').eq('user_id', userId),
+    supabase.from('sr_cards').select('subject,topic,easiness_factor,repetitions,last_reviewed_at,next_review_date').eq('user_id', userId),
     supabase.from('user_challenge_attempts').select('score,subject,challenge_date').eq('user_id', userId).eq('status', 'completed').order('challenge_date', { ascending: false }).limit(30),
     supabase.from('sprint_sessions').select('xp_earned,completed,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(30),
     supabase.from('confidence_events').select('subject,topic,confidence_score').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
@@ -134,9 +134,9 @@ async function computeReadinessForUser(
     }
     const sub = masteryBySubject[card.subject];
     sub.total++;
-    sub.avg_ef += card.ef_factor;
-    if (card.ef_factor >= 2.5 && card.repetitions >= 3) sub.mastered++;
-    if (card.ef_factor < 2.0) sub.weak_topics.push(card.topic);
+    sub.avg_ef += card.easiness_factor;
+    if (card.easiness_factor >= 2.5 && card.repetitions >= 3) sub.mastered++;
+    if (card.easiness_factor < 2.0) sub.weak_topics.push(card.topic);
   }
   const subjects = Object.keys(masteryBySubject);
   for (const sub of subjects) {

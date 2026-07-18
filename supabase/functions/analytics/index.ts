@@ -64,7 +64,7 @@ serve(withSentry('analytics', async (req) => {
     // 1. SR card last reviews (most granular — topic level)
     const { data: srCards } = await supabase
       .from('sr_cards')
-      .select('subject, topic, last_reviewed_at, next_review_date, ef_factor, repetitions')
+      .select('subject, topic, last_reviewed_at, next_review_date, easiness_factor, repetitions')
       .eq('user_id', user.id)
       .not('last_reviewed_at', 'is', null);
 
@@ -155,7 +155,7 @@ serve(withSentry('analytics', async (req) => {
       // Explicit timed events (most precise — weight 3)
       supabase.from('confidence_events').select('subject,topic,correct,response_time_ms,confidence_score').eq('user_id', user.id).gte('created_at', since90),
       // SR cards — EF factor is a strong proxy (weight 2)
-      supabase.from('sr_cards').select('subject,topic,ef_factor,repetitions').eq('user_id', user.id),
+      supabase.from('sr_cards').select('subject,topic,easiness_factor,repetitions').eq('user_id', user.id),
       // Challenge scores → subject-level confidence proxy (weight 1)
       supabase.from('user_challenge_attempts').select('subject,score,status').eq('user_id', user.id).eq('status','completed'),
       // Story sessions — concept checkpoints passed = understood (weight 1)
@@ -194,7 +194,7 @@ serve(withSentry('analytics', async (req) => {
 
     // 2. SR cards via EF factor (weight 2 — strong academic signal)
     for (const card of srCards ?? []) {
-      addScore(card.subject, card.topic, efToConfidence(card.ef_factor, card.repetitions), 2);
+      addScore(card.subject, card.topic, efToConfidence(card.easiness_factor, card.repetitions), 2);
     }
 
     // 3. Challenge scores → subject confidence (weight 1)
@@ -407,7 +407,7 @@ serve(withSentry('analytics', async (req) => {
     ] = await Promise.all([
       supabase.from('profiles').select('full_name,xp,level,streak_count,exam_date').eq('id', user.id).single(),
       supabase.from('sprint_sessions').select('xp_earned,completed,created_at').eq('user_id', user.id).gte('created_at', since),
-      supabase.from('sr_cards').select('subject,topic,ef_factor,repetitions,last_reviewed_at').eq('user_id', user.id),
+      supabase.from('sr_cards').select('subject,topic,easiness_factor,repetitions,last_reviewed_at').eq('user_id', user.id),
       supabase.from('user_challenge_attempts').select('score,xp_earned,challenge_date,subject').eq('user_id', user.id).gte('challenge_date', since.slice(0,10)),
       supabase.from('debate_sessions').select('score,topic,created_at').eq('user_id', user.id).gte('created_at', since),
       supabase.from('story_sessions').select('xp_earned,concepts_covered,created_at').eq('user_id', user.id).gte('created_at', since),
@@ -424,8 +424,8 @@ serve(withSentry('analytics', async (req) => {
       if (!masteryBySubject[card.subject]) masteryBySubject[card.subject] = { total: 0, avg_ef: 0, mastered: 0 };
       const sub = masteryBySubject[card.subject];
       sub.total++;
-      sub.avg_ef += card.ef_factor;
-      if (card.ef_factor >= 2.5 && card.repetitions >= 3) sub.mastered++;
+      sub.avg_ef += card.easiness_factor;
+      if (card.easiness_factor >= 2.5 && card.repetitions >= 3) sub.mastered++;
     }
     for (const sub of Object.keys(masteryBySubject)) {
       const s = masteryBySubject[sub];

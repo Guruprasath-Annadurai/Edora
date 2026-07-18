@@ -228,7 +228,7 @@ serve(withSentry('weekly-report', async (req) => {
     ] = await Promise.all([
       supabase.from('profiles').select('full_name,xp,level,streak_count,exam_date').eq('id', user.id).single(),
       supabase.from('sprint_sessions').select('xp_earned,completed,subject,created_at').eq('user_id', user.id).gte('created_at', since).lte('created_at', weekEnd),
-      supabase.from('sr_cards').select('subject,topic,ef_factor,repetitions').eq('user_id', user.id),
+      supabase.from('sr_cards').select('subject,topic,easiness_factor,repetitions').eq('user_id', user.id),
       supabase.from('user_challenge_attempts').select('score,subject,status,xp_earned').eq('user_id', user.id).gte('challenge_date', start).lte('challenge_date', weekEnd),
       supabase.from('story_sessions').select('scenario_title,concepts_covered,xp_earned,status').eq('user_id', user.id).gte('created_at', since),
       supabase.from('debate_sessions').select('topic,score').eq('user_id', user.id).gte('created_at', since),
@@ -246,9 +246,9 @@ serve(withSentry('weekly-report', async (req) => {
       if (!masteryBySubject[card.subject]) masteryBySubject[card.subject] = { mastered: 0, total: 0, avg_ef: 0, weak_topics: [] };
       const s = masteryBySubject[card.subject];
       s.total++;
-      s.avg_ef += card.ef_factor;
-      if (card.ef_factor >= 2.5 && card.repetitions >= 3) s.mastered++;
-      else if (card.ef_factor < 1.9) s.weak_topics.push(card.topic);
+      s.avg_ef += card.easiness_factor;
+      if (card.easiness_factor >= 2.5 && card.repetitions >= 3) s.mastered++;
+      else if (card.easiness_factor < 2.0) s.weak_topics.push(card.topic);
     }
     for (const sub of Object.keys(masteryBySubject)) {
       const s = masteryBySubject[sub];

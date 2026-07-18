@@ -107,10 +107,10 @@ serve(withSentry('streak-challenges', async (req) => {
       // Check SR cards with low EF factor (weak areas)
       const { data: weakCards } = await supabase
         .from('sr_cards')
-        .select('subject, topic, ef_factor')
+        .select('subject, topic, easiness_factor')
         .eq('user_id', user.id)
-        .lt('ef_factor', 2.2)
-        .order('ef_factor')
+        .lt('easiness_factor', 2.2)
+        .order('easiness_factor')
         .limit(5);
 
       if (weakCards?.length) {

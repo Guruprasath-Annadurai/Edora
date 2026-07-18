@@ -216,7 +216,7 @@ serve(withSentry('teacher-export', async (req) => {
       { data: prediction },
     ] = await Promise.all([
       supabase.from('profiles').select('full_name,xp,level,exam_date,study_level').eq('id', user.id).single(),
-      supabase.from('sr_cards').select('subject,topic,ef_factor,repetitions,last_reviewed_at').eq('user_id', user.id),
+      supabase.from('sr_cards').select('subject,topic,easiness_factor,repetitions,last_reviewed_at').eq('user_id', user.id),
       supabase.from('error_patterns').select('subject,pattern_type,frequency,example_question').eq('user_id', user.id).order('frequency', { ascending: false }).limit(15),
       supabase.from('sprint_sessions').select('xp_earned,completed,created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(56), // ~8 weeks
       supabase.from('exam_predictions').select('predicted_score,predicted_grade').eq('user_id', user.id).maybeSingle(),
@@ -232,11 +232,11 @@ serve(withSentry('teacher-export', async (req) => {
       }
       const s = masteryBySubject[card.subject];
       s.total++;
-      s.avg_ef += card.ef_factor;
-      if (card.ef_factor >= 2.5 && card.repetitions >= 3) {
+      s.avg_ef += card.easiness_factor;
+      if (card.easiness_factor >= 2.5 && card.repetitions >= 3) {
         s.mastered++;
         if (!s.strong_topics.includes(card.topic)) s.strong_topics.push(card.topic);
-      } else if (card.ef_factor < 2.0) {
+      } else if (card.easiness_factor < 2.0) {
         if (!s.weak_topics.includes(card.topic)) s.weak_topics.push(card.topic);
       }
     }
