@@ -8,11 +8,13 @@ import { BookIcon } from '@/components/ui/icons';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useT } from '@/hooks/useT';
+import type { UIStringKey } from '@/lib/i18n/uiStrings';
 
-const sections = [
+const sections: { titleKey: UIStringKey; descKey: UIStringKey; icon: typeof BookIcon; to: string; color: string; glow: string; iconBg: string; badge: string | null; live: boolean }[] = [
   {
-    title: 'Flashcards',
-    desc: 'SM-2 spaced repetition review',
+    titleKey: 'learning.section.flashcards.title',
+    descKey: 'learning.section.flashcards.desc',
     icon: BookIcon,
     to: '/flashcard',
     color: '#A0AEFF',
@@ -21,8 +23,8 @@ const sections = [
     badge: 'DUE_COUNT',
     live: true },
   {
-    title: 'AI Quiz',
-    desc: 'Generate MCQs on any topic',
+    titleKey: 'learning.section.quiz.title',
+    descKey: 'learning.section.quiz.desc',
     icon: Target,
     to: '/quiz',
     color: '#F9A8D4',
@@ -31,8 +33,8 @@ const sections = [
     badge: null,
     live: true },
   {
-    title: 'Knowledge Map',
-    desc: 'Visual concept relationships',
+    titleKey: 'learning.section.concept_map.title',
+    descKey: 'learning.section.concept_map.desc',
     icon: Map,
     to: '/concept-map',
     color: '#67E8F9',
@@ -41,8 +43,8 @@ const sections = [
     badge: null,
     live: true },
   {
-    title: 'Study Plan',
-    desc: 'AI roadmap to your exam',
+    titleKey: 'learning.section.study_plan.title',
+    descKey: 'learning.section.study_plan.desc',
     icon: Calendar,
     to: '/roadmap',
     color: '#6EE7B7',
@@ -51,8 +53,8 @@ const sections = [
     badge: null,
     live: true },
   {
-    title: 'Study Rooms',
-    desc: 'Collaborate with peers',
+    titleKey: 'learning.section.study_rooms.title',
+    descKey: 'learning.section.study_rooms.desc',
     icon: Users,
     to: '/study-rooms',
     color: '#FDE68A',
@@ -63,19 +65,25 @@ const sections = [
 ];
 
 // Content Moat features — shown as a separate section
-const CONTENT_MOAT = [
-  { title:'NCERT Deep Dive',    desc:'Every paragraph mapped with exam insights',  icon:BookOpen,     to:'/ncert-deep',  color:'#93C5FD', iconBg:'rgba(59,130,246,0.14)' },
-  { title:'Formula Sheet',      desc:'80+ formulas with derivations & mnemonics',  icon:Sigma,        to:'/formulas',    color:'#C4B5FD', iconBg:'rgba(139,92,246,0.14)' },
-  { title:'Revision Planner',   desc:'Countdown-aware week-by-week study plan',    icon:CalendarCheck,to:'/planner',     color:'#6EE7B7', iconBg:'rgba(16,185,129,0.14)' },
-  { title:'Concept Reels',      desc:'60-second TikTok-style concept videos',      icon:Play,         to:'/reels',       color:'#F472B6', iconBg:'rgba(236,72,153,0.14)' },
-  { title:'Solved Examples',    desc:'10,000+ step-by-step worked solutions',      icon:BarChart3,    to:'/solved',      color:'#FBBF24', iconBg:'rgba(245,158,11,0.14)' },
-  { title:'Regional Languages', desc:'Questions in Hindi + 6 Indian languages',    icon:Globe,        to:'/languages',   color:'#34D399', iconBg:'rgba(16,185,129,0.14)' },
+const CONTENT_MOAT: { titleKey: UIStringKey; descKey: UIStringKey; icon: typeof BookOpen; to: string; color: string; iconBg: string }[] = [
+  { titleKey:'learning.content_moat.ncert.title',     descKey:'learning.content_moat.ncert.desc',     icon:BookOpen,     to:'/ncert-deep',  color:'#93C5FD', iconBg:'rgba(59,130,246,0.14)' },
+  { titleKey:'learning.content_moat.formulas.title',  descKey:'learning.content_moat.formulas.desc',  icon:Sigma,        to:'/formulas',    color:'#C4B5FD', iconBg:'rgba(139,92,246,0.14)' },
+  { titleKey:'learning.content_moat.planner.title',   descKey:'learning.content_moat.planner.desc',   icon:CalendarCheck,to:'/planner',     color:'#6EE7B7', iconBg:'rgba(16,185,129,0.14)' },
+  { titleKey:'learning.content_moat.reels.title',     descKey:'learning.content_moat.reels.desc',     icon:Play,         to:'/reels',       color:'#F472B6', iconBg:'rgba(236,72,153,0.14)' },
+  { titleKey:'learning.content_moat.solved.title',    descKey:'learning.content_moat.solved.desc',    icon:BarChart3,    to:'/solved',      color:'#FBBF24', iconBg:'rgba(245,158,11,0.14)' },
+  { titleKey:'learning.content_moat.languages.title', descKey:'learning.content_moat.languages.desc', icon:Globe,        to:'/languages',   color:'#34D399', iconBg:'rgba(16,185,129,0.14)' },
 ];
 
-function activityLabel(title: string, weeklyStats: { sprints: number; quizzes: number; cards: number } | null): string | null {
+function activityLabel(
+  titleKey: UIStringKey,
+  weeklyStats: { sprints: number; quizzes: number; cards: number } | null,
+  t: (key: UIStringKey) => string,
+): string | null {
   if (!weeklyStats) return null;
-  if (title === 'Flashcards' && weeklyStats.cards > 0)  return `${weeklyStats.cards} reviewed`;
-  if (title === 'AI Quiz'    && weeklyStats.quizzes > 0) return `${weeklyStats.quizzes} this week`;
+  if (titleKey === 'learning.section.flashcards.title' && weeklyStats.cards > 0)
+    return `${weeklyStats.cards} ${t('learning.activity.reviewed_suffix')}`;
+  if (titleKey === 'learning.section.quiz.title' && weeklyStats.quizzes > 0)
+    return `${weeklyStats.quizzes} ${t('learning.activity.this_week_suffix')}`;
   return null;
 }
 
@@ -98,6 +106,7 @@ interface WeeklyStats { sprints: number; quizzes: number; cards: number; }
 
 export default function LearningPage() {
   const { user } = useAuth();
+  const t = useT();
   const [activeTab, setActiveTab]     = useState<'tools' | 'progress'>('tools');
   const [dueCount, setDueCount]       = useState<number | null>(null);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
@@ -145,12 +154,12 @@ export default function LearningPage() {
           <BookOpen size={20} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-widest text-white/40">Your Courses</p>
-          <h1 className="font-heading text-2xl font-extrabold text-white leading-tight">Learning Hub</h1>
+          <p className="text-xs font-extrabold uppercase tracking-widest text-white/40">{t('learning.eyebrow')}</p>
+          <h1 className="font-heading text-2xl font-extrabold text-white leading-tight">{t('learning.title')}</h1>
         </div>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('edora:open-command-palette'))}
-          aria-label="Search features"
+          aria-label={t('learning.search_aria')}
           className="flex items-center justify-center rounded-2xl shrink-0"
           style={{ width: 44, height: 44, background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
         >
@@ -168,18 +177,18 @@ export default function LearningPage() {
           border: '1px solid var(--ink-100)',
           boxShadow: 'inset 0 1px 0 var(--ink-080)' }}
       >
-        {(['tools','progress'] as const).map(t => (
+        {(['tools','progress'] as const).map(tabKey => (
           <button
-            key={t}
-            onClick={() => setActiveTab(t)}
+            key={tabKey}
+            onClick={() => setActiveTab(tabKey)}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
-            style={activeTab === t ? {
+            style={activeTab === tabKey ? {
               background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
               color: 'var(--ink-950)',
               boxShadow: '0 2px 12px rgba(91,106,245,0.35)' } : {
               color: 'var(--ink-500)' }}
           >
-            {t === 'tools' ? 'Study Tools' : 'My Progress'}
+            {tabKey === 'tools' ? t('learning.tab.tools') : t('learning.tab.progress')}
           </button>
         ))}
       </div>
@@ -207,12 +216,12 @@ export default function LearningPage() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="font-heading font-bold text-white text-sm">My Courses</p>
+                  <p className="font-heading font-bold text-white text-sm">{t('learning.my_courses.title')}</p>
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                    style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}>NEW</span>
+                    style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}>{t('learning.my_courses.badge_new')}</span>
                 </div>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>
-                  NCERT Classes 9–12 · Chapter-by-chapter
+                  {t('learning.my_courses.subtitle')}
                 </p>
               </div>
 
@@ -225,9 +234,9 @@ export default function LearningPage() {
       {/* Tools tab */}
       {activeTab === 'tools' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
-          {sections.map(({ title, desc, icon: Icon, to, color, glow, iconBg, badge, live }, i) => (
+          {sections.map(({ titleKey, descKey, icon: Icon, to, color, glow, iconBg, badge, live }, i) => (
             <motion.div
-              key={title}
+              key={titleKey}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
@@ -246,15 +255,15 @@ export default function LearningPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-white text-sm">{title}</p>
+                        <p className="font-semibold text-white text-sm">{t(titleKey)}</p>
                         {badge === 'DUE_COUNT' && dueCount !== null && dueCount > 0 && (
                           <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
                             style={{ background: color }}>
-                            Due: {dueCount}
+                            {t('learning.due_prefix')}: {dueCount}
                           </span>
                         )}
                         {(() => {
-                          const lbl = activityLabel(title, weeklyStats);
+                          const lbl = activityLabel(titleKey, weeklyStats, t);
                           return lbl ? (
                             <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                               style={{ background: 'rgba(16,185,129,0.15)', color: '#34D399', border: '1px solid rgba(16,185,129,0.2)' }}>
@@ -263,7 +272,7 @@ export default function LearningPage() {
                           ) : null;
                         })()}
                       </div>
-                      <p className="text-xs text-white/40 mt-0.5">{desc}</p>
+                      <p className="text-xs text-white/40 mt-0.5">{t(descKey)}</p>
                     </div>
                     <ChevronRight size={16} className="text-white/25 shrink-0" />
                   </div>
@@ -279,8 +288,8 @@ export default function LearningPage() {
                     <Icon size={22} style={{ color }} strokeWidth={1.75} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-sm">{title}</p>
-                    <p className="text-xs text-white/40 mt-0.5">{desc}</p>
+                    <p className="font-semibold text-white text-sm">{t(titleKey)}</p>
+                    <p className="text-xs text-white/40 mt-0.5">{t(descKey)}</p>
                   </div>
                 </div>
               )}
@@ -294,11 +303,11 @@ export default function LearningPage() {
         <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} className="flex flex-col gap-3">
           <div className="flex items-center gap-2 mb-0.5">
             <div className="h-px flex-1" style={{ background: 'var(--ink-070)' }} />
-            <p className="text-xs font-bold uppercase tracking-widest text-white/30">Content Moat</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-white/30">{t('learning.content_moat.heading')}</p>
             <div className="h-px flex-1" style={{ background: 'var(--ink-070)' }} />
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            {CONTENT_MOAT.map(({ title, desc, icon: Icon, to, color, iconBg }, i) => (
+            {CONTENT_MOAT.map(({ titleKey, descKey, icon: Icon, to, color, iconBg }, i) => (
               <motion.div key={to} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay: i*0.04 }}>
                 <Link to={to}>
                   <div className="rounded-2xl p-3.5 flex flex-col gap-2.5 active:scale-97 transition-transform h-full"
@@ -307,8 +316,8 @@ export default function LearningPage() {
                       <Icon size={17} style={{ color }} strokeWidth={1.75} />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white leading-tight">{title}</p>
-                      <p className="text-xs text-white/35 mt-0.5 leading-snug">{desc}</p>
+                      <p className="text-xs font-bold text-white leading-tight">{t(titleKey)}</p>
+                      <p className="text-xs text-white/35 mt-0.5 leading-snug">{t(descKey)}</p>
                     </div>
                   </div>
                 </Link>
@@ -327,12 +336,12 @@ export default function LearningPage() {
             style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}
           >
             <div className="px-5 pt-5 pb-3" style={{ borderBottom: '1px solid var(--ink-050)' }}>
-              <h3 className="font-heading font-semibold text-white">Subject Progress</h3>
+              <h3 className="font-heading font-semibold text-white">{t('learning.progress.subject_progress')}</h3>
             </div>
             <div className="px-5 pb-5 pt-4 flex flex-col gap-4">
               {subjects.length === 0 ? (
                 <p className="text-sm text-white/40 text-center py-2">
-                  No flashcards yet — add some to see progress.
+                  {t('learning.progress.no_flashcards')}
                 </p>
               ) : subjects.map(({ name, progress, color }) => (
                 <div key={name}>
@@ -360,7 +369,7 @@ export default function LearningPage() {
             style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}
           >
             <div className="px-5 pt-5 pb-3" style={{ borderBottom: '1px solid var(--ink-050)' }}>
-              <h3 className="font-heading font-semibold text-white">Weekly Summary</h3>
+              <h3 className="font-heading font-semibold text-white">{t('learning.progress.weekly_summary')}</h3>
             </div>
             <div className="px-5 pb-5 pt-4">
               {!weeklyStats ? (
@@ -368,9 +377,9 @@ export default function LearningPage() {
               ) : (
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: 'Sprints', value: weeklyStats.sprints, sub: 'this week', icon: Zap,      color: '#FDE68A' },
-                    { label: 'Cards',   value: weeklyStats.cards,   sub: 'reviewed',  icon: BookOpen, color: '#A0AEFF' },
-                    { label: 'Quizzes', value: weeklyStats.quizzes, sub: 'completed', icon: Target,   color: '#F9A8D4' },
+                    { label: t('learning.progress.sprints'), value: weeklyStats.sprints, sub: t('learning.progress.sprints_sub'), icon: Zap,      color: '#FDE68A' },
+                    { label: t('learning.progress.cards'),   value: weeklyStats.cards,   sub: t('learning.progress.cards_sub'),   icon: BookOpen, color: '#A0AEFF' },
+                    { label: t('learning.progress.quizzes'), value: weeklyStats.quizzes, sub: t('learning.progress.quizzes_sub'), icon: Target,   color: '#F9A8D4' },
                   ].map(({ label, value, sub, icon: Icon, color }) => (
                     <div key={label} className="text-center p-3 rounded-2xl"
                       style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-060)' }}>
