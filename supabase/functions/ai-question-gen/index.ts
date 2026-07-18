@@ -96,6 +96,21 @@ serve(withSentry('ai-question-gen', async (req) => {
 
     const safeCount = Math.min(Math.max(1, count), 20);
 
+    // ── Weak-topic targeting ──────────────────────────────────────
+    // Previously this generated blind every time — no persistent model of the
+    // student's own mastery ever drove what got generated. get_weak_topics()
+    // merges subtopic_mastery + sr_cards onto one canonical 0-1 scale (see
+    // migration add_canonical_weak_topics_function). Only applied when the
+    // caller didn't already pin a specific chapter — an explicit request
+    // should never be silently overridden by a weak-topic bias.
+    let weakTopicsForSubject: string[] = [];
+    if (!chapter) {
+      const { data: weakTopics } = await serviceDb.rpc('get_weak_topics', { p_user_id: user.id, p_limit: 10 });
+      weakTopicsForSubject = (weakTopics ?? [])
+        .filter((t: { subject: string; topic: string }) => t.subject === subject)
+        .map((t: { topic: string }) => t.topic);
+    }
+
     // Map ability score to difficulty
     const difficulty = ability_score > 0.5 ? 'hard' : ability_score < -0.5 ? 'easy' : 'medium';
     const diffDesc = {
@@ -106,7 +121,11 @@ serve(withSentry('ai-question-gen', async (req) => {
 
     const langInstr = LANG_INSTRUCTIONS[language] ?? '';
     const classCtx = class_num ? `Class ${class_num} ` : '';
-    const chapterCtx = chapter ? `on the topic "${chapter}"` : 'covering diverse topics across the full syllabus';
+    const chapterCtx = chapter
+      ? `on the topic "${chapter}"`
+      : weakTopicsForSubject.length > 0
+      ? `prioritizing these topics the student has struggled with: ${weakTopicsForSubject.slice(0, 5).join(', ')} — mix in a couple of other syllabus topics too, but weight most questions toward these weak areas`
+      : 'covering diverse topics across the full syllabus';
 
     const systemPrompt = `You are an expert Indian educational content creator specializing in ${classCtx}${subject} for competitive exams (JEE, NEET, CBSE).
 Your task: generate ${safeCount} original, high-quality MCQ questions.
