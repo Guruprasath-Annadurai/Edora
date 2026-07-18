@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useT } from '@/hooks/useT';
 import type { UIStringKey } from '@/lib/i18n/uiStrings';
 
-const sections: { titleKey: UIStringKey; descKey: UIStringKey; icon: typeof BookIcon; to: string; color: string; glow: string; iconBg: string; badge: string | null; live: boolean }[] = [
+const sections: { titleKey: UIStringKey; descKey: UIStringKey; icon: React.ElementType; to: string; color: string; glow: string; iconBg: string; badge: string | null; live: boolean }[] = [
   {
     titleKey: 'learning.section.flashcards.title',
     descKey: 'learning.section.flashcards.desc',
@@ -65,7 +65,7 @@ const sections: { titleKey: UIStringKey; descKey: UIStringKey; icon: typeof Book
 ];
 
 // Content Moat features — shown as a separate section
-const CONTENT_MOAT: { titleKey: UIStringKey; descKey: UIStringKey; icon: typeof BookOpen; to: string; color: string; iconBg: string }[] = [
+const CONTENT_MOAT: { titleKey: UIStringKey; descKey: UIStringKey; icon: React.ElementType; to: string; color: string; iconBg: string }[] = [
   { titleKey:'learning.content_moat.ncert.title',     descKey:'learning.content_moat.ncert.desc',     icon:BookOpen,     to:'/ncert-deep',  color:'#93C5FD', iconBg:'rgba(59,130,246,0.14)' },
   { titleKey:'learning.content_moat.formulas.title',  descKey:'learning.content_moat.formulas.desc',  icon:Sigma,        to:'/formulas',    color:'#C4B5FD', iconBg:'rgba(139,92,246,0.14)' },
   { titleKey:'learning.content_moat.planner.title',   descKey:'learning.content_moat.planner.desc',   icon:CalendarCheck,to:'/planner',     color:'#6EE7B7', iconBg:'rgba(16,185,129,0.14)' },
