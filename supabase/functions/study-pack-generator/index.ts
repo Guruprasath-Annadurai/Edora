@@ -142,54 +142,72 @@ serve(withSentry('study-pack-generator', async (req) => {
       },
     };
 
-    const controller = new AbortController();
-    const timeoutId  = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    let geminiRes: Response;
-    try {
-      geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(geminiBody),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    // Rate limit
-    if (geminiRes.status === 429) {
-      return new Response(
-        JSON.stringify({ error: 'rate_limit', message: 'Too many requests. Please wait a moment.' }),
-        { status: 429, headers: { ...CORS, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.json().catch(() => ({})) as { error?: { message?: string } };
-      return new Response(
-        JSON.stringify({ error: errBody?.error?.message ?? `Gemini HTTP ${geminiRes.status}` }),
-        { status: geminiRes.status, headers: { ...CORS, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    const data = await geminiRes.json() as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-
-    // JSON mode should return clean JSON, but defensively strip fences
-    const cleaned = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
-    const pack = JSON.parse(cleaned) as {
+    type StudyPack = {
       summary: string;
       flashcards: Array<{ front: string; back: string }>;
       quiz: Array<{ question: string; options: string[]; correct_answer: number; explanation: string }>;
       key_terms: Array<{ term: string; definition: string }>;
     };
 
-    // Validate required fields exist
-    if (!pack.summary || !Array.isArray(pack.flashcards) || !Array.isArray(pack.quiz) || !Array.isArray(pack.key_terms)) {
-      throw new Error('Invalid study pack structure from Gemini');
+    // This previously made exactly one attempt and validated only after —
+    // any transient Gemini hiccup or structurally-invalid response failed
+    // the whole upload with a 500. Retry the whole generate+validate cycle.
+    let pack: StudyPack | null = null;
+    let lastErr = '';
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS && !pack; attempt++) {
+      const controller = new AbortController();
+      const timeoutId  = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      let geminiRes: Response;
+      try {
+        geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(geminiBody),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      // Rate limit — surface immediately, retrying burns quota for nothing
+      if (geminiRes.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'rate_limit', message: 'Too many requests. Please wait a moment.' }),
+          { status: 429, headers: { ...CORS, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (!geminiRes.ok) {
+        const errBody = await geminiRes.json().catch(() => ({})) as { error?: { message?: string } };
+        lastErr = errBody?.error?.message ?? `Gemini HTTP ${geminiRes.status}`;
+        continue;
+      }
+
+      try {
+        const data = await geminiRes.json() as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        const cleaned = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+        const candidate = JSON.parse(cleaned) as StudyPack;
+
+        if (!candidate.summary || !Array.isArray(candidate.flashcards) || !Array.isArray(candidate.quiz) || !Array.isArray(candidate.key_terms)) {
+          lastErr = 'Invalid study pack structure from Gemini';
+          continue;
+        }
+        pack = candidate;
+      } catch (e) {
+        lastErr = e instanceof Error ? e.message : String(e);
+      }
+    }
+
+    if (!pack) {
+      return new Response(
+        JSON.stringify({ error: `Failed to generate a valid study pack after ${MAX_ATTEMPTS} attempts: ${lastErr}` }),
+        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
+      );
     }
 
     return new Response(

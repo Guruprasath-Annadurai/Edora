@@ -24,10 +24,26 @@ async function gemini(prompt: string): Promise<string> {
   return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
-async function geminiJSON<T>(prompt: string): Promise<T> {
+async function geminiJSONOnce<T>(prompt: string): Promise<T> {
   const raw = await gemini(prompt + '\n\nRespond with valid JSON only. No markdown fences.');
   const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
   return JSON.parse(match ? match[0] : raw) as T;
+}
+
+// Single-attempt generation previously meant one bad response killed the
+// daily boss challenge or grading outright with a non-2xx.
+async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, maxAttempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const result = await geminiJSONOnce<T>(prompt);
+      if (validateFn && !validateFn(result)) throw new Error('Gemini response failed validation');
+      return result;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
 }
 
 // ── XP multiplier based on completion time ────────────────────────────────────
@@ -102,7 +118,7 @@ Return JSON:
   "correct_idx": null
 }
 
-For maths/science: prefer open-ended. For humanities/languages: can use MCQ with answer_type="mcq" and 4 options.`);
+For maths/science: prefer open-ended. For humanities/languages: can use MCQ with answer_type="mcq" and 4 options.`, v => !!v?.problem && !!v?.solution);
 
       const { data: inserted } = await supabase
         .from('daily_challenges')
@@ -217,7 +233,7 @@ Return JSON:
   "score": <0-100, partial credit allowed>,
   "feedback": "2-3 sentences of specific feedback — what was right, what was wrong, what they missed",
   "correct_answer": "Brief correct answer/key insight (1-2 sentences)"
-}`);
+}`, v => typeof v?.score === 'number' && !!v?.feedback);
       score = grade.score;
       feedback = grade.feedback;
       correct_answer = grade.correct_answer;

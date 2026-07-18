@@ -9,7 +9,7 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
-async function geminiJSON<T>(prompt: string): Promise<T> {
+async function geminiJSONOnce<T>(prompt: string): Promise<T> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
@@ -21,10 +21,27 @@ async function geminiJSON<T>(prompt: string): Promise<T> {
       }),
     }
   );
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
   const d = await res.json();
   const raw = d.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
   const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
   return JSON.parse(match ? match[0] : raw) as T;
+}
+
+// Single-attempt generation previously meant one bad response killed
+// challenge creation / today's task outright with a non-2xx.
+async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, maxAttempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const result = await geminiJSONOnce<T>(prompt);
+      if (validateFn && !validateFn(result)) throw new Error('Gemini response failed validation');
+      return result;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
 }
 
 serve(withSentry('streak-challenges', async (req) => {
@@ -133,7 +150,7 @@ Return JSON:
   "daily_task": "Single clear daily task description (e.g. 'Differentiate one function and explain each step')",
   "subject": "${focusSubject || 'the subject you chose'}",
   "topic": "${focusTopic || 'the topic you chose'}"
-}`);
+}`, v => !!v?.title && !!v?.daily_task);
 
     const startDate = new Date();
     const endDate = new Date(startDate);
@@ -265,7 +282,7 @@ Return JSON:
   "task": "The specific task/problem for today (1-3 sentences)",
   "hint": "A brief hint if they get stuck (1 sentence)",
   "example_answer": "What a good answer would include (1-2 sentences)"
-}`);
+}`, v => !!v?.task);
 
     return json({ task });
   }

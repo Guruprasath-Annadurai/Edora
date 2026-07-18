@@ -28,12 +28,6 @@ const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gem
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY);
 
-function jsonRes(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status, headers: { ...CORS, 'Content-Type': 'application/json' },
-  });
-}
-
 // ── Extract video ID from YouTube URL ────────────────────────────────────────
 function extractVideoId(url: string): string | null {
   const patterns = [
@@ -164,7 +158,7 @@ interface VideoAnalysis {
   difficulty:    'beginner' | 'intermediate' | 'advanced';
 }
 
-async function analyseWithGemini(
+async function analyseWithGeminiOnce(
   transcript: string,
   meta:       VideoMeta,
   hasCaptions: boolean,
@@ -208,7 +202,31 @@ Rules:
   if (!res.ok) throw new Error(`Gemini analysis failed: ${res.status}`);
   const data = await res.json();
   const raw  = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
-  return JSON.parse(raw) as VideoAnalysis;
+  const parsed = JSON.parse(raw) as VideoAnalysis;
+  if (!parsed.summary || !Array.isArray(parsed.key_concepts) || !Array.isArray(parsed.flashcards)) {
+    throw new Error('Invalid video analysis structure from Gemini');
+  }
+  return parsed;
+}
+
+// analyseWithGeminiOnce previously ran with zero retry — any transient error
+// or malformed JSON failed the whole video analysis with a non-2xx, right
+// after the (slower) transcript fetch had already succeeded.
+async function analyseWithGemini(
+  transcript: string,
+  meta:       VideoMeta,
+  hasCaptions: boolean,
+  maxAttempts = 3,
+): Promise<VideoAnalysis> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await analyseWithGeminiOnce(transcript, meta, hasCaptions);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to analyse video after multiple attempts');
 }
 
 // ── Video Q&A chat ────────────────────────────────────────────────────────────
@@ -259,14 +277,14 @@ Deno.serve(withSentry('video-companion', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   const auth = req.headers.get('Authorization');
-  if (!auth) return jsonRes({ error: 'Missing authorization' }, 401);
+  if (!auth) return json({ error: 'Missing authorization' }, 401);
 
   // Auth via anon key (user token)
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: auth } },
   });
   const { data: { user }, error: authErr } = await userClient.auth.getUser();
-  if (authErr || !user) return jsonRes({ error: 'Unauthorized' }, 401);
+  if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
 
   const rl = await checkRateLimit(db, user.id, 'video_companion', 25, 60);
   if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
@@ -278,10 +296,10 @@ Deno.serve(withSentry('video-companion', async (req) => {
   // ── analyze ──────────────────────────────────────────────────────────────
   if (action === 'analyze') {
     const { youtube_url } = body;
-    if (!youtube_url) return jsonRes({ error: 'youtube_url required' }, 400);
+    if (!youtube_url) return json({ error: 'youtube_url required' }, 400);
 
     const videoId = extractVideoId(youtube_url);
-    if (!videoId) return jsonRes({ error: 'Could not extract video ID from URL. Please use a valid YouTube URL.' }, 400);
+    if (!videoId) return json({ error: 'Could not extract video ID from URL. Please use a valid YouTube URL.' }, 400);
 
     // Check for cached analysis from any user
     const { data: cached } = await db
@@ -292,7 +310,7 @@ Deno.serve(withSentry('video-companion', async (req) => {
       .eq('status', 'complete')
       .maybeSingle();
 
-    if (cached) return jsonRes({ session: cached, cached: true });
+    if (cached) return json({ session: cached, cached: true });
 
     // Create session row
     const { data: session, error: insertErr } = await db
@@ -306,7 +324,7 @@ Deno.serve(withSentry('video-companion', async (req) => {
       .select()
       .single();
 
-    if (insertErr) return jsonRes({ error: insertErr.message }, 500);
+    if (insertErr) return json({ error: insertErr.message }, 500);
 
     try {
       // Fetch transcript
@@ -333,18 +351,18 @@ Deno.serve(withSentry('video-companion', async (req) => {
         .select()
         .single();
 
-      return jsonRes({ session: updated, cached: false });
+      return json({ session: updated, cached: false });
 
     } catch (e: any) {
       await db.from('video_sessions').update({ status: 'failed' }).eq('id', session.id);
-      return jsonRes({ error: `Analysis failed: ${e.message}` }, 500);
+      return json({ error: `Analysis failed: ${e.message}` }, 500);
     }
   }
 
   // ── chat ─────────────────────────────────────────────────────────────────
   if (action === 'chat') {
     const { session_id, question } = body;
-    if (!session_id || !question) return jsonRes({ error: 'session_id and question required' }, 400);
+    if (!session_id || !question) return json({ error: 'session_id and question required' }, 400);
 
     const { data: session } = await db
       .from('video_sessions')
@@ -353,7 +371,7 @@ Deno.serve(withSentry('video-companion', async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (!session) return jsonRes({ error: 'Session not found' }, 404);
+    if (!session) return json({ error: 'Session not found' }, 404);
 
     const history = (session.chat_history ?? []) as Array<{ role: string; content: string }>;
     const answer  = await chatAboutVideo(question, session, history);
@@ -369,20 +387,20 @@ Deno.serve(withSentry('video-companion', async (req) => {
       .update({ chat_history: newHistory })
       .eq('id', session_id);
 
-    return jsonRes({ answer, session_id });
+    return json({ answer, session_id });
   }
 
   // ── get_session ──────────────────────────────────────────────────────────
   if (action === 'get_session') {
     const { session_id } = body;
-    if (!session_id) return jsonRes({ error: 'session_id required' }, 400);
+    if (!session_id) return json({ error: 'session_id required' }, 400);
     const { data: session } = await db
       .from('video_sessions')
       .select('*')
       .eq('id', session_id)
       .eq('user_id', user.id)
       .single();
-    return jsonRes({ session });
+    return json({ session });
   }
 
   // ── list_sessions ─────────────────────────────────────────────────────────
@@ -393,8 +411,8 @@ Deno.serve(withSentry('video-companion', async (req) => {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(20);
-    return jsonRes({ sessions: sessions ?? [] });
+    return json({ sessions: sessions ?? [] });
   }
 
-  return jsonRes({ error: `Unknown action: ${action}` }, 400);
+  return json({ error: `Unknown action: ${action}` }, 400);
 }));

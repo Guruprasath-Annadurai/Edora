@@ -149,65 +149,82 @@ Flags: use "ambiguous_options" if two options could both be argued correct, "cal
     const groqKey = Deno.env.get('GROQ_API_KEY');
     if (!groqKey) return jsonResp({ error: 'GROQ_API_KEY not configured' }, 500);
 
-    const groqResp = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.4,
-        max_tokens: 4096,
-      }),
-    });
+    // Previously a single attempt: any Groq error, malformed JSON, or a
+    // batch where every question got filtered out by validation/confidence
+    // silently returned an empty questions array (or a hard 500) with no
+    // retry — the exact "generate once, validate after" bug found elsewhere.
+    let safeQuestions: GeneratedQuestion[] = [];
+    let droppedCount = 0;
+    let questionsTotal = 0;
+    let lastErr = '';
+    const MAX_ATTEMPTS = 3;
 
-    if (!groqResp.ok) {
-      const errText = await groqResp.text();
-      console.error('[ai-question-gen] Groq error:', errText);
-      return jsonResp({ error: 'AI generation failed' }, 502);
+    for (let attempt = 0; attempt < MAX_ATTEMPTS && safeQuestions.length === 0; attempt++) {
+      const groqResp = await fetch(GROQ_API_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: GROQ_MODEL,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.4,
+          max_tokens: 4096,
+        }),
+      });
+
+      if (!groqResp.ok) {
+        lastErr = `Groq HTTP ${groqResp.status}: ${await groqResp.text()}`;
+        console.error('[ai-question-gen] Groq error:', lastErr);
+        continue;
+      }
+
+      const groqData = await groqResp.json();
+      const rawText = groqData.choices?.[0]?.message?.content ?? '';
+
+      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        lastErr = 'No JSON array in AI response';
+        continue;
+      }
+
+      let questions: GeneratedQuestion[];
+      try {
+        questions = JSON.parse(jsonMatch[0]);
+      } catch {
+        lastErr = 'Invalid JSON from AI';
+        continue;
+      }
+
+      // ── Safety validation ──────────────────────────────────────────
+      questions = questions.filter(q =>
+        q.question && Array.isArray(q.options) && q.options.length === 4 &&
+        typeof q.correct_idx === 'number' && q.correct_idx >= 0 && q.correct_idx <= 3 &&
+        q.explanation && q.options.every((o: string) => typeof o === 'string' && o.trim().length > 0)
+      );
+
+      // Normalise confidence and auto-flag low-confidence questions
+      questions = questions.map(q => {
+        const conf = typeof q.confidence === 'number' ? Math.min(1, Math.max(0, q.confidence)) : 0.85;
+        const flags: string[] = Array.isArray(q.flags) ? q.flags : [];
+        const verify = q.verify_in_textbook === true || conf < 0.7;
+        if (conf < 0.7 && !flags.includes('low_confidence')) flags.push('low_confidence');
+        return { ...q, confidence: conf, verify_in_textbook: verify, flags };
+      });
+
+      questionsTotal = questions.length;
+      // Drop questions the model itself rated below 0.5 confidence — too risky for students
+      safeQuestions = questions.filter(q => (q.confidence ?? 1) >= 0.5);
+      droppedCount  = questions.length - safeQuestions.length;
+      if (droppedCount > 0) {
+        console.warn(`[ai-question-gen] Dropped ${droppedCount} question(s) with confidence < 0.5`);
+      }
+      if (safeQuestions.length === 0) lastErr = 'All generated questions failed validation/confidence checks';
     }
 
-    const groqData = await groqResp.json();
-    const rawText = groqData.choices?.[0]?.message?.content ?? '';
-
-    // Parse JSON from response
-    const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      console.error('[ai-question-gen] No JSON array in Claude response');
-      return jsonResp({ error: 'Failed to parse questions' }, 500);
-    }
-
-    let questions: GeneratedQuestion[];
-    try {
-      questions = JSON.parse(jsonMatch[0]);
-    } catch {
-      return jsonResp({ error: 'Invalid JSON from AI' }, 500);
-    }
-
-    // ── Safety validation ──────────────────────────────────────────
-    questions = questions.filter(q =>
-      q.question && Array.isArray(q.options) && q.options.length === 4 &&
-      typeof q.correct_idx === 'number' && q.correct_idx >= 0 && q.correct_idx <= 3 &&
-      q.explanation && q.options.every((o: string) => typeof o === 'string' && o.trim().length > 0)
-    );
-
-    // Normalise confidence and auto-flag low-confidence questions
-    questions = questions.map(q => {
-      const conf = typeof q.confidence === 'number' ? Math.min(1, Math.max(0, q.confidence)) : 0.85;
-      const flags: string[] = Array.isArray(q.flags) ? q.flags : [];
-      const verify = q.verify_in_textbook === true || conf < 0.7;
-      // Auto-add flag for borderline confidence
-      if (conf < 0.7 && !flags.includes('low_confidence')) flags.push('low_confidence');
-      return { ...q, confidence: conf, verify_in_textbook: verify, flags };
-    });
-
-    // Drop questions the model itself rated below 0.5 confidence — too risky for students
-    const safeQuestions = questions.filter(q => (q.confidence ?? 1) >= 0.5);
-    const droppedCount  = questions.length - safeQuestions.length;
-    if (droppedCount > 0) {
-      console.warn(`[ai-question-gen] Dropped ${droppedCount} question(s) with confidence < 0.5`);
+    if (safeQuestions.length === 0) {
+      return jsonResp({ error: `Failed to generate valid questions after ${MAX_ATTEMPTS} attempts: ${lastErr}` }, 500);
     }
 
     // Persist to ai_questions table (best-effort)
@@ -240,7 +257,7 @@ Flags: use "ambiguous_options" if two options could both be argued correct, "cal
       difficulty,
       ability_score,
       safety_stats: {
-        generated: questions.length + droppedCount,
+        generated: questionsTotal,
         dropped_low_confidence: droppedCount,
         flagged_verify: safeQuestions.filter(q => q.verify_in_textbook).length,
       },

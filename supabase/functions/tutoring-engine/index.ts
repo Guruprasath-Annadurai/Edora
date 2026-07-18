@@ -136,7 +136,7 @@ async function callGemini(
   return callGeminiRaw(systemPrompt, history, userMessage, jsonMode, temperature);
 }
 
-async function callGeminiJSON<T>(
+async function callGeminiJSONOnce<T>(
   systemPrompt: string,
   history: GeminiTurn[],
   userMessage: string,
@@ -146,18 +146,52 @@ async function callGeminiJSON<T>(
   return JSON.parse(cleaned) as T;
 }
 
+// callGemini already has cross-provider fallback (Groq primary/fallback →
+// Gemini), but that only covers provider-level failure — a parseable but
+// structurally-invalid response (or a malformed-JSON response from every
+// provider) still gave up immediately with no retry of the full cycle.
+// Used for session structure / checkpoint generation, where a bad response
+// previously surfaced as a hard-to-diagnose "soft error" to the student.
+async function callGeminiJSON<T>(
+  systemPrompt: string,
+  history: GeminiTurn[],
+  userMessage: string,
+  validateFn?: (v: T) => boolean,
+  maxAttempts = 3,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const result = await callGeminiJSONOnce<T>(systemPrompt, history, userMessage);
+      if (validateFn && !validateFn(result)) throw new Error('Gemini response failed validation');
+      return result;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
+}
+
 // ── Soft error (200 so data is populated on client) ───────────────────────────
-function softError(error: string, code: string) {
+// softError/ok previously referenced a module-level CORS binding that was
+// NEVER declared anywhere in this file (getCors(req) was imported but never
+// called) — every single response from this function threw an uncaught
+// ReferenceError, meaning the entire tutoring engine (start/message/
+// checkpoint/submit_answer) crashed on every request, caught only by
+// withSentry's outer wrapper as a generic 500. Threading CORS explicitly
+// through every call site fixes it without relying on shared module state
+// (which would race across concurrent requests in the same isolate).
+function softError(error: string, code: string, cors: Record<string, string>) {
   return new Response(JSON.stringify({ error, code }), {
     status:  200,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   });
 }
 
-function ok(payload: unknown) {
+function ok(payload: unknown, cors: Record<string, string>) {
   return new Response(JSON.stringify(payload), {
     status:  200,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   });
 }
 
@@ -249,15 +283,43 @@ function adminClient() {
   });
 }
 
+// ── NCERT grounding ────────────────────────────────────────────────────────────
+// Free-form tutoring replies were pure LLM generation with no grounding at
+// all — unlike QuizPage's quiz generation, which already checks novo-ncert
+// for matching textbook content. Same hallucination risk here, just on the
+// highest-traffic AI surface in the app. Best-effort; never blocks a reply.
+const SUPABASE_ANON_KEY_ENV = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+async function fetchNcertGrounding(jwt: string, subject: string, query: string): Promise<string> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/novo-ncert`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt}`,
+        'apikey': SUPABASE_ANON_KEY_ENV,
+      },
+      body: JSON.stringify({ action: 'search', query, subject, count: 3 }),
+    });
+    if (!res.ok) return '';
+    const data = await res.json();
+    const results = (data?.results ?? []) as Array<{ content?: string; chapter_title?: string }>;
+    if (!results.length) return '';
+    return results.map(r => r.content).filter(Boolean).join('\n\n');
+  } catch {
+    return '';
+  }
+}
+
 // ════════════════════════════════════════════════════════════════
 // ACTION: start
 // ════════════════════════════════════════════════════════════════
-async function handleStart(body: Record<string, unknown>, userId: string) {
+async function handleStart(body: Record<string, unknown>, userId: string, cors: Record<string, string>) {
   const { subject, topic, mode = 'standard', study_level = 'school', drill_pattern_id } = body as {
     subject: string; topic: string; mode?: string; study_level?: string; drill_pattern_id?: string;
   };
 
-  if (!subject || !topic) return softError('subject and topic are required', 'MISSING_FIELDS');
+  if (!subject || !topic) return softError('subject and topic are required', 'MISSING_FIELDS', cors);
 
   const db   = adminClient();
   const sysP = buildSystemPrompt(mode as any, subject, study_level);
@@ -307,13 +369,13 @@ ${modeInstruction}`;
   try {
     structure = await callGeminiJSON<SessionStructure>(drillSysP, [], startPrompt);
   } catch (e) {
-    return softError('AI service unavailable — please try again', 'AI_ERROR');
+    return softError('AI service unavailable — please try again', 'AI_ERROR', cors);
   }
 
   // Validate
   if (!Array.isArray(structure.objectives) || !Array.isArray(structure.concepts) ||
       !structure.intro_message || !structure.first_teaching) {
-    return softError('AI returned unexpected format — please retry', 'AI_FORMAT_ERROR');
+    return softError('AI returned unexpected format — please retry', 'AI_FORMAT_ERROR', cors);
   }
 
   const concepts = structure.concepts.slice(0, 6).map(c => ({
@@ -341,7 +403,7 @@ ${modeInstruction}`;
     .select('id')
     .single();
 
-  if (sessErr || !session) return softError('Failed to create session', 'DB_ERROR');
+  if (sessErr || !session) return softError('Failed to create session', 'DB_ERROR', cors);
 
   // ── Save intro + first teaching messages ─────────────────────
   const messages = [
@@ -368,15 +430,15 @@ ${modeInstruction}`;
       total_checkpoints: 0,
       teaching_exchanges: 0,
     },
-  });
+  }, cors);
 }
 
 // ════════════════════════════════════════════════════════════════
 // ACTION: message (student message during teaching phase)
 // ════════════════════════════════════════════════════════════════
-async function handleMessage(body: Record<string, unknown>, userId: string) {
+async function handleMessage(body: Record<string, unknown>, userId: string, jwt: string, cors: Record<string, string>) {
   const { session_id, message: studentMessage } = body as { session_id: string; message: string };
-  if (!session_id || !studentMessage?.trim()) return softError('session_id and message required', 'MISSING_FIELDS');
+  if (!session_id || !studentMessage?.trim()) return softError('session_id and message required', 'MISSING_FIELDS', cors);
 
   const db = adminClient();
 
@@ -385,9 +447,9 @@ async function handleMessage(body: Record<string, unknown>, userId: string) {
     .from('tutoring_sessions')
     .select('*')
     .eq('id', session_id).eq('user_id', userId).single();
-  if (sErr || !session) return softError('Session not found', 'SESSION_NOT_FOUND');
-  if (session.status === 'complete') return softError('Session already complete', 'SESSION_COMPLETE');
-  if (session.phase === 'checkpoint') return softError('Answer the checkpoint question first', 'CHECKPOINT_ACTIVE');
+  if (sErr || !session) return softError('Session not found', 'SESSION_NOT_FOUND', cors);
+  if (session.status === 'complete') return softError('Session already complete', 'SESSION_COMPLETE', cors);
+  if (session.phase === 'checkpoint') return softError('Answer the checkpoint question first', 'CHECKPOINT_ACTIVE', cors);
 
   // Load recent messages (last 10 for context)
   const { data: recentMsgs } = await db
@@ -403,10 +465,16 @@ async function handleMessage(body: Record<string, unknown>, userId: string) {
   const currentConcept = concepts[session.current_concept_idx];
   const sysP = buildSystemPrompt(session.mode, session.subject, session.study_level);
 
+  const conceptTitle = currentConcept?.title ?? session.topic;
+  const grounding = await fetchNcertGrounding(jwt, session.subject, `${conceptTitle} ${studentMessage}`.trim());
+
   // Build context for Novo
-  const contextPrompt = `You are currently teaching: "${currentConcept?.title ?? session.topic}".
+  const contextPrompt = `You are currently teaching: "${conceptTitle}".
 The student says: ${studentMessage}
 
+${grounding
+  ? `Reference textbook material (ground your answer in this where it applies — it's verified, prefer it over general knowledge; if the student's question goes beyond it, say so and answer from general knowledge, don't imply it came from the textbook):\n${grounding}\n`
+  : ''}
 ${session.mode === 'socratic'
   ? 'Respond with a guiding question only. Do NOT explain or give the answer directly.'
   : 'Answer their question directly and clearly. Then briefly continue teaching if appropriate.'}
@@ -417,7 +485,7 @@ Keep your response focused and under 200 words.`;
   try {
     novoReply = await callGemini(sysP, history, contextPrompt, false, 0.7);
   } catch (_e) {
-    return softError('AI service unavailable — please try again', 'AI_ERROR');
+    return softError('AI service unavailable — please try again', 'AI_ERROR', cors);
   }
 
   const newExchanges = (session.teaching_exchanges ?? 0) + 1;
@@ -439,15 +507,15 @@ Keep your response focused and under 200 words.`;
       // Prompt the student to try the checkpoint after 3 exchanges
       show_checkpoint_prompt: newExchanges >= 3,
     },
-  });
+  }, cors);
 }
 
 // ════════════════════════════════════════════════════════════════
 // ACTION: request_checkpoint
 // ════════════════════════════════════════════════════════════════
-async function handleRequestCheckpoint(body: Record<string, unknown>, userId: string) {
+async function handleRequestCheckpoint(body: Record<string, unknown>, userId: string, cors: Record<string, string>) {
   const { session_id } = body as { session_id: string };
-  if (!session_id) return softError('session_id required', 'MISSING_FIELDS');
+  if (!session_id) return softError('session_id required', 'MISSING_FIELDS', cors);
 
   const db = adminClient();
 
@@ -455,9 +523,9 @@ async function handleRequestCheckpoint(body: Record<string, unknown>, userId: st
     .from('tutoring_sessions')
     .select('*')
     .eq('id', session_id).eq('user_id', userId).single();
-  if (sErr || !session) return softError('Session not found', 'SESSION_NOT_FOUND');
-  if (session.phase === 'checkpoint') return softError('Checkpoint already active', 'CHECKPOINT_ACTIVE');
-  if (session.status === 'complete') return softError('Session already complete', 'SESSION_COMPLETE');
+  if (sErr || !session) return softError('Session not found', 'SESSION_NOT_FOUND', cors);
+  if (session.phase === 'checkpoint') return softError('Checkpoint already active', 'CHECKPOINT_ACTIVE', cors);
+  if (session.status === 'complete') return softError('Session already complete', 'SESSION_COMPLETE', cors);
 
   const concepts = session.concepts as Array<{ title: string; status: string; checkpoint_attempts: number }>;
   const currentConcept = concepts[session.current_concept_idx];
@@ -509,14 +577,14 @@ Rules:
   try {
     checkpoint = await callGeminiJSON<CheckpointQ>(sysP, [], checkpointPrompt);
   } catch (_e) {
-    return softError('AI service unavailable — please try again', 'AI_ERROR');
+    return softError('AI service unavailable — please try again', 'AI_ERROR', cors);
   }
 
   // Validate
   if (!checkpoint.question || !Array.isArray(checkpoint.options) ||
       checkpoint.options.length !== 4 ||
       typeof checkpoint.correct_idx !== 'number') {
-    return softError('AI returned malformed checkpoint — please retry', 'AI_FORMAT_ERROR');
+    return softError('AI returned malformed checkpoint — please retry', 'AI_FORMAT_ERROR', cors);
   }
 
   // Store full checkpoint (with correct_idx) in DB — correct_idx is NEVER sent to client
@@ -545,16 +613,16 @@ Rules:
       difficulty: difficulty,
       diff_label: diffLabel,
     },
-  });
+  }, cors);
 }
 
 // ════════════════════════════════════════════════════════════════
 // ACTION: submit_answer
 // ════════════════════════════════════════════════════════════════
-async function handleSubmitAnswer(body: Record<string, unknown>, userId: string) {
+async function handleSubmitAnswer(body: Record<string, unknown>, userId: string, cors: Record<string, string>) {
   const { session_id, answer_idx } = body as { session_id: string; answer_idx: number };
   if (!session_id || typeof answer_idx !== 'number') {
-    return softError('session_id and answer_idx required', 'MISSING_FIELDS');
+    return softError('session_id and answer_idx required', 'MISSING_FIELDS', cors);
   }
 
   const db = adminClient();
@@ -563,13 +631,13 @@ async function handleSubmitAnswer(body: Record<string, unknown>, userId: string)
     .from('tutoring_sessions')
     .select('*')
     .eq('id', session_id).eq('user_id', userId).single();
-  if (sErr || !session) return softError('Session not found', 'SESSION_NOT_FOUND');
-  if (session.phase !== 'checkpoint') return softError('No checkpoint active', 'NO_CHECKPOINT');
+  if (sErr || !session) return softError('Session not found', 'SESSION_NOT_FOUND', cors);
+  if (session.phase !== 'checkpoint') return softError('No checkpoint active', 'NO_CHECKPOINT', cors);
 
   const checkpoint = session.current_checkpoint as {
     question: string; options: string[]; correct_idx: number; explanation: string;
   };
-  if (!checkpoint) return softError('Checkpoint data missing', 'NO_CHECKPOINT');
+  if (!checkpoint) return softError('Checkpoint data missing', 'NO_CHECKPOINT', cors);
 
   const isCorrect    = answer_idx === checkpoint.correct_idx;
   const correctLabel = checkpoint.options[checkpoint.correct_idx];
@@ -795,7 +863,7 @@ Write a warm, celebratory wrap-up message (100-150 words):
         accuracy_pct:      accuracy,
         concepts:          updatedConcepts,
       },
-    });
+    }, cors);
 
   } else {
     // Failed checkpoint, attempt < max — re-teach
@@ -845,21 +913,23 @@ Re-teach this concept from a different angle. Use a different example or analogy
       teaching_exchanges: 0,
       show_checkpoint_prompt: false,
     },
-  });
+  }, cors);
 }
 
 // ════════════════════════════════════════════════════════════════
 // Main handler
 // ════════════════════════════════════════════════════════════════
 Deno.serve(withSentry('tutoring-engine', async (req: Request): Promise<Response> => {
+  const cors = getCors(req);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS });
+    return new Response('ok', { headers: cors });
   }
 
   // Auth
   const authHeader = req.headers.get('Authorization') ?? '';
   const jwt = authHeader.replace('Bearer ', '');
-  if (!jwt) return softError('Unauthorized', 'UNAUTHORIZED');
+  if (!jwt) return softError('Unauthorized', 'UNAUTHORIZED', cors);
 
   // Decode user_id from JWT (Supabase: sub claim)
   const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -867,11 +937,11 @@ Deno.serve(withSentry('tutoring-engine', async (req: Request): Promise<Response>
     auth:   { autoRefreshToken: false, persistSession: false },
   });
   const { data: { user }, error: authErr } = await anonClient.auth.getUser();
-  if (authErr || !user) return softError('Unauthorized', 'UNAUTHORIZED');
+  if (authErr || !user) return softError('Unauthorized', 'UNAUTHORIZED', cors);
 
   let body: Record<string, unknown>;
   try { body = await req.json(); }
-  catch (_) { return softError('Invalid JSON body', 'BAD_REQUEST'); }
+  catch (_) { return softError('Invalid JSON body', 'BAD_REQUEST', cors); }
 
   const action = body.action as string;
 
@@ -879,19 +949,19 @@ Deno.serve(withSentry('tutoring-engine', async (req: Request): Promise<Response>
   // endpoint (Gemini calls in start/message/request_checkpoint/submit_answer), and auth
   // resolves once here for all actions, so one check upfront is sufficient and simplest.
   const rl = await checkRateLimit(adminClient(), user.id, `tutoring_engine_${action}`, 25, 60);
-  if (!rl.allowed) return softError('Too many requests. Try again later.', 'RATE_LIMITED');
+  if (!rl.allowed) return softError('Too many requests. Try again later.', 'RATE_LIMITED', cors);
 
   try {
     switch (action) {
-      case 'start':              return await handleStart(body, user.id);
-      case 'message':            return await handleMessage(body, user.id);
-      case 'request_checkpoint': return await handleRequestCheckpoint(body, user.id);
-      case 'submit_answer':      return await handleSubmitAnswer(body, user.id);
+      case 'start':              return await handleStart(body, user.id, cors);
+      case 'message':            return await handleMessage(body, user.id, jwt, cors);
+      case 'request_checkpoint': return await handleRequestCheckpoint(body, user.id, cors);
+      case 'submit_answer':      return await handleSubmitAnswer(body, user.id, cors);
       default:
-        return softError(`Unknown action: ${action}`, 'UNKNOWN_ACTION');
+        return softError(`Unknown action: ${action}`, 'UNKNOWN_ACTION', cors);
     }
   } catch (err) {
     console.error('[tutoring-engine] Unhandled error:', err);
-    return softError('Internal server error', 'INTERNAL_ERROR');
+    return softError('Internal server error', 'INTERNAL_ERROR', cors);
   }
 }));

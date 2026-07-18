@@ -346,6 +346,15 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
                     </motion.button>
                   ))}
                 </div>
+                {/* CBSE boards content pool is much smaller than JEE/NEET
+                    (4-6 questions per subject vs 100+) — same honest
+                    "starter set" framing already used in MockTestPage and
+                    UPSCMainsPage for beta-depth content. */}
+                {(examType === 'CBSE_10' || examType === 'CBSE_12') && (
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    Starter practice set — smaller question pool than JEE/NEET while we expand board coverage.
+                  </p>
+                )}
               </div>
 
               {/* Filters */}

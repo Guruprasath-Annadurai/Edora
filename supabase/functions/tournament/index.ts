@@ -9,7 +9,7 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
-async function geminiJSON<T>(prompt: string): Promise<T> {
+async function geminiJSONOnce<T>(prompt: string): Promise<T> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
@@ -19,10 +19,27 @@ async function geminiJSON<T>(prompt: string): Promise<T> {
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt + '\n\nReturn valid JSON only. No markdown.' }] }] }),
     }
   );
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
   const d = await res.json();
   const raw = d.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
   const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
   return JSON.parse(match ? match[0] : raw) as T;
+}
+
+// Single-attempt generation previously meant one bad response killed weekly
+// tournament creation outright with a non-2xx.
+async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, maxAttempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const result = await geminiJSONOnce<T>(prompt);
+      if (validateFn && !validateFn(result)) throw new Error('Gemini response failed validation');
+      return result;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
 }
 
 // ── Week boundaries (Mon–Sun) ─────────────────────────────────────────────────
@@ -129,7 +146,7 @@ Generate:
     }
   ]
 }
-Include exactly 10 questions, increasing difficulty.`).catch(() => null);
+Include exactly 10 questions, increasing difficulty.`, v => !!v?.name && Array.isArray(v?.questions) && v.questions.length > 0).catch(() => null);
 
         if (!gen) continue;
 
@@ -375,7 +392,7 @@ Generate:
     }
     ... 10 questions total, increasing difficulty
   ]
-}`);
+}`, v => !!v?.name && Array.isArray(v?.questions) && v.questions.length > 0);
 
       const { data: tournament } = await supabase
         .from('tournaments')

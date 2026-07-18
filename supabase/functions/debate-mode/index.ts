@@ -23,10 +23,27 @@ async function gemini(prompt: string): Promise<string> {
   return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
-async function geminiJSON<T>(prompt: string): Promise<T> {
+async function geminiJSONOnce<T>(prompt: string): Promise<T> {
   const raw = await gemini(prompt + '\n\nReturn valid JSON only. No markdown fences.');
   const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
   return JSON.parse(match ? match[0] : raw) as T;
+}
+
+// Single-attempt generation previously meant any parse hiccup or missing
+// field crashed straight through end_debate/get_topics with no retry — most
+// visible right when a student finishes a debate and expects their score.
+async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, maxAttempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const result = await geminiJSONOnce<T>(prompt);
+      if (validateFn && !validateFn(result)) throw new Error('Gemini response failed validation');
+      return result;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
 }
 
 // ── Curated debate topics per subject ────────────────────────────────────────
@@ -240,7 +257,7 @@ Return JSON:
   "feedback": "3-4 sentences of specific, constructive feedback on their overall performance",
   "best_argument": "Quote or paraphrase their single strongest argument",
   "missed_points": "1-2 key points or evidence they could have used but missed"
-}`);
+}`, v => typeof v?.score === 'number' && !!v?.breakdown && !!v?.feedback);
 
     // XP for completing a debate
     const xp = Math.round(evaluation.score * 0.5) + 25; // 25-75 XP

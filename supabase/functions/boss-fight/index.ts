@@ -97,9 +97,7 @@ serve(withSentry('boss-fight', async (req) => {
     taunt:        string;
   };
 
-  let questions: Question[];
-  try {
-    questions = await geminiJSON<Question[]>(`
+  const prompt = `
 You are ${bossName}, a villainous AI boss in a study game. A student is battling you by answering questions on ${subject} — ${chapter}.
 
 Generate EXACTLY 10 MCQ questions. Mix difficulty: 3 easy, 4 medium, 3 hard.
@@ -124,20 +122,33 @@ Rules:
 - correctIndex is 0-3 (index of correct option in the array)
 - Explanations must be factually accurate — this is for JEE/NEET students
 - No repeated concepts across questions
-`);
-  } catch {
-    return json({ error: 'Failed to generate questions. Please try again.' }, 500);
+`;
+
+  function validate(qs: Question[]): Question[] {
+    return qs
+      .filter(q =>
+        typeof q.question === 'string' &&
+        Array.isArray(q.options) && q.options.length === 4 &&
+        typeof q.correctIndex === 'number' && q.correctIndex >= 0 && q.correctIndex < 4 &&
+        typeof q.explanation === 'string'
+      )
+      .slice(0, 10);
   }
 
-  // Validate structure
-  const valid = questions
-    .filter(q =>
-      typeof q.question === 'string' &&
-      Array.isArray(q.options) && q.options.length === 4 &&
-      typeof q.correctIndex === 'number' && q.correctIndex >= 0 && q.correctIndex < 4 &&
-      typeof q.explanation === 'string'
-    )
-    .slice(0, 10);
+  // geminiJSON already retried on parse failure, but structural validation
+  // (needing >=5 usable questions) ran only once AFTER that retry loop
+  // returned — a parseable-but-structurally-bad response gave up immediately
+  // instead of trying generation again. Retry the whole generate+validate cycle.
+  let valid: Question[] = [];
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && valid.length < 5; attempt++) {
+    try {
+      const questions = await geminiJSON<Question[]>(prompt);
+      valid = validate(questions);
+    } catch {
+      // try again
+    }
+  }
 
   if (valid.length < 5) return json({ error: 'Could not generate enough valid questions. Try a more specific chapter name.' }, 500);
 

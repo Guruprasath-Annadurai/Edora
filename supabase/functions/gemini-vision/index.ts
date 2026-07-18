@@ -96,7 +96,7 @@ async function callGeminiVision(
 }
 
 // ── JSON variant ──────────────────────────────────────────────────────────────
-async function callGeminiVisionJSON<T>(
+async function callGeminiVisionJSONOnce<T>(
   imageBase64:  string,
   mimeType:     string,
   textPrompt:   string,
@@ -124,6 +124,28 @@ async function callGeminiVisionJSON<T>(
   const data = await res.json();
   const raw  = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
   return JSON.parse(raw) as T;
+}
+
+// fetchGeminiWithRetry only retries HTTP-level 429/503 — a 200 response with
+// malformed/truncated JSON threw straight out of JSON.parse with nothing
+// catching it, surfacing as an uncaught 500 for every scan/OCR action below.
+// Retry the whole generate+parse cycle, same pattern as src/lib/gemini.ts.
+async function callGeminiVisionJSON<T>(
+  imageBase64:  string,
+  mimeType:     string,
+  textPrompt:   string,
+  systemPrompt: string,
+  maxAttempts = 3,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await callGeminiVisionJSONOnce<T>(imageBase64, mimeType, textPrompt, systemPrompt);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini Vision');
 }
 
 // =============================================================================

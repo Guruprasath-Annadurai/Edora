@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, ChevronLeft, CheckCircle, XCircle, Zap, Star, Flame, AlertTriangle, Lightbulb, HelpCircle, Clock, Dices, Trophy, Meh, Loader2 } from 'lucide-react';
 import { PeerPercentile } from '@/components/quiz/PeerPercentile';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { Toast } from '@capacitor/toast';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/hooks/useAuth';
@@ -139,6 +140,7 @@ export default function QuizPage() {
   // ── Deep explanation (Nemotron-backed cache, per question) ────────────────
   const [deepExplanations, setDeepExplanations] = useState<Record<number, string>>({});
   const [deepLoading, setDeepLoading] = useState<Record<number, boolean>>({});
+  const [reportedIdx, setReportedIdx] = useState<Record<number, boolean>>({});
 
   // ── Per-question countdown timer ──────────────────────────────────────────
   const [qTimeLeft, setQTimeLeft] = useState<number | null>(null);
@@ -457,6 +459,28 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
       setDeepExplanations(prev => ({ ...prev, [current]: 'Could not load a deeper explanation right now — try again in a moment.' }));
     } finally {
       setDeepLoading(prev => ({ ...prev, [current]: false }));
+    }
+  }
+
+  // Feeds the question_reports review queue (existing schema, previously
+  // never written to from anywhere in the app) so wrong/bad AI-generated
+  // questions can actually surface for review instead of just being a
+  // silent trust problem for whoever hits them.
+  async function reportQuestion() {
+    const q = questions[current];
+    if (!q || !profile || reportedIdx[current]) return;
+    setReportedIdx(prev => ({ ...prev, [current]: true }));
+    try {
+      await supabase.from('question_reports').insert({
+        user_id: profile.id,
+        question_text: q.question,
+        report_type: 'wrong_answer',
+        details: `Quiz topic: ${topic}. Marked correct: "${q.options[q.correct_answer]}"`,
+        status: 'pending',
+      });
+      Toast.show({ text: 'Thanks — we\'ll review this question.', duration: 'short' });
+    } catch {
+      setReportedIdx(prev => ({ ...prev, [current]: false }));
     }
   }
 
@@ -953,6 +977,12 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                           }
                         </button>
                       )}
+                      <button onClick={reportQuestion} disabled={reportedIdx[current]}
+                        className="mt-3 flex items-center gap-1.5 text-xs font-bold disabled:opacity-60"
+                        style={{ color: reportedIdx[current] ? 'var(--ink-400)' : '#F87171' }}>
+                        <AlertTriangle size={12} />
+                        {reportedIdx[current] ? 'Reported — thanks!' : 'This looks wrong — report it'}
+                      </button>
                     </div>
                     <button onClick={next}
                       disabled={confidence[current] === undefined}

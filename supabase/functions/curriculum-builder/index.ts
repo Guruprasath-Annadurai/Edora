@@ -33,7 +33,7 @@ function ok(_data: unknown): Response  { throw new Error('unreachable'); }
 function err(_msg: string, _code = 400): Response { throw new Error('unreachable'); }
 
 // ── Gemini JSON helper ────────────────────────────────────────────────────────
-async function geminiJSON<T>(prompt: string): Promise<T> {
+async function geminiJSONOnce<T>(prompt: string): Promise<T> {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
@@ -45,9 +45,28 @@ async function geminiJSON<T>(prompt: string): Promise<T> {
       }),
     }
   );
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
   const j = await res.json();
   const raw = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]';
   return JSON.parse(raw) as T;
+}
+
+// This previously made a single attempt with no retry at all — any transient
+// error or malformed JSON failed curriculum/flashcard generation outright.
+// validateFn lets each caller enforce its own shape (non-empty array, etc.)
+// inside the same retry loop instead of discovering emptiness afterward.
+async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, maxAttempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const result = await geminiJSONOnce<T>(prompt);
+      if (validateFn && !validateFn(result)) throw new Error('Gemini response failed validation');
+      return result;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
 }
 
 // ── Topic generation via Gemini ───────────────────────────────────────────────
@@ -101,7 +120,7 @@ Rules:
 - estimated_hours: realistic self-study hours per topic
 - Be precise to the actual exam board's syllabus content`;
 
-  return geminiJSON<TopicNode[]>(prompt);
+  return geminiJSON<TopicNode[]>(prompt, v => Array.isArray(v) && v.length > 0 && v.every(n => !!n.title));
 }
 
 // ── Flatten tree into DB rows ─────────────────────────────────────────────────
@@ -267,7 +286,7 @@ Rules:
 - Cover different aspects of the topic (definitions, applications, examples)
 - Avoid trivial or overly simple questions`;
 
-  return geminiJSON<SRCard[]>(prompt);
+  return geminiJSON<SRCard[]>(prompt, v => Array.isArray(v) && v.length > 0 && v.every(c => !!c.front && !!c.back));
 }
 
 // =============================================================================

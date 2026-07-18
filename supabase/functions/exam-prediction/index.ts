@@ -53,13 +53,35 @@ async function nemotronJSON<T>(prompt: string): Promise<T> {
   return JSON.parse(raw) as T;
 }
 
-async function reasonAboutReadiness<T>(prompt: string): Promise<{ result: T; model: string }> {
+async function reasonAboutReadinessOnce<T>(prompt: string): Promise<{ result: T; model: string }> {
   try {
     return { result: await nemotronJSON<T>(prompt), model: 'nemotron-3-ultra-550b' };
   } catch (e) {
     console.error('Nemotron readiness prediction failed, falling back to Gemini:', e);
     return { result: await geminiJSON<T>(prompt), model: 'gemini-1.5-flash' };
   }
+}
+
+// The Nemotron→Gemini fallback only covered provider-level failure — a
+// PredictionResult with missing/invalid fields (no shape check at all
+// previously) still got used directly downstream. Retry the whole cycle
+// (both providers get a fresh shot each attempt) when validation fails.
+async function reasonAboutReadiness<T>(
+  prompt: string,
+  validateFn?: (v: T) => boolean,
+  maxAttempts = 3,
+): Promise<{ result: T; model: string }> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const out = await reasonAboutReadinessOnce<T>(prompt);
+      if (validateFn && !validateFn(out.result)) throw new Error('Readiness prediction failed validation');
+      return out;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Failed to compute readiness prediction');
 }
 
 interface PredictionResult {
@@ -194,7 +216,10 @@ Return JSON:
 
 Include exactly ${weekCount} weeks in the study_plan array.`;
 
-  const { result: prediction, model: modelUsed } = await reasonAboutReadiness<PredictionResult>(predictionPrompt);
+  const { result: prediction, model: modelUsed } = await reasonAboutReadiness<PredictionResult>(
+    predictionPrompt,
+    v => typeof v?.predicted_score === 'number' && !!v?.narrative && Array.isArray(v?.study_plan),
+  );
 
   await supabase.from('exam_predictions').upsert({
     user_id: userId,
