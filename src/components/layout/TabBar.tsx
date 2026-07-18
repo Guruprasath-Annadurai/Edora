@@ -4,22 +4,26 @@ import { TeachingIcon } from '@/components/ui/icons';
 import { motion } from 'framer-motion';
 import { ease, dur } from '@/lib/motion';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { useT } from '@/hooks/useT';
+import type { UIStringKey } from '@/lib/i18n/uiStrings';
 
-const LEFT_TABS: { to: string; icon: LucideIcon; label: string }[] = [
-  { to: '/home',     icon: Home,     label: 'Home'    },
-  { to: '/learning', icon: BookOpen, label: 'Learn'   },
+const LEFT_TABS: { to: string; icon: LucideIcon; labelKey: UIStringKey }[] = [
+  { to: '/home',     icon: Home,     labelKey: 'nav.home'  },
+  { to: '/learning', icon: BookOpen, labelKey: 'nav.learn' },
 ];
 
-const RIGHT_TABS: { to: string; icon: LucideIcon; label: string }[] = [
-  { to: '/battle',  icon: Swords, label: 'Battle'  },
-  { to: '/profile', icon: User,   label: 'Profile' },
+const RIGHT_TABS: { to: string; icon: LucideIcon; labelKey: UIStringKey }[] = [
+  { to: '/battle',  icon: Swords, labelKey: 'nav.battle'  },
+  { to: '/profile', icon: User,   labelKey: 'nav.profile' },
 ];
 
 async function hapticLight() {
   try { await Haptics.impact({ style: ImpactStyle.Light }); } catch { /* web */ }
 }
 
-function TabButton({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) {
+function TabButton({ to, icon: Icon, labelKey }: { to: string; icon: LucideIcon; labelKey: UIStringKey }) {
+  const t = useT();
+  const label = t(labelKey);
   return (
     <NavLink
       to={to}
@@ -92,6 +96,7 @@ function TabButton({ to, icon: Icon, label }: { to: string; icon: LucideIcon; la
 function NovoCenterButton() {
   const location = useLocation();
   const isActive = location.pathname === '/chat';
+  const t = useT();
 
   return (
     <NavLink
@@ -99,7 +104,7 @@ function NovoCenterButton() {
       onClick={hapticLight}
       className="flex-1 flex flex-col items-center justify-center relative py-1 min-w-0"
       style={{ minHeight: 44 }}
-      aria-label="Novo AI"
+      aria-label={t('nav.novo')}
     >
       {/* Layered ambient glow — depth effect */}
       <motion.div
@@ -175,7 +180,7 @@ function NovoCenterButton() {
         transition={{ duration: 0.2 }}
         style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', marginTop: 4 }}
       >
-        Novo
+        {t('nav.novo')}
       </motion.span>
     </NavLink>
   );
