@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useVoiceStudy, VoicePhase, VOICE_SYSTEM_PROMPTS } from '@/hooks/useVoiceStudy';
 import type { LanguageOption } from '@/hooks/useLanguage';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { getLangInstruction } from '@/lib/language';
 
 interface VoiceStudyOverlayProps {
   visible: boolean;
@@ -97,9 +98,15 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
   const [quizTopic, setQuizTopic] = useState('');
   const [quizStarted, setQuizStarted] = useState(false);
 
-  const systemInstruction = voiceMode === 'quiz' && quizStarted
+  // langOption already drives which STT path transcribes the student's speech
+  // (see useVoiceStudy's useGcpStt) but was never propagated to the reply
+  // side — Novo would transcribe Hindi/Tamil/etc. correctly and then still
+  // answer in English. Same getLangInstruction() used by NCERTChaptersPage
+  // and ai-question-gen for consistent per-language behavior app-wide.
+  const langInstr = getLangInstruction(langOption?.code);
+  const systemInstruction = (voiceMode === 'quiz' && quizStarted
     ? buildQuizSystemPrompt(quizTopic)
-    : VOICE_SYSTEM_PROMPTS[mode];
+    : VOICE_SYSTEM_PROMPTS[mode]) + langInstr;
 
   const {
     phase,

@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiCall, GeminiMessage } from '@/lib/gemini';
 import type { LanguageOption } from '@/hooks/useLanguage';
 import { logAIInteraction } from '@/components/ui/AIFeedback';
+import { fetchNcertContext } from '@/lib/chatHelpers';
 
 // ── State machine phases ──────────────────────────────────────────────────────
 export type VoicePhase =
@@ -380,8 +381,21 @@ export function useVoiceStudy(
           text: t.content,
         }));
 
+      // Ground the reply in verified NCERT content where it applies, same as
+      // tutoring-engine's text sessions — voice previously ran a fully
+      // separate pipeline with no access to the textbook grounding text
+      // tutoring already benefits from. Best-effort: a failed/slow lookup
+      // must never block or break the voice turn.
+      let groundedText = text;
+      try {
+        const grounding = await fetchNcertContext(text);
+        if (grounding.text) {
+          groundedText = `Reference textbook material (ground your answer in this where it applies — it's verified, prefer it over general knowledge; if the question goes beyond it, answer from general knowledge instead of forcing a fit):\n${grounding.text}\n\nStudent's question: ${text}`;
+        }
+      } catch { /* grounding is best-effort */ }
+
       const replyStartMs = Date.now();
-      const response = await geminiCall(text, { systemInstruction, history });
+      const response = await geminiCall(groundedText, { systemInstruction, history });
       const responseMs = Date.now() - replyStartMs;
 
       // Append assistant turn

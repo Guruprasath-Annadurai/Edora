@@ -1,6 +1,10 @@
 // Multilingual support — inject user's preferred language into Gemini system prompts
 
-export type AppLanguage = 'en' | 'hi' | 'ta' | 'te' | 'kn' | 'mr' | 'bn';
+// SUPPORTED_LANGUAGES in useLanguage.ts and STT_LOCALES in novo-stt both
+// cover 9 languages (en + 8 Indian). This list previously only covered 7 —
+// gu/pa users had their speech transcribed correctly but got no language
+// instruction at all, silently defaulting to an English reply.
+export type AppLanguage = 'en' | 'hi' | 'ta' | 'te' | 'kn' | 'mr' | 'bn' | 'gu' | 'pa';
 
 export const LANGUAGE_NAMES: Record<AppLanguage, string> = {
   en: 'English',
@@ -10,6 +14,8 @@ export const LANGUAGE_NAMES: Record<AppLanguage, string> = {
   kn: 'Kannada (ಕನ್ನಡ)',
   mr: 'Marathi (मराठी)',
   bn: 'Bengali (বাংলা)',
+  gu: 'Gujarati (ગુજરાતી)',
+  pa: 'Punjabi (ਪੰਜਾਬੀ)',
 };
 
 export const LANGUAGE_NATIVE: Record<AppLanguage, string> = {
@@ -20,6 +26,8 @@ export const LANGUAGE_NATIVE: Record<AppLanguage, string> = {
   kn: 'ಕನ್ನಡ',
   mr: 'मराठी',
   bn: 'বাংলা',
+  gu: 'ગુજરાતી',
+  pa: 'ਪੰਜਾਬੀ',
 };
 
 export function getLangInstruction(lang: string | null | undefined): string {
