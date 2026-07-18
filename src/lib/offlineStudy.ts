@@ -9,6 +9,7 @@
 // Downloads:
 //   - User's due flashcard decks (all subjects)
 //   - 50 PYQs across user's subjects
+//   - Active study roadmap
 //   - Tomorrow's lesson plan
 //   - Queued offline review sessions
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,6 +82,26 @@ async function prefetchFlashcards(userId: string): Promise<void> {
       cards: deckCards.map(c => ({ front: c.front, back: c.back, due_at: c.due_at })),
     });
   }
+}
+
+// ── Download active roadmap ───────────────────────────────────────────────────
+// NCERT chapters are deliberately NOT blind-prefetched here — there's no
+// reliable class_num signal on the profile to prefetch the right chapters
+// for, and guessing wrong would waste the WiFi window on data the student
+// never opens. They're cached opportunistically instead, the moment the
+// student actually views a chapter list (see NCERTChaptersPage.tsx).
+
+async function prefetchRoadmap(userId: string): Promise<void> {
+  const { data: rm } = await withRetry(() => supabase
+    .from('study_roadmaps')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .order('generated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle());
+
+  if (rm) await OfflineCache.cacheRoadmap(userId, rm);
 }
 
 // ── Download PYQs ─────────────────────────────────────────────────────────────
@@ -228,6 +249,7 @@ export async function runOfflinePrefetch(): Promise<void> {
     await Promise.allSettled([
       prefetchFlashcards(userId),
       prefetchPYQs(subjects),
+      prefetchRoadmap(userId),
     ]);
 
     // Flush any queued offline actions now that we're online

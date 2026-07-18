@@ -6,9 +6,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DB_NAME    = 'edora_offline';
-const DB_VERSION = 3;  // bumped: added notes_cache store
+const DB_VERSION = 4;  // bumped: added ncert_chapters_cache, ncert_questions_cache, roadmap_cache stores
 
-type StoreName = 'quiz_cache' | 'flashcard_cache' | 'study_plan_cache' | 'sprint_cache' | 'pending_reviews' | 'notes_cache';
+type StoreName = 'quiz_cache' | 'flashcard_cache' | 'study_plan_cache' | 'sprint_cache' | 'pending_reviews' | 'notes_cache' | 'ncert_chapters_cache' | 'ncert_questions_cache' | 'roadmap_cache';
 
 interface CachedQuizQuestion {
   id: string;
@@ -49,6 +49,28 @@ interface CachedSprint {
   cached_at: number;
 }
 
+interface CachedNcertChapterList {
+  id: string;             // `${class_num}_${subject}`
+  class_num: number;
+  subject: string;
+  chapters: unknown[];    // NCERTChapter[]
+  cached_at: number;
+}
+
+interface CachedNcertQuestions {
+  id: string;             // chapter_id
+  chapter_id: string;
+  questions: unknown[];   // NCERTQuestion[]
+  cached_at: number;
+}
+
+interface CachedRoadmap {
+  id: string;             // user_id
+  user_id: string;
+  roadmap: unknown;
+  cached_at: number;
+}
+
 // ── IDB helper ────────────────────────────────────────────────────────────────
 
 let _db: IDBDatabase | null = null;
@@ -59,7 +81,7 @@ function openDB(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = (e) => {
       const db = (e.target as IDBOpenDBRequest).result;
-      const stores: StoreName[] = ['quiz_cache', 'flashcard_cache', 'study_plan_cache', 'sprint_cache', 'pending_reviews', 'notes_cache'];
+      const stores: StoreName[] = ['quiz_cache', 'flashcard_cache', 'study_plan_cache', 'sprint_cache', 'pending_reviews', 'notes_cache', 'ncert_chapters_cache', 'ncert_questions_cache', 'roadmap_cache'];
       for (const name of stores) {
         if (!db.objectStoreNames.contains(name)) {
           db.createObjectStore(name, { keyPath: 'id' });
@@ -113,10 +135,12 @@ async function idbGetAll<T>(store: StoreName): Promise<T[]> {
   }
 }
 
-// ── TTL: 24h for questions, 7d for decks/notes ───────────────────────────────
+// ── TTL: 24h for questions, 7d for decks/notes/chapters/roadmap ──────────────
 const TTL_QUIZ      = 24 * 60 * 60 * 1000;
 const TTL_FLASHCARD = 7 * 24 * 60 * 60 * 1000;
 const TTL_NOTES     = 7 * 24 * 60 * 60 * 1000;
+const TTL_NCERT     = 7 * 24 * 60 * 60 * 1000;  // chapter metadata rarely changes
+const TTL_ROADMAP   = 24 * 60 * 60 * 1000;      // regenerated more often than chapters
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -194,6 +218,41 @@ export const OfflineCache = {
     } catch { /* silently fail */ }
   },
 
+  // NCERT chapter lists — chapter questions reuse cacheQuizQuestions/getQuizQuestions
+  // with topic = `ncert_${chapter.id}` rather than a separate store, since the
+  // shape (subject/topic-keyed question bank) is identical. ───────────────────
+  async cacheNcertChapters(classNum: number, subject: string, chapters: unknown[]): Promise<void> {
+    const id = `${classNum}_${subject}`;
+    await idbPut('ncert_chapters_cache', { id, class_num: classNum, subject, chapters, cached_at: Date.now() });
+  },
+
+  async getNcertChapters(classNum: number, subject: string): Promise<unknown[] | null> {
+    const entry = await idbGet<CachedNcertChapterList>('ncert_chapters_cache', `${classNum}_${subject}`);
+    if (!entry || Date.now() - entry.cached_at > TTL_NCERT) return null;
+    return entry.chapters;
+  },
+
+  async cacheNcertQuestions(chapterId: string, questions: unknown[]): Promise<void> {
+    await idbPut('ncert_questions_cache', { id: chapterId, chapter_id: chapterId, questions, cached_at: Date.now() });
+  },
+
+  async getNcertQuestions(chapterId: string): Promise<unknown[] | null> {
+    const entry = await idbGet<CachedNcertQuestions>('ncert_questions_cache', chapterId);
+    if (!entry || Date.now() - entry.cached_at > TTL_NCERT) return null;
+    return entry.questions;
+  },
+
+  // Roadmap ─────────────────────────────────────────────────────────────────────
+  async cacheRoadmap(userId: string, roadmap: unknown): Promise<void> {
+    await idbPut('roadmap_cache', { id: userId, user_id: userId, roadmap, cached_at: Date.now() });
+  },
+
+  async getRoadmap(userId: string): Promise<unknown | null> {
+    const entry = await idbGet<CachedRoadmap>('roadmap_cache', userId);
+    if (!entry || Date.now() - entry.cached_at > TTL_ROADMAP) return null;
+    return entry.roadmap;
+  },
+
   // Study notes ─────────────────────────────────────────────────────────────────
   async cacheNotes(userId: string, notes: CachedNote['notes']): Promise<void> {
     await idbPut('notes_cache', { id: userId, user_id: userId, notes, cached_at: Date.now() });
@@ -210,13 +269,25 @@ export const OfflineCache = {
     const now = Date.now();
     const quizItems = await idbGetAll<CachedQuizQuestion>('quiz_cache');
     const db = await openDB();
-    const tx = db.transaction(['quiz_cache', 'flashcard_cache'], 'readwrite');
+    const tx = db.transaction(['quiz_cache', 'flashcard_cache', 'ncert_chapters_cache', 'ncert_questions_cache', 'roadmap_cache'], 'readwrite');
     for (const q of quizItems) {
       if (now - q.cached_at > TTL_QUIZ) tx.objectStore('quiz_cache').delete(q.id);
     }
     const decks = await idbGetAll<CachedFlashcardDeck>('flashcard_cache');
     for (const d of decks) {
       if (now - d.cached_at > TTL_FLASHCARD) tx.objectStore('flashcard_cache').delete(d.id);
+    }
+    const ncertLists = await idbGetAll<CachedNcertChapterList>('ncert_chapters_cache');
+    for (const c of ncertLists) {
+      if (now - c.cached_at > TTL_NCERT) tx.objectStore('ncert_chapters_cache').delete(c.id);
+    }
+    const ncertQuestions = await idbGetAll<CachedNcertQuestions>('ncert_questions_cache');
+    for (const q of ncertQuestions) {
+      if (now - q.cached_at > TTL_NCERT) tx.objectStore('ncert_questions_cache').delete(q.id);
+    }
+    const roadmaps = await idbGetAll<CachedRoadmap>('roadmap_cache');
+    for (const r of roadmaps) {
+      if (now - r.cached_at > TTL_ROADMAP) tx.objectStore('roadmap_cache').delete(r.id);
     }
   },
 };

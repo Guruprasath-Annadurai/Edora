@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiCall, geminiJSON } from '@/lib/gemini';
 import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
+import { OfflineCache } from '@/lib/offlineCache';
 
 type Phase = 'browse' | 'chapter' | 'quiz' | 'result';
 
@@ -83,10 +84,20 @@ export default function NCERTChaptersPage() {
       .eq('class_num', classNum)
       .eq('subject', subject)
       .order('chapter_num');
-    setChapters((data ?? []) as NCERTChapter[]);
 
-    if (data?.length && profile) {
-      const ids = data.map(c => c.id);
+    let chapterList = (data ?? []) as NCERTChapter[];
+    if (chapterList.length) {
+      await OfflineCache.cacheNcertChapters(classNum, subject, chapterList);
+    } else {
+      // Offline, or nothing seeded yet server-side — fall back to whatever
+      // was cached the last time this class/subject was viewed online.
+      const cached = await OfflineCache.getNcertChapters(classNum, subject);
+      if (cached) chapterList = cached as NCERTChapter[];
+    }
+    setChapters(chapterList);
+
+    if (chapterList.length && profile) {
+      const ids = chapterList.map(c => c.id);
       const { data: prog } = await supabase
         .from('ncert_chapter_progress')
         .select('*')
@@ -117,9 +128,18 @@ export default function NCERTChaptersPage() {
     if (data?.length) {
       setQuestions(data as NCERTQuestion[]);
       setGenMode(false);
+      await OfflineCache.cacheNcertQuestions(chapter.id, data);
     } else {
-      // Generate via Gemini
-      await generateChapterQuestions(chapter);
+      // Offline, or nothing seeded server-side yet — try the last cached
+      // set for this chapter before falling back to a fresh (network-
+      // dependent) Gemini generation.
+      const cached = await OfflineCache.getNcertQuestions(chapter.id);
+      if (cached?.length) {
+        setQuestions(cached as NCERTQuestion[]);
+        setGenMode(false);
+      } else {
+        await generateChapterQuestions(chapter);
+      }
     }
 
     // Generate flashcards

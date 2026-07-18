@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
+import { OfflineCache } from '@/lib/offlineCache';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RoadmapDay {
@@ -358,7 +359,19 @@ export default function RoadmapPage() {
       setRoadmap(rm as StudyRoadmap);
       setProgress(progMap);
       setPhase('view');
+      await OfflineCache.cacheRoadmap(user.id, rm);
     } else {
+      // The query came back empty — could genuinely mean "no roadmap yet",
+      // or it could mean we're offline and this failed silently. Check the
+      // cache before dropping the user into setup, which would otherwise
+      // hide an existing roadmap just because the network call didn't land.
+      const cached = await OfflineCache.getRoadmap(user.id);
+      if (cached) {
+        setRoadmap(cached as StudyRoadmap);
+        setProgress(new Map());
+        setPhase('view');
+        return;
+      }
       // Pre-fill from profile
       setExamName(profile?.exam_name ?? '');
       setExamDate(profile?.exam_date ?? '');
@@ -401,6 +414,7 @@ export default function RoadmapPage() {
       setRoadmap(data.roadmap as StudyRoadmap);
       setProgress(new Map());
       setPhase('view');
+      if (user) await OfflineCache.cacheRoadmap(user.id, data.roadmap);
       track('roadmap_generated', { exam: examName, days_until: daysLeft });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate roadmap. Please try again.');
@@ -476,6 +490,7 @@ export default function RoadmapPage() {
       setRoadmap(data.roadmap as StudyRoadmap);
       setMissedCount(data.missed_count ?? 0);
       setRecalDone(true);
+      if (user) await OfflineCache.cacheRoadmap(user.id, data.roadmap);
       setTimeout(() => setRecalDone(false), 4000);
       track('roadmap_recalibrated', { missed: data.missed_count });
     } catch (err) {
