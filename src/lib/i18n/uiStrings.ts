@@ -126,7 +126,62 @@ export type UIStringKey =
   | 'tools.tournament.title' | 'tools.tournament.desc'
   | 'tools.debate.title' | 'tools.debate.desc'
   | 'tools.story_mode.title' | 'tools.story_mode.desc'
-  | 'tools.streak_challenges.title' | 'tools.streak_challenges.desc';
+  | 'tools.streak_challenges.title' | 'tools.streak_challenges.desc'
+  // ProfilePage
+  | 'profile.study_level.school'
+  | 'profile.study_level.college'
+  | 'profile.study_level.jee_neet'
+  | 'profile.study_level.sat_act'
+  | 'profile.study_level.fallback'
+  | 'profile.name_fallback'
+  | 'profile.badge.pro'
+  | 'profile.level_prefix'
+  | 'profile.xp_to_next_level'
+  | 'profile.xp_of'
+  | 'profile.stats.xp_total'
+  | 'profile.stats.level'
+  | 'profile.stats.streak'
+  | 'profile.stats.freezes'
+  | 'profile.subject_mastery.heading'
+  | 'profile.subject_mastery.empty'
+  | 'profile.achievements.title'
+  | 'profile.achievements.unlocked_suffix'
+  | 'profile.leaderboard.heading'
+  | 'profile.leaderboard.empty'
+  | 'profile.leaderboard.you_suffix'
+  | 'profile.trial.title'
+  | 'profile.trial.days_remaining_one'
+  | 'profile.trial.days_remaining_other'
+  | 'profile.memory.heading'
+  | 'profile.memory.knows_about_you'
+  | 'profile.memory.empty'
+  | 'profile.memory.show_less'
+  | 'profile.memory.show_all'
+  | 'profile.memory.delete_aria'
+  | 'profile.menu.section.learning'
+  | 'profile.menu.section.ai_insights'
+  | 'profile.menu.section.community'
+  | 'profile.menu.section.account'
+  | 'profile.menu.certifications'
+  | 'profile.menu.lesson_plan'
+  | 'profile.menu.novo_messages'
+  | 'profile.menu.analytics'
+  | 'profile.menu.study_groups'
+  | 'profile.menu.invite_earn_xp'
+  | 'profile.menu.school_admin'
+  | 'profile.menu.study_reminders'
+  | 'profile.menu.parent_dashboard'
+  | 'profile.menu.account_settings'
+  | 'profile.menu.badge_pro'
+  | 'profile.menu.badge_upgrade'
+  | 'profile.menu.badge_active'
+  | 'profile.legal.privacy_policy'
+  | 'profile.legal.terms_of_service'
+  | 'profile.sign_out'
+  | 'profile.sign_out_confirm.title'
+  | 'profile.sign_out_confirm.cancel_aria'
+  | 'profile.sign_out_confirm.body'
+  | 'profile.sign_out_confirm.cancel';
 
 type UIStringTable = Record<UIStringKey, string>;
 
@@ -236,6 +291,60 @@ export const UI_STRINGS: { en: UIStringTable } & Record<Exclude<AppLanguage, 'en
     'tools.debate.title': 'Debate Mode', 'tools.debate.desc': 'Argue vs Novo',
     'tools.story_mode.title': 'Story Mode', 'tools.story_mode.desc': 'Learn through adventure',
     'tools.streak_challenges.title': 'Streak Challenges', 'tools.streak_challenges.desc': '7-day focus sprints',
+    'profile.study_level.school': 'School (6–12)',
+    'profile.study_level.college': 'College / UG',
+    'profile.study_level.jee_neet': 'JEE / NEET',
+    'profile.study_level.sat_act': 'SAT / ACT',
+    'profile.study_level.fallback': 'Student',
+    'profile.name_fallback': 'Explorer',
+    'profile.badge.pro': 'PRO',
+    'profile.level_prefix': 'Level',
+    'profile.xp_to_next_level': 'XP to Level',
+    'profile.xp_of': 'XP',
+    'profile.stats.xp_total': 'XP Total',
+    'profile.stats.level': 'Level',
+    'profile.stats.streak': 'Streak',
+    'profile.stats.freezes': 'Freezes',
+    'profile.subject_mastery.heading': 'Subject Mastery',
+    'profile.subject_mastery.empty': 'Complete study sprints to track your subject mastery.',
+    'profile.achievements.title': 'Achievements',
+    'profile.achievements.unlocked_suffix': 'unlocked',
+    'profile.leaderboard.heading': 'Leaderboard',
+    'profile.leaderboard.empty': 'No data yet — start studying!',
+    'profile.leaderboard.you_suffix': '(you)',
+    'profile.trial.title': 'Free Pro Trial',
+    'profile.trial.days_remaining_one': 'day remaining — all features unlocked',
+    'profile.trial.days_remaining_other': 'days remaining — all features unlocked',
+    'profile.memory.heading': "Novo's Memory",
+    'profile.memory.knows_about_you': 'things Novo knows about you',
+    'profile.memory.empty': 'Chat with Novo to build your memory',
+    'profile.memory.show_less': 'Show less',
+    'profile.memory.show_all': 'Show all',
+    'profile.memory.delete_aria': 'Delete memory',
+    'profile.menu.section.learning': 'Learning',
+    'profile.menu.section.ai_insights': 'AI & Insights',
+    'profile.menu.section.community': 'Community',
+    'profile.menu.section.account': 'Account',
+    'profile.menu.certifications': 'Certifications',
+    'profile.menu.lesson_plan': 'Lesson Plan',
+    'profile.menu.novo_messages': "Novo's Messages",
+    'profile.menu.analytics': 'Analytics',
+    'profile.menu.study_groups': 'Study Groups',
+    'profile.menu.invite_earn_xp': 'Invite & Earn XP',
+    'profile.menu.school_admin': 'School Admin Portal',
+    'profile.menu.study_reminders': 'Study Reminders',
+    'profile.menu.parent_dashboard': 'Parent Dashboard',
+    'profile.menu.account_settings': 'Account Settings',
+    'profile.menu.badge_pro': 'PRO',
+    'profile.menu.badge_upgrade': 'Upgrade',
+    'profile.menu.badge_active': 'Active',
+    'profile.legal.privacy_policy': 'Privacy Policy',
+    'profile.legal.terms_of_service': 'Terms of Service',
+    'profile.sign_out': 'Sign Out',
+    'profile.sign_out_confirm.title': 'Sign out?',
+    'profile.sign_out_confirm.cancel_aria': 'Cancel',
+    'profile.sign_out_confirm.body': "You'll need to sign back in to continue studying. Your progress is already saved.",
+    'profile.sign_out_confirm.cancel': 'Cancel',
   },
   hi: {
     'nav.home':    'होम',
@@ -342,6 +451,60 @@ export const UI_STRINGS: { en: UIStringTable } & Record<Exclude<AppLanguage, 'en
     'tools.debate.title': 'डिबेट मोड', 'tools.debate.desc': 'नोवो से बहस करें',
     'tools.story_mode.title': 'स्टोरी मोड', 'tools.story_mode.desc': 'एडवेंचर के ज़रिए सीखें',
     'tools.streak_challenges.title': 'स्ट्रीक चैलेंज', 'tools.streak_challenges.desc': '7-दिन का फोकस स्प्रिंट',
+    'profile.study_level.school': 'स्कूल (6–12)',
+    'profile.study_level.college': 'कॉलेज / UG',
+    'profile.study_level.jee_neet': 'JEE / NEET',
+    'profile.study_level.sat_act': 'SAT / ACT',
+    'profile.study_level.fallback': 'छात्र',
+    'profile.name_fallback': 'एक्सप्लोरर',
+    'profile.badge.pro': 'PRO',
+    'profile.level_prefix': 'लेवल',
+    'profile.xp_to_next_level': 'XP चाहिए लेवल',
+    'profile.xp_of': 'XP',
+    'profile.stats.xp_total': 'कुल XP',
+    'profile.stats.level': 'लेवल',
+    'profile.stats.streak': 'स्ट्रीक',
+    'profile.stats.freezes': 'फ्रीज़',
+    'profile.subject_mastery.heading': 'विषयवार महारत',
+    'profile.subject_mastery.empty': 'अपनी विषयवार महारत देखने के लिए स्टडी स्प्रिंट पूरे करें।',
+    'profile.achievements.title': 'अचीवमेंट्स',
+    'profile.achievements.unlocked_suffix': 'अनलॉक किए',
+    'profile.leaderboard.heading': 'लीडरबोर्ड',
+    'profile.leaderboard.empty': 'अभी कोई डेटा नहीं — पढ़ाई शुरू करें!',
+    'profile.leaderboard.you_suffix': '(आप)',
+    'profile.trial.title': 'फ्री प्रो ट्रायल',
+    'profile.trial.days_remaining_one': 'दिन बचा है — सभी फीचर्स अनलॉक',
+    'profile.trial.days_remaining_other': 'दिन बचे हैं — सभी फीचर्स अनलॉक',
+    'profile.memory.heading': 'नोवो की मेमोरी',
+    'profile.memory.knows_about_you': 'बातें नोवो आपके बारे में जानता है',
+    'profile.memory.empty': 'नोवो से बात करें ताकि उसकी मेमोरी बने',
+    'profile.memory.show_less': 'कम दिखाएं',
+    'profile.memory.show_all': 'सभी दिखाएं',
+    'profile.memory.delete_aria': 'मेमोरी हटाएं',
+    'profile.menu.section.learning': 'लर्निंग',
+    'profile.menu.section.ai_insights': 'AI और इनसाइट्स',
+    'profile.menu.section.community': 'कम्युनिटी',
+    'profile.menu.section.account': 'अकाउंट',
+    'profile.menu.certifications': 'सर्टिफिकेशन',
+    'profile.menu.lesson_plan': 'लेसन प्लान',
+    'profile.menu.novo_messages': 'नोवो के मैसेज',
+    'profile.menu.analytics': 'एनालिटिक्स',
+    'profile.menu.study_groups': 'स्टडी ग्रुप्स',
+    'profile.menu.invite_earn_xp': 'इनवाइट करें और XP कमाएं',
+    'profile.menu.school_admin': 'स्कूल एडमिन पोर्टल',
+    'profile.menu.study_reminders': 'स्टडी रिमाइंडर',
+    'profile.menu.parent_dashboard': 'पेरेंट डैशबोर्ड',
+    'profile.menu.account_settings': 'अकाउंट सेटिंग्स',
+    'profile.menu.badge_pro': 'PRO',
+    'profile.menu.badge_upgrade': 'अपग्रेड करें',
+    'profile.menu.badge_active': 'सक्रिय',
+    'profile.legal.privacy_policy': 'प्राइवेसी पॉलिसी',
+    'profile.legal.terms_of_service': 'सेवा की शर्तें',
+    'profile.sign_out': 'साइन आउट',
+    'profile.sign_out_confirm.title': 'साइन आउट करें?',
+    'profile.sign_out_confirm.cancel_aria': 'रद्द करें',
+    'profile.sign_out_confirm.body': 'पढ़ाई जारी रखने के लिए आपको दोबारा साइन इन करना होगा। आपकी प्रगति पहले से सेव है।',
+    'profile.sign_out_confirm.cancel': 'रद्द करें',
   },
   ta: {
     'nav.home':    'முகப்பு',

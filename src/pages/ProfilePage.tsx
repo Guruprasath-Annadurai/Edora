@@ -23,6 +23,8 @@ import { StudyDNA } from '@/components/profile/StudyDNA';
 import { MoodHeatmap } from '@/components/profile/MoodHeatmap';
 import { ThemePicker } from '@/components/settings/ThemePicker';
 import { useNovoMemory, MEMORY_TYPE_LABELS, MEMORY_TYPE_COLORS } from '@/hooks/useNovoMemory';
+import { useT } from '@/hooks/useT';
+import type { UIStringKey } from '@/lib/i18n/uiStrings';
 
 const SUBJECT_COLORS: Record<string, { color: string; glow: string }> = {
   Mathematics:        { color: '#93C5FD', glow: 'rgba(147,197,253,0.3)'  },
@@ -53,45 +55,45 @@ interface LeaderboardRow {
   level: number; streak_count: number; is_current_user: boolean;
 }
 
-const STUDY_LEVELS = [
-  { value: 'school',   label: 'School (6–12)' },
-  { value: 'college',  label: 'College / UG'  },
-  { value: 'jee_neet', label: 'JEE / NEET'    },
-  { value: 'sat_act',  label: 'SAT / ACT'     },
+const STUDY_LEVELS: { value: string; labelKey: UIStringKey }[] = [
+  { value: 'school',   labelKey: 'profile.study_level.school' },
+  { value: 'college',  labelKey: 'profile.study_level.college' },
+  { value: 'jee_neet', labelKey: 'profile.study_level.jee_neet' },
+  { value: 'sat_act',  labelKey: 'profile.study_level.sat_act' },
 ];
 
-type MenuItem = { icon: React.ElementType; label: string; to: string; pro?: boolean; highlight?: boolean };
-type MenuSection = { title: string; items: MenuItem[] };
+type MenuItem = { icon: React.ElementType; labelKey: UIStringKey; to: string; pro?: boolean; highlight?: boolean };
+type MenuSection = { titleKey: UIStringKey; items: MenuItem[] };
 
 const MENU_SECTIONS: MenuSection[] = [
   {
-    title: 'Learning',
+    titleKey: 'profile.menu.section.learning',
     items: [
-      { icon: Award,        label: 'Certifications',   to: '/certifications' },
-      { icon: CalendarDays, label: 'Lesson Plan',      to: '/lesson-plan'    },
+      { icon: Award,        labelKey: 'profile.menu.certifications', to: '/certifications' },
+      { icon: CalendarDays, labelKey: 'profile.menu.lesson_plan',    to: '/lesson-plan'    },
     ],
   },
   {
-    title: 'AI & Insights',
+    titleKey: 'profile.menu.section.ai_insights',
     items: [
-      { icon: MessageSquare, label: "Novo's Messages", to: '/novo-messages'             },
-      { icon: TrendingUp,    label: 'Analytics',       to: '/analytics', pro: true      },
+      { icon: MessageSquare, labelKey: 'profile.menu.novo_messages', to: '/novo-messages'             },
+      { icon: TrendingUp,    labelKey: 'profile.menu.analytics',     to: '/analytics', pro: true      },
     ],
   },
   {
-    title: 'Community',
+    titleKey: 'profile.menu.section.community',
     items: [
-      { icon: Users,     label: 'Study Groups',       to: '/study-groups' },
-      { icon: Gift,      label: 'Invite & Earn XP',   to: '/referral', highlight: true },
-      { icon: Building2, label: 'School Admin Portal', to: '/school-admin' },
+      { icon: Users,     labelKey: 'profile.menu.study_groups',    to: '/study-groups' },
+      { icon: Gift,      labelKey: 'profile.menu.invite_earn_xp',  to: '/referral', highlight: true },
+      { icon: Building2, labelKey: 'profile.menu.school_admin',   to: '/school-admin' },
     ],
   },
   {
-    title: 'Account',
+    titleKey: 'profile.menu.section.account',
     items: [
-      { icon: Bell,   label: 'Study Reminders',  to: '/reminders'                  },
-      { icon: Shield, label: 'Parent Dashboard', to: '/parent'                     },
-      { icon: User,   label: 'Account Settings', to: '/account'                    },
+      { icon: Bell,   labelKey: 'profile.menu.study_reminders',   to: '/reminders'                  },
+      { icon: Shield, labelKey: 'profile.menu.parent_dashboard',  to: '/parent'                     },
+      { icon: User,   labelKey: 'profile.menu.account_settings',  to: '/account'                    },
     ],
   },
 ];
@@ -125,6 +127,7 @@ function RankBadge({ rank }: { rank: number }) {
 
 // ── Novo Memory Viewer (inline) ───────────────────────────────────────────────
 function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
+  const t = useT();
   const { memories, loading, deleteMemory, totalCount } = useNovoMemory();
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? memories : memories.slice(0, 3);
@@ -142,10 +145,10 @@ function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: '#7C3AED', textTransform: 'uppercase', marginBottom: 2 }}>
-            Novo's Memory
+            {t('profile.memory.heading')}
           </div>
           <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 15, fontWeight: 700, color: '#F4F6FA' }}>
-            {totalCount} things Novo knows about you
+            {totalCount} {t('profile.memory.knows_about_you')}
           </div>
         </div>
         <div style={{
@@ -158,7 +161,7 @@ function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
 
       {memories.length === 0 ? (
         <p style={{ fontSize: 12, color: 'var(--ink-400)', textAlign: 'center', padding: '12px 0' }}>
-          Chat with Novo to build your memory
+          {t('profile.memory.empty')}
         </p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -187,7 +190,7 @@ function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
               <button
                 onClick={() => deleteMemory(m.id).catch(() => {})}
                 style={{ color: 'var(--ink-250)', padding: 4, flexShrink: 0, minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                aria-label="Delete memory"
+                aria-label={t('profile.memory.delete_aria')}
               >
                 <X size={12} />
               </button>
@@ -201,7 +204,7 @@ function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
           onClick={() => setExpanded(e => !e)}
           style={{ marginTop: 12, fontSize: 12, fontWeight: 700, color: '#7C3AED', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}
         >
-          {expanded ? 'Show less' : `Show all ${totalCount} memories`}
+          {expanded ? t('profile.memory.show_less') : `${t('profile.memory.show_all')} ${totalCount}`}
           <ChevronRight size={12} style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
         </button>
       )}
@@ -210,6 +213,7 @@ function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
 }
 
 export default function ProfilePage() {
+  const t = useT();
   const { profile, signOut, user, loading: authLoading } = useAuth();
   const trialActive = user?.created_at ? isInFreeTrial(user.created_at) : false;
   const daysLeft    = user?.created_at ? trialDaysRemaining(user.created_at) : 0;
@@ -276,11 +280,11 @@ export default function ProfilePage() {
       });
   }, [user]);
 
-  const stats = [
-    { label: 'XP Total', value: xp.toLocaleString(), icon: Star,      color: '#EAB308' },
-    { label: 'Level',    value: level.toString(),     icon: TrophyIcon, color: '#A0AEFF' },
-    { label: 'Streak',   value: `${streak}d`,         icon: Flame,     color: '#FB923C' },
-    { label: 'Freezes',  value: freezes.toString(),   icon: Snowflake, color: '#67E8F9' },
+  const stats: { labelKey: UIStringKey; value: string; icon: React.ElementType; color: string }[] = [
+    { labelKey: 'profile.stats.xp_total', value: xp.toLocaleString(), icon: Star,      color: '#EAB308' },
+    { labelKey: 'profile.stats.level',    value: level.toString(),     icon: TrophyIcon, color: '#A0AEFF' },
+    { labelKey: 'profile.stats.streak',   value: `${streak}d`,         icon: Flame,     color: '#FB923C' },
+    { labelKey: 'profile.stats.freezes',  value: freezes.toString(),   icon: Snowflake, color: '#67E8F9' },
   ];
 
   return (
@@ -333,19 +337,22 @@ export default function ProfilePage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="font-heading text-lg font-extrabold text-white">
-                        {profile?.full_name?.split(' ')[0] ?? 'Explorer'}
+                        {profile?.full_name?.split(' ')[0] ?? t('profile.name_fallback')}
                       </h2>
                       {isPro && (
                         <span
                           className="text-[10px] px-2 py-0.5 rounded-full font-extrabold"
                           style={{ background: 'var(--ink-180)', color: 'var(--ink-950)' }}
                         >
-                          PRO
+                          {t('profile.badge.pro')}
                         </span>
                       )}
                     </div>
                     <p className="text-white/55 text-[11px] font-semibold">
-                      {STUDY_LEVELS.find(l => l.value === profile?.study_level)?.label ?? 'Student'}
+                      {(() => {
+                        const lvl = STUDY_LEVELS.find(l => l.value === profile?.study_level);
+                        return lvl ? t(lvl.labelKey) : t('profile.study_level.fallback');
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -357,17 +364,17 @@ export default function ProfilePage() {
                     style={{ background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.25)' }}
                   >
                     <Star size={11} style={{ color: '#EAB308', fill: '#EAB308' }} />
-                    <span className="text-xs font-extrabold" style={{ color: '#EAB308' }}>{xp.toLocaleString()} XP</span>
+                    <span className="text-xs font-extrabold" style={{ color: '#EAB308' }}>{xp.toLocaleString()} {t('profile.xp_of')}</span>
                   </div>
-                  <span className="text-white/45 text-[10px] font-semibold">Level {level}</span>
+                  <span className="text-white/45 text-[10px] font-semibold">{t('profile.level_prefix')} {level}</span>
                 </div>
               </div>
 
               {/* XP bar */}
               <div>
                 <div className="flex justify-between text-[10px] mb-1.5">
-                  <span className="text-white/55 font-semibold">Level {level}</span>
-                  <span className="text-white/55 font-semibold">{(nextXP - xp).toLocaleString()} XP to Level {level + 1}</span>
+                  <span className="text-white/55 font-semibold">{t('profile.level_prefix')} {level}</span>
+                  <span className="text-white/55 font-semibold">{(nextXP - xp).toLocaleString()} {t('profile.xp_to_next_level')} {level + 1}</span>
                 </div>
                 <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-100)' }}>
                   <motion.div
@@ -389,16 +396,16 @@ export default function ProfilePage() {
 
             {/* Stats strip */}
             <div className="grid grid-cols-4" style={{ borderTop: '1px solid var(--ink-100)' }}>
-              {stats.map(({ label, value, color }, i) => (
+              {stats.map(({ labelKey, value, color }, i) => (
                 <div
-                  key={label}
+                  key={labelKey}
                   className={`flex flex-col items-center py-3.5 gap-1 ${i < 3 ? 'border-r' : ''}`}
                   style={{ borderColor: 'var(--ink-080)', background: 'var(--ink-020)' }}
                 >
                   <span className="font-heading font-extrabold text-sm" style={{ color }}>
                     {value}
                   </span>
-                  <span className="text-[10px] font-semibold text-white/45">{label}</span>
+                  <span className="text-[10px] font-semibold text-white/45">{t(labelKey)}</span>
                 </div>
               ))}
             </div>
@@ -408,13 +415,13 @@ export default function ProfilePage() {
 
         {/* ── Subject Mastery ───────────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}>
-          <h3 className="font-heading font-bold text-white text-base mb-3">Subject Mastery</h3>
+          <h3 className="font-heading font-bold text-white text-base mb-3">{t('profile.subject_mastery.heading')}</h3>
           <div className="bento-cell-elevated rounded-3xl p-4">
             {masteryLoading ? (
               <SkeletonMasteryBars count={3} />
             ) : subjectMastery.length === 0 ? (
               <p className="text-sm text-white/40 text-center py-3">
-                Complete study sprints to track your subject mastery.
+                {t('profile.subject_mastery.empty')}
               </p>
             ) : (
               <div className="flex flex-col gap-3.5">
@@ -467,8 +474,8 @@ export default function ProfilePage() {
                 <Trophy size={20} style={{ color: '#FDE68A' }} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-white">Achievements</p>
-                <p className="text-[11px] text-white/45">{unlockedCount} / {ACHIEVEMENT_DEFS.length} unlocked</p>
+                <p className="text-sm font-bold text-white">{t('profile.achievements.title')}</p>
+                <p className="text-[11px] text-white/45">{unlockedCount} / {ACHIEVEMENT_DEFS.length} {t('profile.achievements.unlocked_suffix')}</p>
               </div>
               <ChevronRight size={16} className="text-white/30" />
             </div>
@@ -477,13 +484,13 @@ export default function ProfilePage() {
 
         {/* ── Leaderboard ───────────────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-          <h3 className="font-heading font-bold text-white text-base mb-3">Leaderboard</h3>
+          <h3 className="font-heading font-bold text-white text-base mb-3">{t('profile.leaderboard.heading')}</h3>
           {lbLoading ? (
             <SkeletonLeaderboardRows count={5} />
           ) : (
           <div className="liquid-glass rounded-3xl overflow-hidden">
             {leaderboard.length === 0 ? (
-              <p className="text-sm text-white/40 text-center py-5">No data yet — start studying!</p>
+              <p className="text-sm text-white/40 text-center py-5">{t('profile.leaderboard.empty')}</p>
             ) : leaderboard.map((row, idx) => (
               <div
                 key={row.rank}
@@ -503,7 +510,7 @@ export default function ProfilePage() {
                 >
                   {row.display_name}
                   {row.is_current_user && (
-                    <span className="text-[11px] text-white/30 font-normal ml-1">(you)</span>
+                    <span className="text-[11px] text-white/30 font-normal ml-1">{t('profile.leaderboard.you_suffix')}</span>
                   )}
                 </span>
                 <div className="flex items-center gap-1 shrink-0">
@@ -555,25 +562,25 @@ export default function ProfilePage() {
                 <Crown size={18} className="text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white leading-tight">Free Pro Trial</p>
+                <p className="text-sm font-bold text-white leading-tight">{t('profile.trial.title')}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>
-                  {daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining — all features unlocked
+                  {daysLeft} {t(daysLeft === 1 ? 'profile.trial.days_remaining_one' : 'profile.trial.days_remaining_other')}
                 </p>
               </div>
             </div>
           )}
 
-          {MENU_SECTIONS.map(({ title, items }) => (
-            <div key={title}>
+          {MENU_SECTIONS.map(({ titleKey, items }) => (
+            <div key={titleKey}>
               <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/30 mb-2 px-1">
-                {title}
+                {t(titleKey)}
               </p>
               <div
                 className="v2-card rounded-3xl overflow-hidden"
               >
-                {items.map(({ icon: Icon, label, to, pro, highlight }, idx) => (
+                {items.map(({ icon: Icon, labelKey, to, pro, highlight }, idx) => (
                   <Link
-                    key={label}
+                    key={labelKey}
                     to={to}
                     onClick={() => Haptics.impact({ style: ImpactStyle.Light }).catch(() => {})}
                     className="flex items-center gap-3.5 px-4 active:scale-98 transition-all"
@@ -589,23 +596,23 @@ export default function ProfilePage() {
                     >
                       <Icon size={18} style={{ color: 'var(--v2-primary)' }} strokeWidth={1.75} />
                     </div>
-                    <span className="flex-1 text-sm font-semibold" style={{ color: 'var(--v2-text-1)' }}>{label}</span>
+                    <span className="flex-1 text-sm font-semibold" style={{ color: 'var(--v2-text-1)' }}>{t(labelKey)}</span>
                     {pro && !isPro && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold mr-1"
                         style={{ background: 'rgba(91,106,245,0.15)', color: '#A0AEFF', border: '1px solid rgba(91,106,245,0.2)' }}>
-                        PRO
+                        {t('profile.menu.badge_pro')}
                       </span>
                     )}
                     {highlight && !isPro && (
                       <span className="text-[10px] px-2.5 py-1 rounded-full font-bold text-white"
                         style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}>
-                        Upgrade
+                        {t('profile.menu.badge_upgrade')}
                       </span>
                     )}
                     {highlight && isPro && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold mr-1"
                         style={{ background: 'rgba(16,185,129,0.12)', color: '#6EE7B7', border: '1px solid rgba(16,185,129,0.2)' }}>
-                        Active
+                        {t('profile.menu.badge_active')}
                       </span>
                     )}
                     <ChevronRight size={15} className="text-white/25 shrink-0" />
@@ -628,7 +635,7 @@ export default function ProfilePage() {
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--ink-060)' }}>
                 <FileText size={18} className="text-primary" strokeWidth={1.75} />
               </div>
-              <span className="flex-1 text-sm font-semibold text-white/80">Privacy Policy</span>
+              <span className="flex-1 text-sm font-semibold text-white/80">{t('profile.legal.privacy_policy')}</span>
               <ChevronRight size={15} className="text-white/25 shrink-0" />
             </button>
             <div style={{ height: 1, background: 'var(--ink-040)', margin: '0 16px' }} />
@@ -640,7 +647,7 @@ export default function ProfilePage() {
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--ink-060)' }}>
                 <FileText size={18} className="text-primary" strokeWidth={1.75} />
               </div>
-              <span className="flex-1 text-sm font-semibold text-white/80">Terms of Service</span>
+              <span className="flex-1 text-sm font-semibold text-white/80">{t('profile.legal.terms_of_service')}</span>
               <ChevronRight size={15} className="text-white/25 shrink-0" />
             </button>
           </div>
@@ -658,7 +665,7 @@ export default function ProfilePage() {
             }}
           >
             <LogOut size={16} />
-            Sign Out
+            {t('profile.sign_out')}
           </button>
         </motion.div>
 
@@ -674,13 +681,13 @@ export default function ProfilePage() {
             style={{ background: 'var(--v2-card)', borderTop: '1px solid var(--v2-border)' }}
           >
             <div className="flex items-center justify-between mb-3">
-              <p className="font-heading font-bold text-lg" style={{ color: 'var(--v2-text-1)' }}>Sign out?</p>
-              <button onClick={() => setShowSignOutConfirm(false)} aria-label="Cancel">
+              <p className="font-heading font-bold text-lg" style={{ color: 'var(--v2-text-1)' }}>{t('profile.sign_out_confirm.title')}</p>
+              <button onClick={() => setShowSignOutConfirm(false)} aria-label={t('profile.sign_out_confirm.cancel_aria')}>
                 <X size={18} style={{ color: 'var(--v2-text-4)' }} />
               </button>
             </div>
             <p className="text-sm mb-5" style={{ color: 'var(--v2-text-3)' }}>
-              You'll need to sign back in to continue studying. Your progress is already saved.
+              {t('profile.sign_out_confirm.body')}
             </p>
             <div className="flex flex-col gap-2">
               <button
@@ -688,14 +695,14 @@ export default function ProfilePage() {
                 className="w-full py-3 rounded-xl font-bold text-white text-sm"
                 style={{ background: 'var(--v2-error)' }}
               >
-                Sign Out
+                {t('profile.sign_out')}
               </button>
               <button
                 onClick={() => setShowSignOutConfirm(false)}
                 className="w-full py-3 rounded-xl font-bold text-sm"
                 style={{ background: 'var(--v2-elevated)', color: 'var(--v2-text-2)' }}
               >
-                Cancel
+                {t('profile.sign_out_confirm.cancel')}
               </button>
             </div>
           </motion.div>
