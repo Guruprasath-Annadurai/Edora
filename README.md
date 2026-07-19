@@ -7,7 +7,7 @@
 ## Live Demo
 
 🌐 **Web:** [edora-app.vercel.app](https://edora-app.vercel.app)  
-📱 **Android:** Available on Google Play Store (in review)
+📱 **Android:** Available on Google Play Store (https://play.google.com/store/apps/details?id=com.edora.app)
 
 ---
 
