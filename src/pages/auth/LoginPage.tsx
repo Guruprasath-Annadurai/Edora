@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { CharacterImage } from '@/components/ui/CharacterImage';
 import { Events } from '@/lib/analytics';
+import { isPasswordPwned } from '@/lib/hibp';
 
 const NATIVE_REDIRECT = 'com.edora.app://auth/callback';
 const WEB_REDIRECT    = `${window.location.origin}/home`;
@@ -192,6 +193,15 @@ export default function LoginPage() {
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!EMAIL_RE.test(email.trim())) { setError('Please enter a valid email address.'); return; }
     if (mode === 'login' && !password) { setError('Please enter your password.'); return; }
+    if (mode === 'signup') {
+      setLoading(true);
+      const pwned = await isPasswordPwned(password);
+      if (pwned) {
+        setLoading(false);
+        setError('This password has appeared in a known data breach. Please choose a different one.');
+        return;
+      }
+    }
     setLoading(true);
     try {
       if (mode === 'login') {

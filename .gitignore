@@ -23,3 +23,6 @@ android/*.keystore
 
 # gstack skill tool-local state — not project source
 .gstack/
+
+# Signed release build artifacts — not source, regenerated per release
+release-builds/
