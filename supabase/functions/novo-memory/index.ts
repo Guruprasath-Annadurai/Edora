@@ -25,18 +25,19 @@ const STYLE_DESCRIPTIONS: Record<string, string> = {
   socratic:  'Guide with questions rather than giving answers directly. Ask "what do you think would happen if…?", let the student discover insights. Intervene only when truly stuck.',
 };
 
-// ── Gemini text embedding (768-dim, text-embedding-004) ──────────────────────
+// ── Gemini text embedding (768-dim, gemini-embedding-001) ────────────────────
 async function embedText(text: string): Promise<number[] | null> {
   try {
     const key = Deno.env.get('GEMINI_API_KEY')!;
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${key}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'models/text-embedding-004',
+          model: 'models/gemini-embedding-001',
           content: { parts: [{ text: text.slice(0, 2000) }] },
+          outputDimensionality: 768,
         }),
       },
     );

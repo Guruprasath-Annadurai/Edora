@@ -12,7 +12,7 @@ const SERVICE_ROLE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const GEMINI_API_KEY    = Deno.env.get('GEMINI_API_KEY')!;
 const GROQ_API_KEY      = Deno.env.get('GROQ_API_KEY')!;
 const GROQ_BASE_URL     = 'https://api.groq.com/openai/v1/chat/completions';
-const EMBED_URL         = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent';
+const EMBED_URL         = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent';
 const GROQ_MODEL        = 'llama-3.1-8b-instant'; // lightweight — summary tasks only
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ async function embed(text: string): Promise<number[] | null> {
     const res = await fetch(`${EMBED_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'models/text-embedding-004', content: { parts: [{ text }] } }),
+      body: JSON.stringify({ model: 'models/gemini-embedding-001', content: { parts: [{ text }] }, outputDimensionality: 768 }),
     });
     if (!res.ok) return null;
     const j = await res.json() as { embedding?: { values?: number[] } };

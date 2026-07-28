@@ -12,7 +12,7 @@
 //   section  chunk  (N per chapter)  — 600-char sections, primary retrieval unit
 //   paragraph chunk (N per section)  — 200-char snippets, precision answers
 //
-// Embeddings: Gemini text-embedding-004 (768-dim), task=RETRIEVAL_DOCUMENT
+// Embeddings: Gemini gemini-embedding-001 (768-dim), task=RETRIEVAL_DOCUMENT
 // Requires secrets: GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -32,14 +32,15 @@ const BATCH_DELAY_MS    = 250;
 // ── Gemini embedding ──────────────────────────────────────────────────────────
 async function embedText(text: string, apiKey: string): Promise<number[]> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model:    'models/text-embedding-004',
+        model:    'models/gemini-embedding-001',
         content:  { parts: [{ text }] },
         taskType: 'RETRIEVAL_DOCUMENT',
+        outputDimensionality: 768,
       }),
     }
   );

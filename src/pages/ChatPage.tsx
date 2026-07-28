@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mic, ArrowLeft, Square, Loader2,
-  Sparkles, Camera, BookOpen, Volume2, VolumeX, Crown, Download } from 'lucide-react';
+  Sparkles, Camera, BookOpen, Volume2, VolumeX, Crown, Download, Flag, X as CloseIcon } from 'lucide-react';
 import { AiAudioIcon, SendIcon } from '@/components/ui/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { SmartReplyChips } from '@/components/chat/SmartReplyChips';
@@ -17,7 +17,7 @@ import { isInFreeTrial } from '@/lib/trial';
 import { useNovoTTS } from '@/hooks/useNovoTTS';
 import { useLanguage } from '@/hooks/useLanguage';
 import { supabase } from '@/lib/supabase';
-import { Events } from '@/lib/analytics';
+import { Events, track } from '@/lib/analytics';
 import {GeminiRateLimitError, GeminiTimeoutError, GeminiNetworkError} from '@/lib/gemini';
 import { writeSessionCache, getOfflineFallback } from '@/lib/ragCache';
 import { getBestFallbackAnswer } from '@/lib/fallbackQA';
@@ -45,6 +45,14 @@ import { PersonalitySheet } from '@/components/chat/PersonalitySheet';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+interface ChunkCitation {
+  id:            string;
+  corpus_source: 'ncert' | 'pyq';
+  subject:       string | null;
+  label:         string;
+  excerpt:       string;
+}
+
 interface Message {
   id:             string;
   role:           'user' | 'assistant';
@@ -53,6 +61,7 @@ interface Message {
   concepts?:       string[];
   quizData?:       { questions: QuizQuestion[]; topic: string };
   ncertSources?:   NcertSource[]; // NCERT chapters the answer was grounded in
+  citations?:      ChunkCitation[]; // RAG-retrieved sources (NCERT + PYQ) actually used for this answer
   interactionId?:  string;        // ai_interactions row ID — used for AIFeedback
   timestamp:      Date;
 }
@@ -102,6 +111,8 @@ export default function ChatPage() {
     messageId: string; front: string; back: string;
   } | null>(null);
   const [snapSolving, setSnapSolving] = useState(false);
+  const [reportingMsgId, setReportingMsgId] = useState<string | null>(null);
+  const [reportSubmittedFor, setReportSubmittedFor] = useState<Set<string>>(new Set());
 
   const bottomRef          = useRef<HTMLDivElement>(null);
   const sessionMsgs        = useRef<Message[]>([]);
@@ -305,6 +316,21 @@ export default function ChatPage() {
       mode: p === 'preceptor' ? 'friend' : 'teacher',
       personality: p });
     if (error) console.error('[ChatPage] persistMessage error:', error.message);
+  }
+
+  async function submitReport(msg: Message, reason: 'incorrect' | 'confusing' | 'off_topic' | 'other') {
+    if (!user) return;
+    setReportingMsgId(null);
+    const { error } = await supabase.from('answer_reports').insert({
+      user_id:         user.id,
+      message_content: msg.displayContent ?? msg.content,
+      chunk_ids:       msg.citations?.map(c => c.id) ?? [],
+      reason,
+    });
+    if (!error) {
+      setReportSubmittedFor(prev => new Set(prev).add(msg.id));
+      track('answer_reported', { reason, hasCitations: (msg.citations?.length ?? 0) > 0 });
+    }
   }
 
   const fetchSmartReplies = useCallback(async (msgs: Message[]) => {
@@ -600,12 +626,13 @@ Return ONLY valid JSON (no markdown, no code blocks):
         id: streamingId, role: 'assistant',
         content: '', displayContent: '', concepts: [], timestamp: new Date() }]);
 
+      let capturedChunkIds: string[] = [];
       const reply = await streamMessage(englishContent, {
         systemInstruction: systemPrompt,
         history,
         personality,
         last_chunk_ids: lastChunkIdsRef.current,
-        onChunkIds:     (ids) => { lastChunkIdsRef.current = ids; } });
+        onChunkIds:     (ids) => { lastChunkIdsRef.current = ids; capturedChunkIds = ids; } });
       const rawReply = resolveDrawTags(reply);
       const resolvedReply = user ? await parseAndExecuteActions(rawReply, user.id) : rawReply;
       const { displayContent, concepts } = parseConceptsFromResponse(resolvedReply);
@@ -649,6 +676,20 @@ Return ONLY valid JSON (no markdown, no code blocks):
             ));
           }
         });
+      }
+
+      // Resolve RAG chunk_ids into readable citations — async, non-blocking.
+      // These are the actual sources gemini-chat retrieved and grounded this
+      // specific answer in (trust signal distinct from the older, separate
+      // client-side ncertSources lookup above).
+      if (capturedChunkIds.length > 0) {
+        supabase.rpc('get_chunk_citations', { p_chunk_ids: capturedChunkIds })
+          .then(({ data, error }) => {
+            if (error || !data || (data as ChunkCitation[]).length === 0) return;
+            setMessages(prev => prev.map(m =>
+              m.id === assistantMsg.id ? { ...m, citations: data as ChunkCitation[] } : m
+            ));
+          });
       }
 
       // Cache response for offline fallback
@@ -942,11 +983,56 @@ Return ONLY valid JSON (no markdown, no code blocks):
                           compact
                         />
                       )}
+
+                      {/* Report wrong/confusing answer — a distinct trust signal from
+                          thumbs-down: this is "something is factually wrong here",
+                          not just "not helpful". */}
+                      {msg.id !== 'welcome' && (
+                        reportSubmittedFor.has(msg.id) ? (
+                          <span className="text-xs text-white/30">Reported</span>
+                        ) : (
+                          <button
+                            onClick={() => setReportingMsgId(reportingMsgId === msg.id ? null : msg.id)}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all active:scale-95"
+                            style={{ color: reportingMsgId === msg.id ? '#F87171' : '#94a3b8' }}
+                            aria-label="Report this answer">
+                            <Flag size={11} />
+                            <span>Report</span>
+                          </button>
+                        )
+                      )}
                     </div>
                   );
                 })()}
 
-                {/* NCERT sourcing — trust signal: show exactly where the answer is grounded */}
+                {/* Inline reason picker for the Report control above */}
+                {reportingMsgId === msg.id && (
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5 p-2 rounded-xl"
+                    style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)' }}>
+                    <span className="text-xs text-white/50 mr-1">What's wrong with this answer?</span>
+                    {([
+                      ['incorrect',  'Incorrect'],
+                      ['confusing',  'Confusing'],
+                      ['off_topic',  'Off-topic'],
+                      ['other',      'Other'],
+                    ] as const).map(([value, label]) => (
+                      <button key={value}
+                        onClick={() => submitReport(msg, value)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium transition-all active:scale-95"
+                        style={{ background: 'rgba(255,255,255,0.06)', color: '#e5e7eb' }}>
+                        {label}
+                      </button>
+                    ))}
+                    <button onClick={() => setReportingMsgId(null)} aria-label="Cancel"
+                      className="ml-auto p-1 rounded-lg" style={{ color: '#94a3b8' }}>
+                      <CloseIcon size={13} />
+                    </button>
+                  </div>
+                )}
+
+                {/* NCERT sourcing — trust signal: show exactly where the answer is grounded
+                    (older, separate client-side lookup — kept alongside the RAG-based
+                    citations below rather than merged, since they're independent systems). */}
                 {msg.role === 'assistant' && (msg.ncertSources?.length ?? 0) > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-0.5">
                     {msg.ncertSources!.map((s, i) => (
@@ -955,6 +1041,27 @@ Return ONLY valid JSON (no markdown, no code blocks):
                         style={{ background: 'rgba(91,106,245,0.1)', color: '#A0AEFF', border: '1px solid rgba(91,106,245,0.2)' }}>
                         <BookOpen size={10} />
                         Sourced from NCERT{s.class_num ? ` Class ${s.class_num}` : ''} — {s.subject}, {s.chapter_title}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* RAG citations — the actual retrieved sources gemini-chat grounded
+                    this answer in (NCERT + PYQ). Distinct trust signal: this is
+                    checkable evidence, not just a confident tone. */}
+                {msg.role === 'assistant' && (msg.citations?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-white/25 w-full">Sources</span>
+                    {msg.citations!.map(c => (
+                      <span key={c.id} title={c.excerpt}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium"
+                        style={{
+                          background: c.corpus_source === 'pyq' ? 'rgba(234,179,8,0.1)' : 'rgba(52,211,153,0.1)',
+                          color:      c.corpus_source === 'pyq' ? '#EAB308' : '#34D399',
+                          border:     `1px solid ${c.corpus_source === 'pyq' ? 'rgba(234,179,8,0.2)' : 'rgba(52,211,153,0.2)'}`,
+                        }}>
+                        <BookOpen size={10} />
+                        {c.label}
                       </span>
                     ))}
                   </div>

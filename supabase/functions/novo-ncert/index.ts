@@ -6,7 +6,7 @@
 //   seed   — (admin) seed NCERT content with embeddings into DB
 //   status — count of indexed NCERT chunks
 //
-// Uses Gemini text-embedding-004 (768-dim) for both indexing and query.
+// Uses Gemini gemini-embedding-001 (768-dim) for both indexing and query.
 // Requires secrets: GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // ─────────────────────────────────────────────────────────────────────────────
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -19,11 +19,11 @@ import { checkRateLimit } from '../_shared/rateLimit.ts';
 // ── Gemini embedding ──────────────────────────────────────────────────────────
 async function embed(text: string, apiKey: string): Promise<number[]> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`,
     {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ model: 'models/embedding-001', content: { parts: [{ text }] } }),
+      body:    JSON.stringify({ model: 'models/gemini-embedding-001', content: { parts: [{ text }] }, outputDimensionality: 768 }),
     },
   );
   if (!res.ok) {
