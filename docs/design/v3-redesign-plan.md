@@ -22,13 +22,24 @@ the highest-traffic, highest-first-impression screens to the long tail.
 
 ---
 
-## Phase 0 — Design system foundation (build once, apply everywhere)
+## Phase 0 — Design system foundation (audit + close gaps)
 
-Must be decided and encoded as real tokens/components before touching page 2:
+**Correction from the original plan:** a complete, production-ready light
+theme already exists — `src/contexts/ThemeContext.tsx` defines 8 full themes
+(`default`, `light`, `oled`, `blue`, `green`, `red`, `gold`, `midnight`,
+`sakura`) as CSS custom-property maps, swapped at runtime via
+`data-theme` on `<html>`, including a correct dark-slate ink-token inversion
+for light mode. This is NOT a gap. The real Phase 0 work is auditing which
+pages bypass this token system with hardcoded inline hex/rgba colors (like
+`LoginPage.tsx`'s old `BG`/`DARK`/`GRAY` consts) and would render broken or
+inconsistent under the `light`/`oled`/other theme variants.
 
-- **Color tokens** — dark theme (already has an `ink-*` scale from the v2
-  pass) and a matching light theme (not yet built — every page currently
-  assumes dark only). Semantic tokens for success/warning/error/info in both.
+- **Color tokens** — already exist and are complete (see correction above).
+  Work item: audit + migrate pages with hardcoded inline colors onto the
+  existing `--v2-*` / `--ink-*` / `--surface-*` tokens.
+- **Semantic tokens** — success/warning/error/info already defined per theme
+  (`--v2-success`, `--v2-error`, `--v2-warning`, `--v2-info`) — reuse, don't
+  redefine.
 - **Typography scale** — heading font (geometric sans) + body font
   (humanist sans), display/h1/h2/h3/body-large/body/caption/label sizes.
 - **Iconography** — already monoline (lucide-react) — keep, just audit for
@@ -186,10 +197,7 @@ sales/procurement conversation coming up.
 1. **NovoAvatar pixel-sprite** — keep as Novo's deliberate mascot, or replace
    with a non-character indicator (waveform, abstract mark) to match the
    corporate direction fully?
-2. **Light theme** — build a genuine light theme now (real Phase 0 work), or
-   ship dark-only for v3 and add light later? Every current page assumes
-   dark; a real light theme is a meaningful chunk of Phase 0 by itself.
-3. **Concept Reels / Story Mode tone** — keep intentionally lighter (they're
+2. **Concept Reels / Story Mode tone** — keep intentionally lighter (they're
    entertainment-adjacent features), or fold into the same corporate
    language as the rest of the app?
 
