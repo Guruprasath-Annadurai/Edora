@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ArrowLeft, Check, FileText, ScrollText, BookOpen, User, CreditCard, Bot, Scale, Ban, ShieldAlert, LogOut, Landmark } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CharacterImage } from '@/components/ui/CharacterImage';
 
 const BG     = '#EEF0FF';
 const DARK   = '#1A1A2E';
@@ -149,9 +148,11 @@ export default function TermsOfServicePage() {
         <div className="w-9" />
       </div>
 
-      {/* ── Illustration ── */}
-      <div className="flex items-center justify-center shrink-0 py-2">
-        <CharacterImage slug="terms-character" anim="sway" height={160} fallbackIcon={<FileText size={40} style={{ color: '#818CF8' }} strokeWidth={1.6} />} />
+      {/* ── Mark ── */}
+      <div className="flex items-center justify-center shrink-0 py-5">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(129,140,248,0.12)', border: '1px solid rgba(129,140,248,0.25)' }}>
+          <FileText size={28} style={{ color: '#818CF8' }} strokeWidth={1.6} />
+        </div>
       </div>
 
       {/* ── Scrollable content ── */}

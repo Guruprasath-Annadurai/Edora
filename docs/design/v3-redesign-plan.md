@@ -66,20 +66,23 @@ color or type size.
 1. **Splash screen** — check what currently renders here; likely needs
    replacing with a minimal logo mark on solid background, brief motion,
    straight into onboarding/home. No loading spinner as the primary visual.
-2. **Onboarding** (`OnboardingPage.tsx`) — currently uses `CharacterImage`
-   assets in the sequence; needs the same illustration-policy treatment as
-   login. Rewrite each step's copy to make one concrete promise per screen
-   (exam-specific prep / AI tutor with memory / weak-topic targeting)
-   instead of generic feature bullets.
+2. **Onboarding** (`OnboardingPage.tsx`, `components/onboarding/OnboardingTour.tsx`)
+   — checked: neither actually uses `CharacterImage` (the original plan's
+   claim here was wrong, corrected). Real work item instead: rewrite each
+   step's copy to make one concrete promise per screen (exam-specific prep /
+   AI tutor with memory / weak-topic targeting) instead of generic feature
+   bullets, and migrate any hardcoded colors onto tokens.
 3. **Login / Sign up** (`auth/LoginPage.tsx`) — ✅ **done**: vector character
    removed, replaced with a minimal monogram + wordmark mark. Still to do:
    migrate its inline hex colors (`BG`, `DARK`, `GRAY` consts) onto the
-   Phase 0 token system once that exists, and apply the corrected
-   light-theme variant.
+   existing token system, and verify it renders correctly across all 8
+   themes (`ThemeContext.tsx`), not just dark.
 4. **Terms of Service / Privacy Policy** (`TermsOfServicePage.tsx`,
-   `PrivacyPolicyPage.tsx`) — both still use `CharacterImage`; remove for
-   consistency with the login screen (legal documents are exactly where a
-   cartoon mascot undercuts "professional" hardest).
+   `PrivacyPolicyPage.tsx`) — ✅ **done**: both used `CharacterImage`
+   (`terms-character`, `privacy-character`); replaced with the professional
+   monoline icon each page already defined as its image-load fallback
+   (`FileText`, `ShieldCheck`) in a simple rounded mark, matching the login
+   screen's treatment.
 
 ---
 
