@@ -1,0 +1,202 @@
+# Edora v3 Redesign Plan — Corporate/Professional UI
+
+**Goal:** Move Edora from its current mascot/gamified visual language to a
+corporate-grade, professional design system — dark + light theme, no vector
+character illustrations, no emojis, monoline icons only. Applies from splash
+screen through every page.
+
+**Status:** Planning. First concrete step done — vector character removed
+from the login screen (see Phase 1 below).
+
+---
+
+## Why a plan, not a page-by-page rewrite
+
+There are ~90 page components in this app. Redesigning them one at a time
+without a locked system first means redoing earlier pages once the system
+settles — this already happened once this session (the v2 pass left ~18
+pages "pending" because the token/spacing decisions kept shifting mid-pass).
+
+The sequence below locks the system first (Phase 0), then works outward from
+the highest-traffic, highest-first-impression screens to the long tail.
+
+---
+
+## Phase 0 — Design system foundation (build once, apply everywhere)
+
+Must be decided and encoded as real tokens/components before touching page 2:
+
+- **Color tokens** — dark theme (already has an `ink-*` scale from the v2
+  pass) and a matching light theme (not yet built — every page currently
+  assumes dark only). Semantic tokens for success/warning/error/info in both.
+- **Typography scale** — heading font (geometric sans) + body font
+  (humanist sans), display/h1/h2/h3/body-large/body/caption/label sizes.
+- **Iconography** — already monoline (lucide-react) — keep, just audit for
+  any remaining filled/duotone icons that snuck in.
+- **Illustration policy** — no vector character illustrations, no emojis,
+  anywhere. Abstract geometric shapes / line-art only for empty states.
+  (NovoAvatar's pixel-sprite mascot is a separate, deliberate brand asset for
+  Novo specifically — decide explicitly whether it survives the corporate
+  repositioning or gets replaced with a non-character indicator; flagged
+  below, not decided here.)
+- **Spacing/radius** — 8pt grid, one card radius, one border-width, no more
+  ad hoc `rounded-3xl` vs `rounded-2xl` mixing between pages.
+- **Motion** — the spring/ease presets in `src/lib/motion.ts` are already
+  decent; carry them forward as-is, just apply consistently.
+
+**Deliverable:** an actual `DESIGN.md` with these locked, plus updated CSS
+tokens in the codebase. Nothing in Phase 1+ should require re-deciding a
+color or type size.
+
+---
+
+## Phase 1 — First impression (splash → auth): highest priority
+
+1. **Splash screen** — check what currently renders here; likely needs
+   replacing with a minimal logo mark on solid background, brief motion,
+   straight into onboarding/home. No loading spinner as the primary visual.
+2. **Onboarding** (`OnboardingPage.tsx`) — currently uses `CharacterImage`
+   assets in the sequence; needs the same illustration-policy treatment as
+   login. Rewrite each step's copy to make one concrete promise per screen
+   (exam-specific prep / AI tutor with memory / weak-topic targeting)
+   instead of generic feature bullets.
+3. **Login / Sign up** (`auth/LoginPage.tsx`) — ✅ **done**: vector character
+   removed, replaced with a minimal monogram + wordmark mark. Still to do:
+   migrate its inline hex colors (`BG`, `DARK`, `GRAY` consts) onto the
+   Phase 0 token system once that exists, and apply the corrected
+   light-theme variant.
+4. **Terms of Service / Privacy Policy** (`TermsOfServicePage.tsx`,
+   `PrivacyPolicyPage.tsx`) — both still use `CharacterImage`; remove for
+   consistency with the login screen (legal documents are exactly where a
+   cartoon mascot undercuts "professional" hardest).
+
+---
+
+## Phase 2 — Core daily-use screens (highest traffic after auth)
+
+5. **Home** (`HomePage.tsx`) — already partially redone in the v2 pass;
+   re-audit against the Phase 0 tokens once locked, remove any remaining
+   playful/bubble styling.
+6. **Novo / Chat** (`ChatPage.tsx`) — already partially redone; the citation
+   chips and report control added this session already follow a
+   professional, muted style — extend that language to the rest of the
+   page. Decide the NovoAvatar sprite question here explicitly.
+7. **Profile** (`ProfilePage.tsx`) — already redone in v2 pass; re-audit only.
+8. **Learning Hub** (`LearningPage.tsx`) — partially redone; extend.
+9. **Tools Hub** (`ToolsPage.tsx`) — not yet touched.
+10. **Quiz** (`QuizPage.tsx`), **AI Quiz Bank** (`AIQuizBankPage.tsx`) —
+    question/results UI, high-frequency screens.
+11. **Flashcards** (`FlashcardPage.tsx`), **Spaced Repetition**
+    (`SpacedRepetitionPage.tsx`)
+12. **NCERT reader** (`NCERTChaptersPage.tsx`, `NcertDeepPage.tsx`)
+13. **Roadmap** (`RoadmapPage.tsx`), **Lesson Plan** (`LessonPlanPage.tsx`),
+    **Revision Planner** (`RevisionPlannerPage.tsx`)
+14. **Account Settings** (`settings/AccountSettingsPage.tsx`), **Data Rights**
+    (`settings/DataRightsPage.tsx`), **Study Reminders**
+    (`settings/StudyRemindersPage.tsx`)
+
+---
+
+## Phase 3 — Competitive / social screens
+
+15. **Battle** (`BattlePage.tsx`), **Boss Fight** (`BossFightPage.tsx`),
+    **Tournament** (`TournamentPage.tsx`), **Streak Challenge**
+    (`StreakChallengePage.tsx`)
+16. **Leaderboard** (`LeaderboardPage.tsx`), **School Leaderboard**
+    (`SchoolLeaderboardPage.tsx`) — the anonymization work done earlier this
+    session already changed the data shape here; redesign should keep that.
+17. **Study Rooms / Circles / Groups** (`StudyRoomPage.tsx`,
+    `LiveStudyRoomsPage.tsx`, `StudyCirclePage.tsx`, `StudyGroupsPage.tsx`,
+    `GroupDetailPage.tsx`, `DoubtRoomPage.tsx`)
+18. **Friends / Referral** (`FriendsPage.tsx`, `ReferralPage.tsx`)
+19. **Achievements** (`AchievementsPage.tsx`, `AchievementFeedPage.tsx`,
+    `CertificationsPage.tsx`)
+
+---
+
+## Phase 4 — Analysis / prediction / reporting screens
+
+20. **Exam Prediction** (`ExamPredictionPage.tsx`), **Rank Predictor**
+    (`RankPredictorPage.tsx`), **Confidence Score** (`ConfidenceScorePage.tsx`)
+21. **Weakness Radar** (`WeaknessRadarPage.tsx`), **Error Patterns**
+    (`ErrorPatternsPage.tsx`), **Attention Heatmap**
+    (`AttentionHeatmapPage.tsx`), **Study DNA** (`StudyDNAPage.tsx`)
+22. **Analytics Dashboard** (`AnalyticsDashboardPage.tsx`), **Novo Insights**
+    (`NovoInsightsPage.tsx`), **Eval Dashboard** (`EvalDashboardPage.tsx`)
+23. **Mock Test** (`MockTestPage.tsx`), **Mock Postmortem**
+    (`MockPostmortemPage.tsx`), **Exam Simulator**
+    (`tools/ExamSimulatorPage.tsx`), **Exam War Room**
+    (`ExamWarRoomPage.tsx`)
+
+---
+
+## Phase 5 — Admin / teacher / parent portals (professional tone matters most here)
+
+24. **Teacher Dashboard** (`teacher/TeacherDashboardPage.tsx`), **Teacher
+    Export** (`TeacherExportPage.tsx`), **Teacher Content Ingest** flows
+25. **School Admin** (`admin/AdminConsolePage.tsx`, `SchoolAdminPage.tsx`)
+26. **Parent Portal** (`settings/ParentDashboardPage.tsx`,
+    `ParentPortalPage.tsx`)
+
+These three groups are the ones where "corporate-level" matters most in
+practice — a teacher or school administrator judging the product's
+legitimacy will see these screens, not the gamified student-facing ones.
+Prioritize these earlier than their phase number if you have a
+sales/procurement conversation coming up.
+
+---
+
+## Phase 6 — Long-tail feature screens (lower traffic, do last)
+
+27. **Concept Reels** (`ConceptReelsPage.tsx`), **Concept Videos**
+    (`ConceptVideosPage.tsx`), **Story Mode** (`StoryModePage.tsx`) — these
+    are the most "playful" screens in the app; decide whether they keep a
+    lighter tone deliberately (they're inherently entertainment-adjacent) or
+    get folded into the same corporate language as everything else.
+28. **Debate Mode** (`DebateModePage.tsx`), **Peer Explanation**
+    (`PeerExplanationPage.tsx`), **Whiteboard** (`WhiteboardPage.tsx`)
+29. **Formula Sheet** (`FormulaSheetPage.tsx`), **Formula AR**
+    (`FormulaARPage.tsx`), **Solved Examples** (`SolvedExamplesPage.tsx`),
+    **PYQ Bank** (`PYQBankPage.tsx`), **Subject Dependency**
+    (`SubjectDependencyPage.tsx`), **Concept Map** (`ConceptMapPage.tsx`)
+30. **Sleep Review** (`SleepReviewPage.tsx`), **Sprint**
+    (`SprintPage.tsx`), **Daily Power Session**
+    (`DailyPowerSessionPage.tsx`), **Live Event** (`LiveEventPage.tsx`),
+    **Novo Live** (`NovoLivePage.tsx`), **Novo Proactive**
+    (`NovoProactivePage.tsx`), **Novo Challenges** (`NovoChallengesPage.tsx`)
+31. **Study Buddy** (`StudyBuddyPage.tsx`), **Learning Style**
+    (`LearningStylePage.tsx`), **Regional Language**
+    (`RegionalLanguagePage.tsx`), **Offline Mode** (`OfflineModePage.tsx`)
+32. **Mistake Journal / Mnemonic / Study Notes / Study Pack / Scanner /
+    Browser** (all under `tools/`) — utility tool screens, low visual risk.
+33. **UPSC Mains** (`UPSCMainsPage.tsx`), **Curriculum /
+    Curriculum Detail** (`CurriculumPage.tsx`, `CurriculumDetailPage.tsx`),
+    **Course** (`CoursePage.tsx`), **Photo Solver** (`PhotoSolverPage.tsx`),
+    **Tutoring Session** (`TutoringSessionPage.tsx`), **Video Companion**
+    (`VideoCompanionPage.tsx`)
+34. **Subscription** (`ProSubscriptionPage.tsx`) — worth doing earlier than
+    its phase number, since this is a conversion-critical screen; keep
+    "straightforward business upsell" tone per the earlier god-mode plan,
+    not a pressure-tactic paywall.
+
+---
+
+## Open decisions (need your call, not mine to silently pick)
+
+1. **NovoAvatar pixel-sprite** — keep as Novo's deliberate mascot, or replace
+   with a non-character indicator (waveform, abstract mark) to match the
+   corporate direction fully?
+2. **Light theme** — build a genuine light theme now (real Phase 0 work), or
+   ship dark-only for v3 and add light later? Every current page assumes
+   dark; a real light theme is a meaningful chunk of Phase 0 by itself.
+3. **Concept Reels / Story Mode tone** — keep intentionally lighter (they're
+   entertainment-adjacent features), or fold into the same corporate
+   language as the rest of the app?
+
+---
+
+## Suggested execution order
+
+Phase 0 (system) → Phase 1 (splash/onboarding/auth/legal) → Phase 2 (daily
+core) → Phase 5 (admin/teacher/parent, pulled forward if procurement
+conversations are near-term) → Phase 3 → Phase 4 → Phase 6.
