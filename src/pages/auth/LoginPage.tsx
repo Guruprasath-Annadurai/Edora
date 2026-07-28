@@ -6,7 +6,6 @@ import { Browser } from '@capacitor/browser';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { CharacterImage } from '@/components/ui/CharacterImage';
 import { Events } from '@/lib/analytics';
 import { isPasswordPwned } from '@/lib/hibp';
 
@@ -357,15 +356,17 @@ export default function LoginPage() {
       <div style={{ paddingTop: 'env(safe-area-inset-top)' }} />
 
       {/* Hero */}
-      <div className="relative shrink-0" style={{ height: '38%' }}>
+      <div className="relative shrink-0 flex flex-col items-center justify-center" style={{ height: '22%' }}>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute rounded-full" style={{ width: '56vw', height: '56vw', maxWidth: 220, maxHeight: 220, top: -40, right: -40, background: 'rgba(91,106,245,0.08)', filter: 'blur(1px)' }} />
           <div className="absolute rounded-full" style={{ width: '36vw', height: '36vw', maxWidth: 140, maxHeight: 140, bottom: 20, left: -20, background: 'rgba(139,92,246,0.07)' }} />
         </div>
-        <div className="absolute top-4 left-0 right-0 flex justify-center">
+        <div className="relative flex flex-col items-center gap-1.5">
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}>
+            <span className="font-heading text-lg font-black" style={{ color: '#5B6AF5' }}>E</span>
+          </div>
           <p className="font-heading text-xl font-black tracking-wider" style={{ color: '#5B6AF5' }}>EDORA</p>
         </div>
-        <CharacterImage slug="login-character" anim="float" fillParent />
       </div>
 
       {/* Form card */}
