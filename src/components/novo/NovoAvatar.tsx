@@ -310,7 +310,7 @@ function WalkingSprite({ px }: { px: number }) {
         key="w1"
         initial={{ opacity: 1 }}
         animate={{ opacity: [1, 1, 0, 0, 1] }}
-        transition={{ repeat: Infinity, duration: 0.5, ease: 'steps(1)' }}
+        transition={{ repeat: Infinity, duration: 0.5, ease: 'linear' }}
         style={{ position: 'absolute', top: 0, left: 0 }}
       >
         <PixelSprite grid={WALK1} pixelSize={px} />
@@ -319,7 +319,7 @@ function WalkingSprite({ px }: { px: number }) {
         key="w2"
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 0, 1, 1, 0] }}
-        transition={{ repeat: Infinity, duration: 0.5, ease: 'steps(1)' }}
+        transition={{ repeat: Infinity, duration: 0.5, ease: 'linear' }}
       >
         <PixelSprite grid={WALK2} pixelSize={px} />
       </motion.div>

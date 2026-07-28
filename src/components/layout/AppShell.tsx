@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { TabBar } from './TabBar';
 import { useAndroidBack } from '@/hooks/useMobileHardware';
 import { CelebrationOverlay, CelebrationHandle, setCelebrationRef } from '@/components/celebrations/CelebrationOverlay';
@@ -17,6 +17,11 @@ export function AppShell() {
   useEyeStrainMode();
   const celebRef = useRef<CelebrationHandle>(null);
   const { profile } = useAuth();
+  const location = useLocation();
+  // Hidden on /chat: Novo's own composer already offers an equivalent
+  // "quiz me on a topic" affordance there, and this FAB's fixed bottom-right
+  // position visually collides with the chat input's send button.
+  const showQuickStartFAB = !location.pathname.startsWith('/chat');
   const [sessionEndOpen,      setSessionEndOpen]      = useState(false);
   const [commandPaletteOpen,  setCommandPaletteOpen]  = useState(false);
 
@@ -65,8 +70,8 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      {/* Floating Quick Start button */}
-      <QuickStartFAB />
+      {/* Floating Quick Start button — hidden on /chat, see showQuickStartFAB above */}
+      {showQuickStartFAB && <QuickStartFAB />}
 
       {/* Floating pill navigation */}
       <TabBar />
