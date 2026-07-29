@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,31 +24,44 @@ interface Boss {
   intro:       string;
   deathLine:   string;
   color:       string;
+  colorLight:  string;
+  buttonTextDark?: boolean;
 }
 
 type GamePhase = 'setup' | 'loading' | 'fight' | 'victory' | 'defeat';
 
 // ── Boss catalogue ────────────────────────────────────────────────────────────
+// `color` reads fine on dark theme's near-black tinted panels but drops to
+// pale/washed-out contrast on light theme's pale tints — `colorLight` gives
+// darkened same-hue variants (4.3-6.8:1, verified via WCAG formula).
+//
+// `buttonTextDark` is a separate, theme-INDEPENDENT fix: the "Start Fight"
+// button's background is always the boss's raw `color` (never colorLight),
+// regardless of app theme. White button text fails against the lighter
+// bosses (emerald 2.5:1, amber 2.1:1 — both below even the 3:1 large-text
+// minimum) — those two bosses get dark ink text instead (7.0/8.3:1).
 
 const BOSS_CATALOGUE: Boss[] = [
-  { name: 'Professor Paradox',  icon: Wand2,        personality: 'smug', intro: 'You dare challenge the laws of physics? Adorable.', deathLine: 'Impossible... my formulas were perfect!', color: '#5B6AF5' },
-  { name: 'Lady Entropy',       icon: Skull,        personality: 'cold',  intro: 'Everything tends toward disorder. Including your marks.', deathLine: 'My disorder... could not be contained...', color: '#8B5CF6' },
-  { name: 'Baron Valence',      icon: FlaskConical, personality: 'pompous', intro: 'My chemical bonds are unbreakable! Can you say the same?', deathLine: 'My bonds... shattered by a student?!', color: '#10B981' },
-  { name: 'The Integral',       icon: Sigma,        personality: 'cold',  intro: 'I have infinite area under my curve. You have zero chance.', deathLine: 'Converging to zero... defeated...', color: '#F59E0B' },
-  { name: 'Quantum Specter',    icon: Ghost,        personality: 'eerie', intro: 'I exist in superposition — right and wrong simultaneously. Can you collapse my wavefunction?', deathLine: 'Decoherence... you observed my weakness...', color: '#EC4899' },
+  { name: 'Professor Paradox',  icon: Wand2,        personality: 'smug', intro: 'You dare challenge the laws of physics? Adorable.', deathLine: 'Impossible... my formulas were perfect!', color: '#5B6AF5', colorLight: '#4338CA' },
+  { name: 'Lady Entropy',       icon: Skull,        personality: 'cold',  intro: 'Everything tends toward disorder. Including your marks.', deathLine: 'My disorder... could not be contained...', color: '#8B5CF6', colorLight: '#6D28D9' },
+  { name: 'Baron Valence',      icon: FlaskConical, personality: 'pompous', intro: 'My chemical bonds are unbreakable! Can you say the same?', deathLine: 'My bonds... shattered by a student?!', color: '#10B981', colorLight: '#047857', buttonTextDark: true },
+  { name: 'The Integral',       icon: Sigma,        personality: 'cold',  intro: 'I have infinite area under my curve. You have zero chance.', deathLine: 'Converging to zero... defeated...', color: '#F59E0B', colorLight: '#92400E', buttonTextDark: true },
+  { name: 'Quantum Specter',    icon: Ghost,        personality: 'eerie', intro: 'I exist in superposition — right and wrong simultaneously. Can you collapse my wavefunction?', deathLine: 'Decoherence... you observed my weakness...', color: '#EC4899', colorLight: '#9D174D' },
 ];
 
 const SUBJECTS = ['Physics', 'Chemistry', 'Maths', 'Biology'];
 
 // ── HP bar ────────────────────────────────────────────────────────────────────
 
-function HpBar({ current, max, color, label }: { current: number; max: number; color: string; label: string }) {
+function HpBar({ current, max, color, colorLight, label }: { current: number; max: number; color: string; colorLight?: string; label: string }) {
+  const { theme } = useTheme();
+  const textColor = theme === 'light' ? (colorLight ?? color) : color;
   const pct = Math.max(0, (current / max) * 100);
   return (
     <div className="flex-1">
       <div className="flex justify-between items-center mb-1">
         <span className="text-xs font-bold text-white/60">{label}</span>
-        <span className="text-xs font-bold tabular-nums" style={{ color }}>{current}/{max}</span>
+        <span className="text-xs font-bold tabular-nums" style={{ color: textColor }}>{current}/{max}</span>
       </div>
       <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>
         <motion.div
@@ -64,6 +78,8 @@ function HpBar({ current, max, color, label }: { current: number; max: number; c
 // ── Boss character ────────────────────────────────────────────────────────────
 
 function BossSprite({ boss, hp, maxHp, shaking }: { boss: Boss; hp: number; maxHp: number; shaking: boolean }) {
+  const { theme } = useTheme();
+  const bossColor = theme === 'light' ? boss.colorLight : boss.color;
   const hpPct = hp / maxHp;
   return (
     <motion.div
@@ -82,7 +98,7 @@ function BossSprite({ boss, hp, maxHp, shaking }: { boss: Boss; hp: number; maxH
           boxShadow: `0 0 40px ${boss.color}44`,
           opacity: hpPct < 0.3 ? 0.7 : 1,
           filter: hpPct < 0.3 ? 'grayscale(0.4)' : 'none' }}>
-        <boss.icon size={56} style={{ color: boss.color }} strokeWidth={1.4} />
+        <boss.icon size={56} style={{ color: bossColor }} strokeWidth={1.4} />
         {hpPct < 0.3 && (
           <motion.div
             animate={{ opacity: [0, 1, 0] }}
@@ -94,7 +110,7 @@ function BossSprite({ boss, hp, maxHp, shaking }: { boss: Boss; hp: number; maxH
       </motion.div>
       <div className="text-center">
         <p className="font-heading font-extrabold text-white text-base">{boss.name}</p>
-        <p className="text-xs font-medium" style={{ color: boss.color }}>
+        <p className="text-xs font-medium" style={{ color: bossColor }}>
           {hpPct > 0.6 ? 'Confident' : hpPct > 0.3 ? 'Weakening' : 'Critical'}
         </p>
       </div>
@@ -125,6 +141,8 @@ function AttackFlash({ type }: { type: 'correct' | 'wrong' | null }) {
 
 export default function BossFightPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const navigate = useNavigate();
 
   const [phase, setPhase]         = useState<GamePhase>('setup');
@@ -296,7 +314,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
                   background: boss.name === b.name ? `${b.color}22` : 'var(--ink-040)',
                   border: `1px solid ${boss.name === b.name ? b.color : 'var(--ink-070)'}`,
                   minWidth: 80 }}>
-                <b.icon size={28} style={{ color: b.color }} strokeWidth={1.5} />
+                <b.icon size={28} style={{ color: isLight ? b.colorLight : b.color }} strokeWidth={1.5} />
                 <p className="text-xs font-bold text-center text-white/70 leading-tight">{b.name.split(' ')[0]}</p>
               </motion.div>
             ))}
@@ -306,10 +324,10 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
           <div className="p-4 rounded-2xl mb-5"
             style={{ background: `${boss.color}15`, border: `1px solid ${boss.color}33` }}>
             <div className="flex items-center gap-3 mb-2">
-              <boss.icon size={28} style={{ color: boss.color }} strokeWidth={1.5} />
+              <boss.icon size={28} style={{ color: isLight ? boss.colorLight : boss.color }} strokeWidth={1.5} />
               <div>
                 <p className="font-bold text-white">{boss.name}</p>
-                <p className="text-xs" style={{ color: boss.color }}>HP: {BOSS_MAX_HP} · 10 questions</p>
+                <p className="text-xs" style={{ color: isLight ? boss.colorLight : boss.color }}>HP: {BOSS_MAX_HP} · 10 questions</p>
               </div>
             </div>
             <p className="text-sm italic text-white/60">"{boss.intro}"</p>
@@ -325,7 +343,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
                   style={{
                     background: subject === s ? 'rgba(91,106,245,0.2)' : 'var(--ink-050)',
                     border: `1px solid ${subject === s ? 'rgba(91,106,245,0.5)' : 'var(--ink-080)'}`,
-                    color: subject === s ? '#A0AEFF' : 'var(--ink-500)' }}>{s}</button>
+                    color: subject === s ? (isLight ? '#4338CA' : '#A0AEFF') : 'var(--ink-500)' }}>{s}</button>
               ))}
             </div>
           </div>
@@ -346,7 +364,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
 
           {startError && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium"
-              style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.30)', color: '#F87171' }}>
+              style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.30)', color: isLight ? '#B91C1C' : '#F87171' }}>
               <span>⚠</span>{startError}
             </div>
           )}
@@ -355,8 +373,12 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
             whileTap={{ scale: 0.96 }}
             onClick={() => { setStartError(''); startFight(); }}
             disabled={!chapter.trim()}
-            className="w-full py-4 rounded-2xl font-heading font-extrabold text-white text-lg disabled:opacity-40"
-            style={{ background: `linear-gradient(135deg, ${boss.color}, ${boss.color}cc)`, boxShadow: `0 8px 32px ${boss.color}55` }}>
+            className="w-full py-4 rounded-2xl font-heading font-extrabold text-lg disabled:opacity-40"
+            style={{
+              background: `linear-gradient(135deg, ${boss.color}, ${boss.color}cc)`,
+              boxShadow: `0 8px 32px ${boss.color}55`,
+              color: boss.buttonTextDark ? '#0F172A' : '#ffffff',
+            }}>
             ⚔️ Start Fight
           </motion.button>
         </div>
@@ -368,7 +390,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-            <boss.icon size={48} style={{ color: boss.color }} strokeWidth={1.4} />
+            <boss.icon size={48} style={{ color: isLight ? boss.colorLight : boss.color }} strokeWidth={1.4} />
           </motion.div>
           <p className="text-white font-bold">Summoning {boss.name}…</p>
           <p className="text-white/40 text-sm">Generating battle questions…</p>
@@ -380,12 +402,12 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
         <div className="flex flex-col h-full px-4 pt-4 pb-nav">
           {/* HP bars */}
           <div className="flex gap-4 items-center mb-4">
-            <HpBar current={playerHp} max={PLAYER_MAX_HP} color="#10B981" label="You" />
+            <HpBar current={playerHp} max={PLAYER_MAX_HP} color="#10B981" colorLight="#047857" label="You" />
             <div className="flex flex-col items-center gap-0.5 shrink-0">
-              <Zap size={14} color="#F59E0B" />
+              <Zap size={14} color={isLight ? '#92400E' : '#F59E0B'} />
               <span className="text-xs text-white/40 font-bold">{qIndex + 1}/{questions.length}</span>
             </div>
-            <HpBar current={bossHp} max={BOSS_MAX_HP} color={boss.color} label={boss.name.split(' ')[0]} />
+            <HpBar current={bossHp} max={BOSS_MAX_HP} color={boss.color} colorLight={boss.colorLight} label={boss.name.split(' ')[0]} />
           </div>
 
           {/* Boss + taunt */}
@@ -399,7 +421,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
                 exit={{ opacity: 0 }}
                 className="mt-3 px-4 py-2 rounded-2xl max-w-[260px] text-center"
                 style={{ background: `${boss.color}18`, border: `1px solid ${boss.color}33` }}>
-                <p className="text-sm italic" style={{ color: `${boss.color}dd` }}>"{taunt}"</p>
+                <p className="text-sm italic" style={{ color: isLight ? boss.colorLight : `${boss.color}dd` }}>"{taunt}"</p>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -415,7 +437,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
                 const isCorrect   = i === currentQ.correctIndex;
                 const showResult  = selected !== null;
                 const optColor    = showResult
-                  ? isCorrect ? '#10B981' : isSelected ? '#EF4444' : 'var(--ink-300)'
+                  ? isCorrect ? (isLight ? '#047857' : '#10B981') : isSelected ? (isLight ? '#B91C1C' : '#EF4444') : 'var(--ink-300)'
                   : 'var(--ink-700)';
 
                 return (
@@ -466,7 +488,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.2 }}>
-            <Trophy size={72} style={{ color: '#FBBF24' }} strokeWidth={1.3} />
+            <Trophy size={72} style={{ color: isLight ? '#92400E' : '#FBBF24' }} strokeWidth={1.3} />
           </motion.div>
           <div>
             <h2 className="font-heading font-extrabold text-white text-3xl mb-2">Victory!</h2>
@@ -475,7 +497,7 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
           <div className="p-4 rounded-2xl w-full"
             style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)' }}>
             <p className="text-white/60 text-sm mb-1">XP Earned</p>
-            <p className="text-4xl font-black" style={{ color: '#10B981' }}>+{xpEarned} XP</p>
+            <p className="text-4xl font-black" style={{ color: isLight ? '#047857' : '#10B981' }}>+{xpEarned} XP</p>
             <p className="text-white/40 text-xs mt-1">HP remaining bonus included</p>
           </div>
           <div className="flex gap-3 w-full">
