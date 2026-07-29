@@ -85,7 +85,7 @@ export function MoodCheckIn({ userId, onClose }: MoodCheckInProps) {
             }}>
               Daily Check-In
             </div>
-            <h2 style={{ fontFamily: 'Sora, sans-serif', fontSize: 22, fontWeight: 800, color: '#F4F6FA', lineHeight: 1.2 }}>
+            <h2 style={{ fontFamily: 'Sora, sans-serif', fontSize: 22, fontWeight: 800, color: 'var(--ink-950)', lineHeight: 1.2 }}>
               How are you feeling?
             </h2>
           </div>

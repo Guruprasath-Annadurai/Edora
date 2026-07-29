@@ -79,7 +79,7 @@ export function MoodHeatmap({ userId }: { userId: string }) {
           <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', color: '#7C3AED', textTransform: 'uppercase', marginBottom: 2 }}>
             Mood History
           </div>
-          <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 15, fontWeight: 700, color: '#F4F6FA' }}>
+          <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--ink-950)' }}>
             Last 30 days
           </div>
         </div>

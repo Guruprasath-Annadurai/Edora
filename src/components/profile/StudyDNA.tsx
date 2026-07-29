@@ -131,7 +131,7 @@ export function StudyDNA({ userId }: { userId: string }) {
           <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', color: '#7C3AED', textTransform: 'uppercase', marginBottom: 4 }}>
             Study DNA
           </div>
-          <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 18, fontWeight: 800, color: '#F4F6FA', lineHeight: 1.2 }}>
+          <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 18, fontWeight: 800, color: 'var(--ink-950)', lineHeight: 1.2 }}>
             {style.label}
           </div>
           <div style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 2 }}>
@@ -150,7 +150,7 @@ export function StudyDNA({ userId }: { userId: string }) {
             border: '1px solid var(--ink-060)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <Icon size={14} style={{ color }} />
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#F4F6FA' }}>{value}</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink-950)' }}>{value}</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-400)', textAlign: 'center' }}>{label}</span>
           </div>
         ))}

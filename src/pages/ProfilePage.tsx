@@ -147,7 +147,7 @@ function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: '#7C3AED', textTransform: 'uppercase', marginBottom: 2 }}>
             {t('profile.memory.heading')}
           </div>
-          <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 15, fontWeight: 700, color: '#F4F6FA' }}>
+          <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--ink-950)' }}>
             {totalCount} {t('profile.memory.knows_about_you')}
           </div>
         </div>

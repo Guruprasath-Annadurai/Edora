@@ -134,7 +134,7 @@ function StepLayout({ heading, body, novoState, children }: {
           borderLeft: '8px solid transparent',
           borderRight: '8px solid transparent',
           borderBottom: '8px solid rgba(124,58,237,0.25)' }} />
-        <h2 style={{ fontFamily: 'Sora, sans-serif', fontSize: 20, fontWeight: 800, color: '#F4F6FA', marginBottom: 6, lineHeight: 1.2 }}>
+        <h2 style={{ fontFamily: 'Sora, sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--ink-950)', marginBottom: 6, lineHeight: 1.2 }}>
           {heading}
         </h2>
         <p style={{ fontSize: 13, color: 'var(--ink-650)', lineHeight: 1.55 }}>
@@ -308,7 +308,7 @@ export default function OnboardingPage() {
                       whileTap={{ scale: 0.95 }}
                     >
                       <Icon size={20} style={{ color: active ? '#A855F7' : 'var(--ink-500)', marginBottom: 8 }} />
-                      <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#F4F6FA' : 'var(--ink-700)', marginBottom: 2 }}>{label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--ink-950)' : 'var(--ink-700)', marginBottom: 2 }}>{label}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink-400)' }}>{sub}</div>
                       {active && <div style={{ position: 'absolute', top: 12, right: 12 }}><Check size={14} style={{ color: '#A855F7' }} /></div>}
                     </motion.button>
@@ -336,7 +336,7 @@ export default function OnboardingPage() {
                     >
                       <Languages size={20} style={{ color: active ? '#A855F7' : 'var(--ink-400)' }} strokeWidth={1.7} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#F4F6FA' : 'var(--ink-700)' }}>{lang.label}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--ink-950)' : 'var(--ink-700)' }}>{lang.label}</div>
                         <div style={{ fontSize: 12, color: 'var(--ink-400)' }}>{lang.native}</div>
                       </div>
                       {active && <Check size={16} style={{ color: '#A855F7', flexShrink: 0 }} />}
@@ -420,7 +420,7 @@ export default function OnboardingPage() {
                         width: '100%', padding: '12px 14px', borderRadius: 14,
                         background: 'var(--ink-050)',
                         border: '1px solid var(--ink-100)',
-                        color: '#F4F6FA', fontSize: 14, fontWeight: 600,
+                        color: 'var(--ink-950)', fontSize: 14, fontWeight: 600,
                         outline: 'none', cursor: 'pointer',
                         WebkitUserSelect: 'text' }}
                     />
@@ -488,7 +488,7 @@ export default function OnboardingPage() {
                     style={{
                       flex: 1, background: 'none', outline: 'none',
                       fontSize: 16, fontWeight: 700, letterSpacing: '0.12em',
-                      color: '#F4F6FA' }}
+                      color: 'var(--ink-950)' }}
                   />
                   {referralStatus === 'ok' && <Check size={16} style={{ color: '#34D399' }} />}
                 </div>
