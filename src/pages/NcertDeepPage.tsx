@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
 import { SpeedReaderOverlay } from '@/components/study/SpeedReaderOverlay';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NcertParagraph {
@@ -38,7 +39,11 @@ const SUBJECT_DATA: SubjectChapter[] = [
 ];
 
 const SUBJECT_ICONS = { Physics: Atom, Chemistry: FlaskConical, Mathematics: Calculator, Biology: Microscope };
+// Pale colors read fine on dark theme's near-black tinted cards but drop to
+// ~1.2-1.5:1 contrast on light theme's pale tinted cards — darkened same-hue
+// variants (4.6-6.5:1, verified via WCAG formula) are used when isLight.
 const SUBJECT_COLORS = { Physics:'#C4B5FD', Chemistry:'#6EE7B7', Mathematics:'#93C5FD', Biology:'#86EFAC' };
+const SUBJECT_COLORS_LIGHT = { Physics:'#6D28D9', Chemistry:'#047857', Mathematics:'#1D4ED8', Biology:'#166534' };
 
 // ── Seeded paragraphs (for immediate display before DB load) ──────────────────
 const SEED_PARAGRAPHS: NcertParagraph[] = [
@@ -79,10 +84,11 @@ const SEED_PARAGRAPHS: NcertParagraph[] = [
 ];
 
 // ── Paragraph card ────────────────────────────────────────────────────────────
-function ParagraphCard({ p, onBookmark }: { p: NcertParagraph; onBookmark: (id: string) => void }) {
+function ParagraphCard({ p, onBookmark, isLight }: { p: NcertParagraph; onBookmark: (id: string) => void; isLight: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const SubIcon = SUBJECT_ICONS[p.subject as keyof typeof SUBJECT_ICONS] ?? BookOpen;
-  const color = SUBJECT_COLORS[p.subject as keyof typeof SUBJECT_COLORS] ?? '#A0AEFF';
+  const colorMap = isLight ? SUBJECT_COLORS_LIGHT : SUBJECT_COLORS;
+  const color = colorMap[p.subject as keyof typeof colorMap] ?? (isLight ? '#4338CA' : '#A0AEFF');
 
   return (
     <motion.div layout initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
@@ -162,6 +168,8 @@ function ParagraphCard({ p, onBookmark }: { p: NcertParagraph; onBookmark: (id: 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function NcertDeepPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight   = theme === 'light';
   const [search, setSearch]       = useState('');
   const [selSubject, setSelSubject] = useState<string | null>(null);
   const [selChapter, setSelChapter] = useState<string | null>(null);
@@ -304,7 +312,8 @@ Return ONLY valid JSON array:
               <div className="grid grid-cols-2 gap-3 mb-6">
                 {SUBJECT_DATA.map(s => {
                   const SubIcon = SUBJECT_ICONS[s.subject as keyof typeof SUBJECT_ICONS] ?? BookOpen;
-                  const color = SUBJECT_COLORS[s.subject as keyof typeof SUBJECT_COLORS] ?? '#A0AEFF';
+                  const colorMap = isLight ? SUBJECT_COLORS_LIGHT : SUBJECT_COLORS;
+                  const color = colorMap[s.subject as keyof typeof colorMap] ?? (isLight ? '#4338CA' : '#A0AEFF');
                   const total = [...dbParagraphs, ...SEED_PARAGRAPHS].filter(p => p.subject === s.subject).length;
                   return (
                     <motion.button key={s.subject} whileTap={{ scale:0.95 }}
@@ -313,7 +322,9 @@ Return ONLY valid JSON array:
                       style={{ background: `${color}10`, border: `1px solid ${color}25` }}>
                       <SubIcon size={24} style={{ color }} />
                       <p className="text-base font-bold text-white">{s.subject}</p>
-                      <p className="text-xs" style={{ color: `${color}80` }}>{s.chapters.length} chapters · {total}+ paragraphs</p>
+                      {/* full opacity in light theme — the 50%-alpha muted look drops the
+                          already-darkened light-theme color back below 2.5:1 contrast */}
+                      <p className="text-xs" style={{ color: isLight ? color : `${color}80` }}>{s.chapters.length} chapters · {total}+ paragraphs</p>
                     </motion.button>
                   );
                 })}
@@ -400,7 +411,7 @@ Return ONLY valid JSON array:
                   {!search && <p className="text-xs text-white/25 text-center">Tap "AI Map Chapter" to generate deep insights</p>}
                 </div>
               ) : (
-                filtered.map(p => <ParagraphCard key={p.id} p={p} onBookmark={toggleBookmark} />)
+                filtered.map(p => <ParagraphCard key={p.id} p={p} onBookmark={toggleBookmark} isLight={isLight} />)
               )}
             </motion.div>
           )}

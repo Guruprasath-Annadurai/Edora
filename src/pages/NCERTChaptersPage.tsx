@@ -9,6 +9,7 @@ import { geminiCall, geminiJSON } from '@/lib/gemini';
 import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
 import { OfflineCache } from '@/lib/offlineCache';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type Phase = 'browse' | 'chapter' | 'quiz' | 'result';
 
@@ -47,12 +48,32 @@ const SUBJECT_COLORS: Record<string, string> = {
   Maths: '#A78BFA', Science: '#38BDF8', Physics: '#60A5FA',
   Chemistry: '#34D399', Biology: '#4ADE80',
   History: '#FBBF24', Geography: '#FB923C', Civics: '#F472B6', Economics: '#E879F9' };
-function sColor(s: string) { return SUBJECT_COLORS[s] ?? '#A0AEFF'; }
+// Pale colors read fine on dark theme's near-black tinted surfaces but drop to
+// ~1.2-2:1 contrast on light theme's pale tinted surfaces — darkened same-hue
+// variants (4.6-7.8:1, verified via WCAG formula) are used when isLight.
+const SUBJECT_COLORS_LIGHT: Record<string, string> = {
+  Maths: '#6D28D9', Science: '#075985', Physics: '#1D4ED8',
+  Chemistry: '#047857', Biology: '#166534',
+  History: '#92400E', Geography: '#9A3412', Civics: '#9D174D', Economics: '#86198F' };
+function sColor(s: string, isLight: boolean) {
+  const map = isLight ? SUBJECT_COLORS_LIGHT : SUBJECT_COLORS;
+  return map[s] ?? (isLight ? '#4338CA' : '#A0AEFF');
+}
+
+// Same pale-on-dark-bg assumption as SUBJECT_COLORS, for the quiz's
+// correct/wrong/exemplar/"Novo explains" accents — darkened variants
+// verified 4.6-6.7:1 on light theme's tinted surfaces.
+const AMBER_LIGHT  = '#92400E';
+const GREEN_LIGHT  = '#047857';
+const RED_LIGHT    = '#B91C1C';
+const INDIGO_LIGHT = '#4338CA';
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 
 export default function NCERTChaptersPage() {
   const { profile } = useAuth();
+  const { theme }   = useTheme();
+  const isLight     = theme === 'light';
   const [searchParams] = useSearchParams();
   const [phase, setPhase]         = useState<Phase>('browse');
   const [classNum, setClassNum]   = useState<number>(searchParams.get('class') ? Number(searchParams.get('class')) : 10);
@@ -275,7 +296,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                   className="px-3 py-1.5 rounded-xl text-xs font-bold flex-shrink-0 transition-all"
                   style={{
                     background: classNum === c ? 'rgba(91,106,245,0.2)' : 'var(--color-surface)',
-                    color: classNum === c ? '#A0AEFF' : 'var(--color-text-secondary)',
+                    color: classNum === c ? (isLight ? INDIGO_LIGHT : '#A0AEFF') : 'var(--color-text-secondary)',
                     border: `1px solid ${classNum === c ? '#5B6AF5' : 'var(--color-border)'}` }}>
                   Class {c}
                 </button>
@@ -287,9 +308,9 @@ Keep it under 100 words. Be warm and encouraging.`;
                 <button key={s} onClick={() => setSubject(s)}
                   className="px-3 py-1.5 rounded-xl text-xs font-medium flex-shrink-0 transition-all"
                   style={{
-                    background: subject === s ? `${sColor(s)}20` : 'var(--color-surface)',
-                    color: subject === s ? sColor(s) : 'var(--color-text-secondary)',
-                    border: `1px solid ${subject === s ? sColor(s) : 'var(--color-border)'}` }}>
+                    background: subject === s ? `${sColor(s, isLight)}20` : 'var(--color-surface)',
+                    color: subject === s ? sColor(s, isLight) : 'var(--color-text-secondary)',
+                    border: `1px solid ${subject === s ? sColor(s, isLight) : 'var(--color-border)'}` }}>
                   {s}
                 </button>
               ))}
@@ -318,10 +339,10 @@ Keep it under 100 words. Be warm and encouraging.`;
                       transition={{ delay: i * 0.04 }}
                       onClick={() => openChapter(ch)}
                       className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
-                      style={{ background: 'var(--color-surface)', border: `1px solid ${done ? sColor(subject) + '50' : 'var(--color-border)'}` }}>
+                      style={{ background: 'var(--color-surface)', border: `1px solid ${done ? sColor(subject, isLight) + '50' : 'var(--color-border)'}` }}>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                           style={{ background: done ? `${sColor(subject)}20` : 'var(--color-border)' }}>
-                        {done ? <CheckCircle size={18} color={sColor(subject)} /> :
+                           style={{ background: done ? `${sColor(subject, isLight)}20` : 'var(--color-border)' }}>
+                        {done ? <CheckCircle size={18} color={sColor(subject, isLight)} /> :
                           <span className="text-sm font-bold" style={{ color: 'var(--color-text-secondary)' }}>{ch.chapter_num}</span>}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -349,15 +370,15 @@ Keep it under 100 words. Be warm and encouraging.`;
             {loading ? (
               <div className="text-center py-12" style={{ color: 'var(--color-text-secondary)' }}>
                 <div className="w-10 h-10 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-3"
-                     style={{ borderColor: `${sColor(subject)}40`, borderTopColor: sColor(subject) }} />
+                     style={{ borderColor: `${sColor(subject, isLight)}40`, borderTopColor: sColor(subject, isLight) }} />
                 Generating questions…
               </div>
             ) : (
               <>
                 {/* Chapter info */}
                 <div className="p-4 rounded-2xl"
-                     style={{ background: `${sColor(subject)}10`, border: `1px solid ${sColor(subject)}40` }}>
-                  <p className="text-xs font-semibold" style={{ color: sColor(subject) }}>
+                     style={{ background: `${sColor(subject, isLight)}10`, border: `1px solid ${sColor(subject, isLight)}40` }}>
+                  <p className="text-xs font-semibold" style={{ color: sColor(subject, isLight) }}>
                     Chapter {selectedChapter.chapter_num}
                   </p>
                   <h2 className="text-lg font-bold mt-1" style={{ color: 'var(--color-text)' }}>
@@ -371,7 +392,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                   <div className="flex flex-wrap gap-1 mt-3">
                     {selectedChapter.concepts.map(c => (
                       <span key={c} className="text-xs px-2 py-0.5 rounded-lg"
-                        style={{ background: `${sColor(subject)}20`, color: sColor(subject) }}>{c}</span>
+                        style={{ background: `${sColor(subject, isLight)}20`, color: sColor(subject, isLight) }}>{c}</span>
                     ))}
                   </div>
                 </div>
@@ -379,7 +400,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                 {genMode && (
                   <div className="flex items-center gap-2 text-xs"
                        style={{ color: 'var(--color-text-secondary)' }}>
-                    <Sparkles size={12} color="#FBBF24" />
+                    <Sparkles size={12} color={isLight ? AMBER_LIGHT : '#FBBF24'} />
                     AI-generated questions — not from NCERT database yet
                   </div>
                 )}
@@ -387,7 +408,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                 {/* Actions */}
                 <div className="space-y-3">
                   <Button onClick={startQuiz} className="w-full h-12 rounded-2xl font-bold"
-                    style={{ background: sColor(subject), color: 'var(--color-on-accent)' }}
+                    style={{ background: sColor(subject, isLight), color: 'var(--color-on-accent)' }}
                     disabled={!questions.length}>
                     Practice {questions.length} Questions
                   </Button>
@@ -419,10 +440,10 @@ Keep it under 100 words. Be warm and encouraging.`;
                       <motion.div key={fcIdx} whileTap={{ scale: 0.98 }}
                         onClick={() => setFcFlipped(f => !f)}
                         className="flex-1 flex items-center justify-center p-8 rounded-3xl text-center cursor-pointer"
-                        style={{ background: 'var(--color-surface)', border: `2px solid ${sColor(subject)}` }}>
+                        style={{ background: 'var(--color-surface)', border: `2px solid ${sColor(subject, isLight)}` }}>
                         <div>
                           <p className="text-xs font-semibold mb-3 uppercase tracking-wider"
-                             style={{ color: sColor(subject) }}>
+                             style={{ color: sColor(subject, isLight) }}>
                             {fcFlipped ? 'Answer' : 'Question'}
                           </p>
                           <p className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>
@@ -443,7 +464,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                           if (fcIdx < flashcards.length - 1) { setFcIdx(i => i + 1); setFcFlipped(false); }
                           else setShowFlashcards(false);
                         }} className="flex-1 rounded-2xl"
-                          style={{ background: sColor(subject), color: 'var(--color-on-accent)' }}>
+                          style={{ background: sColor(subject, isLight), color: 'var(--color-on-accent)' }}>
                           {fcIdx < flashcards.length - 1 ? 'Next →' : 'Done ✓'}
                         </Button>
                       </div>
@@ -466,7 +487,7 @@ Keep it under 100 words. Be warm and encouraging.`;
               <div className="flex gap-1.5">
                 {q.is_exemplar && (
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                    style={{ background: 'rgba(251,191,36,0.15)', color: '#FBBF24' }}>Exemplar</span>
+                    style={{ background: 'rgba(251,191,36,0.15)', color: isLight ? AMBER_LIGHT : '#FBBF24' }}>Exemplar</span>
                 )}
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium capitalize"
                   style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
@@ -476,9 +497,9 @@ Keep it under 100 words. Be warm and encouraging.`;
             </div>
             <div className="w-full rounded-full h-1.5" style={{ background: 'var(--color-border)' }}>
               <div className="h-1.5 rounded-full"
-                   style={{ width: `${((current + 1) / questions.length) * 100}%`, background: sColor(subject) }} />
+                   style={{ width: `${((current + 1) / questions.length) * 100}%`, background: sColor(subject, isLight) }} />
             </div>
-            <p className="text-xs font-medium" style={{ color: sColor(subject) }}>{q.concept}</p>
+            <p className="text-xs font-medium" style={{ color: sColor(subject, isLight) }}>{q.concept}</p>
             <div className="p-4 rounded-2xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
               <p className="text-base font-medium leading-relaxed" style={{ color: 'var(--color-text)' }}>{q.question}</p>
             </div>
@@ -490,8 +511,8 @@ Keep it under 100 words. Be warm and encouraging.`;
                 const isSelected = ans === i;
                 let bg = 'var(--color-surface)', border = 'var(--color-border)', textCol = 'var(--color-text)';
                 if (showResult) {
-                  if (isCorrect)        { bg = 'rgba(52,211,153,0.15)'; border = '#34D399'; textCol = '#34D399'; }
-                  else if (isSelected)  { bg = 'rgba(248,113,113,0.15)'; border = '#F87171'; textCol = '#F87171'; }
+                  if (isCorrect)        { bg = 'rgba(52,211,153,0.15)'; border = isLight ? GREEN_LIGHT : '#34D399'; textCol = border; }
+                  else if (isSelected)  { bg = 'rgba(248,113,113,0.15)'; border = isLight ? RED_LIGHT : '#F87171'; textCol = border; }
                 }
                 return (
                   <motion.button key={i} whileTap={{ scale: 0.98 }}
@@ -499,12 +520,12 @@ Keep it under 100 words. Be warm and encouraging.`;
                     className="w-full flex items-center gap-3 p-3.5 rounded-2xl text-left"
                     style={{ background: bg, border: `1.5px solid ${border}` }}>
                     <span className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0"
-                          style={{ background: `${sColor(subject)}20`, color: sColor(subject) }}>
+                          style={{ background: `${sColor(subject, isLight)}20`, color: sColor(subject, isLight) }}>
                       {OPTION_LABELS[i]}
                     </span>
                     <span className="text-sm font-medium" style={{ color: textCol }}>{opt}</span>
-                    {showResult && isCorrect && <CheckCircle size={16} color="#34D399" className="ml-auto" />}
-                    {showResult && isSelected && !isCorrect && <XCircle size={16} color="#F87171" className="ml-auto" />}
+                    {showResult && isCorrect && <CheckCircle size={16} color={isLight ? GREEN_LIGHT : '#34D399'} className="ml-auto" />}
+                    {showResult && isSelected && !isCorrect && <XCircle size={16} color={isLight ? RED_LIGHT : '#F87171'} className="ml-auto" />}
                   </motion.button>
                 );
               })}
@@ -514,7 +535,7 @@ Keep it under 100 words. Be warm and encouraging.`;
                 <motion.div key="exp" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-2xl"
                   style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.3)' }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: '#A0AEFF' }}>Novo explains</p>
+                  <p className="text-xs font-semibold mb-1" style={{ color: isLight ? INDIGO_LIGHT : '#A0AEFF' }}>Novo explains</p>
                   {loadingExp ? (
                     <p className="text-xs animate-pulse" style={{ color: 'var(--color-text-secondary)' }}>Thinking…</p>
                   ) : (
@@ -525,7 +546,7 @@ Keep it under 100 words. Be warm and encouraging.`;
             </AnimatePresence>
             {revealed && (
               <Button onClick={nextQuestion} className="w-full h-12 rounded-2xl font-bold"
-                style={{ background: sColor(subject), color: 'var(--color-on-accent)' }}>
+                style={{ background: sColor(subject, isLight), color: 'var(--color-on-accent)' }}>
                 {current >= questions.length - 1 ? 'See Results' : 'Next →'}
               </Button>
             )}
@@ -538,8 +559,8 @@ Keep it under 100 words. Be warm and encouraging.`;
             className="px-4 py-8 space-y-6 text-center">
             <div>
               {correctCount / questions.length >= 0.7
-                ? <CheckCircle size={52} color="#34D399" className="mx-auto mb-3" />
-                : <BookOpen size={52} color={sColor(subject)} className="mx-auto mb-3" />}
+                ? <CheckCircle size={52} color={isLight ? GREEN_LIGHT : '#34D399'} className="mx-auto mb-3" />
+                : <BookOpen size={52} color={sColor(subject, isLight)} className="mx-auto mb-3" />}
               <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
                 {correctCount} / {questions.length}
               </h2>
@@ -549,17 +570,17 @@ Keep it under 100 words. Be warm and encouraging.`;
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-4 rounded-2xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <p className="text-2xl font-bold" style={{ color: '#34D399' }}>{correctCount}</p>
+                <p className="text-2xl font-bold" style={{ color: isLight ? GREEN_LIGHT : '#34D399' }}>{correctCount}</p>
                 <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Correct</p>
               </div>
               <div className="p-4 rounded-2xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <p className="text-2xl font-bold" style={{ color: '#F87171' }}>{questions.length - correctCount}</p>
+                <p className="text-2xl font-bold" style={{ color: isLight ? RED_LIGHT : '#F87171' }}>{questions.length - correctCount}</p>
                 <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Wrong</p>
               </div>
             </div>
             <div className="space-y-3">
               <Button onClick={startQuiz} className="w-full h-12 rounded-2xl font-bold"
-                style={{ background: sColor(subject), color: 'var(--color-on-accent)' }}>Retry Quiz</Button>
+                style={{ background: sColor(subject, isLight), color: 'var(--color-on-accent)' }}>Retry Quiz</Button>
               <Button onClick={() => { setPhase('chapter'); setCurrent(0); }} variant="outline"
                 className="w-full h-12 rounded-2xl"
                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>← Back to Chapter</Button>
