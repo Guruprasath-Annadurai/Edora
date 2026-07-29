@@ -4,6 +4,7 @@ import { Clock, Users, Zap, ChevronRight, ArrowLeft, CheckCircle, XCircle, Troph
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,10 +101,13 @@ function formatMs(ms: number): string {
   return formatTime(Math.floor(ms / 1000));
 }
 
-function rankLabel(rank: number): { text: string; color: string } {
-  if (rank === 1) return { text: '1st', color: '#FFD700' };
-  if (rank === 2) return { text: '2nd', color: '#C0C0C0' };
-  if (rank === 3) return { text: '3rd', color: '#CD7F32' };
+// Pale medal colors read fine on dark theme's near-black tinted surfaces but
+// drop to 1.3-3:1 on light theme's pale/plain backgrounds — isLight gives
+// darkened same-hue variants (5.98-8.55:1, verified via WCAG formula).
+function rankLabel(rank: number, isLight: boolean): { text: string; color: string } {
+  if (rank === 1) return { text: '1st', color: isLight ? '#78350F' : '#FFD700' };
+  if (rank === 2) return { text: '2nd', color: isLight ? '#52525B' : '#C0C0C0' };
+  if (rank === 3) return { text: '3rd', color: isLight ? '#7C4A1E' : '#CD7F32' };
   return { text: `#${rank}`, color: 'var(--ink-400)' };
 }
 
@@ -154,13 +158,15 @@ function Confetti() {
 // ─── Weekly Schedule Banner ────────────────────────────────────────────────────
 
 function WeeklyScheduleBanner() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const dow = new Date().getDay(); // 0=Sun,1=Mon,...,6=Sat
   // Phase: Mon(1)=brackets open, Tue-Thu(2-4)=competing, Fri(5)=finals, Sat(6)=tallying, Sun(0)=certificates
   const phases = [
-    { label: 'Mon', desc: 'Brackets Open', active: dow === 1, icon: Users,    color: '#5B6AF5' },
-    { label: 'Tue–Thu', desc: 'Competing',   active: dow >= 2 && dow <= 4, icon: Zap,    color: '#F59E0B' },
-    { label: 'Fri', desc: 'Finals',      active: dow === 5, icon: Trophy,   color: '#EF4444' },
-    { label: 'Sun', desc: 'Certificates', active: dow === 0, icon: Award,    color: '#10B981' },
+    { label: 'Mon', desc: 'Brackets Open', active: dow === 1, icon: Users,    color: isLight ? '#4338CA' : '#5B6AF5' },
+    { label: 'Tue–Thu', desc: 'Competing',   active: dow >= 2 && dow <= 4, icon: Zap,    color: isLight ? '#92400E' : '#F59E0B' },
+    { label: 'Fri', desc: 'Finals',      active: dow === 5, icon: Trophy,   color: isLight ? '#B91C1C' : '#EF4444' },
+    { label: 'Sun', desc: 'Certificates', active: dow === 0, icon: Award,    color: isLight ? '#047857' : '#10B981' },
   ] as const;
 
   return (
@@ -210,12 +216,14 @@ interface ListScreenProps {
 
 function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewResults }: ListScreenProps) {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <div className="h-full overflow-y-auto pb-nav">
       <div className="px-4 pt-12 pb-4 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center"
           style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)' }}>
-          <Trophy size={18} style={{ color: '#FBBF24' }} />
+          <Trophy size={18} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
         </div>
         <div>
           <h1 className="font-heading text-2xl font-bold text-white">Weekly Tournaments</h1>
@@ -248,7 +256,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
         >
           <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
             style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}>
-            <Calendar size={28} style={{ color: '#8B9BFA' }} />
+            <Calendar size={28} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} />
           </div>
           <p className="font-heading text-lg font-semibold text-white">No tournaments yet</p>
           <p className="text-sm mt-2" style={{ color: 'var(--ink-500)' }}>Tournaments generate every Monday. Check back soon.</p>
@@ -268,7 +276,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
             <div className="flex items-start justify-between mb-2">
               <h2 className="font-heading text-base font-bold text-white flex-1 mr-2">{t.name}</h2>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
-                style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)', color: '#8B9BFA' }}>
+                style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)', color: isLight ? '#4338CA' : '#8B9BFA' }}>
                 {t.subject}
               </span>
             </div>
@@ -285,7 +293,10 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
             </div>
 
             <div className="flex gap-2 mb-4">
-              {([{ text: '1st', color: '#FFD700' }, { text: '2nd', color: '#C0C0C0' }, { text: '3rd', color: '#CD7F32' }]).map((rl, idx) => {
+              {(isLight
+                ? [{ text: '1st', color: '#78350F' }, { text: '2nd', color: '#52525B' }, { text: '3rd', color: '#7C4A1E' }]
+                : [{ text: '1st', color: '#FFD700' }, { text: '2nd', color: '#C0C0C0' }, { text: '3rd', color: '#CD7F32' }]
+              ).map((rl, idx) => {
                 const xp = idx === 0 ? t.xp_1st : idx === 1 ? t.xp_2nd : t.xp_3rd;
                 return (
                   <div key={rl.text} className="flex items-center gap-1 rounded-xl px-2 py-1"
@@ -309,8 +320,8 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
             ) : t.my_participation.rank === 0 ? (
               <button
                 onClick={() => onEnter(t)}
-                className="w-full py-3 rounded-2xl text-white font-semibold text-sm flex items-center justify-center gap-2"
-                style={{ background: 'rgba(245,158,11,0.8)' }}
+                className="w-full py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
+                style={{ background: 'rgba(245,158,11,0.8)', color: '#0F172A' }}
               >
                 Continue Attempt
                 <ChevronRight size={16} />
@@ -319,7 +330,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {(() => {
-                    const rl = rankLabel(t.my_participation.rank);
+                    const rl = rankLabel(t.my_participation.rank, isLight);
                     return <span className="text-lg font-bold" style={{ color: rl.color }}>{rl.text}</span>;
                   })()}
                   <div>
@@ -336,7 +347,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
                     <button
                       onClick={() => navigate('/certifications')}
                       className="py-2 px-3 rounded-2xl font-semibold text-xs flex items-center gap-1"
-                      style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#34D399' }}
+                      style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: isLight ? '#047857' : '#34D399' }}
                     >
                       <Award size={12} />
                       Certificate
@@ -345,7 +356,7 @@ function ListScreen({ tournaments, weekStart, weekEnd, loading, onEnter, onViewR
                   <button
                     onClick={() => onViewResults(t)}
                     className="py-2 px-4 rounded-2xl font-semibold text-sm"
-                    style={{ border: '1px solid rgba(91,106,245,0.4)', color: '#8B9BFA' }}
+                    style={{ border: '1px solid rgba(91,106,245,0.4)', color: isLight ? '#4338CA' : '#8B9BFA' }}
                   >
                     Results
                   </button>
@@ -370,6 +381,8 @@ interface QuizScreenProps {
 }
 
 function QuizScreen({ tournament, questions, timeLimitSecs, onSubmit, submitting }: QuizScreenProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -440,8 +453,8 @@ function QuizScreen({ tournament, questions, timeLimitSecs, onSubmit, submitting
           transition={{ duration: 0.4 }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl font-bold text-sm"
           style={isRed
-            ? { background: 'rgba(239,68,68,0.15)', color: '#F87171' }
-            : { background: 'rgba(91,106,245,0.15)', color: '#8B9BFA' }
+            ? { background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171' }
+            : { background: 'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#8B9BFA' }
           }
         >
           <Clock size={14} />
@@ -469,7 +482,7 @@ function QuizScreen({ tournament, questions, timeLimitSecs, onSubmit, submitting
           >
             <div className="rounded-3xl p-5 mb-4"
               style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
-              <p className="text-xs font-semibold mb-2" style={{ color: '#8B9BFA' }}>{q.points} pts</p>
+              <p className="text-xs font-semibold mb-2" style={{ color: isLight ? '#4338CA' : '#8B9BFA' }}>{q.points} pts</p>
               <p className="font-heading text-base font-semibold text-white leading-snug">{q.question}</p>
             </div>
 
@@ -489,8 +502,13 @@ function QuizScreen({ tournament, questions, timeLimitSecs, onSubmit, submitting
                   >
                     <span
                       className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
+                      // Fixed white on a fixed darker indigo, not the
+                      // theme-flipping ink-950 token on #5B6AF5 — that
+                      // combo gave only 4.1:1 in light theme (ink-950
+                      // flips to near-black on a background that stays
+                      // the same regardless of theme).
                       style={isSelected
-                        ? { background: '#5B6AF5', color: 'var(--ink-950)' }
+                        ? { background: '#4338CA', color: '#ffffff' }
                         : { background: 'var(--ink-080)', color: 'var(--ink-600)' }
                       }
                     >
@@ -536,6 +554,8 @@ interface ResultsScreenProps {
 }
 
 function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: ResultsScreenProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { score, max_score, rank, xp_earned, graded_answers } = submitResult;
   const isTop3 = rank >= 1 && rank <= 3;
   const pct = max_score > 0 ? Math.round((score / max_score) * 100) : 0;
@@ -561,7 +581,7 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
               className="mb-3"
             >
               {(() => {
-                const rl = rankLabel(rank);
+                const rl = rankLabel(rank, isLight);
                 return <span className="text-5xl font-bold font-heading" style={{ color: rl.color }}>{rl.text}</span>;
               })()}
             </motion.div>
@@ -574,7 +594,7 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
 
           {xp_earned > 0 && (
             <div className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-2xl font-bold text-sm"
-              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#FBBF24' }}>
+              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: isLight ? '#92400E' : '#FBBF24' }}>
               <Zap size={16} />
               {xp_earned} XP earned
             </div>
@@ -595,7 +615,7 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
                   <p className="text-sm font-semibold text-white mb-2">
                     {qIdx + 1}. {q.question}
                   </p>
-                  <div className="flex items-start gap-2 mb-1" style={{ color: ga.correct ? '#34D399' : '#F87171' }}>
+                  <div className="flex items-start gap-2 mb-1" style={{ color: ga.correct ? (isLight ? '#047857' : '#34D399') : (isLight ? '#B91C1C' : '#F87171') }}>
                     {ga.correct
                       ? <CheckCircle size={15} className="mt-0.5 flex-shrink-0" />
                       : <XCircle size={15} className="mt-0.5 flex-shrink-0" />}
@@ -604,7 +624,7 @@ function ResultsScreen({ questions, submitResult, onViewLeaderboard, onBack }: R
                     </span>
                   </div>
                   {!ga.correct && (
-                    <div className="flex items-start gap-2 mb-1" style={{ color: '#34D399' }}>
+                    <div className="flex items-start gap-2 mb-1" style={{ color: isLight ? '#047857' : '#34D399' }}>
                       <CheckCircle size={15} className="mt-0.5 flex-shrink-0" />
                       <span className="text-xs">
                         Correct: {OPTION_LABELS[ga.correct_idx]}. {q.options[ga.correct_idx]}
@@ -652,6 +672,8 @@ interface LeaderboardScreenProps {
 }
 
 function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <div className="h-full overflow-y-auto pb-nav">
       <div className="px-4 pt-12 pb-4 flex items-center gap-3">
@@ -699,7 +721,7 @@ function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenPr
               >
                 <div className="w-8 text-center flex-shrink-0">
                   {(() => {
-                    const rl = rankLabel(entry.rank);
+                    const rl = rankLabel(entry.rank, isLight);
                     return <span className="text-sm font-bold" style={{ color: rl.color }}>{rl.text}</span>;
                   })()}
                 </div>
@@ -711,8 +733,11 @@ function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenPr
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: isMe ? '#8B9BFA' : 'white' }}>
-                    {entry.name}{isMe && <span className="text-xs font-normal ml-1" style={{ color: 'rgba(139,155,250,0.7)' }}>(YOU)</span>}
+                  {/* 'white' here is a literal inline style, not the className
+                      the global light-theme .text-white remap catches — was
+                      invisible white-on-near-white in light theme. */}
+                  <p className="text-sm font-semibold truncate" style={{ color: isMe ? (isLight ? '#4338CA' : '#8B9BFA') : (isLight ? 'var(--ink-950)' : 'white') }}>
+                    {entry.name}{isMe && <span className="text-xs font-normal ml-1" style={{ color: isLight ? '#4338CA' : 'rgba(139,155,250,0.7)' }}>(YOU)</span>}
                   </p>
                   <p className="text-xs" style={{ color: 'var(--ink-500)' }}>{formatMs(entry.time_taken_ms)}</p>
                 </div>
@@ -749,6 +774,8 @@ function LeaderboardScreen({ leaderboard, loading, onBack }: LeaderboardScreenPr
 
 export default function TournamentPage() {
   useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const navigate = useNavigate();
 
   const [screen, setScreen] = useState<Screen>('list');
@@ -910,7 +937,7 @@ export default function TournamentPage() {
     <>
       {error && (
         <div className="fixed top-4 left-4 right-4 z-50 text-sm rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
-          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171' }}>
+          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: isLight ? '#B91C1C' : '#F87171' }}>
           <span className="flex-1">{error}</span>
           {/* Retry lets users recover without navigating away */}
           <button
@@ -920,7 +947,7 @@ export default function TournamentPage() {
           >
             Retry
           </button>
-          <button onClick={() => setError(null)} className="shrink-0 font-bold text-red-400 active:opacity-70">
+          <button onClick={() => setError(null)} className="shrink-0 font-bold active:opacity-70" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>
             <XCircle size={16} />
           </button>
         </div>
