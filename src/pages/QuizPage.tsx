@@ -15,6 +15,7 @@ import { SyncQueue } from '@/lib/syncQueue';
 import { track } from '@/lib/analytics';
 import { loadUnlockedIds, checkAchievements } from '@/lib/achievements';
 import { scoreQuiz } from '@/lib/quizScoring';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { QuizQuestion } from '@/types';
 
 interface QuizDraft {
@@ -34,19 +35,22 @@ type Phase = 'setup' | 'loading' | 'quiz' | 'result';
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 
 // ── Subject colour map (used for topic chip) ──────────────────────────────────
-function subjectColor(topic: string): { bg: string; text: string; border: string } {
+// Text colours are theme-aware: the pale variants read fine on dark cards but
+// drop to ~1.2-1.7:1 contrast on light theme's pale tinted backgrounds, so
+// light theme gets darker, WCAG AA-passing (4.5:1+) shades of the same hue.
+function subjectColor(topic: string, isLight: boolean): { bg: string; text: string; border: string } {
   const t = topic.toLowerCase();
   if (t.includes('math') || t.includes('algebra') || t.includes('calculus'))
-    return { bg: 'rgba(59,130,246,0.12)', text: '#93C5FD', border: 'rgba(59,130,246,0.3)' };
+    return { bg: 'rgba(59,130,246,0.12)', text: isLight ? '#1D4ED8' : '#93C5FD', border: 'rgba(59,130,246,0.3)' };
   if (t.includes('physics') || t.includes('motion') || t.includes('force') || t.includes('wave'))
-    return { bg: 'rgba(124,58,237,0.12)', text: '#C4B5FD', border: 'rgba(124,58,237,0.3)' };
+    return { bg: 'rgba(124,58,237,0.12)', text: isLight ? '#6D28D9' : '#C4B5FD', border: 'rgba(124,58,237,0.3)' };
   if (t.includes('chem') || t.includes('reaction') || t.includes('element'))
-    return { bg: 'rgba(16,185,129,0.12)', text: '#6EE7B7', border: 'rgba(16,185,129,0.3)' };
+    return { bg: 'rgba(16,185,129,0.12)', text: isLight ? '#047857' : '#6EE7B7', border: 'rgba(16,185,129,0.3)' };
   if (t.includes('bio') || t.includes('cell') || t.includes('genetics'))
-    return { bg: 'rgba(34,197,94,0.12)', text: '#86EFAC', border: 'rgba(34,197,94,0.3)' };
+    return { bg: 'rgba(34,197,94,0.12)', text: isLight ? '#166534' : '#86EFAC', border: 'rgba(34,197,94,0.3)' };
   if (t.includes('history') || t.includes('civil'))
-    return { bg: 'rgba(251,191,36,0.12)', text: '#FDE68A', border: 'rgba(251,191,36,0.3)' };
-  return { bg: 'rgba(91,106,245,0.12)', text: '#A0AEFF', border: 'rgba(91,106,245,0.3)' };
+    return { bg: 'rgba(251,191,36,0.12)', text: isLight ? '#92400E' : '#FDE68A', border: 'rgba(251,191,36,0.3)' };
+  return { bg: 'rgba(91,106,245,0.12)', text: isLight ? '#4338CA' : '#A0AEFF', border: 'rgba(91,106,245,0.3)' };
 }
 
 // ── Score colour helper ───────────────────────────────────────────────────────
@@ -116,6 +120,8 @@ const QuizOptionButton = memo(function QuizOptionButton({
 
 export default function QuizPage() {
   const { profile }       = useAuth();
+  const { theme }         = useTheme();
+  const isLight           = theme === 'light';
   const [phase, setPhase] = useState<Phase>('setup');
   const [topic, setTopic] = useState('');
   const [count, setCount] = useState(5);
@@ -628,7 +634,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
   const score     = answers.filter((a, i) => a === questions[i]?.correct_answer).length;
   const q         = questions[current];
   const qProgress = ((current) / questions.length) * 100;
-  const chipStyle = subjectColor(topic);
+  const chipStyle = subjectColor(topic, isLight);
 
   return (
     <div className="h-full native-scroll pb-nav" style={{ background: 'transparent' }}>
