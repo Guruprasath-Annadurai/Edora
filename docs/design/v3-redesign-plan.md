@@ -276,8 +276,20 @@ color or type size.
     questions to the result screen under light theme; every computed color
     matched exactly.
 
-    **Boss Fight** (`BossFightPage.tsx`), **Tournament**
-    (`TournamentPage.tsx`), **Streak Challenge**
+    **Boss Fight** (`BossFightPage.tsx`) — ✅ audited + fixed (11th
+    occurrence). BOSS_CATALOGUE's 5 per-boss colors read 1.6-6.3:1 on light
+    theme's pale tints across selection cards, info panel, loading spinner,
+    HP bars, and taunt bubbles — fixed with `colorLight` variants
+    (4.3-6.8:1). Also found a second, theme-INDEPENDENT bug: the "Start
+    Fight" button's background is always the raw boss color regardless of
+    theme, and white button text failed against the two lighter bosses —
+    emerald (2.5:1) and amber (2.1:1), both below the 3:1 large-text
+    minimum — fixed with a `buttonTextDark` flag giving those two bosses
+    dark ink text instead. Verified live: selected Baron Valence (emerald)
+    and triggered The Integral (amber), confirmed boss-name text, HP label,
+    and Start Fight button all render the exact fixed colors.
+
+    **Tournament** (`TournamentPage.tsx`), **Streak Challenge**
     (`StreakChallengePage.tsx`) — not yet audited.
 16. **Leaderboard** (`LeaderboardPage.tsx`), **School Leaderboard**
     (`SchoolLeaderboardPage.tsx`) — the anonymization work done earlier this
