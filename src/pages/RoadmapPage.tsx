@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import { OfflineCache } from '@/lib/offlineCache';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RoadmapDay {
@@ -93,8 +94,30 @@ const SUBJECT_COLORS: Record<string, { bg: string; text: string; dot: string }> 
   'Data Interpretation':    { bg: 'rgba(4,120,87,0.12)',    text: '#34D399', dot: '#34D399' },
 };
 
-function subjectStyle(subject: string) {
-  return SUBJECT_COLORS[subject] ?? { bg: 'rgba(91,106,245,0.12)', text: '#818CF8', dot: '#818CF8' };
+// Pale colors read fine on dark theme's near-black tinted pills but drop to
+// ~4.4-6.5:1... on dark theme; on LIGHT theme they drop to ~1.1-2:1 — darkened
+// same-hue variants (4.4-6.5:1, verified via WCAG formula) are used instead.
+const SUBJECT_COLORS_LIGHT: Record<string, string> = {
+  'Mathematics':           '#4338CA',
+  'Physics':               '#9D174D',
+  'Chemistry':             '#065F46',
+  'Biology':               '#92400E',
+  'English':               '#075985',
+  'History':               '#6D28D9',
+  'Geography':             '#166534',
+  'Science':               '#9A3412',
+  'Social Science':        '#B91C1C',
+  'Verbal Ability':        '#075985',
+  'Quantitative Aptitude': '#4338CA',
+  'Logical Reasoning':     '#6D28D9',
+  'Data Interpretation':   '#065F46',
+};
+
+function subjectStyle(subject: string, isLight: boolean) {
+  const base = SUBJECT_COLORS[subject] ?? { bg: 'rgba(91,106,245,0.12)', text: '#818CF8', dot: '#818CF8' };
+  if (!isLight) return base;
+  const text = SUBJECT_COLORS_LIGHT[subject] ?? '#4338CA';
+  return { ...base, text };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -146,7 +169,8 @@ function formatDate(iso: string): string {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 function SubjectPill({ subject, small = false }: { subject: string; small?: boolean }) {
-  const s = subjectStyle(subject);
+  const { theme } = useTheme();
+  const s = subjectStyle(subject, theme === 'light');
   return (
     <span className={`inline-flex items-center gap-1 rounded-full font-semibold ${small ? 'text-[10px] px-2 py-0.5' : 'text-xs px-2.5 py-1'}`}
       style={{ background: s.bg, color: s.text }}>
@@ -238,11 +262,14 @@ function WeekCard({
   const isCurrentW = week.days.some(d => d.day === dayIdx);
   const isPastW    = week.days.every(d => d.day < dayIdx);
 
+  // Darkened from the original #10B981/#5B6AF5/#9CA3AF — those gave white
+  // badge text only 2.5:1/4.35:1/2.5:1 contrast (fails WCAG AA 4.5:1) in
+  // BOTH themes, since this badge color is a fixed literal, not theme-driven.
   const weekColor = isPastW && pct === 100
-    ? '#10B981'
+    ? '#047857'
     : isCurrentW
-    ? '#5B6AF5'
-    : '#9CA3AF';
+    ? '#4338CA'
+    : '#4B5563';
 
   return (
     <div className={`rounded-2xl border overflow-hidden transition-all ${
@@ -313,6 +340,8 @@ function WeekCard({
 // ── Main component ────────────────────────────────────────────────────────────
 export default function RoadmapPage() {
   const { user, profile } = useAuth();
+  const { theme }         = useTheme();
+  const isLight           = theme === 'light';
 
   const [phase,       setPhase]       = useState<Phase>('loading');
   const [roadmap,     setRoadmap]     = useState<StudyRoadmap | null>(null);
@@ -684,7 +713,8 @@ export default function RoadmapPage() {
               <ArrowLeft size={17} className="text-white" />
             </Link>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-yellow-300">Study Roadmap</p>
+              <p className={`text-[11px] font-bold uppercase tracking-widest ${isLight ? '' : 'text-yellow-300'}`}
+                style={isLight ? { color: '#92400E' } : undefined}>Study Roadmap</p>
               <h1 className="font-heading text-lg font-bold text-white leading-tight truncate">
                 {roadmap.exam_name}
               </h1>
@@ -700,16 +730,18 @@ export default function RoadmapPage() {
           {/* Stats row */}
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: 'Days Left',  value: daysLeft,        icon: Calendar, color: '#FCD34D' },
-              { label: 'Done',       value: `${completedCnt}/${totalDays}`, icon: CheckCircle2, color: '#34D399' },
-              { label: 'Progress',   value: `${progressPct}%`, icon: Trophy, color: '#818CF8' },
-              { label: 'Missed',     value: missedDays,      icon: AlertTriangle, color: missedDays > 0 ? '#F87171' : '#34D399' },
-            ].map(({ label, value, icon: Icon, color }) => (
+              { label: 'Days Left',  value: daysLeft,        icon: Calendar, color: '#FCD34D', colorLight: '#92400E' },
+              { label: 'Done',       value: `${completedCnt}/${totalDays}`, icon: CheckCircle2, color: '#34D399', colorLight: '#047857' },
+              { label: 'Progress',   value: `${progressPct}%`, icon: Trophy, color: '#818CF8', colorLight: '#4338CA' },
+              { label: 'Missed',     value: missedDays,      icon: AlertTriangle,
+                color: missedDays > 0 ? '#F87171' : '#34D399', colorLight: missedDays > 0 ? '#B91C1C' : '#047857' },
+            ].map(({ label, value, icon: Icon, color, colorLight }) => (
               <div key={label} className="rounded-2xl p-2.5 text-center"
                 style={{ background: 'var(--ink-080)' }}>
-                <Icon size={15} style={{ color }} className="mx-auto mb-1" />
+                <Icon size={15} style={{ color: isLight ? colorLight : color }} className="mx-auto mb-1" />
                 <p className="font-heading font-bold text-sm text-white leading-none">{value}</p>
-                <p className="text-[9px] text-purple-300 mt-0.5">{label}</p>
+                <p className={`text-[9px] mt-0.5 ${isLight ? '' : 'text-purple-300'}`}
+                  style={isLight ? { color: '#4338CA' } : undefined}>{label}</p>
               </div>
             ))}
           </div>
@@ -735,9 +767,9 @@ export default function RoadmapPage() {
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="flex items-center gap-2.5 px-4 py-3 rounded-2xl"
               style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)' }}>
-              <CheckCircle2 size={16} style={{ color: '#34D399' }} className="shrink-0" />
+              <CheckCircle2 size={16} style={{ color: isLight ? '#047857' : '#34D399' }} className="shrink-0" />
               <div>
-                <p className="text-sm font-bold" style={{ color: '#34D399' }}>Plan recalibrated!</p>
+                <p className="text-sm font-bold" style={{ color: isLight ? '#047857' : '#34D399' }}>Plan recalibrated!</p>
                 <p className="text-xs text-muted-foreground">
                   {missedCount} missed topic{missedCount !== 1 ? 's' : ''} redistributed across upcoming weeks.
                 </p>
@@ -748,9 +780,9 @@ export default function RoadmapPage() {
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="flex items-center gap-3 px-4 py-3 rounded-2xl"
               style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
-              <AlertTriangle size={16} style={{ color: '#FBBF24' }} className="shrink-0" />
+              <AlertTriangle size={16} style={{ color: isLight ? '#92400E' : '#FBBF24' }} className="shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-bold" style={{ color: '#FBBF24' }}>
+                <p className="text-sm font-bold" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>
                   {missedDays} day{missedDays !== 1 ? 's' : ''} behind
                 </p>
                 <p className="text-xs text-muted-foreground">Novo can redistribute missed topics across upcoming weeks.</p>
@@ -773,7 +805,7 @@ export default function RoadmapPage() {
         {!recalDone && roadmap && (
           <button onClick={() => handleRecalibrate(true)} disabled={isRecal}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-semibold disabled:opacity-60"
-            style={{ background: 'var(--v2-card, rgba(139,92,246,0.08))', border: '1px solid rgba(139,92,246,0.25)', color: '#C4B5FD' }}>
+            style={{ background: 'var(--v2-card, rgba(139,92,246,0.08))', border: '1px solid rgba(139,92,246,0.25)', color: isLight ? '#6D28D9' : '#C4B5FD' }}>
             <Sparkles size={13} />
             {isRecal ? 'Deep re-optimizing…' : 'Deep re-optimize (uses your retention data — slower, more precise)'}
           </button>
@@ -806,7 +838,7 @@ export default function RoadmapPage() {
               style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                 style={{ background: 'rgba(52,211,153,0.15)' }}>
-                <Sparkles size={22} style={{ color: '#34D399' }} />
+                <Sparkles size={22} style={{ color: isLight ? '#047857' : '#34D399' }} />
               </div>
               <p className="font-bold text-base text-white">Rest Day</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -823,8 +855,8 @@ export default function RoadmapPage() {
               style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid rgba(91,106,245,0.3)' }}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                  style={{ background: subjectStyle(todayTask.subject).bg }}>
-                  <Target size={18} style={{ color: subjectStyle(todayTask.subject).text }} />
+                  style={{ background: subjectStyle(todayTask.subject, isLight).bg }}>
+                  <Target size={18} style={{ color: subjectStyle(todayTask.subject, isLight).text }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <SubjectPill subject={todayTask.subject} />
@@ -846,7 +878,7 @@ export default function RoadmapPage() {
                 onClick={() => toggleDay(todayTask.day)}
                 className="mt-3 w-full py-2.5 rounded-2xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2 text-white"
                 style={progress.get(todayTask.day)
-                  ? { background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', color: '#34D399' }
+                  ? { background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', color: isLight ? '#047857' : '#34D399' }
                   : { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
                 {progress.get(todayTask.day)
                   ? <><CheckCircle2 size={15} /> Done — great work!</>
