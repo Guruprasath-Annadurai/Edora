@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@capacitor/toast';
 import type { LessonPlan, LessonPlanTask, LessonTaskType } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Subjects ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,14 @@ const TASK_STYLES: Record<LessonTaskType, { icon: LucideIcon; color: string; bg:
   review:        { icon: RotateCcw,    color: '#34D399', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', label: 'Review' },
   quiz:          { icon: ClipboardList,color: '#F472B6', bg: 'rgba(236,72,153,0.12)', border: 'rgba(236,72,153,0.3)', label: 'Quiz' },
   milestone_quiz:{ icon: Trophy,       color: '#C4B5FD', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.3)', label: 'Milestone' },
+};
+
+// Same pale-on-dark-bg assumption as every other subject/task-color map in
+// this codebase — 1.2-2:1 contrast on light theme's pale tinted chips.
+// Darkened same-hue variants (4.6-6.6:1, verified via WCAG formula).
+const TASK_STYLES_LIGHT: Record<LessonTaskType, string> = {
+  study: '#4338CA', practice: '#92400E', review: '#047857',
+  quiz: '#9D174D', milestone_quiz: '#6D28D9',
 };
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -54,7 +63,10 @@ function TaskCard({
   onToggle: (id: string, done: boolean) => void;
   completing: string | null;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const style = TASK_STYLES[task.task_type] ?? TASK_STYLES.study;
+  const taskColor = isLight ? TASK_STYLES_LIGHT[task.task_type] ?? TASK_STYLES_LIGHT.study : style.color;
   const Icon = style.icon;
   const isBusy = completing === task.id;
 
@@ -71,16 +83,16 @@ function TaskCard({
         disabled={isBusy}
         className="mt-0.5 shrink-0 active:scale-90 transition-transform">
         {isBusy
-          ? <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(91,106,245,0.3)', borderTopColor: '#5B6AF5' }} />
+          ? <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(91,106,245,0.3)', borderTopColor: isLight ? '#4338CA' : '#5B6AF5' }} />
           : task.completed
-            ? <CheckCircle2 size={20} style={{ color: '#5B6AF5' }} />
+            ? <CheckCircle2 size={20} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
             : <Circle size={20} style={{ color: 'var(--ink-250)' }} />
         }
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
-            style={{ color: style.color, background: style.bg, border: `1px solid ${style.border}` }}>
+            style={{ color: taskColor, background: style.bg, border: `1px solid ${style.border}` }}>
             <Icon size={10} />{style.label}
           </span>
           {task.duration_min && (
@@ -211,6 +223,8 @@ function SubjectPicker({ onSelect, onBack }: { onSelect: (s: string) => void; on
 
 export default function LessonPlanPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight   = theme === 'light';
 
   const [plan, setPlan]         = useState<LessonPlan | null>(null);
   const [tasks, setTasks]       = useState<LessonPlanTask[]>([]);
@@ -322,7 +336,7 @@ export default function LessonPlanPage() {
           onClick={() => setShowSubjectPicker(true)}
           disabled={generating}
           className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl"
-          style={{ color: '#8B9BFA', background: 'rgba(91,106,245,0.15)' }}>
+          style={{ color: isLight ? '#4338CA' : '#8B9BFA', background: 'rgba(91,106,245,0.15)' }}>
           {generating
             ? <RefreshCw size={12} className="animate-spin" />
             : <Sparkles size={12} />}
@@ -361,7 +375,7 @@ export default function LessonPlanPage() {
           <div className="flex flex-col items-center justify-center h-full px-8 gap-6">
             <div className="w-24 h-24 rounded-4xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, rgba(91,106,245,0.1), rgba(139,92,246,0.1))' }}>
-              <CalendarDays size={44} style={{ color: '#8B9BFA' }} strokeWidth={1.5} />
+              <CalendarDays size={44} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} strokeWidth={1.5} />
             </div>
             <div className="text-center">
               <h3 className="font-heading text-2xl font-bold text-white">No Plan Yet</h3>
@@ -388,7 +402,7 @@ export default function LessonPlanPage() {
                   <p className="font-semibold text-white text-sm">{plan.done_tasks} of {plan.total_tasks} tasks done</p>
                 </div>
                 <span className="text-lg font-bold"
-                  style={{ color: pct >= 80 ? '#34D399' : pct >= 40 ? '#8B9BFA' : 'var(--ink-400)' }}>
+                  style={{ color: pct >= 80 ? (isLight ? '#047857' : '#34D399') : pct >= 40 ? (isLight ? '#4338CA' : '#8B9BFA') : 'var(--ink-400)' }}>
                   {pct}%
                 </span>
               </div>
@@ -419,7 +433,8 @@ export default function LessonPlanPage() {
                     <span className="text-xs font-bold">{d}</span>
                     <div className="flex items-center gap-0.5">
                       {done
-                        ? <CheckCircle2 size={10} className={activeDay === i ? 'text-white' : 'text-green-500'} />
+                        ? <CheckCircle2 size={10} className={activeDay === i ? 'text-white' : ''}
+                            style={activeDay === i ? undefined : { color: isLight ? '#047857' : '#22C55E' }} />
                         : <span className={`text-xs font-medium ${isToday && activeDay !== i ? 'text-primary' : ''}`}>
                             {dt.length > 0 ? `${dd}/${dt.length}` : '·'}
                           </span>
@@ -439,7 +454,7 @@ export default function LessonPlanPage() {
                     <p className="text-xs text-muted-foreground">
                       {plan.plan_data.days[activeDay].theme}
                       {plan.plan_data.days[activeDay].is_milestone_day && (
-                        <span className="ml-2 font-semibold" style={{ color: '#C4B5FD' }}>Milestone Day</span>
+                        <span className="ml-2 font-semibold" style={{ color: isLight ? '#6D28D9' : '#C4B5FD' }}>Milestone Day</span>
                       )}
                     </p>
                   )}
@@ -476,7 +491,7 @@ export default function LessonPlanPage() {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                   className="mt-2 rounded-2xl p-5 text-center"
                   style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.1))' }}>
-                  <Trophy size={32} style={{ color: '#34D399' }} className="mb-1 mx-auto" />
+                  <Trophy size={32} style={{ color: isLight ? '#047857' : '#34D399' }} className="mb-1 mx-auto" />
                   <p className="font-heading font-bold text-white">Week Complete!</p>
                   <p className="text-sm text-muted-foreground mt-1">Amazing work finishing your full lesson plan.</p>
                   <Button size="sm" onClick={() => generatePlan(plan.subject)} className="mt-3">
