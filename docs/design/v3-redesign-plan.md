@@ -143,8 +143,20 @@ color or type size.
    Mistake Journal, Study Notes, Mnemonic AI, Browser). Genuinely clean —
    every colorful pastel-tinted card renders correct dark text, no bugs
    found. No fix needed.
-10. **Quiz** (`QuizPage.tsx`), **AI Quiz Bank** (`AIQuizBankPage.tsx`) —
-    question/results UI, high-frequency screens.
+10. **Quiz** (`QuizPage.tsx`) — ✅ audited + fixed. Found and fixed a real
+    WCAG contrast bug: `subjectColor()` returned hardcoded pale pastel text
+    (`#93C5FD`, `#C4B5FD`, etc.) for the subject chip and "Question N" label,
+    assuming a permanently-dark page background. Under light theme this
+    rendered at 1.1-1.7:1 contrast (needs 4.5:1) — verified via WCAG formula
+    and live in browser (typed a real quiz topic, generated questions,
+    inspected computed styles). Fixed by making the function theme-aware
+    (`isLight` param) with darkened same-hue variants for light theme,
+    verified 4.6-6.7:1 after fix. Also confirmed QuizPage's many
+    `text-white`/`placeholder:text-white/30` classes are NOT bugs — a global
+    `[data-theme="light"] .text-white` remap rule in globals.css already
+    handles those safely across the whole app. **AI Quiz Bank**
+    (`AIQuizBankPage.tsx`) not yet audited — question/results UI,
+    high-frequency screens.
 11. **Flashcards** (`FlashcardPage.tsx`), **Spaced Repetition**
     (`SpacedRepetitionPage.tsx`)
 12. **NCERT reader** (`NCERTChaptersPage.tsx`, `NcertDeepPage.tsx`)
