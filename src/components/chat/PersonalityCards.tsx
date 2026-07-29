@@ -37,14 +37,14 @@ export function PersonalityCards({ current, onSelect }: {
                 style={{
                   background: active ? cfg.gradient : 'var(--ink-060)',
                   boxShadow: active ? '0 4px 14px rgba(0,0,0,0.35)' : 'none' }}>
-                <cfg.icon size={22} className="text-white" strokeWidth={1.75} />
+                <cfg.icon size={22} strokeWidth={1.75} style={{ color: active ? '#ffffff' : 'var(--ink-700)' }} />
               </div>
               <p className="text-xs font-extrabold relative z-10 text-center leading-tight"
-                style={{ color: active ? '#ffffff' : 'var(--ink-500)' }}>
+                style={{ color: active ? 'var(--ink-950)' : 'var(--ink-700)' }}>
                 {cfg.label}
               </p>
               <p className="text-xs font-medium text-center leading-tight px-2 relative z-10"
-                style={{ color: active ? 'rgba(160,174,255,0.75)' : 'var(--ink-250)' }}>
+                style={{ color: active ? 'var(--ink-700)' : 'var(--ink-650)' }}>
                 {cfg.tagline}
               </p>
             </motion.button>
