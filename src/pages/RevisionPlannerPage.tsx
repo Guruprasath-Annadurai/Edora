@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface PlanWeek {
@@ -47,6 +48,13 @@ const PRIORITY_STYLE = {
   medium: { color: '#F59E0B', bg: 'rgba(245,158,11,0.1)',  label: 'Medium' },
   low:    { color: '#6EE7B7', bg: 'rgba(16,185,129,0.1)',  label: 'Low' } };
 
+// Same pale-on-dark-bg assumption as every other color map in this codebase —
+// 1.3-3.1:1 contrast on light theme's pale tinted chips. Darkened same-hue
+// variants (4.7-6.2:1, verified via WCAG formula) are used when isLight.
+const PRIORITY_STYLE_LIGHT: Record<'high' | 'medium' | 'low', string> = {
+  high: '#B91C1C', medium: '#92400E', low: '#047857',
+};
+
 const CHAPTER_LISTS: Record<string, string[]> = {
   Physics:     ['Physical World & Units','Motion in a Straight Line','Motion in a Plane','Laws of Motion','Work Energy & Power','System of Particles & Rotational Motion','Gravitation','Mechanical Properties of Solids','Mechanical Properties of Fluids','Thermal Properties of Matter','Thermodynamics','Kinetic Theory','Oscillations','Waves','Electric Charges & Fields','Electrostatic Potential & Capacitance','Current Electricity','Moving Charges & Magnetism','Magnetism & Matter','Electromagnetic Induction','Alternating Current','Electromagnetic Waves','Ray Optics','Wave Optics','Dual Nature of Radiation','Atoms','Nuclei','Semiconductor Electronics'],
   Chemistry:   ['Some Basic Concepts','Structure of Atom','Classification of Elements','Chemical Bonding','States of Matter','Thermodynamics','Equilibrium','Redox Reactions','Hydrogen','s-Block Elements','p-Block Elements (11)','Organic Chemistry - Basic','Hydrocarbons','Environmental Chemistry','Solid State','Solutions','Electrochemistry','Chemical Kinetics','Surface Chemistry','Isolation of Elements','p-Block Elements (12)','d & f Block Elements','Coordination Compounds','Haloalkanes & Haloarenes','Alcohols Phenols & Ethers','Aldehydes & Ketones','Carboxylic Acids','Amines','Biomolecules','Polymers','Chemistry in Everyday Life'],
@@ -55,13 +63,15 @@ const CHAPTER_LISTS: Record<string, string[]> = {
 
 // ── Status bar ────────────────────────────────────────────────────────────────
 function StatusBanner({ info }: { info: StatusInfo }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   if (info.on_track && info.days_behind === 0) {
     return (
       <div className="flex items-center gap-2 px-4 py-3 rounded-2xl mb-4"
         style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
-        <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+        <CheckCircle2 size={16} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
         <div>
-          <p className="text-sm font-bold text-emerald-300">You're on track</p>
+          <p className="text-sm font-bold" style={{ color: isLight ? '#047857' : '#6EE7B7' }}>You're on track</p>
           <p className="text-xs text-white/50">{info.chapters_done}/{info.chapters_total} chapters done</p>
         </div>
       </div>
@@ -70,9 +80,9 @@ function StatusBanner({ info }: { info: StatusInfo }) {
   return (
     <div className="flex items-start gap-2 px-4 py-3 rounded-2xl mb-4"
       style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-      <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
+      <AlertTriangle size={16} className="shrink-0 mt-0.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
       <div>
-        <p className="text-sm font-bold text-red-300">
+        <p className="text-sm font-bold" style={{ color: isLight ? '#B91C1C' : '#FCA5A5' }}>
           You're {info.days_behind} day{info.days_behind !== 1 ? 's' : ''} behind plan
         </p>
         {info.recommendation && (
@@ -85,6 +95,8 @@ function StatusBanner({ info }: { info: StatusInfo }) {
 
 // ── Today's Focus ─────────────────────────────────────────────────────────────
 function TodayFocus({ plan, onToggle }: { plan: RevisionPlan; onToggle: (id: string) => void }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const elapsed = Math.ceil((Date.now() - new Date(plan.created_at).getTime()) / 86400000);
   const weekIdx = Math.max(0, Math.min(Math.floor(elapsed / 7), plan.weeks.length - 1));
   const week = plan.weeks[weekIdx];
@@ -93,8 +105,8 @@ function TodayFocus({ plan, onToggle }: { plan: RevisionPlan; onToggle: (id: str
   if (!pending.length) return (
     <div className="flex items-center gap-2 px-4 py-3 rounded-2xl mb-4"
       style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
-      <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
-      <p className="text-sm font-semibold text-emerald-300">This week's chapters done</p>
+      <CheckCircle2 size={15} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
+      <p className="text-sm font-semibold" style={{ color: isLight ? '#047857' : '#6EE7B7' }}>This week's chapters done</p>
     </div>
   );
   return (
@@ -103,6 +115,7 @@ function TodayFocus({ plan, onToggle }: { plan: RevisionPlan; onToggle: (id: str
       <div className="space-y-2">
         {pending.map(ch => {
           const p = PRIORITY_STYLE[ch.priority];
+          const pColor = isLight ? PRIORITY_STYLE_LIGHT[ch.priority] : p.color;
           return (
             <button key={ch.id} onClick={() => onToggle(ch.id)}
               className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left active:scale-98 transition-all"
@@ -112,7 +125,7 @@ function TodayFocus({ plan, onToggle }: { plan: RevisionPlan; onToggle: (id: str
                 <p className="text-sm font-semibold text-white truncate">{ch.chapter}</p>
                 <p className="text-xs text-white/35">{ch.subject} · ~{ch.hours}h</p>
               </div>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: p.bg, color: p.color }}>{p.label}</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: p.bg, color: pColor }}>{p.label}</span>
             </button>
           );
         })}
@@ -123,6 +136,8 @@ function TodayFocus({ plan, onToggle }: { plan: RevisionPlan; onToggle: (id: str
 
 // ── Calendar heatmap ──────────────────────────────────────────────────────────
 function HeatmapBar({ plan }: { plan: RevisionPlan }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const examDate = new Date(plan.exam_date);
   const today = new Date();
   const totalDays = Math.ceil((examDate.getTime() - new Date(plan.created_at).getTime()) / 86400000);
@@ -155,11 +170,16 @@ function HeatmapBar({ plan }: { plan: RevisionPlan }) {
             key={i}
             className="w-3.5 h-3.5 rounded-sm"
             style={{
+              // Future-day cells used a hardcoded white tint that's basically
+              // invisible on light theme's light page — fell back to the
+              // theme's own ink base (dark-slate in light theme) instead.
               background: c.isToday
                 ? '#5B6AF5'
                 : c.isPast
                   ? `rgba(91,106,245,${0.15 + c.intensity * 0.85})`
-                  : `rgba(255,255,255,${c.intensity * 0.1})`,
+                  : isLight
+                    ? `rgba(15,23,42,${c.intensity * 0.12 + 0.03})`
+                    : `rgba(255,255,255,${c.intensity * 0.1})`,
               border: c.isToday ? '1.5px solid #8B9BFA' : '1px solid var(--ink-040)' }}
           />
         ))}
@@ -179,6 +199,8 @@ function HeatmapBar({ plan }: { plan: RevisionPlan }) {
 
 // ── Week block ────────────────────────────────────────────────────────────────
 function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) => void }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [open, setOpen] = useState(week.week === 1);
   const done = week.chapters.filter(c => c.done).length;
   const total = week.chapters.length;
@@ -190,8 +212,8 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
           <div className="w-8 h-8 rounded-xl flex items-center justify-center"
             style={{ background: done === total && total > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(91,106,245,0.15)' }}>
             {done === total && total > 0
-              ? <CheckCircle2 size={14} className="text-emerald-400" />
-              : <CalendarDays size={14} className="text-indigo-400" />
+              ? <CheckCircle2 size={14} style={{ color: isLight ? '#047857' : '#34D399' }} />
+              : <CalendarDays size={14} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
             }
           </div>
           <div className="text-left">
@@ -217,6 +239,7 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
             <div className="px-4 pb-4 space-y-2 border-t border-white/5 pt-2">
               {week.chapters.map(ch => {
                 const p = PRIORITY_STYLE[ch.priority];
+                const pColor = isLight ? PRIORITY_STYLE_LIGHT[ch.priority] : p.color;
                 return (
                   <button
                     key={ch.id}
@@ -225,14 +248,14 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
                     style={{ background: ch.done ? 'rgba(16,185,129,0.07)' : 'var(--ink-030)', border: `1px solid ${ch.done ? 'rgba(16,185,129,0.15)' : 'var(--ink-050)'}` }}
                   >
                     {ch.done
-                      ? <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                      ? <CheckCircle2 size={16} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
                       : <Circle size={16} className="text-white/25 shrink-0" />
                     }
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-semibold leading-tight ${ch.done ? 'text-white/40 line-through' : 'text-white'}`}>{ch.chapter}</p>
                       <p className="text-xs text-white/35 mt-0.5">{ch.subject} · ~{ch.hours}h</p>
                     </div>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: p.bg, color: p.color }}>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: p.bg, color: pColor }}>
                       {p.label}
                     </span>
                   </button>
@@ -241,8 +264,8 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
               {week.mock_test && (
                 <div className="flex items-center gap-2.5 p-3 rounded-xl"
                   style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.15)' }}>
-                  <Trophy size={14} className="text-violet-400" />
-                  <p className="text-xs font-bold text-violet-300">Mock Test Day</p>
+                  <Trophy size={14} style={{ color: isLight ? '#6D28D9' : '#A78BFA' }} />
+                  <p className="text-xs font-bold" style={{ color: isLight ? '#6D28D9' : '#C4B5FD' }}>Mock Test Day</p>
                 </div>
               )}
             </div>
@@ -256,6 +279,8 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
 // ── Plan builder sheet ────────────────────────────────────────────────────────
 function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate: (subjects: string[], dailyHours: number) => void }) {
   const { profile } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chemistry']);
   const [dailyHours, setDailyHours] = useState(4);
 
@@ -283,7 +308,7 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
 
       {examDate && daysLeft !== null && (
         <div className="flex items-center gap-2 p-3 rounded-2xl mb-4" style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.2)' }}>
-          <CalendarCheck size={14} className="text-indigo-400" />
+          <CalendarCheck size={14} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
           <p className="text-sm text-white/80">
             <span className="font-bold text-white">{profile?.exam_name ?? 'Exam'}</span> in {daysLeft} days
           </p>
@@ -292,9 +317,9 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
 
       {!examDate && (
         <div className="flex items-center gap-2 p-3 rounded-2xl mb-4" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
-          <AlertTriangle size={14} className="text-amber-400" />
+          <AlertTriangle size={14} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
           <div>
-            <p className="text-xs text-amber-300">No exam date set</p>
+            <p className="text-xs" style={{ color: isLight ? '#92400E' : '#FCD34D' }}>No exam date set</p>
             <p className="text-xs text-white/40">Set your exam date in Profile → Settings for a better plan</p>
           </div>
         </div>
@@ -338,6 +363,8 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function RevisionPlannerPage() {
   const { user, profile } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const _navigate = useNavigate();
   const [plan, setPlan]         = useState<RevisionPlan | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -488,7 +515,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
         {plan && daysLeft !== null && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-3"
             style={{ background: 'linear-gradient(135deg,rgba(91,106,245,0.15),rgba(139,92,246,0.15))', border: '1px solid rgba(91,106,245,0.2)' }}>
-            <Target size={18} className="text-indigo-400 shrink-0" />
+            <Target size={18} className="shrink-0" style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
             <div className="flex-1">
               <p className="text-sm font-bold text-white">{plan.exam_name}</p>
               <p className="text-xs text-white/50">{new Date(plan.exam_date).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' })}</p>
@@ -511,7 +538,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{ background: 'rgba(91,106,245,0.15)' }}>
-              <Sparkles size={28} className="text-indigo-400 animate-pulse" />
+              <Sparkles size={28} className="animate-pulse" style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
             </div>
             <p className="text-base font-bold text-white">Building your plan…</p>
             <p className="text-sm text-white/40 text-center">AI is scheduling {Object.keys(CHAPTER_LISTS).length} subjects across weeks</p>
@@ -519,7 +546,7 @@ Plan all ${allChapters.length} chapters across the ${weeksLeft} weeks. Each chap
         ) : !plan ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-20 h-20 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)' }}>
-              <CalendarDays size={36} className="text-indigo-400" />
+              <CalendarDays size={36} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
             </div>
             <p className="text-lg font-bold text-white">No plan yet</p>
             <p className="text-sm text-white/40 text-center">Build a week-by-week revision schedule tailored to your exam date</p>
