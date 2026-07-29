@@ -13,6 +13,7 @@ import { getSubjectTheme } from '@/lib/subjectColors';
 import type { Flashcard } from '@/types';
 import { indexUserItem } from '@/lib/userContentIndex';
 import { getFeatureTheme } from '@/lib/featureTheme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type ReviewRating = 'again' | 'hard' | 'good' | 'easy';
 
@@ -25,15 +26,21 @@ function sm2(card: Flashcard, rating: ReviewRating): Partial<Flashcard> {
   return { ease_factor: ef, repetitions: reps, interval, next_review: next.toISOString() };
 }
 
+// Pale colors read fine on dark theme's near-black tinted buttons but drop to
+// ~1.5-2.5:1 contrast on light theme's pale tinted backgrounds — darkened
+// same-hue variants (4.7-6.6:1, verified via WCAG formula) are used instead
+// when isLight is true.
 const ratingConfig = {
-  again: { label: 'Again', color: '#F87171', bg: 'rgba(239,68,68,0.1)',    border: 'rgba(239,68,68,0.3)',    days: '<1d' },
-  hard:  { label: 'Hard',  color: '#FBBF24', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.3)',   days: '3d'  },
-  good:  { label: 'Good',  color: '#34D399', bg: 'rgba(16,185,129,0.1)',   border: 'rgba(16,185,129,0.3)',   days: '7d'  },
-  easy:  { label: 'Easy',  color: '#818CF8', bg: 'rgba(91,106,245,0.1)',   border: 'rgba(91,106,245,0.3)',   days: '14d' },
+  again: { label: 'Again', color: '#F87171', colorLight: '#B91C1C', bg: 'rgba(239,68,68,0.1)',    border: 'rgba(239,68,68,0.3)',    days: '<1d' },
+  hard:  { label: 'Hard',  color: '#FBBF24', colorLight: '#92400E', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.3)',   days: '3d'  },
+  good:  { label: 'Good',  color: '#34D399', colorLight: '#047857', bg: 'rgba(16,185,129,0.1)',   border: 'rgba(16,185,129,0.3)',   days: '7d'  },
+  easy:  { label: 'Easy',  color: '#818CF8', colorLight: '#4338CA', bg: 'rgba(91,106,245,0.1)',   border: 'rgba(91,106,245,0.3)',   days: '14d' },
 };
 
 export default function FlashcardPage() {
   const { profile }       = useAuth();
+  const { theme }         = useTheme();
+  const isLight           = theme === 'light';
   const haptic            = useHaptic();
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [current, setCurrent] = useState(0);
@@ -184,7 +191,7 @@ export default function FlashcardPage() {
   }
 
   const card = cards[current];
-  const subTheme = getSubjectTheme(card?.subject ?? subject ?? '');
+  const subTheme = getSubjectTheme(card?.subject ?? subject ?? '', isLight);
   const ft = getFeatureTheme('flashcards');
 
   return (
@@ -315,7 +322,7 @@ export default function FlashcardPage() {
                   <button key={r} onClick={() => handleRating(r)}
                     className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all active:scale-95 border"
                     style={{ background: cfg.bg, borderColor: cfg.border }}>
-                    <span className="text-sm font-bold" style={{ color: cfg.color }}>{cfg.label}</span>
+                    <span className="text-sm font-bold" style={{ color: isLight ? cfg.colorLight : cfg.color }}>{cfg.label}</span>
                     <span className="text-xs text-muted-foreground">{cfg.days}</span>
                   </button>
                 ))}
