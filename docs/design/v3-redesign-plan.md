@@ -328,9 +328,37 @@ color or type size.
     This closes out item 15 (Battle, Boss Fight, Tournament, Streak
     Challenge) — the pale-color-on-light-theme pattern has now been found
     and fixed in 15 distinct files this session.
-16. **Leaderboard** (`LeaderboardPage.tsx`), **School Leaderboard**
-    (`SchoolLeaderboardPage.tsx`) — the anonymization work done earlier this
-    session already changed the data shape here; redesign should keep that.
+16. **Leaderboard** (`LeaderboardPage.tsx`) — ✅ audited + fixed (16th
+    occurrence). `SCOPE_COLORS` (blue/violet/emerald/amber/pink 400-shades)
+    plus standalone hex for the rival callout, Hall of Fame panel, podium
+    medals, avatar-initials fallback, and rank-delta arrows all read
+    1.5-2.8:1 on light theme — fixed with a `SCOPE_COLORS_LIGHT` map +
+    `scopeColor()` helper and isLight branches throughout, reusing the
+    exact gold/silver/bronze light values already verified in Tournament's
+    `rankLabel()` for consistency. Verified live: Global tab renders
+    exactly `#1D4ED8`, School tab exactly `#92400E`. Rival/Hall of
+    Fame/podium not visually verifiable live (this dev environment has
+    only one seeded profile, no rival/podium data) — those rely on the
+    same WCAG math already verified elsewhere this session. The
+    anonymization work done earlier this session already changed the data
+    shape here; this pass kept that intact.
+
+    **School Leaderboard** (`SchoolLeaderboardPage.tsx`) — ✅ audited +
+    fixed (17th occurrence). Same icon/text pattern (1.4-2.6:1) plus a NEW
+    variant of the "theme-flipping token on fixed background" bug: the
+    avatar-initials fallback used `var(--ink-950)` on a FIXED indigo/purple
+    gradient (invisible in light theme, same bug class as Battle/Boss
+    Fight), and the "Share This Page" button used the `text-white`
+    className on that same fixed gradient — since this page sits outside
+    AppShell but still respects the app theme, the global light-theme
+    `.text-white` safety net would have flipped the button text to
+    near-black on the fixed indigo background. Fixed both to a literal
+    `#ffffff`, bypassing the CSS remap for the button via inline style.
+    Verified live at the public, no-login `/school/:schoolName` route:
+    School icon renders exactly `#4338CA`, Share button text stays pure
+    `#ffffff`, footer link exactly `#4338CA`.
+
+    This closes out item 16 — 17 distinct files fixed this session.
 17. **Study Rooms / Circles / Groups** (`StudyRoomPage.tsx`,
     `LiveStudyRoomsPage.tsx`, `StudyCirclePage.tsx`, `StudyGroupsPage.tsx`,
     `GroupDetailPage.tsx`, `DoubtRoomPage.tsx`)
