@@ -92,9 +92,19 @@ color or type size.
 
 ## Phase 2 — Core daily-use screens (highest traffic after auth)
 
-5. **Home** (`HomePage.tsx`) — already partially redone in the v2 pass;
-   re-audit against the Phase 0 tokens once locked, remove any remaining
-   playful/bubble styling.
+5. **Home** (`HomePage.tsx`) — audited live under light theme (not just
+   grep): found and fixed 3 real WCAG contrast failures in the shared
+   `--v2-text-4` / `--v2-chevron` / `--v2-success-text` tokens (see
+   `ThemeContext.tsx` — this fixes the same bug on every v2-rebuilt page,
+   not just Home). Also found: `components/onboarding/OnboardingTour.tsx`
+   renders a hardcoded-dark mock dashboard preview (`text-white` on a dark
+   card) as part of its tutorial illustration — looks jarring against a
+   light-themed real page underneath. Not yet fixed — it's a full separate
+   component with its own extensive dark-only styling, bigger than a token
+   tweak. Real lesson from this page: static grep for hardcoded colors is
+   NOT reliable — even properly-themed pages have dozens of legitimate
+   `text-white` instances (on fixed-color badges). Verification requires
+   actually running the page in each theme and looking at it.
 6. **Novo / Chat** (`ChatPage.tsx`) — already partially redone; the citation
    chips and report control added this session already follow a
    professional, muted style — extend that language to the rest of the
