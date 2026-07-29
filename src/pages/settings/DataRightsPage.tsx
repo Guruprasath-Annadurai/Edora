@@ -13,11 +13,14 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { track } from '@/lib/analytics';
 import { Toast } from '@capacitor/toast';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type ActionStatus = 'idle' | 'loading' | 'done' | 'error';
 
 export default function DataRightsPage() {
   const { user, profile } = useAuth();
+  const { theme }         = useTheme();
+  const isLight            = theme === 'light';
   const navigate           = useNavigate();
 
   const [exportStatus,  setExportStatus]  = useState<ActionStatus>('idle');
@@ -79,7 +82,7 @@ export default function DataRightsPage() {
           <h2 className="font-heading font-bold text-white text-sm">Data & Privacy Rights</h2>
           <p className="text-xs text-white/40">DPDP Act 2023 · Your rights as a Data Principal</p>
         </div>
-        <Shield size={18} style={{ color: '#5B6AF5' }} />
+        <Shield size={18} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
       </div>
 
       <div className="flex-1 overflow-y-auto pb-nav px-4 pt-4 flex flex-col gap-4">
@@ -88,7 +91,7 @@ export default function DataRightsPage() {
         <div className="rounded-2xl p-4"
           style={{ background: 'rgba(91,106,245,0.07)', border: '1px solid rgba(91,106,245,0.2)' }}>
           <div className="flex items-center gap-2 mb-3">
-            <CheckCircle2 size={16} style={{ color: profile?.dpdp_consent_at ? '#34D399' : '#F59E0B' }} />
+            <CheckCircle2 size={16} style={{ color: profile?.dpdp_consent_at ? (isLight ? '#047857' : '#34D399') : (isLight ? '#92400E' : '#F59E0B') }} />
             <span className="text-sm font-bold text-white">Consent Status</span>
           </div>
           <div className="flex flex-col gap-2">
@@ -115,7 +118,7 @@ export default function DataRightsPage() {
                 onClick={requestExport}
                 disabled={exportStatus === 'loading' || exportStatus === 'done'}
                 className="mt-3 w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
-                style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)', color: '#A0AEFF' }}>
+                style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)', color: isLight ? '#4338CA' : '#A0AEFF' }}>
                 {exportStatus === 'loading' && <Loader2 size={14} className="animate-spin" />}
                 {exportStatus === 'done' && <CheckCircle2 size={14} />}
                 {exportStatus === 'idle' && <Download size={14} />}
@@ -131,7 +134,7 @@ export default function DataRightsPage() {
               color="#34D399">
               <Link to="/account"
                 className="mt-3 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold"
-                style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', color: '#34D399' }}>
+                style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.25)', color: isLight ? '#047857' : '#34D399' }}>
                 <Edit3 size={14} /> Edit Profile
               </Link>
             </RightCard>
@@ -146,7 +149,7 @@ export default function DataRightsPage() {
                 <motion.button whileTap={{ scale: 0.97 }}
                   onClick={() => setConfirmDelete(true)}
                   className="mt-3 w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
-                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#F87171' }}>
+                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: isLight ? '#B91C1C' : '#F87171' }}>
                   <Trash2 size={14} /> Request Account Deletion
                 </motion.button>
               ) : (
@@ -155,8 +158,8 @@ export default function DataRightsPage() {
                     className="mt-3 flex flex-col gap-2">
                     <div className="rounded-xl px-3 py-2 flex items-start gap-2"
                       style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                      <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
-                      <p className="text-xs text-red-300/80">
+                      <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                      <p className="text-xs" style={{ color: isLight ? '#B91C1C' : 'rgba(252,165,165,0.8)' }}>
                         Type <strong>DELETE</strong> to confirm. All your data — progress, streaks, certificates — will be permanently erased.
                       </p>
                     </div>
@@ -177,7 +180,7 @@ export default function DataRightsPage() {
                         style={{
                           background: deleteInput === 'DELETE' ? 'rgba(239,68,68,0.2)' : 'var(--ink-040)',
                           border: `1px solid ${deleteInput === 'DELETE' ? 'rgba(239,68,68,0.4)' : 'var(--ink-070)'}`,
-                          color: deleteInput === 'DELETE' ? '#F87171' : 'var(--ink-200)' }}>
+                          color: deleteInput === 'DELETE' ? (isLight ? '#B91C1C' : '#F87171') : 'var(--ink-200)' }}>
                         {deleteStatus === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                         {deleteStatus === 'loading' ? 'Deleting…' : deleteStatus === 'done' ? 'Requested' : 'Delete'}
                       </motion.button>
@@ -195,7 +198,7 @@ export default function DataRightsPage() {
               color="#F59E0B">
               <a href="mailto:dpo@edora.app?subject=Consent%20Withdrawal%20Request"
                 className="mt-3 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold"
-                style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', color: '#FBBF24' }}>
+                style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', color: isLight ? '#92400E' : '#FBBF24' }}>
                 <Mail size={14} /> Contact DPO: dpo@edora.app
               </a>
             </RightCard>
@@ -236,15 +239,27 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Same-hue darkened variants for light theme — the pale colors passed via
+// `color` (indigo/emerald/red/amber) read fine on dark theme's near-black
+// tinted icon badges but drop to 1.7-3.7:1 on light theme's pale tints.
+const RIGHT_CARD_COLOR_LIGHT: Record<string, string> = {
+  '#5B6AF5': '#4338CA',
+  '#34D399': '#047857',
+  '#EF4444': '#B91C1C',
+  '#F59E0B': '#92400E',
+};
+
 function RightCard({ icon: Icon, title, desc, color, children }: {
   icon: React.ElementType; title: string; desc: string; color: string; children?: React.ReactNode;
 }) {
+  const { theme } = useTheme();
+  const iconColor = theme === 'light' ? RIGHT_CARD_COLOR_LIGHT[color] ?? color : color;
   return (
     <div className="rounded-2xl p-4" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
-          <Icon size={15} style={{ color }} />
+          <Icon size={15} style={{ color: iconColor }} />
         </div>
         <div className="flex-1">
           <p className="text-sm font-bold text-white mb-1">{title}</p>
