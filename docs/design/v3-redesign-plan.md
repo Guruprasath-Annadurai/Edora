@@ -221,9 +221,38 @@ color or type size.
     dark-bg-assumption bug across Quiz, subjectColors.ts, Flashcards, both
     NCERT pages, Roadmap, Lesson Plan, and Revision Planner. Flagged as a
     background task for a systemic sweep of any remaining pages.
-14. **Account Settings** (`settings/AccountSettingsPage.tsx`), **Data Rights**
-    (`settings/DataRightsPage.tsx`), **Study Reminders**
-    (`settings/StudyRemindersPage.tsx`)
+14. **Account Settings** (`settings/AccountSettingsPage.tsx`) — ✅ audited +
+    fixed. Same bug pattern as raw ad-hoc Tailwind classes (not a color map
+    this time): text-emerald-400 (Novo AI Index icon + Sync button,
+    1.66-1.89:1) and text-red-400/red-400-70%/red-500 (Danger Zone header,
+    description, delete controls, 1.84-3.2:1). Fixed with #047857/#B91C1C
+    (4.7-5.4:1). Also fixed the exam-date native picker's hardcoded
+    `colorScheme: 'dark'` (forced a dark OS date-picker chrome over an
+    otherwise light-themed page). Verified live — computed styles match
+    exactly.
+
+    **Data Rights** (`settings/DataRightsPage.tsx`) — ✅ audited + fixed.
+    RightCard's icon/button `color` prop (indigo/emerald/red/amber) read
+    1.5-3.7:1 on light theme's pale tints. Added a
+    RIGHT_CARD_COLOR_LIGHT map (4.7-6.75:1) covering all 4 right-cards,
+    the consent-status icon, header Shield icon, and all 4 action buttons.
+    Also fixed the delete-confirmation warning box/icon and enabled-state
+    Delete button. Verified live — Download My Data (#4338CA), Edit Profile
+    (#047857), Request Account Deletion (#B91C1C), and the delete
+    confirmation warning all matched exactly.
+
+    **Study Reminders** (`settings/StudyRemindersPage.tsx`) — ✅ audited,
+    genuinely clean. Uses only theme-safe patterns throughout (text-white
+    covered by the global remap, text-muted-foreground, var(--ink-*)
+    backgrounds) — no pale-color maps or raw Tailwind color classes found.
+    Verified live under light theme with reminders enabled — the time
+    picker's "20"/"00" digits render dark and fully legible. No fix needed.
+
+    This closes out Phase 2. The pale-color-on-dark-bg bug has now been
+    found and fixed independently 9 times across Quiz, subjectColors.ts,
+    Flashcards, both NCERT pages, Roadmap, Lesson Plan, Revision Planner,
+    Account Settings, and Data Rights — a background task remains open for
+    a systemic sweep of any pages beyond Phase 2's scope.
 
 ---
 
