@@ -13,6 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,39 @@ function getSubjectColor(subject: string): string {
   return SUBJECT_COLORS[subject] ?? '#5B6AF5';
 }
 
+// Darkened same-hue variants for text-on-light-tint contexts (subject picker
+// chip, "today" streak dot) — the raw SUBJECT_COLORS read fine on dark
+// theme's near-black tints but drop to ~1.3-3:1 on light theme's pale tints.
+const SUBJECT_COLORS_LIGHT: Record<string, string> = {
+  Mathematics: '#4338CA', Physics: '#6D28D9', Chemistry: '#9D174D',
+  Biology: '#065F46', History: '#92400E', English: '#1D4ED8',
+  Economics: '#9A3412', 'Computer Science': '#4338CA',
+};
+
+function getSubjectColorLight(subject: string): string {
+  return SUBJECT_COLORS_LIGHT[subject] ?? '#4338CA';
+}
+
+// Separate, theme-INDEPENDENT fix: the completed-day dot fills solid with
+// the raw subject color and overlays white text. Best-of(white, dark ink)
+// against that fixed fill: 5 subjects clear 4.5:1 with dark text (Chemistry
+// 5.06, Biology 7.04, History 8.31, English 4.85, Economics 6.37); the
+// other 3 (Mathematics/Physics/Computer Science) read below 4.5:1 with
+// either text color on their brand hex, so those three get a slightly
+// darkened dot-fill (visually near-identical) that clears 4.5:1 with white.
+const SUBJECT_DOT_TEXT_DARK = new Set(['Chemistry', 'Biology', 'History', 'English', 'Economics']);
+const SUBJECT_DOT_FILL_OVERRIDE: Record<string, string> = {
+  Mathematics: '#4F5FE4', Physics: '#7C4FE0', 'Computer Science': '#5457E0',
+};
+
+function getSubjectDotFill(subject: string): string {
+  return SUBJECT_DOT_FILL_OVERRIDE[subject] ?? getSubjectColor(subject);
+}
+
+function getSubjectDotTextColor(subject: string): string {
+  return SUBJECT_DOT_TEXT_DARK.has(subject) ? '#0F172A' : '#ffffff';
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function todayIso(): string {
@@ -97,7 +131,11 @@ function StreakDots({
 }: {
   challenge: StreakChallenge;
 }) {
-  const color = getSubjectColor(challenge.subject);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const color = isLight ? getSubjectColorLight(challenge.subject) : getSubjectColor(challenge.subject);
+  const dotFill = getSubjectDotFill(challenge.subject);
+  const dotText = getSubjectDotTextColor(challenge.subject);
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
@@ -113,9 +151,9 @@ function StreakDots({
               initial={{ scale: 0.7 }}
               animate={{ scale: 1 }}
               className="w-6 h-6 rounded-full flex items-center justify-center"
-              style={{ background: color }}
+              style={{ background: dotFill }}
             >
-              <span className="text-white text-xs font-bold">{dayNum}</span>
+              <span className="text-xs font-bold" style={{ color: dotText }}>{dayNum}</span>
             </motion.div>
           );
         }
@@ -156,6 +194,8 @@ interface GenerateSheetProps {
 }
 
 function GenerateSheet({ onClose, onGenerated }: GenerateSheetProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
   const [targetDays, setTargetDays] = useState<7 | 3 | 14 | 21>(7);
@@ -225,7 +265,7 @@ function GenerateSheet({ onClose, onGenerated }: GenerateSheetProps) {
                   WebkitTapHighlightColor: 'transparent',
                   background: subject === s ? `${getSubjectColor(s)}20` : 'var(--ink-040)',
                   borderColor: subject === s ? getSubjectColor(s) : 'var(--ink-080)',
-                  color: subject === s ? getSubjectColor(s) : 'var(--ink-500)',
+                  color: subject === s ? (isLight ? getSubjectColorLight(s) : getSubjectColor(s)) : 'var(--ink-500)',
                 }}
               >
                 {s}
@@ -273,8 +313,8 @@ function GenerateSheet({ onClose, onGenerated }: GenerateSheetProps) {
         {error && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-xl"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-            <AlertCircle size={15} className="text-red-400 shrink-0" />
-            <p className="text-sm text-red-400">{error}</p>
+            <AlertCircle size={15} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+            <p className="text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
           </div>
         )}
 
@@ -351,7 +391,9 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
     }
   }
 
-  const color = getSubjectColor(challenge.subject);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const color = isLight ? getSubjectColorLight(challenge.subject) : getSubjectColor(challenge.subject);
 
   return (
     <motion.div
@@ -415,7 +457,7 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
                   {success.current_streak} day streak!
                 </p>
                 {success.is_complete ? (
-                  <p className="text-sm font-semibold mt-1" style={{ color: '#34D399' }}>Challenge complete!</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: isLight ? '#047857' : '#34D399' }}>Challenge complete!</p>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-1">
                     {success.days_remaining} day{success.days_remaining !== 1 ? 's' : ''} remaining
@@ -455,7 +497,7 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
                     <button
                       onClick={() => setShowHint(v => !v)}
                       className="flex items-center gap-2 text-sm font-semibold"
-                      style={{ color: '#FBBF24', WebkitTapHighlightColor: 'transparent' }}
+                      style={{ color: isLight ? '#92400E' : '#FBBF24', WebkitTapHighlightColor: 'transparent' }}
                     >
                       <Lightbulb size={15} />
                       {showHint ? 'Hide hint' : 'Show hint'}
@@ -471,7 +513,7 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
                         >
                           <div className="mt-2 p-3.5 rounded-xl"
                             style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
-                            <p className="text-sm" style={{ color: '#FBBF24' }}>{todayTask.hint}</p>
+                            <p className="text-sm" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>{todayTask.hint}</p>
                           </div>
                         </motion.div>
                       )}
@@ -496,8 +538,8 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
                 {error && (
                   <div className="flex items-center gap-2 px-4 py-3 rounded-xl"
                     style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                    <AlertCircle size={15} className="text-red-400 shrink-0" />
-                    <p className="text-sm text-red-400">{error}</p>
+                    <AlertCircle size={15} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                    <p className="text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
                   </div>
                 )}
 
@@ -515,8 +557,8 @@ function TaskSheet({ challenge, onClose, onCompleted }: TaskSheetProps) {
             ) : (
               <div className="flex items-center gap-2 px-4 py-3 rounded-xl"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <AlertCircle size={15} className="text-red-400 shrink-0" />
-                <p className="text-sm text-red-400">{error || 'Could not load task'}</p>
+                <AlertCircle size={15} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                <p className="text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error || 'Could not load task'}</p>
               </div>
             )}
           </>
@@ -536,8 +578,11 @@ interface ChallengeCardProps {
 }
 
 function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCardProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
   const color = getSubjectColor(challenge.subject);
+  const textColor = isLight ? getSubjectColorLight(challenge.subject) : color;
 
   return (
     <motion.div
@@ -562,7 +607,7 @@ function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCar
             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{challenge.description}</p>
           </div>
           <span className="text-xs px-2.5 py-1 rounded-full font-bold shrink-0"
-            style={{ background: `${color}15`, color }}>
+            style={{ background: `${color}15`, color: textColor }}>
             {challenge.subject}
           </span>
         </div>
@@ -570,7 +615,7 @@ function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCar
         {/* Progress row */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <Flame size={16} style={{ color }} />
+            <Flame size={16} style={{ color: textColor }} />
             <span className="font-heading font-bold text-white text-base">{challenge.current_streak}</span>
             <span className="text-xs text-muted-foreground">day streak</span>
           </div>
@@ -595,8 +640,8 @@ function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCar
         {challenge.completed_today ? (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
             style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}>
-            <CheckCircle2 size={16} className="shrink-0" style={{ color: '#34D399' }} />
-            <p className="text-sm font-semibold" style={{ color: '#34D399' }}>Come back tomorrow!</p>
+            <CheckCircle2 size={16} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
+            <p className="text-sm font-semibold" style={{ color: isLight ? '#047857' : '#34D399' }}>Come back tomorrow!</p>
           </div>
         ) : (
           <Button onClick={() => onOpenTask(challenge)} className="w-full">
@@ -608,11 +653,11 @@ function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCar
         {/* XP info */}
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
           <span className="flex items-center gap-1">
-            <Zap size={11} className="text-amber-500" />
+            <Zap size={11} style={{ color: isLight ? '#92400E' : '#F59E0B' }} />
             {challenge.daily_xp} XP/day
           </span>
           <span className="flex items-center gap-1">
-            <Zap size={11} className="text-amber-500" />
+            <Zap size={11} style={{ color: isLight ? '#92400E' : '#F59E0B' }} />
             +{challenge.bonus_xp} XP bonus
           </span>
         </div>
@@ -628,7 +673,7 @@ function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCar
           </button>
         ) : (
           <div className="flex items-center gap-2">
-            <p className="text-xs text-red-400 flex-1">Are you sure? Streak will be lost.</p>
+            <p className="text-xs flex-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>Are you sure? Streak will be lost.</p>
             <button onClick={() => setShowAbandonConfirm(false)}
               className="text-xs text-muted-foreground px-2 py-1"
               style={{ WebkitTapHighlightColor: 'transparent' }}>
@@ -649,6 +694,8 @@ function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCar
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function StreakChallengePage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const navigate = useNavigate();
 
   const [tab, setTab] = useState<Tab>('active');
@@ -739,7 +786,7 @@ export default function StreakChallengePage() {
         </div>
         <div className="w-9 h-9 rounded-xl flex items-center justify-center"
           style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
-          <Flame size={18} style={{ color: '#F87171' }} />
+          <Flame size={18} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
         </div>
       </div>
 
@@ -753,7 +800,7 @@ export default function StreakChallengePage() {
             className="flex-1 py-2.5 text-sm font-semibold capitalize relative transition-colors"
             style={{
               WebkitTapHighlightColor: 'transparent',
-              color: tab === t ? '#5B6AF5' : 'hsl(var(--muted-foreground))',
+              color: tab === t ? (isLight ? '#4338CA' : '#5B6AF5') : 'hsl(var(--muted-foreground))',
             }}
           >
             {t}
@@ -761,7 +808,7 @@ export default function StreakChallengePage() {
               <motion.div
                 layoutId="streak-tab-indicator"
                 className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                style={{ background: '#5B6AF5' }}
+                style={{ background: isLight ? '#4338CA' : '#5B6AF5' }}
               />
             )}
           </button>
@@ -775,8 +822,8 @@ export default function StreakChallengePage() {
         {error && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-2xl"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-            <AlertCircle size={16} className="text-red-400 shrink-0" />
-            <p className="text-sm text-red-400">{error}</p>
+            <AlertCircle size={16} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+            <p className="text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
           </div>
         )}
 
@@ -818,7 +865,7 @@ export default function StreakChallengePage() {
                 >
                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
                     style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                    <Flame size={28} style={{ color: '#F87171' }} />
+                    <Flame size={28} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
                   </div>
                   <p className="font-heading font-bold text-white text-lg">No active streaks</p>
                   <p className="text-sm text-muted-foreground max-w-xs">
@@ -874,12 +921,12 @@ export default function StreakChallengePage() {
                   >
                     <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
                       style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                      <Flame size={18} style={{ color: '#F87171' }} />
+                      <Flame size={18} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-white truncate">{ch.title}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs font-semibold" style={{ color }}>{ch.subject}</span>
+                        <span className="text-xs font-semibold" style={{ color: isLight ? getSubjectColorLight(ch.subject) : color }}>{ch.subject}</span>
                         <span className="text-xs text-muted-foreground">·</span>
                         <span className="text-xs text-muted-foreground">
                           {ch.current_streak}/{ch.target_days} days
@@ -888,11 +935,11 @@ export default function StreakChallengePage() {
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <span className="text-xs font-bold"
-                        style={{ color: ch.current_streak >= ch.target_days ? '#10B981' : '#9CA3AF' }}>
+                        style={{ color: ch.current_streak >= ch.target_days ? (isLight ? '#047857' : '#10B981') : (isLight ? '#52525B' : '#9CA3AF') }}>
                         {ch.current_streak >= ch.target_days ? 'Complete' : 'Abandoned'}
                       </span>
                       {ch.current_streak >= ch.target_days && (
-                        <span className="text-xs flex items-center gap-0.5" style={{ color: '#FBBF24' }}>
+                        <span className="text-xs flex items-center gap-0.5" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>
                           <Zap size={10} />+{ch.bonus_xp} XP
                         </span>
                       )}
