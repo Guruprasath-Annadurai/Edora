@@ -305,7 +305,29 @@ color or type size.
     verified WCAG math and code pattern already live-proven in
     Battle/Boss Fight.
 
-    **Streak Challenge** (`StreakChallengePage.tsx`) — not yet audited.
+    **Streak Challenge** (`StreakChallengePage.tsx`) — ✅ audited + fixed
+    (15th occurrence). Every hardcoded hex color in the file — subject
+    palette, error banners, XP labels, tab bar, history-row status colors —
+    was tuned against the dark theme and read 1.6-3.3:1 on light theme.
+    Fixed via a `SUBJECT_COLORS_LIGHT` map + isLight branches throughout
+    StreakDots/GenerateSheet/TaskSheet/ChallengeCard/history rows. Found a
+    NEW variant of the "fixed bg" bug class: three subjects (Mathematics,
+    Physics, Computer Science) fail 4.5:1 with BOTH white and dark text
+    against their own brand hex — no text-color swap fixes it. Fix: nudge
+    just the day-dot fill for those three to a slightly darkened variant
+    (#4F5FE4/#7C4FE0/#5457E0), leaving the subject's brand color untouched
+    everywhere else. Verified live: signed in, set light theme, navigated
+    to `/streaks` — header Flame icon computed exactly `rgb(185,28,28)`
+    (#B91C1C), active tab text exactly `rgb(67,56,202)` (#4338CA), History
+    empty state correct. Could not seed active/history challenge rows to
+    verify ChallengeCard/history-row colors live since generation requires
+    the Gemini-backed edge function (same known dev-sandbox limitation
+    documented for Boss Fight/Tournament) — those fixes rely on the same
+    WCAG math already verified live elsewhere in this file and session.
+
+    This closes out item 15 (Battle, Boss Fight, Tournament, Streak
+    Challenge) — the pale-color-on-light-theme pattern has now been found
+    and fixed in 15 distinct files this session.
 16. **Leaderboard** (`LeaderboardPage.tsx`), **School Leaderboard**
     (`SchoolLeaderboardPage.tsx`) — the anonymization work done earlier this
     session already changed the data shape here; redesign should keep that.
