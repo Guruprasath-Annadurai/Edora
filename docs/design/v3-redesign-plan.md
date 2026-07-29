@@ -63,9 +63,13 @@ color or type size.
 
 ## Phase 1 — First impression (splash → auth): highest priority
 
-1. **Splash screen** — check what currently renders here; likely needs
-   replacing with a minimal logo mark on solid background, brief motion,
-   straight into onboarding/home. No loading spinner as the primary visual.
+1. **Splash screen** — ✅ checked, already compliant: `resources/splash.png`
+   is a clean "E" monogram logo mark (star + open book forming the letter)
+   centered on a purple gradient, driven by Capacitor's native SplashScreen
+   plugin (`capacitor.config.ts`: 1.8s duration, no spinner, full screen).
+   No vector character/mascot here — nothing to remove. Not touching further
+   unless you want the mark itself redrawn as part of a broader logo refresh
+   (that's a brand-identity decision, out of scope for "remove characters").
 2. **Onboarding** (`OnboardingPage.tsx`, `components/onboarding/OnboardingTour.tsx`)
    — checked: neither actually uses `CharacterImage` (the original plan's
    claim here was wrong, corrected). Real work item instead: rewrite each

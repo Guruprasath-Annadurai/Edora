@@ -92,7 +92,7 @@ const NOVO_INTRO = [
   {
     state: 'talking' as NovoState,
     heading: 'Got a referral code?',
-    body: 'If a friend invited you, enter their code to get 50 bonus XP! You can also skip this step.',
+    body: 'If a friend invited you, enter their code to get 50 bonus XP. You can also skip this step.',
     cta: null },
 ];
 
@@ -499,7 +499,7 @@ export default function OnboardingPage() {
                       background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
                     <Check size={16} style={{ color: '#34D399' }} />
                     <p style={{ fontSize: 13, color: '#34D399', fontWeight: 600 }}>
-                      Code applied! You'll get 50 bonus XP after setup.
+                      Code applied. You'll get 50 bonus XP after setup.
                     </p>
                   </motion.div>
                 )}
