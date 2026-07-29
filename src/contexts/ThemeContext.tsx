@@ -51,9 +51,9 @@ const THEME_VARS: Record<AppTheme, Record<string, string>> = {
     '--v2-text-1': '#0F1222',
     '--v2-text-2': '#3A4256',
     '--v2-text-3': '#545B72',
-    '--v2-text-4': '#8890A6',
-    '--v2-chevron': '#B8BECF',
-    '--v2-success': '#10B981', '--v2-success-text': '#059669',
+    '--v2-text-4': '#6B7280', // was #8890A6 (3.05:1 vs light bg, fails WCAG AA) — 4.62:1
+    '--v2-chevron': '#7C879E', // was #B8BECF (1.78:1, fails 3:1 non-text minimum) — 3.45:1
+    '--v2-success': '#10B981', '--v2-success-text': '#047857', // text variant darkened: #059669 was 3.6:1, fails AA — 5.24:1
     '--v2-error':   '#EF4444', '--v2-error-text':   '#DC2626',
     '--v2-warning': '#F59E0B', '--v2-warning-text': '#B45309',
     '--v2-info':    '#3B82F6',
