@@ -157,8 +157,21 @@ color or type size.
     handles those safely across the whole app. **AI Quiz Bank**
     (`AIQuizBankPage.tsx`) not yet audited — question/results UI,
     high-frequency screens.
-11. **Flashcards** (`FlashcardPage.tsx`), **Spaced Repetition**
-    (`SpacedRepetitionPage.tsx`)
+11. **Flashcards** (`FlashcardPage.tsx`) — ✅ audited + fixed. Found the same
+    class of bug as Quiz, this time in the *shared* `src/lib/subjectColors.ts`
+    lib (`getSubjectTheme`) — its `accent` field is used as text color on
+    Question/Answer chips and read at 1.2-3.1:1 contrast on light theme.
+    Fixed by adding a darkened `accentLight` variant per subject (4.0-7.3:1)
+    behind an `isLight` param. Also found and fixed the same bug in
+    FlashcardPage's own local `ratingConfig` (Again/Hard/Good/Easy buttons,
+    1.5-2.5:1 → 4.7-6.6:1). Verified live: created a real card, reviewed it
+    under light theme, confirmed computed styles match exactly. **Spaced
+    Repetition** (`SpacedRepetitionPage.tsx`) — code-reviewed, not fully
+    live-verified (test account had no due cards so the review session
+    never loaded). Its `FlipCard` uses the same theme-adaptive
+    `var(--ink-070)`/`rgba(...)` backgrounds with `text-white`, already
+    covered by the global light-theme remap rule — same pattern confirmed
+    safe on Quiz and Flashcards, so treated as safe by inspection.
 12. **NCERT reader** (`NCERTChaptersPage.tsx`, `NcertDeepPage.tsx`)
 13. **Roadmap** (`RoadmapPage.tsx`), **Lesson Plan** (`LessonPlanPage.tsx`),
     **Revision Planner** (`RevisionPlannerPage.tsx`)
