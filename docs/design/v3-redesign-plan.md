@@ -116,7 +116,18 @@ color or type size.
    ("Listen · Save · Report") already verified rendering correctly in light
    theme — no changes needed there. Still open: decide the NovoAvatar sprite
    question explicitly (open decision #1).
-7. **Profile** (`ProfilePage.tsx`) — already redone in v2 pass; re-audit only.
+7. **Profile** (`ProfilePage.tsx`) — audited live under light theme. Found a
+   severe bug in the "Study DNA" card (`components/profile/StudyDNA.tsx`):
+   hardcoded `#F4F6FA` (near-white) text at 1.09:1 / 1.17:1 contrast against
+   its own light-purple-tinted card. This turned out to be a copy-pasted
+   pattern repeated identically in 4 more files — `MoodCheckIn.tsx`,
+   `MoodHeatmap.tsx`, `ProfilePage.tsx` itself (Novo Memory card), and 5
+   separate occurrences in `OnboardingPage.tsx` (step heading, study-level
+   card, language card, exam-date input, referral input). All fixed to
+   `var(--ink-950)`, verified live (see commit `8ba29d6`). Deliberately left
+   `auth/LoginPage.tsx`'s matching constant alone — that page ignores the
+   theme system entirely, a separate already-tracked issue. Top summary
+   card, Achievements, and Leaderboard sections were already correct.
 8. **Learning Hub** (`LearningPage.tsx`) — partially redone; extend.
 9. **Tools Hub** (`ToolsPage.tsx`) — not yet touched.
 10. **Quiz** (`QuizPage.tsx`), **AI Quiz Bank** (`AIQuizBankPage.tsx`) —
