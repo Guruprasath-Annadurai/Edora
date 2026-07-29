@@ -18,6 +18,7 @@ import { track } from '@/lib/analytics';
 import { geminiJSON } from '@/lib/gemini';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { ConnectionPill, type ConnStatus } from '@/components/ui/ConnectionPill';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -59,14 +60,18 @@ const TOTAL_QUESTIONS = 10;
 
 // ── ELO ───────────────────────────────────────────────────────────────────────
 
-interface EloTier { name: string; min: number; color: string; icon: LucideIcon; }
+interface EloTier { name: string; min: number; color: string; colorLight: string; icon: LucideIcon; }
+// `color` reads fine on dark theme's near-black tinted badges but drops to
+// 1.3-4.1:1 on light theme's pale tints (silver/gold are especially bad,
+// since they're light colors to begin with) — `colorLight` gives darkened
+// same-hue variants (5.0-8.5:1, verified via WCAG formula).
 const ELO_TIERS: EloTier[] = [
-  { name: 'Bronze',      min: 0,    color: '#CD7F32', icon: Medal },
-  { name: 'Silver',      min: 1200, color: '#C0C0C0', icon: Medal },
-  { name: 'Gold',        min: 1400, color: '#FFD700', icon: Medal },
-  { name: 'Platinum',    min: 1600, color: '#5B6AF5', icon: Gem },
-  { name: 'Diamond',     min: 1800, color: '#06B6D4', icon: Gem },
-  { name: 'Grandmaster', min: 2000, color: '#EF4444', icon: Crown },
+  { name: 'Bronze',      min: 0,    color: '#CD7F32', colorLight: '#7C4A1E', icon: Medal },
+  { name: 'Silver',      min: 1200, color: '#C0C0C0', colorLight: '#52525B', icon: Medal },
+  { name: 'Gold',        min: 1400, color: '#FFD700', colorLight: '#78350F', icon: Medal },
+  { name: 'Platinum',    min: 1600, color: '#5B6AF5', colorLight: '#4338CA', icon: Gem },
+  { name: 'Diamond',     min: 1800, color: '#06B6D4', colorLight: '#155E75', icon: Gem },
+  { name: 'Grandmaster', min: 2000, color: '#EF4444', colorLight: '#B91C1C', icon: Crown },
 ];
 
 function getEloTier(elo: number): EloTier {
@@ -522,12 +527,14 @@ export default function BattlePage() {
 
 // ── Lobby Screen ──────────────────────────────────────────────────────────────
 function EloTierBadge({ elo }: { elo: number }) {
+  const { theme } = useTheme();
   const tier = getEloTier(elo);
+  const color = theme === 'light' ? tier.colorLight : tier.color;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 12, background: `${tier.color}14`, border: `1px solid ${tier.color}33` }}>
-      <tier.icon size={20} style={{ color: tier.color }} strokeWidth={1.7} />
+      <tier.icon size={20} style={{ color }} strokeWidth={1.7} />
       <div>
-        <div style={{ fontWeight: 700, fontSize: 14, color: tier.color }}>{tier.name}</div>
+        <div style={{ fontWeight: 700, fontSize: 14, color }}>{tier.name}</div>
         <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{elo} ELO</div>
       </div>
     </div>
@@ -544,6 +551,8 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, myElo, error
   error: string | null;
 }) {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: '0 0 80px' }}>
       {/* Header */}
@@ -577,7 +586,7 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, myElo, error
         <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '16px 20px', marginBottom: 24, border: '1px solid var(--color-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ fontWeight: 600, fontSize: 14 }}>Battle Pass — This Week</div>
-            <div style={{ fontSize: 12, color: battlePassWins >= 5 ? '#F59E0B' : 'var(--color-text-secondary)' }}>
+            <div style={{ fontSize: 12, color: battlePassWins >= 5 ? (isLight ? '#92400E' : '#F59E0B') : 'var(--color-text-secondary)' }}>
               {battlePassWins >= 5 ? 'Trophy Earned!' : `${battlePassWins}/5 wins`}
             </div>
           </div>
@@ -591,7 +600,7 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, myElo, error
             ))}
           </div>
           {battlePassWins >= 5 && (
-            <div style={{ marginTop: 10, fontSize: 12, color: '#F59E0B', textAlign: 'center' }}>
+            <div style={{ marginTop: 10, fontSize: 12, color: isLight ? '#92400E' : '#F59E0B', textAlign: 'center' }}>
               ⚔️ You've earned this week's trophy badge!
             </div>
           )}
@@ -604,9 +613,9 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, myElo, error
             {SUBJECTS.map(s => (
               <button key={s} onClick={() => setSubject(s)} style={{
                 padding: '12px 8px', borderRadius: 12, fontSize: 13, fontWeight: 600,
-                border: `2px solid ${subject === s ? '#EF4444' : 'var(--color-border)'}`,
+                border: `2px solid ${subject === s ? (isLight ? '#B91C1C' : '#EF4444') : 'var(--color-border)'}`,
                 background: subject === s ? 'rgba(239,68,68,0.1)' : 'var(--color-surface)',
-                color: subject === s ? '#EF4444' : 'var(--color-text)',
+                color: subject === s ? (isLight ? '#B91C1C' : '#EF4444') : 'var(--color-text)',
                 cursor: 'pointer', transition: 'all 0.2s',
               }}>{s}</button>
             ))}
@@ -614,7 +623,7 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, myElo, error
         </div>
 
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#EF4444' }}>
+          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: isLight ? '#B91C1C' : '#EF4444' }}>
             {error}
           </div>
         )}
@@ -625,7 +634,11 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, myElo, error
           onClick={onFind}
           style={{
             width: '100%', padding: '16px', borderRadius: 16, border: 'none',
-            background: 'linear-gradient(135deg,#EF4444,#DC2626)', color: 'var(--ink-950)',
+            // Fixed white, not the theme-flipping ink-950 token — this button's
+            // background is a solid red gradient regardless of theme, so its
+            // text must NOT flip to near-black in light theme (was 3.6:1, a
+            // real legibility bug, not just a token nicety).
+            background: 'linear-gradient(135deg,#EF4444,#DC2626)', color: '#ffffff',
             fontWeight: 700, fontSize: 16, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           }}
@@ -643,7 +656,7 @@ function LobbyScreen({ subject, setSubject, onFind, battlePassWins, myElo, error
             { icon: <Trophy size={16} />, text: '5 wins this week earns a special trophy badge' },
           ].map((item, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontSize: 13 }}>
-              <span style={{ color: '#EF4444' }}>{item.icon}</span>
+              <span style={{ color: isLight ? '#B91C1C' : '#EF4444' }}>{item.icon}</span>
               <span style={{ color: 'var(--color-text-secondary)' }}>{item.text}</span>
             </div>
           ))}
@@ -730,8 +743,10 @@ function QuestionScreen({
   onAnswer: (i: number) => void;
   connStatus: ConnStatus;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const timerPct = (timeLeft / QUESTION_TIME) * 100;
-  const timerColor = timeLeft <= 5 ? '#EF4444' : timeLeft <= 10 ? '#F59E0B' : '#10B981';
+  const timerColor = timeLeft <= 5 ? (isLight ? '#B91C1C' : '#EF4444') : timeLeft <= 10 ? (isLight ? '#92400E' : '#F59E0B') : (isLight ? '#047857' : '#10B981');
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
@@ -745,7 +760,7 @@ function QuestionScreen({
           <Avatar url={myAvatar} name={myName} size={32} />
           <div>
             <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{myName}</div>
-            <div style={{ fontWeight: 700, fontSize: 18, color: '#10B981' }}>{myScore}</div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: isLight ? '#047857' : '#10B981' }}>{myScore}</div>
           </div>
         </div>
         <div style={{ textAlign: 'center' }}>
@@ -755,7 +770,7 @@ function QuestionScreen({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{oppName}</div>
-            <div style={{ fontWeight: 700, fontSize: 18, color: '#EF4444' }}>{oppScore}</div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: isLight ? '#B91C1C' : '#EF4444' }}>{oppScore}</div>
           </div>
           <Avatar url={oppAvatar} name={oppName} size={32} />
         </div>
@@ -788,9 +803,9 @@ function QuestionScreen({
             let border = 'var(--color-border)';
             let color = 'var(--color-text)';
             if (phase === 'answer') {
-              if (i === question.correct) { bg = 'rgba(16,185,129,0.15)'; border = '#10B981'; color = '#10B981'; }
-              else if (i === selected) { bg = 'rgba(239,68,68,0.15)'; border = '#EF4444'; color = '#EF4444'; }
-            } else if (selected === i) { bg = 'rgba(96,165,250,0.15)'; border = '#60A5FA'; }
+              if (i === question.correct) { bg = 'rgba(16,185,129,0.15)'; border = isLight ? '#047857' : '#10B981'; color = border; }
+              else if (i === selected) { bg = 'rgba(239,68,68,0.15)'; border = isLight ? '#B91C1C' : '#EF4444'; color = border; }
+            } else if (selected === i) { bg = 'rgba(96,165,250,0.15)'; border = isLight ? '#1D4ED8' : '#60A5FA'; }
 
             return (
               <motion.button
@@ -841,6 +856,8 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
   eloDelta: number | null;
   onRematch: () => void; onHome: () => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const isTie = myScore === oppScore;
   return (
     <div style={{ height: '100%', overflowY: 'auto', padding: '0 0 80px' }}>
@@ -856,9 +873,9 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
         borderBottom: '1px solid var(--color-border)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-          <Trophy size={56} color={isTie ? 'var(--v2-text-4)' : won ? '#F59E0B' : 'var(--v2-text-4)'} strokeWidth={1.5} />
+          <Trophy size={56} color={isTie ? 'var(--v2-text-4)' : won ? (isLight ? '#92400E' : '#F59E0B') : 'var(--v2-text-4)'} strokeWidth={1.5} />
         </div>
-        <div style={{ fontWeight: 900, fontSize: 28, color: isTie ? 'var(--color-text)' : won ? '#10B981' : '#EF4444', marginBottom: 4 }}>
+        <div style={{ fontWeight: 900, fontSize: 28, color: isTie ? 'var(--color-text)' : won ? (isLight ? '#047857' : '#10B981') : (isLight ? '#B91C1C' : '#EF4444'), marginBottom: 4 }}>
           {isTie ? 'Draw!' : won ? 'Victory!' : 'Defeated'}
         </div>
         <div style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
@@ -872,13 +889,13 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
           <div style={{ flex: 1, textAlign: 'center' }}>
             <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? 'You'} size={48} />
             <div style={{ fontSize: 13, fontWeight: 600, marginTop: 6 }}>{profile?.full_name ?? 'You'}</div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: won ? '#10B981' : 'var(--color-text)' }}>{myScore}</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: won ? (isLight ? '#047857' : '#10B981') : 'var(--color-text)' }}>{myScore}</div>
           </div>
           <div style={{ fontWeight: 700, color: 'var(--color-text-secondary)' }}>VS</div>
           <div style={{ flex: 1, textAlign: 'center' }}>
             <Avatar url={opponent?.avatar_url ?? null} name={opponent?.full_name ?? 'Opponent'} size={48} />
             <div style={{ fontSize: 13, fontWeight: 600, marginTop: 6 }}>{opponent?.full_name ?? 'Opponent'}</div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: !won ? '#EF4444' : 'var(--color-text)' }}>{oppScore}</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: !won ? (isLight ? '#B91C1C' : '#EF4444') : 'var(--color-text)' }}>{oppScore}</div>
           </div>
         </div>
 
@@ -888,7 +905,7 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
             <EloTierBadge elo={myElo} />
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 2 }}>ELO Change</div>
-              <div style={{ fontWeight: 800, fontSize: 22, color: eloDelta >= 0 ? '#10B981' : '#EF4444' }}>
+              <div style={{ fontWeight: 800, fontSize: 22, color: eloDelta >= 0 ? (isLight ? '#047857' : '#10B981') : (isLight ? '#B91C1C' : '#EF4444') }}>
                 {eloDelta >= 0 ? '+' : ''}{eloDelta}
               </div>
             </div>
@@ -898,9 +915,9 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
         {/* Battle pass */}
         {won && (
           <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 12, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Trophy size={20} color="#F59E0B" />
+            <Trophy size={20} color={isLight ? '#92400E' : '#F59E0B'} />
             <div style={{ fontSize: 13 }}>
-              <span style={{ fontWeight: 700, color: '#F59E0B' }}>Battle Pass: {battlePassWins}/5 wins this week</span>
+              <span style={{ fontWeight: 700, color: isLight ? '#92400E' : '#F59E0B' }}>Battle Pass: {battlePassWins}/5 wins this week</span>
               {battlePassWins >= 5 && ' — Trophy earned!'}
             </div>
           </div>
@@ -916,11 +933,11 @@ function ResultScreen({ myScore, oppScore, questions, myAnswers, won, opponent, 
             return (
               <div key={i} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <div style={{ marginTop: 2 }}>
-                  {skipped ? <Shield size={16} color="#6B7280" /> : correct ? <CheckCircle2 size={16} color="#10B981" /> : <XCircle size={16} color="#EF4444" />}
+                  {skipped ? <Shield size={16} color="#6B7280" /> : correct ? <CheckCircle2 size={16} color={isLight ? '#047857' : '#10B981'} /> : <XCircle size={16} color={isLight ? '#B91C1C' : '#EF4444'} />}
                 </div>
                 <div style={{ flex: 1, fontSize: 13 }}>
                   <div style={{ fontWeight: 600, marginBottom: 2 }}>Q{i + 1}: {q.text}</div>
-                  {!correct && !skipped && <div style={{ color: '#10B981', fontSize: 12 }}>Correct: {q.options[q.correct]}</div>}
+                  {!correct && !skipped && <div style={{ color: isLight ? '#047857' : '#10B981', fontSize: 12 }}>Correct: {q.options[q.correct]}</div>}
                   {skipped && <div style={{ color: '#6B7280', fontSize: 12 }}>Time expired</div>}
                 </div>
               </div>
