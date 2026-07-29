@@ -172,7 +172,20 @@ color or type size.
     `var(--ink-070)`/`rgba(...)` backgrounds with `text-white`, already
     covered by the global light-theme remap rule — same pattern confirmed
     safe on Quiz and Flashcards, so treated as safe by inspection.
-12. **NCERT reader** (`NCERTChaptersPage.tsx`, `NcertDeepPage.tsx`)
+12. **NCERT reader** (`NCERTChaptersPage.tsx`, `NcertDeepPage.tsx`) — ✅
+    audited + fixed. The subject-color bug appeared a 4th time, independently
+    in both files: `NcertDeepPage.tsx`'s local `SUBJECT_COLORS` (4 subjects)
+    and `NCERTChaptersPage.tsx`'s local `SUBJECT_COLORS` (9 subjects) both
+    used pale pastels as text on light-theme tinted/adaptive cards
+    (1.17-2:1 contrast). Fixed both with `SUBJECT_COLORS_LIGHT` darkened
+    variants (4.6-7.8:1) behind an `isLight` flag. Also caught a subtler bug
+    in NcertDeepPage: the subtitle text applied 50% alpha on top of the
+    already-darkened color, dropping it back to ~2.3:1 — fixed by using full
+    opacity in light theme. Also fixed 6 more standalone hardcoded pastels in
+    NCERTChaptersPage's quiz flow (Exemplar badge, correct/wrong option
+    text+icon, "Novo explains" label, active Class pill, AI-banner icon).
+    Verified live on both pages under light theme — computed colors match
+    the fixes exactly.
 13. **Roadmap** (`RoadmapPage.tsx`), **Lesson Plan** (`LessonPlanPage.tsx`),
     **Revision Planner** (`RevisionPlannerPage.tsx`)
 14. **Account Settings** (`settings/AccountSettingsPage.tsx`), **Data Rights**
