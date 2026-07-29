@@ -258,9 +258,27 @@ color or type size.
 
 ## Phase 3 — Competitive / social screens
 
-15. **Battle** (`BattlePage.tsx`), **Boss Fight** (`BossFightPage.tsx`),
-    **Tournament** (`TournamentPage.tsx`), **Streak Challenge**
-    (`StreakChallengePage.tsx`)
+15. **Battle** (`BattlePage.tsx`) — ✅ audited + fixed (10th occurrence of
+    the pattern, widest-reaching yet). Uses Tailwind-500-level colors
+    directly across ELO tier badges, score displays, timers, option-reveal
+    states, and the result screen — 1.3-3.7:1 on light theme (silver/gold
+    ELO tiers especially bad, as low as 1.32:1 since they're light colors
+    to begin with). Fixed with per-tier `colorLight` fields and isLight
+    branches, verified 4.7-8.5:1. Also found a NEW bug class: the "Find
+    Opponent" button used the theme-flipping `var(--ink-950)` token for
+    text on a FIXED red gradient — dark theme happens to look fine (ink-950
+    → near-white), but light theme flips it to near-BLACK on the same red
+    (3.6:1, visually wrong) — fixed to a literal white since the button's
+    background doesn't invert with theme either. SearchingScreen/
+    CountdownScreen's red icon/large-text were checked and left as-is —
+    already clear the large-text/icon 3:1 threshold (3.55:1). Verified live
+    end-to-end: played a full bot battle from lobby through all 10
+    questions to the result screen under light theme; every computed color
+    matched exactly.
+
+    **Boss Fight** (`BossFightPage.tsx`), **Tournament**
+    (`TournamentPage.tsx`), **Streak Challenge**
+    (`StreakChallengePage.tsx`) — not yet audited.
 16. **Leaderboard** (`LeaderboardPage.tsx`), **School Leaderboard**
     (`SchoolLeaderboardPage.tsx`) — the anonymization work done earlier this
     session already changed the data shape here; redesign should keep that.
