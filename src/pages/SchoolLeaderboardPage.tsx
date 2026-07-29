@@ -10,6 +10,7 @@ import { useParams } from 'react-router-dom';
 import { Share } from '@capacitor/share';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface LeaderRow { rank_pos: number; full_name: string; avatar_url: string | null; xp: number; streak_count: number; }
 interface SchoolSummary { school_name: string; total_xp: number; student_count: number; school_rank: number; }
@@ -23,12 +24,18 @@ function Avatar({ url, name, size = 40 }: { url: string | null; name: string; si
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.36, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0,
+      // Fixed indigo/purple gradient background regardless of theme — a
+      // theme-flipping `var(--ink-950)` token here would go near-black on
+      // this fixed background in light theme (see BattlePage/BossFightPage
+      // for the same bug class). Use a literal white instead.
+      fontSize: size * 0.36, fontWeight: 700, color: '#ffffff', flexShrink: 0,
     }}>{initials}</div>
   );
 }
 
 export default function SchoolLeaderboardPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { schoolName } = useParams<{ schoolName: string }>();
   const decodedName = decodeURIComponent(schoolName ?? '');
 
@@ -65,7 +72,7 @@ export default function SchoolLeaderboardPage() {
       {/* Header */}
       <div className="px-5 pt-8 pb-6 text-center">
         <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-3" style={{ background: 'rgba(91,106,245,0.15)' }}>
-          <School className="w-8 h-8" style={{ color: '#A0AEFF' }} />
+          <School className="w-8 h-8" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
         </div>
         <h1 className="font-heading text-xl font-bold text-white mb-1">{decodedName}</h1>
         <p className="text-sm text-white/40">Edora School Leaderboard</p>
@@ -79,17 +86,17 @@ export default function SchoolLeaderboardPage() {
           {summary && (
             <div className="grid grid-cols-3 gap-2 mb-6">
               <div className="rounded-2xl p-2.5 text-center" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
-                <Trophy className="w-4 h-4 mx-auto mb-1" style={{ color: '#FBBF24' }} />
+                <Trophy className="w-4 h-4 mx-auto mb-1" style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                 <p className="font-heading text-base font-bold text-white leading-tight">#{summary.school_rank}</p>
                 <p className="text-xs text-white/40 mt-0.5">Nationwide</p>
               </div>
               <div className="rounded-2xl p-2.5 text-center" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
-                <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: '#A0AEFF' }} />
+                <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
                 <p className="font-heading text-base font-bold text-white leading-tight truncate">{summary.total_xp.toLocaleString()}</p>
                 <p className="text-xs text-white/40 mt-0.5">Total XP</p>
               </div>
               <div className="rounded-2xl p-2.5 text-center" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
-                <Users className="w-4 h-4 mx-auto mb-1" style={{ color: '#34D399' }} />
+                <Users className="w-4 h-4 mx-auto mb-1" style={{ color: isLight ? '#047857' : '#34D399' }} />
                 <p className="font-heading text-base font-bold text-white leading-tight">{summary.student_count}</p>
                 <p className="text-xs text-white/40 mt-0.5">Students</p>
               </div>
@@ -105,7 +112,7 @@ export default function SchoolLeaderboardPage() {
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                 className="flex items-center gap-3 p-3 rounded-2xl"
                 style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-060)' }}>
-                <div className="w-7 text-center font-heading font-bold text-sm" style={{ color: i < 3 ? '#FBBF24' : 'var(--ink-400)' }}>
+                <div className="w-7 text-center font-heading font-bold text-sm" style={{ color: i < 3 ? (isLight ? '#92400E' : '#FBBF24') : 'var(--ink-400)' }}>
                   {`#${l.rank_pos}`}
                 </div>
                 <Avatar url={l.avatar_url} name={l.full_name} />
@@ -113,19 +120,19 @@ export default function SchoolLeaderboardPage() {
                   <p className="text-sm font-semibold text-white truncate">{l.full_name}</p>
                   <p className="text-xs text-white/40">{l.streak_count} day streak</p>
                 </div>
-                <p className="text-sm font-bold" style={{ color: '#A0AEFF' }}>{l.xp.toLocaleString()} XP</p>
+                <p className="text-sm font-bold" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>{l.xp.toLocaleString()} XP</p>
               </motion.div>
             ))}
           </div>
 
           <button onClick={shareLink}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold text-white mb-8"
-            style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}>
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold mb-8"
+            style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: '#ffffff' }}>
             <Share2 className="w-4 h-4" /> Share This Page
           </button>
 
           <p className="text-center text-xs text-white/30 pb-8">
-            Want your school on this board? <a href="/" className="underline" style={{ color: '#A0AEFF' }}>Study free at edora.app</a>
+            Want your school on this board? <a href="/" className="underline" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>Study free at edora.app</a>
           </p>
         </div>
       )}
