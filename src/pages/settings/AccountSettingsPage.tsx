@@ -10,6 +10,7 @@ import { Browser } from '@capacitor/browser';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import posthog from 'posthog-js';
 import { reindexAllUserContent, getUserIndexStatus } from '@/lib/userContentIndex';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const STUDY_LEVELS = [
   { value: 'school',   label: 'School (Class 6–12)' },
@@ -20,6 +21,8 @@ const STUDY_LEVELS = [
 
 export default function AccountSettingsPage() {
   const { profile, signOut, refetchProfile } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const navigate = useNavigate();
 
   const [name,      setName]      = useState(profile?.full_name ?? '');
@@ -203,7 +206,7 @@ export default function AccountSettingsPage() {
               max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
               aria-label="Exam date"
               className="rounded-2xl px-4 h-12 text-white outline-none w-full text-sm"
-              style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', colorScheme: 'dark' }} />
+              style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-080)', colorScheme: isLight ? 'light' : 'dark' }} />
             <p className="text-xs text-muted-foreground px-1">Shows a countdown on your home screen</p>
           </div>
         </motion.div>
@@ -308,7 +311,7 @@ export default function AccountSettingsPage() {
           className="rounded-3xl overflow-hidden"
           style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
           <div className="px-4 pt-4 pb-2 flex items-center gap-2">
-            <RefreshCw size={15} className="text-emerald-400" />
+            <RefreshCw size={15} style={{ color: isLight ? '#047857' : '#34D399' }} />
             <p className="font-semibold text-white text-sm">Novo AI Index</p>
           </div>
           <div className="px-4 pb-4">
@@ -321,8 +324,8 @@ export default function AccountSettingsPage() {
               </p>
             )}
             <button onClick={syncNotes} disabled={syncing}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-emerald-400 active:opacity-70 disabled:opacity-50 transition-opacity"
-              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold active:opacity-70 disabled:opacity-50 transition-opacity"
+              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: isLight ? '#047857' : '#34D399' }}>
               <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
               {syncing ? 'Syncing…' : 'Sync my notes'}
             </button>
@@ -334,21 +337,21 @@ export default function AccountSettingsPage() {
           className="rounded-3xl overflow-hidden"
           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
           <div className="px-4 pt-4 pb-3">
-            <p className="font-semibold text-red-400 text-sm flex items-center gap-2">
+            <p className="font-semibold text-sm flex items-center gap-2" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>
               <AlertTriangle size={15} /> Danger Zone
             </p>
-            <p className="text-xs text-red-400/70 mt-1">Permanently delete your account and all data. This cannot be undone.</p>
+            <p className="text-xs mt-1" style={{ color: isLight ? '#B91C1C' : 'rgba(248,113,113,0.7)' }}>Permanently delete your account and all data. This cannot be undone.</p>
           </div>
           {!showDelete ? (
             <div className="px-4 pb-4">
               <button onClick={() => setShowDelete(true)}
-                className="text-sm font-semibold text-red-500 underline underline-offset-2">
+                className="text-sm font-semibold underline underline-offset-2" style={{ color: isLight ? '#B91C1C' : '#EF4444' }}>
                 Delete my account
               </button>
             </div>
           ) : (
             <div className="px-4 pb-4 flex flex-col gap-2">
-              <p className="text-xs font-bold text-red-500">Are you absolutely sure?</p>
+              <p className="text-xs font-bold" style={{ color: isLight ? '#B91C1C' : '#EF4444' }}>Are you absolutely sure?</p>
               <div className="flex gap-2">
                 <Button variant="secondary" onClick={() => setShowDelete(false)} className="flex-1 text-xs">Cancel</Button>
                 <button onClick={deleteAccount} disabled={deleting}
