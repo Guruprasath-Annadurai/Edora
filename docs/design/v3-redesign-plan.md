@@ -128,7 +128,14 @@ color or type size.
    `auth/LoginPage.tsx`'s matching constant alone — that page ignores the
    theme system entirely, a separate already-tracked issue. Top summary
    card, Achievements, and Leaderboard sections were already correct.
-8. **Learning Hub** (`LearningPage.tsx`) — partially redone; extend.
+8. **Learning Hub** (`LearningPage.tsx`) — ✅ audited live under light theme,
+   both tabs ("Study Tools" and "My Progress"). Genuinely clean — no
+   hardcoded near-white text, no unconditional white overlays, grep found
+   zero instances of the `#F4F6FA` pattern or raw `rgba(255,255,255,...)`
+   usage. All card titles, subtitles, and stat numbers render with correct
+   dark text on light backgrounds. No fix needed. (Empty/zero-data states
+   verified only — this test account has no flashcards/sprints yet, so the
+   populated Subject Progress bars weren't visually checked.)
 9. **Tools Hub** (`ToolsPage.tsx`) — not yet touched.
 10. **Quiz** (`QuizPage.tsx`), **AI Quiz Bank** (`AIQuizBankPage.tsx`) —
     question/results UI, high-frequency screens.
