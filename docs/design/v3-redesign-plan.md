@@ -186,8 +186,41 @@ color or type size.
     text+icon, "Novo explains" label, active Class pill, AI-banner icon).
     Verified live on both pages under light theme — computed colors match
     the fixes exactly.
-13. **Roadmap** (`RoadmapPage.tsx`), **Lesson Plan** (`LessonPlanPage.tsx`),
-    **Revision Planner** (`RevisionPlannerPage.tsx`)
+13. **Roadmap** (`RoadmapPage.tsx`) — ✅ audited + fixed. Same subject-color
+    bug (13 subjects, 1.1-2:1 → 4.4-6.5:1 fixed). Also fixed 6 more
+    standalone pastels in the header/stats row (the "Study Roadmap" eyebrow
+    label and stat captions use literal Tailwind color classes with no
+    theme awareness, unlike text-white which has a global safety net) plus
+    a pre-existing theme-independent low-contrast badge (WeekCard's
+    #10B981/#5B6AF5/#9CA3AF gave white text only 2.5-4.35:1 in BOTH themes).
+    Verified live by inserting a real study_roadmaps row directly (the AI
+    generation edge function isn't reachable in this dev environment) —
+    every computed color matched exactly.
+
+    **Lesson Plan** (`LessonPlanPage.tsx`) — ✅ audited + fixed. Same bug in
+    TASK_STYLES (study/practice/review/quiz/milestone_quiz, 1.2-2:1 →
+    4.6-6.6:1) plus 7 more standalone pastels (header button, empty state,
+    week-progress %, Milestone Day label, Week Complete trophy, day-tab
+    checkmark). Verified live via a seeded lesson_plans + lesson_plan_tasks
+    row — week-progress % and Milestone Day label matched exactly; the
+    per-task chip colors use the identical already-proven pattern but
+    couldn't be independently re-confirmed since the lesson-planner edge
+    function (which fetches tasks) isn't reachable in this dev environment.
+
+    **Revision Planner** (`RevisionPlannerPage.tsx`) — ✅ audited + fixed.
+    Same bug in PRIORITY_STYLE (1.3-3.1:1 → 4.7-6.2:1) plus ~14 more raw
+    Tailwind color classes (text-emerald/red/indigo/violet/amber-400/300)
+    across every sub-component. Also found and fixed a genuine visual bug,
+    not just contrast: HeatmapBar's future-day cells used a hardcoded
+    rgba(255,255,255,X) tint that's invisible on light theme's light page —
+    the whole future portion of the heatmap silently disappeared. Verified
+    live via a seeded revision_plans row — computed colors matched exactly,
+    and the heatmap's future cells are now visibly present.
+
+    This is now the 7th independent occurrence of the same pale-color-on-
+    dark-bg-assumption bug across Quiz, subjectColors.ts, Flashcards, both
+    NCERT pages, Roadmap, Lesson Plan, and Revision Planner. Flagged as a
+    background task for a systemic sweep of any remaining pages.
 14. **Account Settings** (`settings/AccountSettingsPage.tsx`), **Data Rights**
     (`settings/DataRightsPage.tsx`), **Study Reminders**
     (`settings/StudyRemindersPage.tsx`)
