@@ -105,10 +105,17 @@ color or type size.
    NOT reliable — even properly-themed pages have dozens of legitimate
    `text-white` instances (on fixed-color badges). Verification requires
    actually running the page in each theme and looking at it.
-6. **Novo / Chat** (`ChatPage.tsx`) — already partially redone; the citation
-   chips and report control added this session already follow a
-   professional, muted style — extend that language to the rest of the
-   page. Decide the NovoAvatar sprite question here explicitly.
+6. **Novo / Chat** (`ChatPage.tsx`) — audited live under light theme. Found
+   and fixed a severe real bug in `components/chat/PersonalityCards.tsx`:
+   the active (selected) personality card's label text was hardcoded white,
+   giving 1.26:1 contrast against its own pale-tinted background in light
+   theme — essentially invisible on the single most prominent card on the
+   page. Also fixed matching failures in the inactive card's label, tagline,
+   and icon (all computed via the real WCAG contrast formula, see commit
+   `bf5a554`). Citation chips, report control, and the message action row
+   ("Listen · Save · Report") already verified rendering correctly in light
+   theme — no changes needed there. Still open: decide the NovoAvatar sprite
+   question explicitly (open decision #1).
 7. **Profile** (`ProfilePage.tsx`) — already redone in v2 pass; re-audit only.
 8. **Learning Hub** (`LearningPage.tsx`) — partially redone; extend.
 9. **Tools Hub** (`ToolsPage.tsx`) — not yet touched.
