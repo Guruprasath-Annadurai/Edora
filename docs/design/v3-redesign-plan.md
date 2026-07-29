@@ -136,7 +136,13 @@ color or type size.
    dark text on light backgrounds. No fix needed. (Empty/zero-data states
    verified only — this test account has no flashcards/sprints yet, so the
    populated Subject Progress bars weren't visually checked.)
-9. **Tools Hub** (`ToolsPage.tsx`) — not yet touched.
+9. **Tools Hub** (`ToolsPage.tsx`) — ✅ audited live under light theme, full
+   page scrolled top to bottom (Exam Score Predictor, Weakness Radar,
+   Attention Heatmap, Confidence Score, Parent Report, Teacher Export, Mock
+   Full Test, PYQ Bank, PDF Study Pack, Exam Simulator, Notes Scanner,
+   Mistake Journal, Study Notes, Mnemonic AI, Browser). Genuinely clean —
+   every colorful pastel-tinted card renders correct dark text, no bugs
+   found. No fix needed.
 10. **Quiz** (`QuizPage.tsx`), **AI Quiz Bank** (`AIQuizBankPage.tsx`) —
     question/results UI, high-frequency screens.
 11. **Flashcards** (`FlashcardPage.tsx`), **Spaced Repetition**
