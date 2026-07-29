@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type Scope = 'global' | 'state' | 'city' | 'school' | 'friends';
 
@@ -47,28 +48,47 @@ const SCOPE_COLORS: Record<Scope, string> = {
   friends: '#F472B6',
 };
 
+// Same tint/fixed-alpha-background pattern as every other file this session:
+// SCOPE_COLORS were tuned for the dark theme's near-black surfaces and read
+// 1.5-2.8:1 on the light theme's pale tints — darkened 700/800-shade variants.
+const SCOPE_COLORS_LIGHT: Record<Scope, string> = {
+  global:  '#1D4ED8',
+  state:   '#6D28D9',
+  city:    '#047857',
+  school:  '#92400E',
+  friends: '#9D174D',
+};
+
+function scopeColor(id: Scope, isLight: boolean): string {
+  return isLight ? SCOPE_COLORS_LIGHT[id] : SCOPE_COLORS[id];
+}
+
 function Avatar({ name, url, size = 36 }: { name: string; url: string | null; size?: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   return url ? (
     <img src={url} alt={name} className="rounded-full object-cover flex-shrink-0"
          style={{ width: size, height: size }} />
   ) : (
     <div className="rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0"
-         style={{ width: size, height: size, background: 'rgba(91,106,245,0.3)', color: '#A0AEFF' }}>
+         style={{ width: size, height: size, background: 'rgba(91,106,245,0.3)', color: isLight ? '#4338CA' : '#A0AEFF' }}>
       {initials}
     </div>
   );
 }
 
 function RankDelta({ delta }: { delta?: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   if (!delta || delta === 0) return <Minus size={12} style={{ color: 'var(--color-text-secondary)' }} />;
   if (delta > 0) return (
-    <span className="flex items-center gap-0.5 text-xs font-bold" style={{ color: '#34D399' }}>
+    <span className="flex items-center gap-0.5 text-xs font-bold" style={{ color: isLight ? '#047857' : '#34D399' }}>
       <TrendingUp size={11} />↑{delta}
     </span>
   );
   return (
-    <span className="flex items-center gap-0.5 text-xs font-bold" style={{ color: '#F87171' }}>
+    <span className="flex items-center gap-0.5 text-xs font-bold" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>
       <TrendingDown size={11} />↓{Math.abs(delta)}
     </span>
   );
@@ -104,6 +124,8 @@ const LeaderboardRow = memo(function LeaderboardRow({ entry, index, color }: { e
 });
 
 export default function LeaderboardPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { profile } = useAuth();
   const [scope, setScope]     = useState<Scope>('global');
   const [entries, setEntries] = useState<LeaderEntry[]>([]);
@@ -218,7 +240,7 @@ export default function LeaderboardPage() {
     track('leaderboard_viewed', { scope });
   }
 
-  const color = SCOPE_COLORS[scope];
+  const color = scopeColor(scope, isLight);
   const top3  = entries.slice(0, 3);
   const rest  = entries.slice(3);
 
@@ -258,9 +280,9 @@ export default function LeaderboardPage() {
               onClick={() => setScope(s.id)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold flex-shrink-0 transition-all"
               style={{
-                background: active ? `${SCOPE_COLORS[s.id]}20` : 'var(--color-surface)',
-                color: active ? SCOPE_COLORS[s.id] : 'var(--color-text-secondary)',
-                border: `1px solid ${active ? SCOPE_COLORS[s.id] : 'var(--color-border)'}`,
+                background: active ? `${scopeColor(s.id, isLight)}20` : 'var(--color-surface)',
+                color: active ? scopeColor(s.id, isLight) : 'var(--color-text-secondary)',
+                border: `1px solid ${active ? scopeColor(s.id, isLight) : 'var(--color-border)'}`,
               }}>
               <Icon size={13} /> {s.label}
             </motion.button>
@@ -275,9 +297,9 @@ export default function LeaderboardPage() {
             <motion.div key="rival" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="flex items-center gap-3 p-3 rounded-2xl"
               style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)' }}>
-              <Sword size={18} color="#F87171" />
+              <Sword size={18} color={isLight ? '#B91C1C' : '#F87171'} />
               <div className="flex-1">
-                <p className="text-xs font-semibold" style={{ color: '#F87171' }}>Your Rival</p>
+                <p className="text-xs font-semibold" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>Your Rival</p>
                 <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
                   {rival.full_name} · #{rival.rank} · {rival.xp.toLocaleString()} XP
                 </p>
@@ -295,14 +317,14 @@ export default function LeaderboardPage() {
               className="rounded-2xl overflow-hidden"
               style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}>
               <div className="p-3">
-                <p className="text-xs font-bold mb-2" style={{ color: '#FBBF24' }}>Hall of Fame — This Week</p>
+                <p className="text-xs font-bold mb-2" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>Hall of Fame — This Week</p>
                 {hallOfFame.length === 0 ? (
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>No entries yet — top 3 appear Sunday night.</p>
                 ) : hallOfFame.map(h => (
                   <div key={h.user_id} className="flex items-center gap-2 py-1.5">
-                    <span className="text-xs font-extrabold w-5 text-center v2-tnum" style={{ color: '#FBBF24' }}>{h.rank_pos}</span>
+                    <span className="text-xs font-extrabold w-5 text-center v2-tnum" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>{h.rank_pos}</span>
                     <span className="text-sm font-semibold flex-1" style={{ color: 'var(--color-text)' }}>{h.full_name}</span>
-                    <span className="text-xs font-bold" style={{ color: '#FBBF24' }}>{h.xp_earned.toLocaleString()} XP</span>
+                    <span className="text-xs font-bold" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>{h.xp_earned.toLocaleString()} XP</span>
                   </div>
                 ))}
               </div>
@@ -315,7 +337,7 @@ export default function LeaderboardPage() {
         ) : entries.length === 0 ? (
           <EmptyState
             icon={Globe}
-            iconColor="#A0AEFF"
+            iconColor={isLight ? '#4338CA' : '#A0AEFF'}
             iconBg="rgba(91,106,245,0.10)"
             title={scope === 'friends' ? 'No friends on the board' : 'No rankings yet'}
             subtitle={scope === 'friends'
@@ -334,20 +356,20 @@ export default function LeaderboardPage() {
                   <p className="text-xs font-semibold text-center truncate w-full" style={{ color: 'var(--color-text)' }}>{top3[1].full_name}</p>
                   <div className="w-full rounded-t-xl py-4 text-center"
                        style={{ background: 'rgba(192,192,192,0.15)', border: '1px solid rgba(192,192,192,0.3)' }}>
-                    <span className="text-lg font-extrabold v2-tnum" style={{ color: '#C0C0C0' }}>2</span>
-                    <p className="text-xs font-bold mt-1 v2-tnum" style={{ color: '#C0C0C0' }}>{top3[1].xp.toLocaleString()}</p>
+                    <span className="text-lg font-extrabold v2-tnum" style={{ color: isLight ? '#52525B' : '#C0C0C0' }}>2</span>
+                    <p className="text-xs font-bold mt-1 v2-tnum" style={{ color: isLight ? '#52525B' : '#C0C0C0' }}>{top3[1].xp.toLocaleString()}</p>
                   </div>
                 </motion.div>
                 {/* 1st */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                   className="flex flex-col items-center gap-2 flex-1">
-                  <Crown size={20} color="#FBBF24" />
+                  <Crown size={20} color={isLight ? '#78350F' : '#FBBF24'} />
                   <Avatar name={top3[0].full_name} url={top3[0].avatar_url} size={56} />
                   <p className="text-xs font-semibold text-center truncate w-full" style={{ color: 'var(--color-text)' }}>{top3[0].full_name}</p>
                   <div className="w-full rounded-t-xl py-6 text-center"
                        style={{ background: 'rgba(251,191,36,0.15)', border: `1px solid rgba(251,191,36,0.4)` }}>
-                    <span className="text-2xl font-extrabold v2-tnum" style={{ color: '#FBBF24' }}>1</span>
-                    <p className="text-xs font-bold mt-1 v2-tnum" style={{ color: '#FBBF24' }}>{top3[0].xp.toLocaleString()}</p>
+                    <span className="text-2xl font-extrabold v2-tnum" style={{ color: isLight ? '#78350F' : '#FBBF24' }}>1</span>
+                    <p className="text-xs font-bold mt-1 v2-tnum" style={{ color: isLight ? '#78350F' : '#FBBF24' }}>{top3[0].xp.toLocaleString()}</p>
                   </div>
                 </motion.div>
                 {/* 3rd */}
@@ -357,8 +379,8 @@ export default function LeaderboardPage() {
                   <p className="text-xs font-semibold text-center truncate w-full" style={{ color: 'var(--color-text)' }}>{top3[2].full_name}</p>
                   <div className="w-full rounded-t-xl py-3 text-center"
                        style={{ background: 'rgba(205,127,50,0.15)', border: '1px solid rgba(205,127,50,0.3)' }}>
-                    <span className="text-lg font-extrabold v2-tnum" style={{ color: '#CD7F32' }}>3</span>
-                    <p className="text-xs font-bold mt-1 v2-tnum" style={{ color: '#CD7F32' }}>{top3[2].xp.toLocaleString()}</p>
+                    <span className="text-lg font-extrabold v2-tnum" style={{ color: isLight ? '#7C4A1E' : '#CD7F32' }}>3</span>
+                    <p className="text-xs font-bold mt-1 v2-tnum" style={{ color: isLight ? '#7C4A1E' : '#CD7F32' }}>{top3[2].xp.toLocaleString()}</p>
                   </div>
                 </motion.div>
               </div>
