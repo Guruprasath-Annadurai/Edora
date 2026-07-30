@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { TeachingIcon } from '@/components/ui/icons';
 import type { NovoProactiveMessage, ProactiveMessageType } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Message type styling ──────────────────────────────────────────────────────
 
@@ -34,6 +35,20 @@ const TYPE_STYLES: Record<ProactiveMessageType, TypeStyle> = {
   comeback:        { icon: RotateCcw,        color: '#A78BFA', bg: 'rgba(167,139,250,0.15)', label: 'We Miss You'  },
   revision_mode:   { icon: Zap,              color: '#EF4444', bg: 'rgba(239,68,68,0.18)',   label: 'REVISION MODE' } };
 
+const TYPE_COLORS_LIGHT: Record<ProactiveMessageType, string> = {
+  diagnostic:      '#4338CA',
+  exam_reminder:   '#B91C1C',
+  streak_check:    '#92400E',
+  milestone:       '#047857',
+  lesson_nudge:    '#6D28D9',
+  memory_callback: '#0E7490',
+  welcome_back:    '#4338CA',
+  goal_check:      '#9D174D',
+  encouragement:   '#9D174D',
+  comeback:        '#6D28D9',
+  revision_mode:   '#B91C1C',
+};
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins  = Math.floor(diff / 60000);
@@ -56,6 +71,9 @@ function MessageCard({ msg, onMarkRead, onCTA }: {
   const style = TYPE_STYLES[msg.message_type] ?? TYPE_STYLES.welcome_back;
   const Icon  = style.icon;
   const unread = !msg.read_at;
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const textColor = isLight ? (TYPE_COLORS_LIGHT[msg.message_type] ?? TYPE_COLORS_LIGHT.welcome_back) : style.color;
 
   return (
     <motion.div layout
@@ -63,14 +81,14 @@ function MessageCard({ msg, onMarkRead, onCTA }: {
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl overflow-hidden"
       style={unread
-        ? { background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)', borderLeft: `3px solid ${style.color}` }
+        ? { background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)', borderLeft: `3px solid ${textColor}` }
         : { background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
       <div className="px-4 py-4">
         <div className="flex items-start gap-3">
           {/* Novo avatar */}
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
             style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-            <Icon size={18} className="text-white" />
+            <Icon size={18} style={{ color: '#ffffff' }} />
           </div>
 
           <div className="flex-1 min-w-0">
@@ -78,7 +96,7 @@ function MessageCard({ msg, onMarkRead, onCTA }: {
               <span className="text-xs font-bold text-white">Novo AI</span>
               {unread && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
               <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                style={{ color: style.color, background: style.bg }}>
+                style={{ color: textColor, background: style.bg }}>
                 {style.label}
               </span>
               <span className="text-xs text-muted-foreground ml-auto">{timeAgo(msg.created_at)}</span>
@@ -216,7 +234,7 @@ export default function NovoProactivePage() {
           </Link>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
             style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-            <TeachingIcon size={20} className="text-white" />
+            <TeachingIcon size={20} style={{ color: '#ffffff' }} />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
