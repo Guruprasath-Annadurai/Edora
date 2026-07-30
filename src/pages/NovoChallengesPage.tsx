@@ -393,8 +393,8 @@ export default function NovoChallengesPage() {
           className="flex items-center gap-1 px-2.5 py-1 rounded-full"
           style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.15))', border: '1px solid rgba(245,158,11,0.35)' }}
         >
-          <Zap size={13} className="text-amber-500" />
-          <span className="text-xs font-bold text-amber-400">2× XP</span>
+          <Zap size={13} style={{ color: isLight ? '#92400E' : '#F59E0B' }} />
+          <span className="text-xs font-bold" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>2× XP</span>
         </motion.div>
       </div>
 
@@ -460,8 +460,8 @@ export default function NovoChallengesPage() {
               {error && (
                 <div className="flex items-center gap-2 px-4 py-3 rounded-2xl"
                   style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                  <AlertCircle size={16} className="text-red-400 shrink-0" />
-                  <p className="text-sm text-red-400">{error}</p>
+                  <AlertCircle size={16} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                  <p className="text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
                 </div>
               )}
 
@@ -626,10 +626,10 @@ export default function NovoChallengesPage() {
                         className="flex items-start gap-2.5 p-3.5 rounded-xl"
                         style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}
                       >
-                        <Lightbulb size={15} className="text-amber-400 mt-0.5 shrink-0" />
+                        <Lightbulb size={15} className="mt-0.5 shrink-0" style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                         <div>
-                          <p className="text-xs font-bold text-amber-400 uppercase tracking-wide mb-1">Hint {i + 1}</p>
-                          <p className="text-sm text-amber-300">{hint}</p>
+                          <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>Hint {i + 1}</p>
+                          <p className="text-sm" style={{ color: isLight ? '#92400E' : '#FCD34D' }}>{hint}</p>
                         </div>
                       </motion.div>
                     ))}
@@ -734,7 +734,7 @@ export default function NovoChallengesPage() {
                         <div className="px-4 pb-4">
                           <div className="p-3.5 rounded-xl"
                             style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)' }}>
-                            <p className="text-sm text-green-300 font-medium">{result.correct_answer}</p>
+                            <p className="text-sm font-medium" style={{ color: isLight ? '#047857' : '#6EE7B7' }}>{result.correct_answer}</p>
                           </div>
                         </div>
                       </motion.div>
@@ -752,7 +752,7 @@ export default function NovoChallengesPage() {
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Trophy size={17} className="text-amber-500" />
+                    <Trophy size={17} style={{ color: isLight ? '#92400E' : '#F59E0B' }} />
                     <span className="text-sm font-semibold text-white">Leaderboard</span>
                     {leaderboard.length > 0 && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
@@ -800,7 +800,7 @@ export default function NovoChallengesPage() {
                               <span className="text-sm font-bold" style={{ color: scoreColor(entry.score, isLight) }}>
                                 {entry.score}
                               </span>
-                              <span className="text-xs text-amber-400 font-semibold">+{entry.xp_earned} XP</span>
+                              <span className="text-xs font-semibold" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>+{entry.xp_earned} XP</span>
                             </div>
                           </div>
                         ))}
