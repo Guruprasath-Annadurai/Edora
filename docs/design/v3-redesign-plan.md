@@ -155,8 +155,18 @@ color or type size.
     `text-white`/`placeholder:text-white/30` classes are NOT bugs — a global
     `[data-theme="light"] .text-white` remap rule in globals.css already
     handles those safely across the whole app. **AI Quiz Bank**
-    (`AIQuizBankPage.tsx`) not yet audited — question/results UI,
-    high-frequency screens.
+    (`AIQuizBankPage.tsx`) — ✅ 78th occurrence (audited later in the
+    sweep, closing this gap). SUBJECTS config's 6 pale colors all failed
+    even the 3:1 icon threshold against white (~1.67-2.76:1); added a
+    `colorLight` field per subject and a derived `subjColor` used at
+    every foreground use site. Also fixed the header Brain icon
+    (`text-white` on a fixed amber→red gradient via `getFeatureTheme`,
+    same gradient/finding as TeacherDashboardPage/StudyPackPage earlier
+    this session), the streak/Correct/Wrong/Streak stat colors, and the
+    "Adaptive AI Questions"/"Novo explains" pale-indigo labels. Verified
+    live under light theme at `/ai-quiz` (setup phase); could not
+    exercise the quiz/result phases live (require a real AI-generation
+    edge function call), so those rely on the session's contrast math.
 11. **Flashcards** (`FlashcardPage.tsx`) — ✅ audited + fixed. Found the same
     class of bug as Quiz, this time in the *shared* `src/lib/subjectColors.ts`
     lib (`getSubjectTheme`) — its `accent` field is used as text color on
