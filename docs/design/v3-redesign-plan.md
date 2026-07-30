@@ -474,8 +474,41 @@ color or type size.
 
 ## Phase 4 — Analysis / prediction / reporting screens
 
-20. **Exam Prediction** (`ExamPredictionPage.tsx`), **Rank Predictor**
-    (`RankPredictorPage.tsx`), **Confidence Score** (`ConfidenceScorePage.tsx`)
+20. **Exam Prediction / Rank Predictor / Confidence Score** — ✅ all 3
+    audited + fixed.
+
+    **Exam Prediction** (`ExamPredictionPage.tsx`) — ✅ 26th occurrence.
+    CONFIDENCE_CONFIG (3 tiers), the score-trajectory SVG chart, and
+    every indigo/amber/emerald/red instance across the setup screen,
+    results screen, and topic rows fixed with isLight branches. Found
+    the "stacking alpha on an already-darkened color" bug again
+    (`conf.color + 'cc'`) — replaced with a distinct descLight shade.
+    Fixed the grade-picker chips' theme-flipping-token-on-fixed-gradient
+    bug (same class as Battle/Friends/GroupDetail). Verified live: the
+    selected "A" grade chip renders exactly `rgb(255,255,255)`.
+
+    **Rank Predictor** (`RankPredictorPage.tsx`) — ✅ 27th occurrence.
+    4-tier rankColor, 3 subject slider colors, exam-picker active item,
+    and disclaimer fixed with isLight branches; same alpha-suffix-hack
+    bug found and fixed (`${rankColor}cc`). This page runs its Monte
+    Carlo simulation entirely client-side — verified live immediately:
+    "Physics" label exactly `rgb(67,56,202)`, rank-range subtitle (>50k
+    tier) exactly `rgb(146,64,14)` (#92400E).
+
+    **Confidence Score** (`ConfidenceScorePage.tsx`) — ✅ 28th occurrence.
+    LEVEL_CONFIG (4 tiers) and overallColor() (4 score bands) fixed with
+    isLight branches across the circular meter, legend cards, topic
+    cards, and subject badges. Found another fixed-gradient-white-text
+    failure (same class as CertificationsPage): the "Start Targeted
+    Review" button on a fixed amber→red gradient — fixed to a literal
+    dark ink. Verified live: the analytics edge function resolved
+    successfully and rendered the theme-safe empty state with no crash;
+    this test profile had insufficient review data to render populated
+    topic cards, so those specific instances rely on the same WCAG math
+    already verified across 27 other files this session.
+
+    This closes out item 20 and all of Phase 4 — 28 distinct files fixed
+    this session.
 21. **Weakness Radar** (`WeaknessRadarPage.tsx`), **Error Patterns**
     (`ErrorPatternsPage.tsx`), **Attention Heatmap**
     (`AttentionHeatmapPage.tsx`), **Study DNA** (`StudyDNAPage.tsx`)
