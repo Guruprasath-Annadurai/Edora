@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Countdown timer hook ──────────────────────────────────────────────────────
 
@@ -64,6 +65,8 @@ interface RevisionTopic {
 }
 
 export default function ExamWarRoomPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { profile, user } = useAuth();
   const navigate = useNavigate();
 
@@ -260,7 +263,7 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                       background: item.done ? 'rgba(16,185,129,0.1)' : 'var(--ink-040)',
                       border: `1px solid ${item.done ? 'rgba(16,185,129,0.3)' : 'var(--ink-070)'}` }}>
                     {item.done
-                      ? <CheckCircle2 size={20} color="#10B981" strokeWidth={2} />
+                      ? <CheckCircle2 size={20} color={isLight ? '#047857' : '#10B981'} strokeWidth={2} />
                       : <Circle size={20} color="var(--ink-250)" strokeWidth={1.75} />
                     }
                     <span className="flex-1 text-sm leading-snug" style={{ color: item.done ? 'var(--ink-500)' : 'var(--ink-850)', textDecoration: item.done ? 'line-through' : 'none' }}>
@@ -295,20 +298,20 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
-                            style={{ background: 'rgba(91,106,245,0.15)', color: '#A0AEFF' }}>
+                            style={{ background: 'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#A0AEFF' }}>
                             {topic.subject}
                           </span>
                           <span className="text-xs font-bold px-2 py-0.5 rounded-lg"
                             style={{
                               background: topic.priority === 'critical' ? 'rgba(239,68,68,0.15)' : topic.priority === 'high' ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
-                              color: topic.priority === 'critical' ? '#F87171' : topic.priority === 'high' ? '#FCD34D' : '#6EE7B7' }}>
+                              color: topic.priority === 'critical' ? (isLight ? '#B91C1C' : '#F87171') : topic.priority === 'high' ? (isLight ? '#92400E' : '#FCD34D') : (isLight ? '#047857' : '#6EE7B7') }}>
                             {topic.priority}
                           </span>
                         </div>
                         <button
                           onClick={() => navigate(`/chat?q=${encodeURIComponent(`Quick revision: ${topic.topic}`)}`)}
                           className="text-xs font-bold px-2.5 py-1 rounded-xl active:scale-95"
-                          style={{ background: 'rgba(91,106,245,0.15)', color: '#A0AEFF' }}>
+                          style={{ background: 'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#A0AEFF' }}>
                           Revise →
                         </button>
                       </div>
@@ -340,7 +343,7 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                     transition={{ delay: i * 0.07 }}
                     className="p-4 rounded-2xl flex gap-4"
                     style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
-                    <card.icon size={26} className="shrink-0" style={{ color: '#A0AEFF' }} strokeWidth={1.6} />
+                    <card.icon size={26} className="shrink-0" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} strokeWidth={1.6} />
                     <div>
                       <p className="text-white font-bold text-sm mb-1">{card.title}</p>
                       <p className="text-white/50 text-xs leading-relaxed">{card.body}</p>
