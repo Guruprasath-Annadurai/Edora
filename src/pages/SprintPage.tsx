@@ -10,6 +10,7 @@ import { loadUnlockedIds, checkAchievements, checkSprintCountAchievements } from
 import { Haptics, NotificationType } from '@capacitor/haptics';
 import { track } from '@/lib/analytics';
 import { maybePromptRating, incrementSession } from '@/lib/appRating';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type Phase = 'select' | 'active' | 'complete';
 
@@ -27,6 +28,13 @@ const SPRINT_DURATIONS = [
 
 export default function SprintPage() {
   const { profile } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const indigo = isLight ? '#4338CA' : '#A0AEFF';
+  const emerald = isLight ? '#047857' : '#6EE7B7';
+  const amber = isLight ? '#92400E' : '#FDE68A';
+  const red = isLight ? '#B91C1C' : '#FCA5A5';
+  const cyan = isLight ? '#0E7490' : '#67E8F9';
   const [phase, setPhase]         = useState<Phase>('select');
   const [subject, setSubject]     = useState('');
   const [topic, setTopic]         = useState('');
@@ -144,11 +152,11 @@ export default function SprintPage() {
                   boxShadow: '0 0 16px rgba(91,106,245,0.15)',
                 }}
               >
-                <User size={28} style={{ color: '#A0AEFF' }} />
-                <span className="font-semibold text-sm" style={{ color: '#A0AEFF' }}>Solo Sprint</span>
+                <User size={28} style={{ color: indigo }} />
+                <span className="font-semibold text-sm" style={{ color: indigo }}>Solo Sprint</span>
                 <div
                   className="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(91,106,245,0.2)', color: '#A0AEFF' }}
+                  style={{ background: 'rgba(91,106,245,0.2)', color: indigo }}
                 >
                   +50 XP
                 </div>
@@ -162,8 +170,8 @@ export default function SprintPage() {
                   border: '1px solid rgba(16,185,129,0.2)',
                 }}
               >
-                <AddTeamIcon size={28} style={{ color: '#6EE7B7' }} />
-                <span className="font-semibold text-sm" style={{ color: '#6EE7B7' }}>Group Sprint</span>
+                <AddTeamIcon size={28} style={{ color: emerald }} />
+                <span className="font-semibold text-sm" style={{ color: emerald }}>Group Sprint</span>
                 <span
                   className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
                   style={{ background: 'linear-gradient(135deg,#10B981,#059669)' }}
@@ -277,12 +285,12 @@ export default function SprintPage() {
                 {paused ? (
                   <>
                     <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#FDE68A' }}>Paused</span>
+                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: amber }}>Paused</span>
                   </>
                 ) : (
                   <>
                     <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" style={{ boxShadow: '0 0 6px rgba(239,68,68,0.8)' }} />
-                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#FCA5A5' }}>Sprint Active</span>
+                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: red }}>Sprint Active</span>
                   </>
                 )}
               </div>
@@ -351,13 +359,13 @@ export default function SprintPage() {
                 className="flex-1 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-98 transition-all"
                 style={paused ? {
                   background: 'linear-gradient(135deg,#10B981,#059669)',
-                  color: 'var(--ink-950)',
+                  color: '#0F172A',
                   boxShadow: '0 4px 20px rgba(16,185,129,0.4)',
                   border: '1px solid transparent',
                 } : {
                   background: 'rgba(245,158,11,0.1)',
                   border: '1px solid rgba(245,158,11,0.25)',
-                  color: '#FDE68A',
+                  color: amber,
                 }}
               >
                 {paused
@@ -371,7 +379,7 @@ export default function SprintPage() {
                 style={{
                   background: 'rgba(239,68,68,0.1)',
                   border: '1px solid rgba(239,68,68,0.2)',
-                  color: '#FCA5A5',
+                  color: red,
                 }}
               >
                 <X size={16} /> End Early
@@ -389,7 +397,7 @@ export default function SprintPage() {
             transition={{ type: 'spring', stiffness: 220, damping: 18 }}
             className="flex flex-col items-center justify-center h-full gap-6"
           >
-            <Medal size={64} style={{ color: '#FBBF24' }} strokeWidth={1.4} />
+            <Medal size={64} style={{ color: amber }} strokeWidth={1.4} />
 
             <div className="text-center">
               <h2 className="font-heading text-3xl font-bold text-white">Sprint Complete</h2>
@@ -398,9 +406,9 @@ export default function SprintPage() {
 
             <div className="grid grid-cols-3 gap-3 w-full">
               {[
-                { label: 'Duration', value: formatDuration(elapsedSeconds), icon: Clock,     color: '#67E8F9' },
-                { label: 'XP Earned', value: `+${xpEarned}`,               icon: TrophyIcon, color: '#FDE68A' },
-                { label: 'Mode',     value: 'Solo',                          icon: User,      color: '#A0AEFF' },
+                { label: 'Duration', value: formatDuration(elapsedSeconds), icon: Clock,     color: cyan },
+                { label: 'XP Earned', value: `+${xpEarned}`,               icon: TrophyIcon, color: amber },
+                { label: 'Mode',     value: 'Solo',                          icon: User,      color: indigo },
               ].map(({ label, value, icon: Icon, color }) => (
                 <div
                   key={label}
