@@ -14,6 +14,7 @@ import {
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface WeakSubject {
@@ -71,11 +72,13 @@ function currentWeekStart(): string {
 }
 
 function ScoreArc({ pct, size = 56 }: { pct: number; size?: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const stroke = 5;
   const r      = (size - stroke) / 2;
   const circ   = 2 * Math.PI * r;
   const offset = circ - (pct / 100) * circ;
-  const color  = pct >= 70 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
+  const color  = pct >= 70 ? (isLight ? '#047857' : '#10b981') : pct >= 50 ? (isLight ? '#92400E' : '#f59e0b') : (isLight ? '#B91C1C' : '#ef4444');
   return (
     <div className="relative flex items-center justify-center shrink-0"
       style={{ width: size, height: size }}>
@@ -94,16 +97,19 @@ function ScoreArc({ pct, size = 56 }: { pct: number; size?: number }) {
   );
 }
 
-const DAY_COLORS: Record<string, { bg: string; border: string; icon: string }> = {
-  Monday:    { bg: 'rgba(91,106,245,0.1)',  border: 'rgba(91,106,245,0.25)',  icon: '#818CF8' },
-  Tuesday:   { bg: 'rgba(236,72,153,0.1)',  border: 'rgba(236,72,153,0.25)',  icon: '#F472B6' },
-  Wednesday: { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)',  icon: '#34D399' },
+const DAY_COLORS: Record<string, { bg: string; border: string; icon: string; iconLight: string }> = {
+  Monday:    { bg: 'rgba(91,106,245,0.1)',  border: 'rgba(91,106,245,0.25)',  icon: '#818CF8', iconLight: '#4338CA' },
+  Tuesday:   { bg: 'rgba(236,72,153,0.1)',  border: 'rgba(236,72,153,0.25)',  icon: '#F472B6', iconLight: '#9D174D' },
+  Wednesday: { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)',  icon: '#34D399', iconLight: '#047857' },
 };
 
 function DayCard({ day, focus, tasks, index }: RecoveryDay & { index: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [expanded, setExpanded] = useState(index === 0);
   const [checked, setChecked]   = useState<boolean[]>(tasks.map(() => false));
-  const colors = DAY_COLORS[day] ?? DAY_COLORS['Monday'];
+  const colorsRaw = DAY_COLORS[day] ?? DAY_COLORS['Monday'];
+  const colors = { ...colorsRaw, icon: isLight ? colorsRaw.iconLight : colorsRaw.icon };
   const doneCount = checked.filter(Boolean).length;
 
   function toggleTask(i: number) {
@@ -181,6 +187,8 @@ function DayCard({ day, focus, tasks, index }: RecoveryDay & { index: number }) 
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function NovoInsightsPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user } = useAuth();
   const [insight, setInsight]     = useState<NovoInsight | null>(null);
   const [loading,  setLoading]    = useState(true);
@@ -305,8 +313,8 @@ export default function NovoInsightsPage() {
           </Link>
           <div className="flex-1">
             <div className="flex items-center gap-1.5">
-              <Sparkles size={13} className="text-yellow-300" />
-              <span className="text-xs font-bold uppercase tracking-widest text-yellow-300">
+              <Sparkles size={13} style={{ color: isLight ? '#92400E' : '#FDE047' }} />
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: isLight ? '#92400E' : '#FDE047' }}>
                 Novo Insights
               </span>
             </div>
@@ -323,7 +331,7 @@ export default function NovoInsightsPage() {
         </div>
 
         {/* Week range */}
-        <p className="text-purple-300 text-xs mb-3">
+        <p className="text-xs mb-3" style={{ color: isLight ? '#6D28D9' : '#D8B4FE' }}>
           {formatWeekRange(insight.week_start)}
         </p>
 
@@ -335,16 +343,16 @@ export default function NovoInsightsPage() {
         {/* Stats row */}
         <div className="grid grid-cols-4 gap-2">
           {[
-            { label: 'XP Earned',  value: `+${insight.xp_this_week}`, icon: Trophy,   color: '#FCD34D' },
-            { label: 'Quizzes',    value: insight.quizzes_taken,       icon: Target,   color: '#818CF8' },
-            { label: 'Sprints',    value: insight.sprints_completed,   icon: Zap,      color: '#34D399' },
-            { label: 'Mistakes',   value: insight.mistakes_logged,     icon: BookOpen, color: '#F87171' },
+            { label: 'XP Earned',  value: `+${insight.xp_this_week}`, icon: Trophy,   color: isLight ? '#92400E' : '#FCD34D' },
+            { label: 'Quizzes',    value: insight.quizzes_taken,       icon: Target,   color: isLight ? '#4338CA' : '#818CF8' },
+            { label: 'Sprints',    value: insight.sprints_completed,   icon: Zap,      color: isLight ? '#047857' : '#34D399' },
+            { label: 'Mistakes',   value: insight.mistakes_logged,     icon: BookOpen, color: isLight ? '#B91C1C' : '#F87171' },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="rounded-2xl p-2.5 text-center"
               style={{ background: 'var(--ink-080)' }}>
               <Icon size={16} style={{ color }} className="mx-auto mb-1" />
               <p className="font-heading font-bold text-sm text-white leading-none">{value}</p>
-              <p className="text-xs text-purple-300 mt-0.5 leading-tight">{label}</p>
+              <p className="text-xs mt-0.5 leading-tight" style={{ color: isLight ? '#6D28D9' : '#D8B4FE' }}>{label}</p>
             </div>
           ))}
         </div>
@@ -357,7 +365,7 @@ export default function NovoInsightsPage() {
         {insight.weakest_subjects.length > 0 && (
           <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
             <div className="flex items-center gap-2 mb-3">
-              <AlertCircle size={16} className="text-red-500 shrink-0" />
+              <AlertCircle size={16} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#EF4444' }} />
               <h2 className="font-heading text-base font-bold text-white">Needs Attention</h2>
             </div>
             <div className="flex flex-col gap-3">
@@ -372,14 +380,14 @@ export default function NovoInsightsPage() {
                   <ScoreArc pct={s.score_pct} size={54} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <TrendingDown size={13} className="text-red-400 shrink-0" />
+                      <TrendingDown size={13} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
                       <p className="font-bold text-sm text-white truncate">{s.subject}</p>
                     </div>
                     <p className="text-xs text-muted-foreground leading-snug mb-2">{s.reason}</p>
                     <div className="flex items-start gap-1.5 px-2.5 py-2 rounded-xl"
                       style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                      <Lightbulb size={13} className="text-red-400 shrink-0 mt-0.5" />
-                      <p className="text-xs text-red-400 font-medium leading-snug">{s.study_tip}</p>
+                      <Lightbulb size={13} className="shrink-0 mt-0.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                      <p className="text-xs font-medium leading-snug" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{s.study_tip}</p>
                     </div>
                   </div>
                 </motion.div>
