@@ -186,6 +186,8 @@ function DayRow({
   day: RoadmapDay; completed: boolean; isToday: boolean; isPast: boolean;
   onToggle: () => void; disabled?: boolean;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <motion.button
       onClick={onToggle}
@@ -204,8 +206,8 @@ function DayRow({
       {/* Checkbox */}
       <div className="shrink-0 mt-0.5">
         {completed
-          ? <CheckCircle2 size={18} className="text-emerald-500" />
-          : <Circle size={18} className={isPast ? 'text-red-300' : 'text-muted-foreground/40'} />
+          ? <CheckCircle2 size={18} style={{ color: isLight ? '#047857' : '#10B981' }} />
+          : <Circle size={18} className={isPast ? undefined : 'text-muted-foreground/40'} style={isPast ? { color: isLight ? '#B91C1C' : '#FCA5A5' } : undefined} />
         }
       </div>
 
@@ -219,8 +221,8 @@ function DayRow({
             </span>
           )}
           {!isToday && isPast && !completed && (
-            <span className="text-[9px] font-bold uppercase tracking-wide text-red-400 px-1.5 py-0.5 rounded-full"
-              style={{ background: 'rgba(239,68,68,0.15)' }}>
+            <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
+              style={{ background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171' }}>
               MISSED
             </span>
           )}
@@ -651,8 +653,8 @@ export default function RoadmapPage() {
         {error && (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-            <AlertTriangle size={14} className="text-red-400 shrink-0" />
-            <p className="text-xs text-red-400 font-medium">{error}</p>
+            <AlertTriangle size={14} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+            <p className="text-xs font-medium" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
           </div>
         )}
 
@@ -930,8 +932,8 @@ export default function RoadmapPage() {
         {error && (
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-            <AlertTriangle size={14} className="text-red-400 shrink-0" />
-            <p className="text-xs text-red-400 font-medium">{error}</p>
+            <AlertTriangle size={14} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+            <p className="text-xs font-medium" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
           </div>
         )}
 
