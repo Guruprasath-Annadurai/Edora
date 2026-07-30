@@ -12,6 +12,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -75,11 +76,11 @@ function computePrereqChain(nodeId: string, edges: ConceptEdge[]): { chainNodeId
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function masteryColor(pct: number): string {
-  if (pct >= 80) return '#10B981';
-  if (pct >= 60) return '#F59E0B';
-  if (pct >= 40) return '#F97316';
-  return '#EF4444';
+function masteryColor(pct: number, isLight = false): string {
+  if (pct >= 80) return isLight ? '#047857' : '#10B981';
+  if (pct >= 60) return isLight ? '#92400E' : '#F59E0B';
+  if (pct >= 40) return isLight ? '#9A3412' : '#F97316';
+  return isLight ? '#B91C1C' : '#EF4444';
 }
 
 function masteryLabel(pct: number): string {
@@ -160,7 +161,8 @@ function cubicBezierPath(
 // ── Mastery Arc (180° semicircle) ─────────────────────────────────────────────
 
 function MasteryArc({ pct, size = 120 }: { pct: number; size?: number }) {
-  const color  = masteryColor(pct);
+  const { theme } = useTheme();
+  const color  = masteryColor(pct, theme === 'light');
   const stroke = 8;
   const r      = (size - stroke) / 2;
   const cx     = size / 2;
@@ -275,7 +277,12 @@ function DetailPanel({
   onClose: () => void;
 }) {
   const navigate = useNavigate();
-  const color = masteryColor(node.mastery_pct);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const color = masteryColor(node.mastery_pct, isLight);
+  const indigo = isLight ? '#4338CA' : '#5B6AF5';
+  const violet = isLight ? '#6D28D9' : '#8B5CF6';
+  const amber = isLight ? '#92400E' : '#FBBF24';
 
   function handleDrill() {
     track('concept_map_drill_started', { subject: node.subject, title: node.title });
@@ -335,15 +342,15 @@ function DetailPanel({
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <StatCard icon={<BookOpen size={14} />} label="Sessions" value={node.times_studied} color="#5B6AF5" />
-          <StatCard icon={<Zap size={14} />} label="Tests" value={node.times_tested} color="#8B5CF6" />
+          <StatCard icon={<BookOpen size={14} />} label="Sessions" value={node.times_studied} color={indigo} />
+          <StatCard icon={<Zap size={14} />} label="Tests" value={node.times_tested} color={violet} />
           <StatCard icon={<CheckCircle2 size={14} />} label="Correct" value={node.times_correct} color={color} />
         </div>
 
         {/* Prerequisite chain */}
         {prereqNodes.length > 0 && (
           <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-widest" style={{ color: '#FBBF24' }}>
+            <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-widest" style={{ color: amber }}>
               <GitBranch size={13} />
               <span>Prerequisites</span>
             </div>
@@ -355,7 +362,7 @@ function DetailPanel({
                   style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}
                 >
                   <span className="text-sm text-white">{p.title}</span>
-                  <span className="text-xs font-semibold ml-2 shrink-0" style={{ color: masteryColor(p.mastery_pct) }}>
+                  <span className="text-xs font-semibold ml-2 shrink-0" style={{ color: masteryColor(p.mastery_pct, isLight) }}>
                     {p.mastery_pct}%
                   </span>
                 </div>
@@ -420,6 +427,8 @@ interface GraphProps {
 }
 
 function ConceptGraph({ nodes, edges, activeSubject, onNodeTap, lockedNodeIds = new Set(), recentlyUnlocked = new Set(), chainNodeIds = new Set(), chainEdgeIds = new Set(), collapsedSubjects = new Set(), onSubjectToggle, selectedNodeId }: GraphProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const svgRef   = useRef<SVGSVGElement>(null);
   const groupRef = useRef<SVGGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -733,7 +742,7 @@ function ConceptGraph({ nodes, edges, activeSubject, onNodeTap, lockedNodeIds = 
             const isNewlyUnlocked = recentlyUnlocked.has(node.id);
             const isInChain = chainNodeIds.has(node.id);
             const isSelected = selectedNodeId === node.id;
-            const color     = isLocked ? '#6B7280' : masteryColor(node.mastery_pct);
+            const color     = isLocked ? '#6B7280' : masteryColor(node.mastery_pct, isLight);
             const fillColor = isSelected ? `${color}35` : isLocked ? 'rgba(107,114,128,0.08)' : isInChain ? 'rgba(251,191,36,0.12)' : isActive ? `${color}22` : 'var(--ink-040)';
             const stroke    = isSelected ? color : isLocked ? 'rgba(107,114,128,0.4)' : isInChain ? '#FBBF24' : isActive ? color : 'var(--ink-150)';
             const textColor = isLocked ? 'var(--ink-300)' : isActive ? 'var(--ink-900)' : 'var(--ink-300)';
