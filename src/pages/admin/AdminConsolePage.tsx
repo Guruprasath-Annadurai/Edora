@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trophy, ShieldAlert, Loader2, X, Search, ChevronLeft, ChevronRight, HelpCircle, Siren, Check as CheckIcon, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface QuestionFlag {
   id: string; question_text: string; subject: string | null; topic: string | null;
@@ -94,6 +95,8 @@ async function callAdminConsole(action: string, body: Record<string, unknown> = 
 
 export default function AdminConsolePage() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [tab, setTab] = useState<'events' | 'audit' | 'admins' | 'quality' | 'anomalies' | 'pyqcontent' | 'mainsqa' | 'cronhealth' | 'observability'>('events');
   const [forbidden, setForbidden] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -364,8 +367,8 @@ export default function AdminConsolePage() {
         {tab === 'events' && (
           <>
             <button onClick={() => setShowCreate(true)}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl mb-4 font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl mb-4 font-semibold"
+              style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}>
               <Plus size={16} /> Schedule Live Event
             </button>
 
@@ -383,7 +386,7 @@ export default function AdminConsolePage() {
                     <span className="text-xs font-bold px-2 py-1 rounded-full"
                       style={{
                         background: e.status === 'live' ? 'rgba(16,185,129,0.15)' : e.status === 'cancelled' ? 'rgba(239,68,68,0.15)' : 'var(--ink-060)',
-                        color: e.status === 'live' ? '#34D399' : e.status === 'cancelled' ? '#F87171' : 'var(--ink-500)',
+                        color: e.status === 'live' ? (isLight ? '#047857' : '#34D399') : e.status === 'cancelled' ? (isLight ? '#B91C1C' : '#F87171') : 'var(--ink-500)',
                       }}>
                       {e.status}
                     </span>
@@ -468,7 +471,7 @@ export default function AdminConsolePage() {
                 <span className="text-xs font-bold px-2 py-1 rounded-full"
                   style={{
                     background: a.role === 'admin' ? 'rgba(139,92,246,0.15)' : 'rgba(59,130,246,0.15)',
-                    color: a.role === 'admin' ? '#C4B5FD' : '#93C5FD',
+                    color: a.role === 'admin' ? (isLight ? '#6D28D9' : '#C4B5FD') : (isLight ? '#1D4ED8' : '#93C5FD'),
                   }}>
                   {a.role}
                 </span>
@@ -501,7 +504,7 @@ export default function AdminConsolePage() {
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{
                         background: f.verdict === 'genuinely_hard' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
-                        color: f.verdict === 'genuinely_hard' ? '#34D399' : '#F87171',
+                        color: f.verdict === 'genuinely_hard' ? (isLight ? '#047857' : '#34D399') : (isLight ? '#B91C1C' : '#F87171'),
                       }}>{f.verdict}</span>
                   </div>
                   <span className="text-[11px] text-white/30">{f.model_used}</span>
@@ -516,12 +519,12 @@ export default function AdminConsolePage() {
 
                 {f.corrected_question && f.correction_bank_id && (
                   <div className="rounded-xl p-2.5 mb-2" style={{ background: 'var(--ink-060)', border: '1px solid rgba(139,92,246,0.3)' }}>
-                    <p className="text-[11px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: '#8B5CF6' }}>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: isLight ? '#6D28D9' : '#8B5CF6' }}>
                       Self-healed correction (unapproved)
                     </p>
                     <div className="grid grid-cols-2 gap-2 mb-2">
                       <div className="rounded-lg p-2" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#F87171' }}>Original (flagged)</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>Original (flagged)</p>
                         <p className="text-[11px] leading-snug mb-1 line-through" style={{ color: 'var(--ink-500)' }}>{f.question_text}</p>
                         <ul>
                           {originalOptionsList(f.sample_options).map((opt, i) => (
@@ -530,12 +533,12 @@ export default function AdminConsolePage() {
                         </ul>
                       </div>
                       <div className="rounded-lg p-2" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#34D399' }}>Corrected</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: isLight ? '#047857' : '#34D399' }}>Corrected</p>
                         <p className="text-[11px] leading-snug mb-1 text-white">{f.corrected_question.question_text}</p>
                         <ul>
                           {f.corrected_question.options.map((opt, i) => (
                             <li key={i} className="text-[10px] leading-snug"
-                              style={{ color: i === f.corrected_question!.correct_index ? '#34D399' : 'var(--ink-500)' }}>
+                              style={{ color: i === f.corrected_question!.correct_index ? (isLight ? '#047857' : '#34D399') : 'var(--ink-500)' }}>
                               {i === f.corrected_question!.correct_index ? '✓ ' : '  '}{opt}
                             </li>
                           ))}
@@ -546,7 +549,7 @@ export default function AdminConsolePage() {
                     <div className="flex gap-2">
                       <button onClick={() => approveCorrection(f.id, f.correction_bank_id!)}
                         className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-semibold"
-                        style={{ background: 'rgba(139,92,246,0.15)', color: '#8B5CF6' }}>
+                        style={{ background: 'rgba(139,92,246,0.15)', color: isLight ? '#6D28D9' : '#8B5CF6' }}>
                         <CheckIcon size={12} /> Approve into bank
                       </button>
                       <button aria-label="Close" onClick={() => rejectCorrection(f.id, f.correction_bank_id!)}
@@ -561,7 +564,7 @@ export default function AdminConsolePage() {
                 <div className="flex gap-2">
                   <button onClick={() => resolveQualityFlag(f.id, 'actioned')}
                     className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-semibold"
-                    style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399' }}>
+                    style={{ background: 'rgba(16,185,129,0.12)', color: isLight ? '#047857' : '#34D399' }}>
                     <CheckIcon size={13} /> Actioned
                   </button>
                   <button aria-label="Close" onClick={() => resolveQualityFlag(f.id, 'dismissed')}
@@ -599,7 +602,7 @@ export default function AdminConsolePage() {
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{
                         background: f.severity === 'high' ? 'rgba(239,68,68,0.15)' : f.severity === 'medium' ? 'rgba(245,158,11,0.15)' : 'var(--ink-060)',
-                        color: f.severity === 'high' ? '#F87171' : f.severity === 'medium' ? '#FBBF24' : 'var(--ink-500)',
+                        color: f.severity === 'high' ? (isLight ? '#B91C1C' : '#F87171') : f.severity === 'medium' ? (isLight ? '#92400E' : '#FBBF24') : 'var(--ink-500)',
                       }}>{f.severity} severity</span>
                   </div>
                   <span className="text-[11px] text-white/30">{f.model_used}</span>
@@ -609,7 +612,7 @@ export default function AdminConsolePage() {
                 <div className="flex gap-2">
                   <button onClick={() => resolveAnomalyFlag(f.id, 'actioned')}
                     className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-semibold"
-                    style={{ background: 'rgba(239,68,68,0.12)', color: '#F87171' }}>
+                    style={{ background: 'rgba(239,68,68,0.12)', color: isLight ? '#B91C1C' : '#F87171' }}>
                     <CheckIcon size={13} /> Actioned
                   </button>
                   <button aria-label="Close" onClick={() => resolveAnomalyFlag(f.id, 'dismissed')}
@@ -642,7 +645,7 @@ export default function AdminConsolePage() {
             ) : pcFlags.map(f => (
               <div key={f.id} className="rounded-2xl p-3" style={{ background: 'var(--ink-040)' }}>
                 <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: '#FBBF24' }}>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: isLight ? '#92400E' : '#FBBF24' }}>
                     {f.exam} · {f.subject}
                   </span>
                   <span className="text-[11px] text-white/30">{f.reviewed_by}</span>
@@ -653,12 +656,12 @@ export default function AdminConsolePage() {
                 <div className="flex gap-2">
                   <button onClick={() => approvePyqFlag(f.id)}
                     className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-semibold"
-                    style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399' }}>
+                    style={{ background: 'rgba(16,185,129,0.12)', color: isLight ? '#047857' : '#34D399' }}>
                     <CheckIcon size={13} /> Approve (keep live)
                   </button>
                   <button aria-label="Close" onClick={() => rejectPyqFlag(f.id)}
                     className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-semibold"
-                    style={{ background: 'rgba(239,68,68,0.12)', color: '#F87171' }}>
+                    style={{ background: 'rgba(239,68,68,0.12)', color: isLight ? '#B91C1C' : '#F87171' }}>
                     <X size={13} /> Retire question
                   </button>
                 </div>
@@ -672,7 +675,7 @@ export default function AdminConsolePage() {
             <p className="text-xs text-white/40">Recent UPSC/CBSE Mains submissions — spot-check AI evaluation quality. Flagged rows matched the model answer's wording closely (likely copy-paste).</p>
 
             {bandStats && (
-              <div className="rounded-2xl p-3 text-xs" style={{ background: 'var(--ink-040)', color: bandStats.total_overrides >= 30 ? '#FBBF24' : 'var(--ink-500)' }}>
+              <div className="rounded-2xl p-3 text-xs" style={{ background: 'var(--ink-040)', color: bandStats.total_overrides >= 30 ? (isLight ? '#92400E' : '#FBBF24') : 'var(--ink-500)' }}>
                 {bandStats.total_overrides} band overrides logged out of {bandStats.total_submissions} submissions
                 {bandStats.override_rate_pct !== null ? ` (${bandStats.override_rate_pct}%)` : ''}.{' '}
                 {bandStats.total_overrides >= 30
@@ -688,7 +691,7 @@ export default function AdminConsolePage() {
             ) : msSubs.map(s => (
               <div key={s.id} className="rounded-2xl p-3" style={{ background: 'var(--ink-040)' }}>
                 <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(91,106,245,0.15)', color: '#818CF8' }}>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#818CF8' }}>
                     {s.mains_questions?.exam === 'CBSE' ? `CBSE ${s.mains_questions.class_level ?? ''} · ` : ''}{s.mains_questions?.paper ?? '—'}
                   </span>
                   <span className="text-[11px] text-white/30">{s.model_used}</span>
@@ -700,7 +703,7 @@ export default function AdminConsolePage() {
                   </span>
                   <span className="text-[11px] text-white/30">{s.word_count} words</span>
                   {s.suspected_copy && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171' }}>
                       Suspected copy ({Math.round((s.copy_overlap_ratio ?? 0) * 100)}% overlap)
                     </span>
                   )}
@@ -708,7 +711,7 @@ export default function AdminConsolePage() {
                 <p className="text-xs text-white/50 mb-2">{s.structure_feedback}</p>
 
                 {s.mains_band_overrides?.[0] ? (
-                  <p className="text-[11px]" style={{ color: '#FBBF24' }}>
+                  <p className="text-[11px]" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>
                     Admin override: {s.mains_band_overrides[0].override_band} (was {s.score_band})
                   </p>
                 ) : (
@@ -745,7 +748,7 @@ export default function AdminConsolePage() {
             ) : cronRows.map(r => {
               const hoursSince = r.last_run_at ? (Date.now() - new Date(r.last_run_at).getTime()) / 3_600_000 : null;
               const stale = hoursSince === null || hoursSince > 36;
-              const statusColor = r.last_status === 'success' ? '#4ADE80' : r.last_status === 'error' ? '#F87171' : '#FBBF24';
+              const statusColor = r.last_status === 'success' ? (isLight ? '#047857' : '#4ADE80') : r.last_status === 'error' ? (isLight ? '#B91C1C' : '#F87171') : (isLight ? '#92400E' : '#FBBF24');
               return (
                 <div key={r.jobname} className="rounded-2xl p-3" style={{ background: 'var(--ink-040)' }}>
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -785,7 +788,7 @@ export default function AdminConsolePage() {
                   <div className="rounded-2xl p-3 flex items-center justify-between" style={{ background: 'var(--ink-040)' }}>
                     <span className="text-sm font-semibold text-white">DB connections</span>
                     <span className="text-sm font-bold" style={{
-                      color: obsConnStats.current_connections / obsConnStats.max_connections >= 0.8 ? '#F87171' : '#4ADE80',
+                      color: obsConnStats.current_connections / obsConnStats.max_connections >= 0.8 ? (isLight ? '#B91C1C' : '#F87171') : (isLight ? '#047857' : '#4ADE80'),
                     }}>
                       {obsConnStats.current_connections}/{obsConnStats.max_connections}
                       {' '}({Math.round((obsConnStats.current_connections / obsConnStats.max_connections) * 100)}%)
@@ -801,7 +804,7 @@ export default function AdminConsolePage() {
                       <span className="text-sm font-semibold text-white">{r.function_name}</span>
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{
                         background: r.count_1h >= 10 ? '#F8717122' : r.count_1h > 0 ? '#FBBF2422' : '#4ADE8022',
-                        color:      r.count_1h >= 10 ? '#F87171'   : r.count_1h > 0 ? '#FBBF24'   : '#4ADE80',
+                        color:      r.count_1h >= 10 ? (isLight ? '#B91C1C' : '#F87171') : r.count_1h > 0 ? (isLight ? '#92400E' : '#FBBF24') : (isLight ? '#047857' : '#4ADE80'),
                       }}>
                         {r.count_1h}/1h · {r.count_24h}/24h
                       </span>
@@ -882,8 +885,8 @@ function CreateLiveEventModal({ onClose, onCreated }: { onClose: () => void; onC
           {error && <p className="text-xs text-red-400">{error}</p>}
 
           <button onClick={handleSubmit} disabled={submitting}
-            className="w-full py-3 rounded-xl font-bold text-white disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
+            className="w-full py-3 rounded-xl font-bold disabled:opacity-60"
+            style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}>
             {submitting ? 'Creating…' : 'Create Event'}
           </button>
         </div>
