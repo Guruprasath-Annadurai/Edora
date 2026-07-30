@@ -27,6 +27,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { track } from '@/lib/analytics';
 import { Capacitor } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // Use the local worker bundled by Vite — no CDN dependency
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -193,6 +194,8 @@ function FlashcardItem({ card, index, total }: { card: Flashcard; index: number;
 
 // ── Quiz component ────────────────────────────────────────────────────────────
 function QuizView({ questions }: { questions: QuizQ[] }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [current,  setCurrent]  = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -225,10 +228,10 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
         <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
           style={{ background: pct >= 80 ? 'rgba(16,185,129,0.15)' : pct >= 50 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)' }}>
           {pct >= 80
-            ? <Trophy size={36} style={{ color: '#34D399' }} />
+            ? <Trophy size={36} style={{ color: isLight ? '#047857' : '#34D399' }} />
             : pct >= 50
-              ? <Star size={36} style={{ color: '#FBBF24' }} />
-              : <BookOpen size={36} style={{ color: '#F87171' }} />}
+              ? <Star size={36} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
+              : <BookOpen size={36} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />}
         </div>
         <div>
           <p className="font-heading text-2xl font-bold text-white">{score}/{questions.length}</p>
@@ -237,8 +240,8 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
           </p>
         </div>
         <button onClick={restart}
-          className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-semibold text-white"
-          style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
+          className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-semibold"
+          style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}>
           <RotateCcw size={15} /> Try Again
         </button>
       </motion.div>
@@ -278,10 +281,10 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
             let optBorder = 'var(--ink-080)';
             let textColor = 'var(--ink-850)';
             if (revealed) {
-              if (isCorrect)       { optBg = 'rgba(16,185,129,0.12)'; optBorder = 'rgba(16,185,129,0.35)'; textColor = '#34D399'; }
-              else if (isSelected) { optBg = 'rgba(239,68,68,0.12)';  optBorder = 'rgba(239,68,68,0.35)'; textColor = '#F87171'; }
+              if (isCorrect)       { optBg = 'rgba(16,185,129,0.12)'; optBorder = 'rgba(16,185,129,0.35)'; textColor = isLight ? '#047857' : '#34D399'; }
+              else if (isSelected) { optBg = 'rgba(239,68,68,0.12)';  optBorder = 'rgba(239,68,68,0.35)'; textColor = isLight ? '#B91C1C' : '#F87171'; }
             } else if (isSelected) {
-              optBg = 'rgba(91,106,245,0.15)'; optBorder = 'rgba(91,106,245,0.5)'; textColor = '#818CF8';
+              optBg = 'rgba(91,106,245,0.15)'; optBorder = 'rgba(91,106,245,0.5)'; textColor = isLight ? '#4338CA' : '#818CF8';
             }
             return (
               <button key={i} onClick={() => pick(i)}
@@ -293,8 +296,8 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
                   {String.fromCharCode(65 + i)}
                 </span>
                 <span style={{ color: textColor }}>{opt}</span>
-                {revealed && isCorrect  && <CheckCircle size={16} style={{ color: '#34D399' }} className="ml-auto shrink-0" />}
-                {revealed && isSelected && !isCorrect && <XCircle size={16} style={{ color: '#F87171' }} className="ml-auto shrink-0" />}
+                {revealed && isCorrect  && <CheckCircle size={16} style={{ color: isLight ? '#047857' : '#34D399' }} className="ml-auto shrink-0" />}
+                {revealed && isSelected && !isCorrect && <XCircle size={16} style={{ color: isLight ? '#B91C1C' : '#F87171' }} className="ml-auto shrink-0" />}
               </button>
             );
           })}
@@ -327,6 +330,8 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function StudyPackPage() {
   const { user }  = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [phase,       setPhase]       = useState<Phase>('list');
@@ -554,7 +559,7 @@ export default function StudyPackPage() {
               className="flex flex-col items-center gap-6 text-center max-w-xs">
               <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
                 style={{ background: 'rgba(239,68,68,0.12)' }}>
-                <AlertCircle size={36} className="text-red-400" />
+                <AlertCircle size={36} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
               </div>
               <div>
                 <p className="font-heading text-lg font-bold text-white mb-2">Generation Failed</p>
@@ -562,8 +567,8 @@ export default function StudyPackPage() {
               </div>
               <button
                 onClick={() => { setPhase('list'); setGenError(''); }}
-                className="px-6 py-3 rounded-2xl text-sm font-semibold text-white"
-                style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
+                className="px-6 py-3 rounded-2xl text-sm font-semibold"
+                style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}>
                 Try Another PDF
               </button>
             </motion.div>
@@ -579,7 +584,7 @@ export default function StudyPackPage() {
                 ))}
                 <div className="w-24 h-24 rounded-3xl flex items-center justify-center text-4xl z-10"
                   style={{ background: 'linear-gradient(135deg, rgba(91,106,245,0.15), rgba(139,92,246,0.15))', border: '1.5px solid rgba(91,106,245,0.25)' }}>
-                  <Sparkles size={36} style={{ color: '#5B6AF5' }} />
+                  <Sparkles size={36} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
                 </div>
               </motion.div>
 
@@ -607,14 +612,15 @@ export default function StudyPackPage() {
                           background: done ? 'rgba(16,185,129,0.15)' : active ? 'rgba(91,106,245,0.15)' : 'rgba(148,163,184,0.1)',
                         }}>
                         {done
-                          ? <CheckCircle size={16} className="text-green-500" />
+                          ? <CheckCircle size={16} style={{ color: isLight ? '#047857' : '#4ADE80' }} />
                           : active
                             ? <motion.div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent"
                                 animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
                             : <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />}
                       </div>
                       <div className="flex-1">
-                        <p className={`text-sm font-semibold ${done ? 'text-emerald-400' : active ? 'text-white' : 'text-muted-foreground'}`}>
+                        <p className={`text-sm font-semibold ${done ? '' : active ? 'text-white' : 'text-muted-foreground'}`}
+                          style={done ? { color: isLight ? '#047857' : '#34D399' } : undefined}>
                           {i === 0 && active && isOcrMode ? 'Scanning with OCR' : step.label}
                         </p>
                         {active && (
@@ -666,7 +672,7 @@ export default function StudyPackPage() {
           </button>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
             style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
-            <FileText size={20} className="text-white" />
+            <FileText size={20} style={{ color: '#0F172A' }} />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-heading font-bold text-white text-sm truncate">{viewing.file_name}</h2>
@@ -682,7 +688,7 @@ export default function StudyPackPage() {
             {deleting === viewing.id
               ? <motion.div className="w-4 h-4 rounded-full border-2 border-red-400 border-t-transparent"
                   animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
-              : <Trash2 size={16} className="text-red-400" />}
+              : <Trash2 size={16} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />}
           </button>
         </div>
 
@@ -714,7 +720,7 @@ export default function StudyPackPage() {
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center"
                       style={{ background: 'rgba(91,106,245,0.15)' }}>
-                      <AlignLeft size={16} style={{ color: '#818CF8' }} />
+                      <AlignLeft size={16} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
                     </div>
                     <h3 className="font-heading font-bold text-white text-sm">Summary</h3>
                   </div>
@@ -820,7 +826,7 @@ export default function StudyPackPage() {
           style={{ background: 'linear-gradient(135deg, rgba(91,106,245,0.1), rgba(245,158,11,0.1))', border: '2px dashed rgba(91,106,245,0.3)' }}>
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
             style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
-            <Upload size={24} className="text-white" />
+            <Upload size={24} style={{ color: '#0F172A' }} />
           </div>
           <div className="text-left">
             <p className="font-heading font-bold text-white text-base">Upload a PDF</p>
@@ -832,14 +838,14 @@ export default function StudyPackPage() {
         {/* What you get */}
         <div className="grid grid-cols-2 gap-2">
           {[
-            { Icon: AlignLeft, label: 'AI Summary',      desc: '3–4 paragraph overview',   color: '#818CF8' },
-            { Icon: BookOpen,  label: '10 Flashcards',   desc: 'Key concepts to review',    color: '#34D399' },
-            { Icon: HelpCircle,label: '5-Question Quiz', desc: 'Test your understanding',   color: '#60A5FA' },
-            { Icon: List,      label: '10 Key Terms',    desc: 'Definitions & vocabulary',  color: '#FBBF24' },
-          ].map(({ Icon, label, desc, color }) => (
+            { Icon: AlignLeft, label: 'AI Summary',      desc: '3–4 paragraph overview',   color: '#818CF8', colorLight: '#4338CA' },
+            { Icon: BookOpen,  label: '10 Flashcards',   desc: 'Key concepts to review',    color: '#34D399', colorLight: '#047857' },
+            { Icon: HelpCircle,label: '5-Question Quiz', desc: 'Test your understanding',   color: '#60A5FA', colorLight: '#1D4ED8' },
+            { Icon: List,      label: '10 Key Terms',    desc: 'Definitions & vocabulary',  color: '#FBBF24', colorLight: '#92400E' },
+          ].map(({ Icon, label, desc, color, colorLight }) => (
             <div key={label} className="rounded-2xl p-3 flex items-center gap-2"
               style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
-              <Icon size={18} style={{ color }} className="shrink-0" />
+              <Icon size={18} style={{ color: isLight ? colorLight : color }} className="shrink-0" />
               <div>
                 <p className="text-xs font-semibold text-white">{label}</p>
                 <p className="text-xs text-muted-foreground">{desc}</p>
@@ -889,7 +895,7 @@ export default function StudyPackPage() {
                   style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: 'rgba(245,158,11,0.15)' }}>
-                    <FileText size={20} style={{ color: '#FBBF24' }} />
+                    <FileText size={20} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white text-sm truncate">{pack.file_name}</p>
@@ -920,7 +926,7 @@ export default function StudyPackPage() {
             className="flex flex-col items-center justify-center py-10 text-center gap-3">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{ background: 'rgba(245,158,11,0.12)' }}>
-              <FileText size={32} style={{ color: '#FBBF24' }} strokeWidth={1.5} />
+              <FileText size={32} style={{ color: isLight ? '#92400E' : '#FBBF24' }} strokeWidth={1.5} />
             </div>
             <p className="font-heading font-semibold text-white">No study packs yet</p>
             <p className="text-sm text-muted-foreground max-w-[260px]">
@@ -947,7 +953,7 @@ function Header({ title }: { title: string }) {
       </Link>
       <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
         style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
-        <FileText size={20} className="text-white" />
+        <FileText size={20} style={{ color: '#0F172A' }} />
       </div>
       <div className="flex-1">
         <h2 className="font-heading font-bold text-white text-sm">{title}</h2>
