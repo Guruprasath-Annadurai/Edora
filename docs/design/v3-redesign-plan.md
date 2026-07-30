@@ -672,6 +672,34 @@ color or type size.
 26. **Parent Portal** (`settings/ParentDashboardPage.tsx`,
     `ParentPortalPage.tsx`)
 
+    **Parent Portal Page** (`ParentPortalPage.tsx`) — ✅ 43rd occurrence.
+    Fixed SUBJECT_COLORS and the weekly-stats icon colors with isLight
+    branches. Also found a wider-blast-radius variant of the
+    text-white-on-fixed-background bug class: several bg-indigo-600/
+    bg-emerald-600 buttons and avatar chips have no color of their own
+    — they *inherit* "white" from an ancestor `text-white`-classed root
+    div, and the global light-theme safety net downgrades that
+    ancestor to dark ink, breaking every fixed-background child that
+    inherits it. Fixed each to its own correct explicit color (computed
+    per-background — dark ink wins on the emerald-600 avatar, white
+    wins on the indigo-600 buttons). Verified live at `/parent-portal`
+    in light theme, no crash, `getComputedStyle()` confirms fix.
+    Not fixed: the page's pervasive raw Tailwind `text-gray-400/500`
+    (vs. the app's ink-token system) — lower-severity, flagged for a
+    dedicated migration rather than folded into this targeted pass.
+
+    **Parent Dashboard** (`settings/ParentDashboardPage.tsx`) — ✅ 44th
+    occurrence. Fixed the MasteryRing donut's 3-tier color, the weekly-
+    activity stat icons, a recurring lavender `#8B9BFA` (headline
+    label, "View Full Report" button, 2 icon badges), and 4 instances
+    of the fixed-gradient text-white bug class (header icon badge,
+    generating-state icon badge, "Generate Report" button, modal
+    footer's "Share Report" button). Verified live at `/parent` in
+    light theme, no crash, `getComputedStyle()` confirms all 4 stat
+    icons and the header icon match expected hex exactly.
+
+    This closes out item 26 and all of Phase 5.
+
 These three groups are the ones where "corporate-level" matters most in
 practice — a teacher or school administrator judging the product's
 legitimacy will see these screens, not the gamified student-facing ones.
