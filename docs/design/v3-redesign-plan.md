@@ -509,9 +509,41 @@ color or type size.
 
     This closes out item 20 and all of Phase 4 — 28 distinct files fixed
     this session.
-21. **Weakness Radar** (`WeaknessRadarPage.tsx`), **Error Patterns**
-    (`ErrorPatternsPage.tsx`), **Attention Heatmap**
-    (`AttentionHeatmapPage.tsx`), **Study DNA** (`StudyDNAPage.tsx`)
+21. **Weakness Radar / Error Patterns / Attention Heatmap / Study DNA** —
+    ✅ all 4 audited + fixed.
+
+    **Weakness Radar** (`WeaknessRadarPage.tsx`) — ✅ 29th occurrence.
+    Added SUBJECT_COLORS_LIGHT (7 subjects) + isLight-aware
+    subjectColor()/masteryColor() helpers for the radar chart's axis
+    labels and data points, plus TopicRow's progress bar. Verified live:
+    empty-state Target icon exactly `#4338CA`.
+
+    **Error Patterns** (`ErrorPatternsPage.tsx`) — ✅ 30th occurrence.
+    patternColor()'s 4 tiers and OccurrenceBadge's 2 count tiers fixed
+    with isLight branches. Fixed the "All Subjects" filter's theme-
+    flipping-token-on-fixed-gradient bug. Left the per-subject active
+    pill unchanged — its pale-lavender background is fixed in both
+    themes already, not the "breaks in light theme" pattern.
+
+    **Attention Heatmap** (`AttentionHeatmapPage.tsx`) — ✅ 31st
+    occurrence. topicColor()'s 5 neglect-tiers and urgencyConfig()'s 3
+    alert tiers fixed with isLight branches; fixed 2 more "stacking alpha
+    on an already-darkened color" instances. Found and fixed a new
+    variant of BossFightPage's "fixed bg, one text color fails
+    regardless of theme" bug in the "Study Now" button — flipped its
+    text color with isLight instead of leaving it static, since the tier
+    color itself flips from pale (dark theme) to dark/saturated (light
+    theme).
+
+    **Study DNA** (`StudyDNAPage.tsx`) — ✅ 32nd occurrence. StatCard
+    colors, subject-verdict dots, and Top Topics/Focus Next Week colors
+    fixed with isLight branches. Left the decorative DNA helix animation
+    and the canvas-drawn share-card image unchanged (ornamental / always
+    renders on a fixed dark canvas regardless of app theme). Verified
+    live: XP Earned icon exactly `#92400E`, verdict dots exactly
+    `#047857`/`#B91C1C`.
+
+    This closes out item 21 — 32 distinct files fixed this session.
 22. **Analytics Dashboard** (`AnalyticsDashboardPage.tsx`), **Novo Insights**
     (`NovoInsightsPage.tsx`), **Eval Dashboard** (`EvalDashboardPage.tsx`)
 23. **Mock Test** (`MockTestPage.tsx`), **Mock Postmortem**
