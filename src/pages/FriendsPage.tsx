@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,10 @@ function Avatar({ url, name, size = 44 }: { url: string | null; name: string; si
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.36, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0,
+      // Fixed indigo/purple gradient regardless of theme — a theme-flipping
+      // var(--ink-950) token here goes near-black in light theme (same bug
+      // class as BattlePage/StudyRoomPage). Use a literal white instead.
+      fontSize: size * 0.36, fontWeight: 700, color: '#ffffff', flexShrink: 0,
     }}>{initials}</div>
   );
 }
@@ -70,6 +74,8 @@ function isInactive(lastActive: string | null): number {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function FriendsPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { profile } = useAuth();
   const navigate = useNavigate();
 
@@ -246,7 +252,7 @@ export default function FriendsPage() {
         </button>
         <h1 className="font-heading text-lg font-bold text-white flex-1">Friends</h1>
         <button onClick={shareInvite} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.15)' }}>
-          <Share2 className="w-4.5 h-4.5" style={{ color: '#A0AEFF' }} />
+          <Share2 className="w-4.5 h-4.5" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
         </button>
       </div>
 
@@ -260,7 +266,9 @@ export default function FriendsPage() {
           <button key={t.id} onClick={() => setTab(t.id)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-colors"
             style={tab === t.id
-              ? { background: cfg.gradient, color: 'var(--ink-950)' }
+              // Fixed gradient background — see Avatar's comment above for
+              // why a theme-flipping token is wrong here.
+              ? { background: cfg.gradient, color: '#ffffff' }
               : { background: 'var(--ink-050)', color: 'var(--ink-500)' }
             }>
             <t.icon className="w-3.5 h-3.5" />
@@ -277,7 +285,7 @@ export default function FriendsPage() {
           ) : friends.length === 0 ? (
             <EmptyState
               icon={UsersIcon}
-              iconColor="#A0AEFF"
+              iconColor={isLight ? '#4338CA' : '#A0AEFF'}
               iconBg="rgba(91,106,245,0.12)"
               title="No friends yet"
               subtitle="Add study buddies to see each other's streaks and motivate each other daily."
@@ -296,14 +304,14 @@ export default function FriendsPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white truncate">{f.full_name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="flex items-center gap-1 text-xs" style={{ color: '#FB923C' }}>
+                        <span className="flex items-center gap-1 text-xs" style={{ color: isLight ? '#B45309' : '#FB923C' }}>
                           <Flame className="w-3 h-3" />{f.streak_count}
                         </span>
-                        <span className="flex items-center gap-1 text-xs" style={{ color: '#A0AEFF' }}>
+                        <span className="flex items-center gap-1 text-xs" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>
                           <Zap className="w-3 h-3" />Lvl {f.level}
                         </span>
                         {inactiveDays >= 2 && (
-                          <span className="text-xs flex items-center gap-1" style={{ color: 'rgba(239,68,68,0.85)' }}>
+                          <span className="text-xs flex items-center gap-1" style={{ color: isLight ? '#B91C1C' : 'rgba(239,68,68,0.85)' }}>
                             <Clock className="w-3 h-3" />{inactiveDays}d inactive
                           </span>
                         )}
@@ -314,7 +322,7 @@ export default function FriendsPage() {
                         onClick={() => sendNudge(f.id, f.full_name)}
                         disabled={nudging === f.id}
                         className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 flex-shrink-0"
-                        style={{ background: 'rgba(251,146,60,0.15)', color: '#FB923C' }}>
+                        style={{ background: 'rgba(251,146,60,0.15)', color: isLight ? '#B45309' : '#FB923C' }}>
                         <Flame size={12} strokeWidth={1.8} /> Nudge
                       </button>
                     )}
@@ -329,7 +337,7 @@ export default function FriendsPage() {
         {tab === 'requests' && (
           requests.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-              <div className="w-16 h-16 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)' }}><MailX size={26} style={{ color: '#A0AEFF' }} strokeWidth={1.6} /></div>
+              <div className="w-16 h-16 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)' }}><MailX size={26} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} strokeWidth={1.6} /></div>
               <p className="text-white/60 text-sm">No pending requests</p>
             </div>
           ) : (
@@ -345,11 +353,11 @@ export default function FriendsPage() {
                   </div>
                   <button onClick={() => acceptRequest(r.friendship_id)}
                     className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(16,185,129,0.18)' }}>
-                    <Check className="w-4.5 h-4.5" style={{ color: '#34D399' }} />
+                    <Check className="w-4.5 h-4.5" style={{ color: isLight ? '#047857' : '#34D399' }} />
                   </button>
                   <button aria-label="Close" onClick={() => declineRequest(r.friendship_id)}
                     className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,0.15)' }}>
-                    <X className="w-4.5 h-4.5" style={{ color: '#F87171' }} />
+                    <X className="w-4.5 h-4.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
                   </button>
                 </motion.div>
               ))}
@@ -371,8 +379,8 @@ export default function FriendsPage() {
             </div>
 
             <button onClick={shareInvite}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold text-white mb-4"
-              style={{ background: cfg.gradient }}>
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold mb-4"
+              style={{ background: cfg.gradient, color: '#ffffff' }}>
               <QrCode className="w-4 h-4" /> Share Invite Link
             </button>
 
@@ -390,7 +398,7 @@ export default function FriendsPage() {
                   {r.rel === 'none' && (
                     <button onClick={() => sendRequest(r.id)}
                       className="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1 flex-shrink-0"
-                      style={{ background: cfg.gradient, color: 'var(--ink-950)' }}>
+                      style={{ background: cfg.gradient, color: '#ffffff' }}>
                       <UserPlus className="w-3.5 h-3.5" /> Add
                     </button>
                   )}
@@ -399,10 +407,10 @@ export default function FriendsPage() {
                   )}
                   {r.rel === 'pending_received' && (
                     <button onClick={() => setTab('requests')}
-                      className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(16,185,129,0.18)', color: '#34D399' }}>Respond</button>
+                      className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(16,185,129,0.18)', color: isLight ? '#047857' : '#34D399' }}>Respond</button>
                   )}
                   {r.rel === 'friends' && (
-                    <span className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(91,106,245,0.15)', color: '#A0AEFF' }}>Friends</span>
+                    <span className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#A0AEFF' }}>Friends</span>
                   )}
                 </div>
               ))}
