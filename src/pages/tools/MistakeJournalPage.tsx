@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import type { QuizQuestion } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface JournalEntry {
   id: string;
@@ -18,6 +19,8 @@ interface JournalEntry {
 
 export default function MistakeJournalPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -84,7 +87,7 @@ export default function MistakeJournalPage() {
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
           style={{ background: 'linear-gradient(135deg, #EC4899, #8B5CF6)' }}>
-          <PenLine size={20} className="text-white" />
+          <PenLine size={20} style={{ color: '#0F172A' }} />
         </div>
         <div className="flex-1">
           <h2 className="font-heading font-bold text-white text-sm">Mistake Journal</h2>
@@ -102,7 +105,7 @@ export default function MistakeJournalPage() {
         {!loading && entries.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-            <CheckCircle size={56} className="text-green-400" strokeWidth={1.5} />
+            <CheckCircle size={56} style={{ color: isLight ? '#047857' : '#4ADE80' }} strokeWidth={1.5} />
             <div>
               <p className="font-heading text-lg font-bold text-white">No mistakes yet!</p>
               <p className="text-sm text-muted-foreground mt-1">Take a quiz and your wrong answers will appear here.</p>
@@ -121,7 +124,7 @@ export default function MistakeJournalPage() {
                 onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}>
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(236,72,153,0.15)' }}>
-                  <PenLine size={18} style={{ color: '#F472B6' }} />
+                  <PenLine size={18} style={{ color: isLight ? '#9D174D' : '#F472B6' }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-white text-sm truncate">{entry.topic}</p>
@@ -147,12 +150,12 @@ export default function MistakeJournalPage() {
                       style={{ borderBottom: j < entry.mistakes.length - 1 ? '1px solid var(--ink-050)' : 'none' }}>
                       <p className="text-sm font-medium text-white/85 mb-2">{m.question}</p>
                       <div className="flex items-start gap-2 mb-1">
-                        <XCircle size={13} style={{ color: '#F87171' }} className="shrink-0 mt-0.5" />
-                        <p className="text-xs text-red-400">Your answer: {m.your_answer}</p>
+                        <XCircle size={13} style={{ color: isLight ? '#B91C1C' : '#F87171' }} className="shrink-0 mt-0.5" />
+                        <p className="text-xs" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>Your answer: {m.your_answer}</p>
                       </div>
                       <div className="flex items-start gap-2 mb-2">
-                        <CheckCircle size={13} style={{ color: '#34D399' }} className="shrink-0 mt-0.5" />
-                        <p className="text-xs" style={{ color: '#34D399' }}>Correct: {m.correct_answer}</p>
+                        <CheckCircle size={13} style={{ color: isLight ? '#047857' : '#34D399' }} className="shrink-0 mt-0.5" />
+                        <p className="text-xs" style={{ color: isLight ? '#047857' : '#34D399' }}>Correct: {m.correct_answer}</p>
                       </div>
                       {m.explanation && (
                         <p className="text-xs text-muted-foreground rounded-xl px-3 py-2"
