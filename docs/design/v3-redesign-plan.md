@@ -936,6 +936,57 @@ sales/procurement conversation coming up.
     **Course** (`CoursePage.tsx`), **Photo Solver** (`PhotoSolverPage.tsx`),
     **Tutoring Session** (`TutoringSessionPage.tsx`), **Video Companion**
     (`VideoCompanionPage.tsx`)
+
+    **Curriculum Detail** — ✅ 70th occurrence. Local Toast component's
+    3 fixed solid backgrounds (success/error/info) each needed their own
+    computed foreground rather than a blanket `text-white`.
+
+    **Curriculum** — ✅ 71st occurrence.
+
+    **Photo Solver** — ✅ 72nd occurrence. Shared the same Toast bug
+    class as Curriculum Detail.
+
+    **UPSC Mains** — ✅ 73rd occurrence.
+
+    **Tutoring Session** — ✅ 74th occurrence.
+
+    **Course** — ✅ 75th occurrence. `LessonList`/`ChapterList` render a
+    completed-lesson/chapter badge on a per-subject FIXED `subject.color`
+    background with a `text-white` CheckCircle icon — computed contrast
+    for all 5 distinct subject.color values in courseData.ts (white
+    fails ~1.7-2.7:1 against all of them, dark ink passes ~6.6-10.3:1),
+    fixed to a universal literal `#0F172A` rather than a per-subject
+    branch. `LessonViewer` (lesson detail) had 6 hardcoded dark-theme
+    colors (amber XP badge/Exam Tip, green Done/Completed, blue practice
+    tip) with no isLight branch, plus the complete-button used
+    `text-white` on the same fixed subject.color gradient — same fix.
+    `LESSON_TYPE_META` in courseData.ts gained a `colorLight` field per
+    lesson type. Verified live under light theme through Class 10 →
+    English → chapter → lesson list (legible); could not click into the
+    individual lesson detail view in this preview environment, so those
+    specific fixes rely on the session's established contrast math.
+
+    **Video Companion** — ✅ 76th occurrence, closing out item 33. Toast
+    component (same bug class as Curriculum Detail/Photo Solver), pale
+    green/amber status badges with no isLight branch (RecentRow, ready
+    phase, Add-to-Spaced-Review success state), a Tailwind `text-red-400`
+    icon (confirmed no light-theme override in globals.css), a 3-way
+    difficulty badge, topic-tag pills, section labels/icons, and
+    flashcard Q/A badge letters — all fixed to isLight-branched darker
+    values. The FEATURES empty-state array gained a `colorLight` field;
+    only the cyan icon actually needed a different value (indigo/violet
+    already clear the 3:1 non-text-icon threshold at ~4.2-4.35:1, cyan
+    was ~2.43:1). Left the active-tab indicator and the assistant chat
+    bubble alone — both already use adaptive `var(--ink-950)`/
+    `var(--ink-900)` tokens whose light/dark values both happen to pass
+    against their fixed backgrounds. Could not exercise the
+    recent-sessions list, empty-state cards, or ready phase live (the
+    `list_sessions` edge function call never resolved in this
+    network-isolated preview), so those fixes rely on contrast math.
+
+    This closes out item 33 — all 7 files (Curriculum, Curriculum
+    Detail, Course, Photo Solver, UPSC Mains, Tutoring Session, Video
+    Companion) fixed.
 34. **Subscription** (`ProSubscriptionPage.tsx`) — worth doing earlier than
     its phase number, since this is a conversion-critical screen; keep
     "straightforward business upsell" tone per the earlier god-mode plan,
