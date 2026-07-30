@@ -30,6 +30,7 @@ import { Link } from 'react-router-dom';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -93,6 +94,12 @@ const SUBJECT_COLORS: Record<string, string> = {
   Mathematics: '#F59E0B',
   Biology:     '#EC4899' };
 
+const SUBJECT_COLORS_LIGHT: Record<string, string> = {
+  Physics:     '#4338CA',
+  Chemistry:   '#047857',
+  Mathematics: '#92400E',
+  Biology:     '#9D174D' };
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
@@ -154,6 +161,8 @@ function WeeklyChart({ history }: { history: Array<{ date: string; xp: number }>
 
 export default function ParentPortalPage() {
   const { user, profile } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const [phase, setPhase]               = useState<Phase>('loading');
   const [childLinks, setChildLinks]     = useState<ChildLink[]>([]);
@@ -308,7 +317,7 @@ export default function ParentPortalPage() {
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Connected Parents</p>
               {studentLinks.map((p, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-emerald-900/20 border border-emerald-500/20">
-                  <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-sm font-bold">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-sm font-bold" style={{ color: '#0F172A' }}>
                     {p.parent_name[0]?.toUpperCase()}
                   </div>
                   <div>
@@ -347,6 +356,7 @@ export default function ParentPortalPage() {
                   <button
                     onClick={shareCode}
                     className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors"
+                    style={{ color: '#ffffff' }}
                   >
                     <Share2 className="w-4 h-4" /> Share
                   </button>
@@ -363,6 +373,7 @@ export default function ParentPortalPage() {
                 onClick={generateCode}
                 disabled={codeLoading}
                 className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                style={{ color: '#ffffff' }}
               >
                 {codeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
                 {codeLoading ? 'Generating…' : 'Generate Invite Code'}
@@ -429,6 +440,7 @@ export default function ParentPortalPage() {
               onClick={acceptCode}
               disabled={enteredCode.length !== 6 || accepting}
               className="w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 font-bold transition-colors flex items-center justify-center gap-2"
+              style={{ color: '#ffffff' }}
             >
               {accepting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ChevronRight className="w-5 h-5" />}
               {accepting ? 'Connecting…' : 'Connect'}
@@ -468,8 +480,9 @@ export default function ParentPortalPage() {
                 key={c.child_id}
                 onClick={() => { setSelectedChild(c); loadChildStats(c.child_id); }}
                 className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition-colors ${
-                  selectedChild?.child_id === c.child_id ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400'
+                  selectedChild?.child_id === c.child_id ? 'bg-indigo-600' : 'bg-white/5 text-gray-400'
                 }`}
+                style={selectedChild?.child_id === c.child_id ? { color: '#ffffff' } : undefined}
               >
                 {c.child_name}
               </button>
@@ -499,7 +512,7 @@ export default function ParentPortalPage() {
             className="p-5 rounded-2xl bg-gradient-to-br from-indigo-900/40 to-purple-900/30 border border-indigo-500/20"
           >
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-2xl font-black">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-2xl font-black" style={{ color: '#ffffff' }}>
                 {childStats.profile.full_name?.[0]?.toUpperCase() ?? '?'}
               </div>
               <div className="flex-1">
@@ -526,15 +539,15 @@ export default function ParentPortalPage() {
             className="grid grid-cols-2 gap-3"
           >
             {[
-              { icon: Clock,    value: `${childStats.week.study_minutes}m`, label: 'Study time this week',  color: '#5B6AF5' },
-              { icon: Target,   value: `${childStats.week.quiz_accuracy}%`, label: 'Quiz accuracy',          color: '#10B981' },
-              { icon: Zap,      value: `+${childStats.week.xp_earned}`,    label: 'XP earned this week',    color: '#F59E0B' },
-              { icon: BookOpen, value: `${childStats.week.sessions_completed}`, label: 'Sessions completed', color: '#EC4899' },
-            ].map(({ icon: Icon, value, label, color }, i) => (
+              { icon: Clock,    value: `${childStats.week.study_minutes}m`, label: 'Study time this week',  color: '#5B6AF5', lightColor: '#4338CA' },
+              { icon: Target,   value: `${childStats.week.quiz_accuracy}%`, label: 'Quiz accuracy',          color: '#10B981', lightColor: '#047857' },
+              { icon: Zap,      value: `+${childStats.week.xp_earned}`,    label: 'XP earned this week',    color: '#F59E0B', lightColor: '#92400E' },
+              { icon: BookOpen, value: `${childStats.week.sessions_completed}`, label: 'Sessions completed', color: '#EC4899', lightColor: '#9D174D' },
+            ].map(({ icon: Icon, value, label, color, lightColor }, i) => (
               <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/8 space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${color}20` }}>
-                    <Icon className="w-4 h-4" style={{ color }} />
+                    <Icon className="w-4 h-4" style={{ color: isLight ? lightColor : color }} />
                   </div>
                 </div>
                 <div className="text-2xl font-black text-white">{value}</div>
@@ -573,7 +586,7 @@ export default function ParentPortalPage() {
                 {childStats.subjects.map((s) => (
                   <div key={s.subject} className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span style={{ color: SUBJECT_COLORS[s.subject] ?? '#9CA3AF' }} className="font-medium">{s.subject}</span>
+                      <span style={{ color: (isLight ? SUBJECT_COLORS_LIGHT[s.subject] : SUBJECT_COLORS[s.subject]) ?? (isLight ? '#52525B' : '#9CA3AF') }} className="font-medium">{s.subject}</span>
                       <span className="text-gray-400">{s.accuracy}% · {s.questions_attempted} questions</span>
                     </div>
                     <XPBar value={s.accuracy} max={100} color={SUBJECT_COLORS[s.subject] ?? '#6B7280'} />
