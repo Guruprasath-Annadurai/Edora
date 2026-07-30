@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {ArrowLeft, Search, X, BookOpen, Globe} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,11 +34,11 @@ const POPULAR_SUBJECTS = [
   'Psychology', 'Geography',
 ];
 
-const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
-  Secondary:       { bg: 'rgba(16,185,129,0.15)',  text: '#10B981' },
-  'Pre-University': { bg: 'rgba(91,106,245,0.15)',  text: '#5B6AF5' },
-  University:      { bg: 'rgba(245,158,11,0.15)',  text: '#F59E0B' },
-  Professional:    { bg: 'rgba(139,92,246,0.15)',  text: '#8B5CF6' } };
+const LEVEL_COLORS: Record<string, { bg: string; text: string; textLight: string }> = {
+  Secondary:       { bg: 'rgba(16,185,129,0.15)',  text: '#10B981', textLight: '#047857' },
+  'Pre-University': { bg: 'rgba(91,106,245,0.15)',  text: '#5B6AF5', textLight: '#4338CA' },
+  University:      { bg: 'rgba(245,158,11,0.15)',  text: '#F59E0B', textLight: '#92400E' },
+  Professional:    { bg: 'rgba(139,92,246,0.15)',  text: '#8B5CF6', textLight: '#6D28D9' } };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -71,7 +72,9 @@ interface BoardCardProps {
 }
 
 function BoardCard({ board, onSelect, index }: BoardCardProps) {
-  const levelStyle = LEVEL_COLORS[board.level] ?? { bg: 'var(--v2-elevated)', text: 'var(--v2-text-4)' };
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const levelStyle = LEVEL_COLORS[board.level] ?? { bg: 'var(--v2-elevated)', text: 'var(--v2-text-4)', textLight: 'var(--v2-text-4)' };
 
   return (
     <motion.button
@@ -100,13 +103,13 @@ function BoardCard({ board, onSelect, index }: BoardCardProps) {
       <div className="flex flex-wrap gap-1.5">
         <span
           className="text-xs font-bold px-2 py-0.5 rounded-full"
-          style={{ background: 'rgba(91,106,245,0.2)', color: '#818CF8' }}
+          style={{ background: 'rgba(91,106,245,0.2)', color: isLight ? '#4338CA' : '#818CF8' }}
         >
           {board.region}
         </span>
         <span
           className="text-xs font-bold px-2 py-0.5 rounded-full"
-          style={{ background: levelStyle.bg, color: levelStyle.text }}
+          style={{ background: levelStyle.bg, color: isLight ? levelStyle.textLight : levelStyle.text }}
         >
           {board.level}
         </span>
@@ -236,6 +239,8 @@ let _boardsCache: ExamBoard[] | null = null;
 
 export default function CurriculumPage() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const [boards,        setBoards]        = useState<ExamBoard[]>(_boardsCache ?? []);
   const [loading,       setLoading]       = useState(_boardsCache === null);
@@ -386,11 +391,11 @@ export default function CurriculumPage() {
         {error && (
           <div className="mb-4 px-4 py-3 rounded-2xl flex items-center gap-3"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <p className="text-red-400 text-sm flex-1">{error}</p>
+            <p className="text-sm flex-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
             <button
               onClick={fetchBoards}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold"
+              style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}
             >
               Retry
             </button>
@@ -438,7 +443,7 @@ export default function CurriculumPage() {
               className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
               style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.25)' }}
             >
-              <Search size={28} style={{ color: '#818CF8' }} />
+              <Search size={28} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
             </div>
             <p className="text-white/60 font-semibold text-sm mb-1">No boards found</p>
             <p className="text-white/30 text-xs">Try adjusting the filters or search</p>
