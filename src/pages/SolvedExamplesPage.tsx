@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
 
@@ -114,26 +115,31 @@ const SEED_EXAMPLES: SolvedExample[] = [
 
 // ── Difficulty & source styles ────────────────────────────────────────────────
 const DIFF_STYLE = {
-  easy:   { color:'#10B981', bg:'rgba(16,185,129,0.12)', label:'Easy' },
-  medium: { color:'#F59E0B', bg:'rgba(245,158,11,0.12)', label:'Medium' },
-  hard:   { color:'#EF4444', bg:'rgba(239,68,68,0.12)', label:'Hard' },
+  easy:   { color:'#10B981', colorLight:'#047857', bg:'rgba(16,185,129,0.12)', label:'Easy' },
+  medium: { color:'#F59E0B', colorLight:'#92400E', bg:'rgba(245,158,11,0.12)', label:'Medium' },
+  hard:   { color:'#EF4444', colorLight:'#B91C1C', bg:'rgba(239,68,68,0.12)', label:'Hard' },
 };
 const SOURCE_STYLE = {
-  NCERT: { color:'#60A5FA', bg:'rgba(59,130,246,0.12)' },
-  JEE:   { color:'#A78BFA', bg:'rgba(139,92,246,0.12)' },
-  NEET:  { color:'#F472B6', bg:'rgba(236,72,153,0.12)' },
-  AI:    { color:'#34D399', bg:'rgba(16,185,129,0.12)' },
+  NCERT: { color:'#60A5FA', colorLight:'#1D4ED8', bg:'rgba(59,130,246,0.12)' },
+  JEE:   { color:'#A78BFA', colorLight:'#6D28D9', bg:'rgba(139,92,246,0.12)' },
+  NEET:  { color:'#F472B6', colorLight:'#9D174D', bg:'rgba(236,72,153,0.12)' },
+  AI:    { color:'#34D399', colorLight:'#047857', bg:'rgba(16,185,129,0.12)' },
 };
 const SUBJECT_ICONS = { Mathematics: Calculator, Physics: Atom, Chemistry: FlaskConical, Biology: Microscope, English: BookOpen };
 const SUBJECT_COLORS = { Mathematics:'#93C5FD', Physics:'#C4B5FD', Chemistry:'#6EE7B7', Biology:'#86EFAC', English:'#FCA5A5' };
+const SUBJECT_COLORS_LIGHT = { Mathematics:'#1D4ED8', Physics:'#6D28D9', Chemistry:'#047857', Biology:'#15803D', English:'#B91C1C' };
 
 // ── Step component ────────────────────────────────────────────────────────────
 function StepBlock({ step, novoAsk }: { step: SolutionStep; novoAsk: (s: SolutionStep) => void }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const indigo = isLight ? '#4338CA' : '#8B9BFA';
+  const emerald = isLight ? '#047857' : '#34D399';
   return (
     <div className="flex gap-3">
       <div className="flex flex-col items-center">
         <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-extrabold"
-          style={{ background: 'rgba(91,106,245,0.2)', color: '#8B9BFA' }}>
+          style={{ background: 'rgba(91,106,245,0.2)', color: indigo }}>
           {step.step}
         </div>
         <div className="flex-1 w-px mt-1" style={{ background: 'var(--ink-060)' }} />
@@ -149,12 +155,12 @@ function StepBlock({ step, novoAsk }: { step: SolutionStep; novoAsk: (s: Solutio
         <p className="text-xs text-white/55 leading-relaxed">{step.reasoning}</p>
         {step.result && (
           <div className="mt-1.5 flex items-center gap-1.5">
-            <CheckCircle size={11} className="text-emerald-400" />
-            <p className="text-xs font-bold text-emerald-300">{step.result}</p>
+            <CheckCircle size={11} style={{ color: emerald }} />
+            <p className="text-xs font-bold" style={{ color: emerald }}>{step.result}</p>
           </div>
         )}
         <button onClick={() => novoAsk(step)} className="mt-1.5 flex items-center gap-1 text-[10px] font-bold"
-          style={{ color: '#8B9BFA' }}>
+          style={{ color: indigo }}>
           <Bot size={10} /> Ask Novo about this step
         </button>
       </div>
@@ -169,9 +175,13 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
   onNovoAsk: (q: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const SubIcon = SUBJECT_ICONS[ex.subject] ?? BookOpen;
   const diff = DIFF_STYLE[ex.difficulty];
   const src = SOURCE_STYLE[ex.source];
+  const subjectColor = isLight ? SUBJECT_COLORS_LIGHT[ex.subject] : SUBJECT_COLORS[ex.subject];
+  const indigo = isLight ? '#4338CA' : '#8B9BFA';
 
   function askNovo(step: SolutionStep) {
     onNovoAsk(`In the problem "${ex.question}", can you explain step ${step.step}: "${step.action}"? The reasoning given is: ${step.reasoning}`);
@@ -184,32 +194,32 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
         <div className="flex items-start gap-2 mb-2">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-              <SubIcon size={10} style={{ color: SUBJECT_COLORS[ex.subject] }} />
-              <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: SUBJECT_COLORS[ex.subject] }}>{ex.subject}</span>
+              <SubIcon size={10} style={{ color: subjectColor }} />
+              <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: subjectColor }}>{ex.subject}</span>
               <span className="text-[9px] text-white/30">·</span>
               <span className="text-[9px] text-white/40">{ex.chapter}</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: src.bg, color: src.color }}>{ex.source}</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: diff.bg, color: diff.color }}>{diff.label}</span>
-              <span className="text-[9px] text-amber-400/70 font-bold">{ex.marks}M</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: src.bg, color: isLight ? src.colorLight : src.color }}>{ex.source}</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: diff.bg, color: isLight ? diff.colorLight : diff.color }}>{diff.label}</span>
+              <span className="text-[9px] font-bold" style={{ color: isLight ? '#92400E' : 'rgba(251,191,36,0.7)' }}>{ex.marks}M</span>
             </div>
             <p className="text-sm text-white/90 leading-relaxed">{ex.question}</p>
           </div>
           <button onClick={() => onSave(ex.id)} className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: ex.saved ? 'rgba(91,106,245,0.2)' : 'var(--ink-060)' }} aria-label="Save">
-            <BookMarked size={14} style={{ color: ex.saved ? '#8B9BFA' : 'var(--ink-400)' }} fill={ex.saved ? '#8B9BFA' : 'none'} />
+            <BookMarked size={14} style={{ color: ex.saved ? indigo : 'var(--ink-400)' }} fill={ex.saved ? indigo : 'none'} />
           </button>
         </div>
 
         {/* Key concept */}
         <div className="flex items-start gap-1.5 px-3 py-2 rounded-xl"
           style={{ background: 'rgba(91,106,245,0.08)', border: '1px solid rgba(91,106,245,0.12)' }}>
-          <Sparkles size={10} className="text-indigo-400 shrink-0 mt-0.5" />
-          <p className="text-[11px] text-indigo-200/80">{ex.key_concept}</p>
+          <Sparkles size={10} className="shrink-0 mt-0.5" style={{ color: indigo }} />
+          <p className="text-[11px]" style={{ color: isLight ? '#4338CA' : 'rgba(199,210,254,0.8)' }}>{ex.key_concept}</p>
         </div>
       </div>
 
       {/* Toggle */}
-      <button className="w-full px-4 pb-3 flex items-center gap-1.5 text-xs font-bold" style={{ color: '#8B9BFA' }}
+      <button className="w-full px-4 pb-3 flex items-center gap-1.5 text-xs font-bold" style={{ color: indigo }}
         onClick={() => setExpanded(e => !e)}>
         {expanded ? <><ChevronUp size={13} /> Hide solution</> : <><ChevronDown size={13} /> Show step-by-step solution</>}
       </button>
@@ -224,8 +234,8 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
               {/* Final answer */}
               <div className="px-4 py-3 rounded-2xl"
                 style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">Answer</p>
-                <p className="text-sm font-semibold text-emerald-200">{ex.answer}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: isLight ? '#047857' : '#34D399' }}>Answer</p>
+                <p className="text-sm font-semibold" style={{ color: isLight ? '#047857' : '#A7F3D0' }}>{ex.answer}</p>
               </div>
 
               {/* Tags */}
@@ -246,6 +256,8 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function SolvedExamplesPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [searchParams] = useSearchParams();
   const [search, setSearch]       = useState('');
   const [subject, setSubject]     = useState(searchParams.get('subject') ?? 'All');
@@ -404,7 +416,7 @@ Return ONLY JSON array:
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: '#5B6AF5' }}>
-                    <Bot size={14} className="text-white" />
+                    <Bot size={14} style={{ color: '#ffffff' }} />
                   </div>
                   <p className="text-sm font-bold text-white">Novo explains</p>
                 </div>
@@ -417,7 +429,7 @@ Return ONLY JSON array:
                 <p className="text-sm text-white/80 leading-relaxed">{novoAnswer}</p>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Sparkles size={14} className="text-indigo-400 animate-pulse" />
+                  <Sparkles size={14} className="animate-pulse" style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
                   <p className="text-sm text-white/50">Novo is thinking…</p>
                 </div>
               )}
