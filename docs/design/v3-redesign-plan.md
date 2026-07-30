@@ -864,6 +864,33 @@ sales/procurement conversation coming up.
 31. **Study Buddy** (`StudyBuddyPage.tsx`), **Learning Style**
     (`LearningStylePage.tsx`), **Regional Language**
     (`RegionalLanguagePage.tsx`), **Offline Mode** (`OfflineModePage.tsx`)
+
+    **Study Buddy** (`StudyBuddyPage.tsx`) — ✅ 60th occurrence. Pale hex
+    fixed with isLight branches; fixed the Avatar helper and two shared-
+    Button CTAs (fixed indigo→violet gradient, established white-wins
+    case).
+
+    **Learning Style** (`LearningStylePage.tsx`) — ✅ 61st occurrence.
+    Pale hex across `EmptyState`/`BarRow`/main component fixed; found a
+    "one literal color must serve 6 possible fixed gradients" case
+    (`styleGradient()`) — picked dark ink as the majority-safe choice
+    after computing that amber-orange and teal-cyan variants strongly
+    favor dark ink (~5.6-7.3:1 vs white's ~2.4-3.7:1).
+
+    **Regional Language** (`RegionalLanguagePage.tsx`) — ✅ 62nd
+    occurrence. Pale hex + raw Tailwind hue-400/300 classes (no light-
+    theme override exists for these) fixed across `QuestionCard` and
+    the main component.
+
+    **Offline Mode** (`OfflineModePage.tsx`) — ✅ 63rd occurrence. Same
+    raw-Tailwind-convention + `text-white`-root-inheritance bug class as
+    ParentPortalPage/PeerExplanationPage this session — fixed ~15
+    instances across the connection-status card, SW badge, storage
+    usage, per-subject cache rows, and feature list, plus 2 inherited-
+    white-on-solid-bg buttons (emerald-600 needs dark ink, indigo-600
+    needs white — opposite fixes for the two).
+
+    This closes out item 31.
 32. **Mistake Journal / Mnemonic / Study Notes / Study Pack / Scanner /
     Browser** (all under `tools/`) — utility tool screens, low visual risk.
 33. **UPSC Mains** (`UPSCMainsPage.tsx`), **Curriculum /
