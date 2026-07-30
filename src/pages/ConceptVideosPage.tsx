@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ConceptVideo {
   id: string;
@@ -40,7 +41,18 @@ const SUBJECT_COLORS: Record<string, string> = {
   Geography: '#FB923C',
   Science: '#38BDF8' };
 
-function subjectColor(s: string) { return SUBJECT_COLORS[s] ?? '#A0AEFF'; }
+const SUBJECT_COLORS_LIGHT: Record<string, string> = {
+  Physics: '#1D4ED8',
+  Chemistry: '#047857',
+  Maths: '#6D28D9',
+  Biology: '#15803D',
+  History: '#92400E',
+  Geography: '#9A3412',
+  Science: '#0E7490' };
+
+function subjectColor(s: string, isLight = false) {
+  return isLight ? (SUBJECT_COLORS_LIGHT[s] ?? '#4338CA') : (SUBJECT_COLORS[s] ?? '#A0AEFF');
+}
 
 function formatDuration(secs: number | null) {
   if (!secs) return '';
@@ -51,6 +63,8 @@ function formatDuration(secs: number | null) {
 
 export default function ConceptVideosPage() {
   const { profile } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [search, setSearch]       = useState('');
   const [subject, setSubject]     = useState('');
   const [videos, setVideos]       = useState<ConceptVideo[]>([]);
@@ -164,7 +178,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
               className="px-3 py-1.5 rounded-xl text-xs font-medium flex-shrink-0 transition-all"
               style={{
                 background: subject === s ? `${subjectColor(s)}20` : 'var(--color-surface)',
-                color: subject === s ? subjectColor(s) : 'var(--color-text-secondary)',
+                color: subject === s ? subjectColor(s, isLight) : 'var(--color-text-secondary)',
                 border: `1px solid ${subject === s ? subjectColor(s) : 'var(--color-border)'}` }}>
               {s}
             </button>
@@ -176,7 +190,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2"
                style={{ color: 'var(--color-text-secondary)' }}>
-              <Zap size={12} color="#FBBF24" /> Novo recommends for your weak topics
+              <Zap size={12} color={isLight ? '#92400E' : '#FBBF24'} /> Novo recommends for your weak topics
             </p>
             {recommendations.map((rec, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -185,7 +199,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
                 style={{ background: 'rgba(91,106,245,0.08)', border: '1px solid rgba(91,106,245,0.25)' }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                      style={{ background: 'rgba(91,106,245,0.2)' }}>
-                  <Play size={18} color="#A0AEFF" />
+                  <Play size={18} color={isLight ? '#4338CA' : '#A0AEFF'} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text)' }}>{rec.title}</p>
@@ -197,7 +211,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
                    target="_blank" rel="noopener noreferrer"
                    onClick={() => track('concept_video_rec_clicked', { concept: rec.concept })}>
                   <Button className="text-xs px-3 py-1.5 rounded-xl h-auto"
-                    style={{ background: '#FF0000', color: 'var(--ink-950)' }}>YouTube</Button>
+                    style={{ background: '#FF0000', color: '#ffffff' }}>YouTube</Button>
                 </a>
               </motion.div>
             ))}
@@ -237,11 +251,11 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
                   {v.thumbnail_url ? (
                     <img src={v.thumbnail_url} alt={v.title} className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.display='none'; }} />
                   ) : (
-                    <Play size={20} color={subjectColor(v.subject)} />
+                    <Play size={20} color={subjectColor(v.subject, isLight)} />
                   )}
                   {v.duration_secs && (
                     <span className="absolute bottom-1 right-1 text-xs font-bold px-1 rounded"
-                      style={{ background: 'rgba(0,0,0,0.7)', color: 'var(--ink-950)' }}>
+                      style={{ background: 'rgba(0,0,0,0.7)', color: '#ffffff' }}>
                       {formatDuration(v.duration_secs)}
                     </span>
                   )}
@@ -256,7 +270,7 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
                   <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--color-text)' }}>
                     {v.title}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: subjectColor(v.subject) }}>{v.subject}</p>
+                  <p className="text-xs mt-0.5" style={{ color: subjectColor(v.subject, isLight) }}>{v.subject}</p>
                   {v.description && (
                     <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-secondary)' }}>
                       {v.description}
