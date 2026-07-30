@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { Share } from '@capacitor/share';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,13 +67,15 @@ function formatWeek(weekStart: string): string {
 function MasteryRing({
   subject, mastered, total,
 }: { subject: string; mastered: number; total: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const pct    = total > 0 ? Math.round((mastered / total) * 100) : 0;
   const size   = 52;
   const stroke = 5;
   const r      = (size - stroke) / 2;
   const circ   = 2 * Math.PI * r;
   const offset = circ - (pct / 100) * circ;
-  const color  = pct >= 70 ? '#10B981' : pct >= 40 ? '#F59E0B' : '#EF4444';
+  const color  = pct >= 70 ? (isLight ? '#047857' : '#10B981') : pct >= 40 ? (isLight ? '#92400E' : '#F59E0B') : (isLight ? '#B91C1C' : '#EF4444');
   const short  = subject.length > 7 ? subject.slice(0, 6) + '…' : subject;
 
   return (
@@ -120,6 +123,8 @@ function ThreeDots() {
 
 export default function ParentDashboardPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const [overview,   setOverview]   = useState<Overview | null>(null);
   const [report,     setReport]     = useState<Report | null>(null);
@@ -204,7 +209,7 @@ export default function ParentDashboardPage() {
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
           style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-          <BarChart2 size={20} className="text-white" />
+          <BarChart2 size={20} style={{ color: '#ffffff' }} />
         </div>
         <div className="flex-1">
           <h2 className="font-heading font-bold text-white text-sm">Parent Report</h2>
@@ -230,11 +235,11 @@ export default function ParentDashboardPage() {
           ) : (
             <div className="grid grid-cols-2 gap-0">
               {[
-                { icon: Zap,      label: 'Study Sessions',  value: overview?.stats.sprints_completed   ?? 0, color: '#F59E0B' },
-                { icon: BookOpen, label: 'Flashcards',      value: overview?.stats.sr_cards_total      ?? 0, color: '#10B981' },
-                { icon: Star,     label: 'XP This Week',    value: overview?.stats.xp_earned           ?? 0, color: '#5B6AF5' },
-                { icon: Target,   label: 'Challenges',      value: overview?.stats.challenges_attempted ?? 0, color: '#EC4899' },
-              ].map(({ icon: Icon, label, value, color }, i) => (
+                { icon: Zap,      label: 'Study Sessions',  value: overview?.stats.sprints_completed   ?? 0, color: '#F59E0B', lightColor: '#92400E' },
+                { icon: BookOpen, label: 'Flashcards',      value: overview?.stats.sr_cards_total      ?? 0, color: '#10B981', lightColor: '#047857' },
+                { icon: Star,     label: 'XP This Week',    value: overview?.stats.xp_earned           ?? 0, color: '#5B6AF5', lightColor: '#4338CA' },
+                { icon: Target,   label: 'Challenges',      value: overview?.stats.challenges_attempted ?? 0, color: '#EC4899', lightColor: '#9D174D' },
+              ].map(({ icon: Icon, label, value, color, lightColor }, i) => (
                 <div key={label} className="px-4 py-4 flex items-center gap-3"
                   style={{
                     borderRight:  i % 2 === 0 ? '1px solid var(--ink-060)' : undefined,
@@ -242,7 +247,7 @@ export default function ParentDashboardPage() {
                   }}>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: `${color}18` }}>
-                    <Icon size={18} style={{ color }} strokeWidth={1.75} />
+                    <Icon size={18} style={{ color: isLight ? lightColor : color }} strokeWidth={1.75} />
                   </div>
                   <div>
                     <p className="font-heading font-bold text-white text-base leading-none">{value}</p>
@@ -278,7 +283,7 @@ export default function ParentDashboardPage() {
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-                  <BookOpen size={18} className="text-white" />
+                  <BookOpen size={18} style={{ color: '#ffffff' }} />
                 </div>
                 <div>
                   <p className="font-semibold text-white text-sm">Novo is writing your report</p>
@@ -322,7 +327,7 @@ export default function ParentDashboardPage() {
               {/* Digest headline — the one thing to know this week */}
               {report.report_data?.digest_summary && (
                 <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--ink-060)', background: 'rgba(91,106,245,0.06)' }}>
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1" style={{ color: '#8B9BFA' }}>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider mb-1" style={{ color: isLight ? '#4338CA' : '#8B9BFA' }}>
                     This week's headline
                   </p>
                   <p className="text-xs leading-relaxed font-medium" style={{ color: 'var(--ink-750)' }}>
@@ -344,7 +349,7 @@ export default function ParentDashboardPage() {
                 <button
                   onClick={() => setShowModal(true)}
                   className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold"
-                  style={{ color: '#8B9BFA', borderRight: '1px solid var(--ink-060)' }}>
+                  style={{ color: isLight ? '#4338CA' : '#8B9BFA', borderRight: '1px solid var(--ink-060)' }}>
                   <Eye size={15} /> View Full Report
                 </button>
                 <button
@@ -362,7 +367,7 @@ export default function ParentDashboardPage() {
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}>
-                  <BarChart2 size={22} style={{ color: '#8B9BFA' }} />
+                  <BarChart2 size={22} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} />
                 </div>
                 <div>
                   <p className="font-semibold text-white text-sm">Generate This Week's Report</p>
@@ -375,8 +380,8 @@ export default function ParentDashboardPage() {
               </p>
               <button
                 onClick={handleGenerate}
-                className="w-full py-3 rounded-2xl text-white font-semibold text-sm"
-                style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
+                className="w-full py-3 rounded-2xl font-semibold text-sm"
+                style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}>
                 Generate Report
               </button>
             </div>
@@ -398,7 +403,7 @@ export default function ParentDashboardPage() {
                   style={{ borderBottom: i < history.length - 1 ? '1px solid var(--ink-050)' : 'none' }}>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.2)' }}>
-                    <FileText size={14} style={{ color: '#8B9BFA' }} />
+                    <FileText size={14} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-white">
@@ -457,8 +462,8 @@ export default function ParentDashboardPage() {
             <div className="px-4 py-4 shrink-0" style={{ borderTop: '1px solid var(--ink-060)' }}>
               <button
                 onClick={handleShare}
-                className="w-full py-3 rounded-2xl text-white font-semibold text-sm flex items-center justify-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
+                className="w-full py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}>
                 <Share2 size={16} /> Share Report
               </button>
             </div>
