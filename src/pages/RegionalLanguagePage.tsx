@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Language {
@@ -104,6 +105,8 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
   onTranslate: (id: string) => void;
 }) {
   const [showEn, setShowEn] = useState(false);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [revealed, setRevealed] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
 
@@ -122,7 +125,7 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ background: q.exam === 'JEE' ? 'rgba(139,92,246,0.2)' : 'rgba(236,72,153,0.2)', color: q.exam === 'JEE' ? '#C4B5FD' : '#F9A8D4' }}>
+              style={{ background: q.exam === 'JEE' ? 'rgba(139,92,246,0.2)' : 'rgba(236,72,153,0.2)', color: q.exam === 'JEE' ? (isLight ? '#6D28D9' : '#C4B5FD') : (isLight ? '#9D174D' : '#F9A8D4') }}>
               {q.exam} {q.year}
             </span>
             <span className="text-xs text-white/35">{q.subject} · {q.topic}</span>
@@ -136,7 +139,7 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
             {!hasTranslation && !isTranslating && (
               <button onClick={() => onTranslate(q.id)}
                 className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(91,106,245,0.2)', color: '#8B9BFA' }}>
+                style={{ background: 'rgba(91,106,245,0.2)', color: isLight ? '#4338CA' : '#8B9BFA' }}>
                 <Languages size={9} /> {lang.native}
               </button>
             )}
@@ -165,7 +168,7 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
                 {String.fromCharCode(65+i)}
               </span>
               <span className="text-sm text-white/80 flex-1">{opt}</span>
-              {revealed && i === q.correct_idx && <Check size={13} className="text-emerald-400 shrink-0" />}
+              {revealed && i === q.correct_idx && <Check size={13} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />}
             </button>
           ))}
         </div>
@@ -176,7 +179,7 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
             <motion.div initial={{ height:0, opacity:0 }} animate={{ height:'auto', opacity:1 }} className="overflow-hidden">
               <div className="mt-3 px-3 py-2.5 rounded-xl"
                 style={{ background: 'rgba(91,106,245,0.08)', border: '1px solid rgba(91,106,245,0.15)' }}>
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-1">Explanation</p>
+                <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: isLight ? '#4338CA' : '#818CF8' }}>Explanation</p>
                 <p className="text-xs text-white/65 leading-relaxed">
                   {(showEn || !hasTranslation) ? q.explanation_en : explanation}
                 </p>
@@ -191,6 +194,8 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function RegionalLanguagePage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [selLang, setSelLang]         = useState<Language | null>(null);
   const [translations, setTranslations] = useState<Record<string, Translation>>({});
   const [subject, setSubject]           = useState('All');
@@ -321,7 +326,7 @@ Return ONLY JSON:
         {phase === 'questions' && selLang && (
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Languages size={20} style={{ color: '#A0AEFF' }} strokeWidth={1.7} />
+              <Languages size={20} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} strokeWidth={1.7} />
               <div>
                 <p className="text-sm font-bold text-white">{selLang.name}</p>
                 <p className="text-xs text-white/40">{selLang.native}</p>
@@ -377,14 +382,14 @@ Return ONLY JSON:
                     className="w-full flex items-center justify-between px-4 py-4 rounded-2xl text-left active:opacity-80"
                     style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
                     <div className="flex items-center gap-3.5">
-                      <Languages size={22} style={{ color: '#A0AEFF' }} strokeWidth={1.6} />
+                      <Languages size={22} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} strokeWidth={1.6} />
                       <div>
                         <p className="text-base font-bold text-white">{lang.name}</p>
                         <p className="text-sm" style={{ fontFamily: 'serif', color: 'var(--ink-500)' }}>{lang.native}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background:'rgba(91,106,245,0.15)', color:'#8B9BFA' }}>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background:'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#8B9BFA' }}>
                         {lang.script}
                       </span>
                       <ChevronRight size={14} className="text-white/25" />
@@ -395,9 +400,9 @@ Return ONLY JSON:
 
               <div className="flex items-start gap-2 p-4 rounded-2xl"
                 style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.15)' }}>
-                <Globe size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                <Globe size={14} className="shrink-0 mt-0.5" style={{ color: isLight ? '#047857' : '#34D399' }} />
                 <div>
-                  <p className="text-sm font-bold text-emerald-300">Powered by Gemini AI</p>
+                  <p className="text-sm font-bold" style={{ color: isLight ? '#047857' : '#6EE7B7' }}>Powered by Gemini AI</p>
                   <p className="text-xs text-white/50 mt-0.5">Questions are translated on-demand and cached for offline access. Technical terms preserved in English.</p>
                 </div>
               </div>
