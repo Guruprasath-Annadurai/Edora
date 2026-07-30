@@ -992,6 +992,28 @@ sales/procurement conversation coming up.
     "straightforward business upsell" tone per the earlier god-mode plan,
     not a pressure-tactic paywall.
 
+    ✅ 77th occurrence. 7 spots using literal '#A855F7' (translucent
+    violet chips/icons on near-white `--grad-pro-header-*` card
+    backgrounds) branched to isLight ? '#6D28D9' : '#A855F7'. 4 Tailwind
+    hue-400/300 classes (`text-red-400`, `text-indigo-400`,
+    `text-red-300`) converted to inline isLight-branched styles — same
+    "no light-theme override" finding as elsewhere in this sweep. The
+    cancel-confirmation sheet's "Yes, cancel" button used `text-white`
+    on a fixed translucent red — computed contrast showed dark ink
+    (~4.75:1) clearly beats white (~3.76:1) against this specific red,
+    a genuine theme-independent bug, fixed to a universal `#0F172A`.
+    Left the "Pro Active" badge (fixed violet→violet gradient,
+    className="text-white", already the better mixed-gradient choice
+    by computed worst-case) and the hero card's `text-white` titles
+    (near-white `--grad-pro-header-*` bg in light theme, but caught
+    correctly by the global `.text-white` safety net since it's a
+    className not an inline style) unchanged. `npx tsc --noEmit`
+    passes clean. Could not live-verify: `App.tsx` imports this page
+    as `_ProSubscriptionPage` and does not route to it (`/pro`
+    redirects to `/profile`), so the screen is currently unreachable
+    in the running app — fixes rely on the session's established
+    contrast math. This closes out item 34.
+
 ---
 
 ## Open decisions (need your call, not mine to silently pick)
