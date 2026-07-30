@@ -4,11 +4,13 @@ import { Link } from 'react-router-dom';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import type { LucideIcon } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
-const RESOURCES: { category: string; color: string; Icon: LucideIcon; items: { name: string; desc: string; url: string }[] }[] = [
+const RESOURCES: { category: string; color: string; colorLight: string; Icon: LucideIcon; items: { name: string; desc: string; url: string }[] }[] = [
   {
     category: 'Reference',
     color: '#818CF8',
+    colorLight: '#4338CA',
     Icon: BookOpen,
     items: [
       { name: 'Wikipedia',      desc: 'Encyclopedia for any topic',     url: 'https://en.wikipedia.org' },
@@ -19,6 +21,7 @@ const RESOURCES: { category: string; color: string; Icon: LucideIcon; items: { n
   {
     category: 'Video Lessons',
     color: '#F472B6',
+    colorLight: '#9D174D',
     Icon: Video,
     items: [
       { name: 'Khan Academy',   desc: 'Free lessons on every subject',  url: 'https://www.khanacademy.org' },
@@ -29,6 +32,7 @@ const RESOURCES: { category: string; color: string; Icon: LucideIcon; items: { n
   {
     category: 'Practice',
     color: '#34D399',
+    colorLight: '#047857',
     Icon: FlaskConical,
     items: [
       { name: 'Brilliant',        desc: 'Interactive STEM problems', url: 'https://brilliant.org'       },
@@ -39,6 +43,7 @@ const RESOURCES: { category: string; color: string; Icon: LucideIcon; items: { n
   {
     category: 'Indian Exams',
     color: '#FBBF24',
+    colorLight: '#92400E',
     Icon: GraduationCap,
     items: [
       { name: 'NCERT Books',        desc: 'Official NCERT textbooks',  url: 'https://ncert.nic.in/textbook.php' },
@@ -57,6 +62,8 @@ async function openUrl(url: string) {
 }
 
 export default function BrowserPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <div className="flex flex-col h-full bg-gradient-page">
       <div className="px-4 py-3 flex items-center gap-3 shrink-0"
@@ -68,7 +75,7 @@ export default function BrowserPage() {
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
           style={{ background: 'linear-gradient(135deg, #3B82F6, #06B6D4)' }}>
-          <Globe size={20} className="text-white" />
+          <Globe size={20} style={{ color: '#0F172A' }} />
         </div>
         <div className="flex-1">
           <h2 className="font-heading font-bold text-white text-sm">Research Browser</h2>
@@ -77,7 +84,9 @@ export default function BrowserPage() {
       </div>
 
       <div className="flex-1 native-scroll pb-nav px-4 py-4 flex flex-col gap-5">
-        {RESOURCES.map(({ category, color, Icon, items }, ci) => (
+        {RESOURCES.map(({ category, color: colorDark, colorLight, Icon, items }, ci) => {
+          const color = isLight ? colorLight : colorDark;
+          return (
           <motion.div key={category}
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ci * 0.06 }}>
             <div className="flex items-center gap-2 mb-2">
@@ -102,7 +111,8 @@ export default function BrowserPage() {
               ))}
             </div>
           </motion.div>
-        ))}
+          );
+        })}
         <div className="h-4" />
       </div>
     </div>
