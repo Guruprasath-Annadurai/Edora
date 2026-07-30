@@ -9,6 +9,7 @@ import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
 import { AIFeedback, logAIInteraction } from '@/components/ui/AIFeedback';
 import { getFeatureTheme } from '@/lib/featureTheme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type Phase = 'setup' | 'generating' | 'quiz' | 'result';
 type FlagReason = 'wrong_answer' | 'unclear' | 'too_easy' | 'too_hard' | 'duplicate' | 'other';
@@ -28,12 +29,12 @@ interface AIQuestion {
 }
 
 const SUBJECTS = [
-  { name: 'Physics',   color: '#60A5FA', icon: Atom },
-  { name: 'Chemistry', color: '#34D399', icon: FlaskConical },
-  { name: 'Maths',     color: '#A78BFA', icon: Calculator },
-  { name: 'Biology',   color: '#4ADE80', icon: Dna },
-  { name: 'History',   color: '#FBBF24', icon: Scroll },
-  { name: 'Geography', color: '#FB923C', icon: Globe2 },
+  { name: 'Physics',   color: '#60A5FA', colorLight: '#1D4ED8', icon: Atom },
+  { name: 'Chemistry', color: '#34D399', colorLight: '#047857', icon: FlaskConical },
+  { name: 'Maths',     color: '#A78BFA', colorLight: '#6D28D9', icon: Calculator },
+  { name: 'Biology',   color: '#4ADE80', colorLight: '#047857', icon: Dna },
+  { name: 'History',   color: '#FBBF24', colorLight: '#92400E', icon: Scroll },
+  { name: 'Geography', color: '#FB923C', colorLight: '#9A3412', icon: Globe2 },
 ];
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
@@ -50,6 +51,8 @@ const FLAG_REASONS: { id: FlagReason; label: string }[] = [
 export default function AIQuizBankPage() {
   const ft = getFeatureTheme('sprint');
   const { profile }  = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [phase, setPhase]     = useState<Phase>('setup');
   const [subject, setSubject] = useState('Physics');
   const [chapter, setChapter] = useState('');
@@ -66,6 +69,7 @@ export default function AIQuizBankPage() {
   const [abilityScore, setAbilityScore] = useState(0); // IRT theta
   const [streak, setStreak]   = useState(0);
   const subjectConfig = SUBJECTS.find(s => s.name === subject) ?? SUBJECTS[0];
+  const subjColor = isLight ? subjectConfig.colorLight : subjectConfig.color;
 
   // Estimate ability from previous quiz performances
   useEffect(() => {
@@ -232,7 +236,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
         </motion.button>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
           style={{ background: ft.gradient, boxShadow: `0 4px 14px ${ft.glowRgba}` }}>
-          <Brain size={18} className="text-white" />
+          <Brain size={18} style={{ color: '#0F172A' }} />
         </div>
         <div>
           <h1 className="text-title">AI Question Bank</h1>
@@ -241,7 +245,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
         {phase === 'quiz' && streak >= 3 && (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
             className="ml-auto px-3 py-1 rounded-full text-xs font-bold"
-            style={{ background: 'rgba(251,191,36,0.2)', color: '#FBBF24' }}>
+            style={{ background: 'rgba(251,191,36,0.2)', color: isLight ? '#92400E' : '#FBBF24' }}>
             {streak} streak
           </motion.div>
         )}
@@ -254,9 +258,9 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
             className="px-4 py-5 space-y-5">
             <div className="p-4 rounded-2xl flex items-start gap-3"
                  style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.3)' }}>
-              <Sparkles size={20} color="#A0AEFF" className="flex-shrink-0 mt-0.5" />
+              <Sparkles size={20} color={isLight ? '#4338CA' : '#A0AEFF'} className="flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold" style={{ color: '#A0AEFF' }}>Adaptive AI Questions</p>
+                <p className="text-sm font-semibold" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>Adaptive AI Questions</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                   Questions calibrated to your current level · ability score: {abilityScore.toFixed(2)}
                 </p>
@@ -273,9 +277,9 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                     className="p-2 rounded-2xl text-center transition-all"
                     style={{
                       background: subject === s.name ? `${s.color}20` : 'var(--color-surface)',
-                      border: `1.5px solid ${subject === s.name ? s.color : 'var(--color-border)'}` }}>
-                    <s.icon size={22} className="mx-auto" style={{ color: s.color }} strokeWidth={1.7} />
-                    <p className="text-xs font-semibold mt-1" style={{ color: subject === s.name ? s.color : 'var(--color-text)' }}>
+                      border: `1.5px solid ${subject === s.name ? (isLight ? s.colorLight : s.color) : 'var(--color-border)'}` }}>
+                    <s.icon size={22} className="mx-auto" style={{ color: isLight ? s.colorLight : s.color }} strokeWidth={1.7} />
+                    <p className="text-xs font-semibold mt-1" style={{ color: subject === s.name ? (isLight ? s.colorLight : s.color) : 'var(--color-text)' }}>
                       {s.name}
                     </p>
                   </motion.button>
@@ -303,8 +307,8 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                     className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
                     style={{
                       background: count === n ? `${subjectConfig.color}20` : 'var(--color-surface)',
-                      color: count === n ? subjectConfig.color : 'var(--color-text-secondary)',
-                      border: `1px solid ${count === n ? subjectConfig.color : 'var(--color-border)'}` }}>{n}</button>
+                      color: count === n ? subjColor : 'var(--color-text-secondary)',
+                      border: `1px solid ${count === n ? subjColor : 'var(--color-border)'}` }}>{n}</button>
                 ))}
               </div>
             </div>
@@ -324,7 +328,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               className="w-16 h-16 rounded-full border-4 border-t-transparent"
-              style={{ borderColor: `${subjectConfig.color}40`, borderTopColor: subjectConfig.color }} />
+              style={{ borderColor: `${subjectConfig.color}40`, borderTopColor: subjColor }} />
             <div className="text-center">
               <p className="font-bold" style={{ color: 'var(--color-text)' }}>Generating {count} questions…</p>
               <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
@@ -357,7 +361,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
               <div className="h-1.5 rounded-full transition-all"
                    style={{ width: `${((current + 1) / questions.length) * 100}%`, background: subjectConfig.color }} />
             </div>
-            <p className="text-xs font-medium" style={{ color: subjectConfig.color }}>
+            <p className="text-xs font-medium" style={{ color: subjColor }}>
               {q.chapter} · {q.concept}
             </p>
             <div className="p-4 rounded-2xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
@@ -371,8 +375,8 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                 const isSelected = ans === i;
                 let bg = 'var(--color-surface)', border = 'var(--color-border)', textCol = 'var(--color-text)';
                 if (showResult) {
-                  if (isCorrect)       { bg = 'rgba(52,211,153,0.15)'; border = '#34D399'; textCol = '#34D399'; }
-                  else if (isSelected) { bg = 'rgba(248,113,113,0.15)'; border = '#F87171'; textCol = '#F87171'; }
+                  if (isCorrect)       { bg = 'rgba(52,211,153,0.15)'; border = isLight ? '#047857' : '#34D399'; textCol = isLight ? '#047857' : '#34D399'; }
+                  else if (isSelected) { bg = 'rgba(248,113,113,0.15)'; border = isLight ? '#B91C1C' : '#F87171'; textCol = isLight ? '#B91C1C' : '#F87171'; }
                 }
                 return (
                   <motion.button key={i} whileTap={{ scale: 0.98 }}
@@ -380,12 +384,12 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                     className="w-full flex items-center gap-3 p-3.5 rounded-2xl text-left"
                     style={{ background: bg, border: `1.5px solid ${border}` }}>
                     <span className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0"
-                          style={{ background: `${subjectConfig.color}20`, color: subjectConfig.color }}>
+                          style={{ background: `${subjectConfig.color}20`, color: subjColor }}>
                       {OPTION_LABELS[i]}
                     </span>
                     <span className="text-sm font-medium" style={{ color: textCol }}>{opt}</span>
-                    {showResult && isCorrect && <CheckCircle size={16} color="#34D399" className="ml-auto" />}
-                    {showResult && isSelected && !isCorrect && <XCircle size={16} color="#F87171" className="ml-auto" />}
+                    {showResult && isCorrect && <CheckCircle size={16} color={isLight ? '#047857' : '#34D399'} className="ml-auto" />}
+                    {showResult && isSelected && !isCorrect && <XCircle size={16} color={isLight ? '#B91C1C' : '#F87171'} className="ml-auto" />}
                   </motion.button>
                 );
               })}
@@ -395,7 +399,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
                 <motion.div key="exp" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-2xl"
                   style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.3)' }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: '#A0AEFF' }}>Novo explains</p>
+                  <p className="text-xs font-semibold mb-1" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>Novo explains</p>
                   {loadingExp ? (
                     <p className="text-xs animate-pulse" style={{ color: 'var(--color-text-secondary)' }}>Thinking…</p>
                   ) : (
@@ -450,7 +454,7 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
           <motion.div key="result" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
             className="px-4 py-8 space-y-6 text-center">
             <div>
-              <Sparkles size={52} color={subjectConfig.color} className="mx-auto mb-3" />
+              <Sparkles size={52} color={subjColor} className="mx-auto mb-3" />
               <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
                 {correctCount} / {questions.length}
               </h2>
@@ -461,13 +465,13 @@ Return ONLY valid JSON array: [{"subject":"${subject}","chapter":"Chapter Name",
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { l: 'Correct',  v: correctCount,                     c: '#34D399' },
-                { l: 'Wrong',    v: questions.length - correctCount,   c: '#F87171' },
-                { l: 'Streak',   v: `${streak}`,                    c: '#FBBF24' },
+                { l: 'Correct',  v: correctCount,                     c: '#34D399', cLight: '#047857' },
+                { l: 'Wrong',    v: questions.length - correctCount,   c: '#F87171', cLight: '#B91C1C' },
+                { l: 'Streak',   v: `${streak}`,                    c: '#FBBF24', cLight: '#92400E' },
               ].map(s => (
                 <div key={s.l} className="p-3 rounded-2xl"
                   style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                  <p className="text-xl font-bold" style={{ color: s.c }}>{s.v}</p>
+                  <p className="text-xl font-bold" style={{ color: isLight ? s.cLight : s.c }}>{s.v}</p>
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{s.l}</p>
                 </div>
               ))}
