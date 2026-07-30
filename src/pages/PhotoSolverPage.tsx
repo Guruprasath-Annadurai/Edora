@@ -16,6 +16,7 @@ import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,9 @@ function ToastItem({ toast, onDismiss }: { toast: ToastMsg; onDismiss: () => voi
   const bg =
     toast.type === 'success' ? '#10B981' :
     toast.type === 'error'   ? '#EF4444' : '#5B6AF5';
+  const fg =
+    toast.type === 'success' ? '#0F172A' :
+    toast.type === 'error'   ? '#0F172A' : '#ffffff';
 
   return (
     <motion.div
@@ -98,11 +102,11 @@ function ToastItem({ toast, onDismiss }: { toast: ToastMsg; onDismiss: () => voi
       exit={{ opacity: 0, y: -48, x: '-50%' }}
       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
       className="fixed top-4 left-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2"
-      style={{ background: bg, minWidth: 200, maxWidth: 320 }}
+      style={{ background: bg, color: fg, minWidth: 200, maxWidth: 320 }}
     >
-      {toast.type === 'success' && <CheckCircle2 size={15} className="text-white shrink-0" />}
-      {toast.type === 'error' && <AlertCircle size={15} className="text-white shrink-0" />}
-      <span className="text-sm font-semibold text-white">{toast.message}</span>
+      {toast.type === 'success' && <CheckCircle2 size={15} className="shrink-0" />}
+      {toast.type === 'error' && <AlertCircle size={15} className="shrink-0" />}
+      <span className="text-sm font-semibold">{toast.message}</span>
     </motion.div>
   );
 }
@@ -126,6 +130,8 @@ function SubjectChips({
   selected: Subject;
   onChange: (s: Subject) => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 native-scroll-x">
       {SUBJECTS.map((s) => (
@@ -138,7 +144,7 @@ function SubjectChips({
               ? {
                   background: 'linear-gradient(135deg, rgba(91,106,245,0.2), rgba(139,92,246,0.2))',
                   borderColor: '#5B6AF5',
-                  color: '#5B6AF5',
+                  color: isLight ? '#4338CA' : '#5B6AF5',
                 }
               : {
                   background: 'var(--ink-060)',
@@ -173,8 +179,8 @@ function StepCard({ step, index }: { step: SolveStep; index: number }) {
       >
         {/* Step number badge */}
         <div
-          className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 text-white text-xs font-bold"
-          style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
+          className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold"
+          style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}
         >
           {step.step_number}
         </div>
@@ -211,6 +217,8 @@ function StepCard({ step, index }: { step: SolveStep; index: number }) {
 
 export default function PhotoSolverPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const [appMode, setAppMode] = useState<AppMode>('solve');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -509,7 +517,7 @@ export default function PhotoSolverPage() {
               <div className="flex items-start gap-3 mb-5">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)' }}>
-                  <Camera size={22} style={{ color: '#8B9BFA' }} />
+                  <Camera size={22} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} />
                 </div>
                 <div>
                   <p className="font-bold text-white text-base">Allow camera access?</p>
@@ -616,7 +624,7 @@ export default function PhotoSolverPage() {
                   className="w-20 h-20 rounded-3xl flex items-center justify-center"
                   style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.25)' }}
                 >
-                  <Camera size={36} style={{ color: '#5B6AF5' }} />
+                  <Camera size={36} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
                 </div>
                 <div className="text-center px-6">
                   <p className="font-heading font-bold text-white text-lg">Take a photo</p>
@@ -640,8 +648,8 @@ export default function PhotoSolverPage() {
                   className="rounded-2xl px-4 py-3 flex items-start gap-2.5"
                   style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}
                 >
-                  <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-400">{errorMsg}</p>
+                  <AlertCircle size={15} style={{ color: isLight ? '#B91C1C' : '#F87171' }} className="shrink-0 mt-0.5" />
+                  <p className="text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{errorMsg}</p>
                 </div>
               )}
 
@@ -650,8 +658,8 @@ export default function PhotoSolverPage() {
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={() => captureImage(CameraSource.Camera)}
-                    className="w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold text-white active:scale-98 transition-all"
-                    style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
+                    className="w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold active:scale-98 transition-all"
+                    style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}
                   >
                     <Camera size={18} />
                     Take Photo
@@ -661,7 +669,7 @@ export default function PhotoSolverPage() {
                     className="w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold border active:scale-98 transition-all"
                     style={{
                       borderColor: 'rgba(91,106,245,0.4)',
-                      color: '#5B6AF5',
+                      color: isLight ? '#4338CA' : '#5B6AF5',
                       background: 'rgba(91,106,245,0.06)',
                     }}
                   >
@@ -672,8 +680,8 @@ export default function PhotoSolverPage() {
               ) : (
                 <button
                   onClick={() => captureImage(CameraSource.Photos)}
-                  className="w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold text-white active:scale-98 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
+                  className="w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold active:scale-98 transition-all"
+                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}
                 >
                   <ImageIcon size={18} />
                   Choose Image
@@ -688,7 +696,7 @@ export default function PhotoSolverPage() {
                   border: '1px solid rgba(245,158,11,0.2)',
                 }}
               >
-                <Lightbulb size={15} className="text-amber-400 shrink-0 mt-0.5" />
+                <Lightbulb size={15} style={{ color: isLight ? '#92400E' : '#FBBF24' }} className="shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-300/80 leading-relaxed">
                   Hold camera still and ensure the problem is well-lit for best results.
                 </p>
@@ -755,8 +763,8 @@ export default function PhotoSolverPage() {
               {phase === 'captured' && (
                 <button
                   onClick={appMode === 'solve' ? solveProblem : scanToFlashcard}
-                  className="w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold text-white active:scale-98 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
+                  className="w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold active:scale-98 transition-all"
+                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}
                 >
                   <Brain size={18} />
                   {appMode === 'solve' ? 'Solve with Novo' : 'Scan to Flashcard'}
@@ -772,7 +780,7 @@ export default function PhotoSolverPage() {
               className="flex flex-col items-center justify-center gap-6 px-6 py-16">
               <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
                 style={{ background: 'rgba(16,185,129,0.15)', border: '2px solid rgba(16,185,129,0.3)' }}>
-                <CheckCircle2 size={36} style={{ color: '#34D399' }} />
+                <CheckCircle2 size={36} style={{ color: isLight ? '#047857' : '#34D399' }} />
               </div>
               <div className="text-center">
                 <h2 className="font-heading text-2xl font-bold text-white">Flashcard Created!</h2>
@@ -843,12 +851,12 @@ export default function PhotoSolverPage() {
                   style={{
                     background: 'linear-gradient(135deg, rgba(91,106,245,0.2), rgba(139,92,246,0.2))',
                     border: '1px solid rgba(91,106,245,0.35)',
-                    color: '#8B9FFF',
+                    color: isLight ? '#4338CA' : '#8B9FFF',
                   }}
                 >
                   {result.subject_detected}
                 </span>
-                <CheckCircle2 size={14} className="text-emerald-400" />
+                <CheckCircle2 size={14} style={{ color: isLight ? '#047857' : '#34D399' }} />
                 <span className="text-xs text-muted-foreground">Solved</span>
               </div>
 
@@ -885,8 +893,8 @@ export default function PhotoSolverPage() {
                 }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 size={15} className="text-emerald-400" />
-                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-wide">Final Answer</p>
+                  <CheckCircle2 size={15} style={{ color: isLight ? '#047857' : '#34D399' }} />
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: isLight ? '#047857' : '#34D399' }}>Final Answer</p>
                 </div>
                 <p className="text-base font-bold text-white leading-snug">{result.final_answer}</p>
               </div>
@@ -900,8 +908,8 @@ export default function PhotoSolverPage() {
                 }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <BookOpen size={15} style={{ color: '#A78BFA' }} />
-                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#A78BFA' }}>
+                  <BookOpen size={15} style={{ color: isLight ? '#6D28D9' : '#A78BFA' }} />
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: isLight ? '#6D28D9' : '#A78BFA' }}>
                     Concept Summary
                   </p>
                 </div>
@@ -921,14 +929,14 @@ export default function PhotoSolverPage() {
                     onClick={() => setMistakesOpen((v) => !v)}
                     className="w-full flex items-center gap-2.5 px-4 py-3"
                   >
-                    <AlertCircle size={15} className="text-amber-400 shrink-0" />
+                    <AlertCircle size={15} style={{ color: isLight ? '#92400E' : '#FBBF24' }} className="shrink-0" />
                     <span className="text-sm font-bold text-amber-300 flex-1 text-left">
                       Common Mistakes
                     </span>
                     {mistakesOpen ? (
-                      <ChevronUp size={14} className="text-amber-400" />
+                      <ChevronUp size={14} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                     ) : (
-                      <ChevronDown size={14} className="text-amber-400" />
+                      <ChevronDown size={14} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                     )}
                   </button>
                   <AnimatePresence>
@@ -945,7 +953,7 @@ export default function PhotoSolverPage() {
                             <div key={i} className="flex items-start gap-2.5">
                               <span
                                 className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-                                style={{ background: 'rgba(245,158,11,0.2)', color: '#F59E0B' }}
+                                style={{ background: 'rgba(245,158,11,0.2)', color: isLight ? '#92400E' : '#F59E0B' }}
                               >
                                 {i + 1}
                               </span>
@@ -964,8 +972,8 @@ export default function PhotoSolverPage() {
                 <button
                   onClick={addToFlashcards}
                   disabled={addingCard || cardAdded}
-                  className="w-full h-13 rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold text-white active:scale-98 transition-all disabled:opacity-60"
-                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', height: 52 }}
+                  className="w-full h-13 rounded-2xl flex items-center justify-center gap-2.5 text-sm font-bold active:scale-98 transition-all disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', height: 52, color: '#ffffff' }}
                 >
                   {addingCard ? (
                     <Loader2 size={16} className="animate-spin" />
@@ -1008,7 +1016,7 @@ export default function PhotoSolverPage() {
                 className="w-20 h-20 rounded-3xl flex items-center justify-center"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}
               >
-                <AlertCircle size={36} className="text-red-400" />
+                <AlertCircle size={36} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
               </div>
               <div>
                 <h3 className="font-heading text-xl font-bold text-white mb-2">
@@ -1021,8 +1029,8 @@ export default function PhotoSolverPage() {
               <div className="flex flex-col gap-3 w-full max-w-xs">
                 <button
                   onClick={() => { setPhase('captured'); setErrorMsg(''); }}
-                  className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold text-white active:scale-98 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
+                  className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold active:scale-98 transition-all"
+                  style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}
                 >
                   <RotateCcw size={16} />
                   Try Again
