@@ -16,6 +16,7 @@ import { track } from '@/lib/analytics';
 import { loadUnlockedIds, checkAchievements } from '@/lib/achievements';
 import { indexUserItem } from '@/lib/userContentIndex';
 import { getFeatureTheme } from '@/lib/featureTheme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type Phase = 'idle' | 'scanning' | 'result' | 'saving' | 'generating';
 
@@ -75,6 +76,8 @@ function resizeAndEnhance(dataUrl: string, maxDim = 1600): Promise<string> {
 export default function ScannerPage() {
   const ft = getFeatureTheme('scanner');
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [phase, setPhase] = useState<Phase>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -296,7 +299,7 @@ ${editedText.slice(0, 3000)}`
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
           style={{ background: ft.gradient, boxShadow: `0 4px 14px ${ft.glowRgba}` }}>
-          <ScanLine size={20} className="text-white" />
+          <ScanLine size={20} style={{ color: '#0F172A' }} />
         </div>
         <div className="flex-1">
           <h2 className="font-heading font-bold text-white text-sm">Notes Scanner</h2>
@@ -322,7 +325,7 @@ ${editedText.slice(0, 3000)}`
                 style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(59,130,246,0.15))', border: '1px solid rgba(6,182,212,0.3)' }}>
                 <div className="w-16 h-16 rounded-3xl flex items-center justify-center novo-glow"
                   style={{ background: 'linear-gradient(135deg, #06B6D4, #3B82F6)' }}>
-                  <ScanLine size={32} className="text-white" />
+                  <ScanLine size={32} style={{ color: '#0F172A' }} />
                 </div>
                 <div>
                   <h3 className="font-heading text-xl font-bold text-white">Scan Handwriting</h3>
@@ -334,12 +337,12 @@ ${editedText.slice(0, 3000)}`
 
               {error && (
                 <div className="glass rounded-2xl px-4 py-3 border border-red-500/30 flex items-start justify-between gap-3">
-                  <p className="text-sm text-red-400 flex-1">{error}</p>
+                  <p className="text-sm flex-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
                   {lastBase64Ref.current && (
                     <button
                       onClick={() => { setError(''); runOCR(lastBase64Ref.current); }}
                       className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl active:scale-95 transition-all"
-                      style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
+                      style={{ background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171' }}>
                       Retry
                     </button>
                   )}
@@ -353,7 +356,7 @@ ${editedText.slice(0, 3000)}`
                   style={{ background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)' }}>
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                     style={{ background: 'rgba(6,182,212,0.2)' }}>
-                    <CameraIcon size={24} className="text-cyan-400" strokeWidth={1.75} />
+                    <CameraIcon size={24} style={{ color: isLight ? '#0E7490' : '#22D3EE' }} strokeWidth={1.75} />
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-white text-sm">Camera</p>
@@ -366,7 +369,7 @@ ${editedText.slice(0, 3000)}`
                   style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)' }}>
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                     style={{ background: 'rgba(59,130,246,0.2)' }}>
-                    <ImagesIcon size={24} className="text-blue-400" strokeWidth={1.75} />
+                    <ImagesIcon size={24} style={{ color: isLight ? '#1D4ED8' : '#60A5FA' }} strokeWidth={1.75} />
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-white text-sm">Gallery</p>
@@ -388,7 +391,7 @@ ${editedText.slice(0, 3000)}`
                     'Supports English, Hindi, Tamil, Telugu + 7 more Indian scripts',
                   ].map((tip, i) => (
                     <div key={i} className="flex items-start gap-2 mb-2 last:mb-0">
-                      <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      <span className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5" style={{ color: isLight ? '#0E7490' : '#22D3EE' }}>
                         {i + 1}
                       </span>
                       <p className="text-sm text-white/80">{tip}</p>
@@ -415,7 +418,7 @@ ${editedText.slice(0, 3000)}`
               <div className="relative w-32 h-32 flex items-center justify-center">
                 <div className="absolute inset-0 rounded-full border-4 border-cyan-500/20" />
                 <div className="absolute inset-0 rounded-full border-4 border-t-cyan-400 animate-spin" />
-                <ScanLine size={36} className="text-cyan-400" />
+                <ScanLine size={36} style={{ color: isLight ? '#0E7490' : '#22D3EE' }} />
                 {/* Scan line sweep */}
                 <motion.div className="absolute left-4 right-4 h-0.5 rounded-full"
                   style={{ background: 'linear-gradient(90deg, transparent, #06B6D4, transparent)' }}
@@ -437,9 +440,9 @@ ${editedText.slice(0, 3000)}`
 
               {error && (
                 <div className="glass rounded-2xl px-4 py-3 border border-red-500/30 flex items-center justify-between gap-3">
-                  <p className="text-sm text-red-400 flex-1">{error}</p>
+                  <p className="text-sm flex-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
                   <button onClick={() => setError('')}
-                    className="text-xs font-bold text-red-400 shrink-0 px-2 py-1">✕</button>
+                    className="text-xs font-bold shrink-0 px-2 py-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>✕</button>
                 </div>
               )}
 
@@ -483,9 +486,9 @@ ${editedText.slice(0, 3000)}`
               {result.confidence !== null && result.confidence < 0.65 && (
                 <div className="rounded-2xl px-4 py-3 flex items-start gap-3"
                   style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.25)' }}>
-                  <span className="text-amber-400 text-base shrink-0 mt-0.5">⚠</span>
+                  <span className="text-base shrink-0 mt-0.5" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>⚠</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-amber-300">Low confidence scan ({Math.round(result.confidence * 100)}%)</p>
+                    <p className="text-xs font-bold" style={{ color: isLight ? '#92400E' : '#FCD34D' }}>Low confidence scan ({Math.round(result.confidence * 100)}%)</p>
                     <p className="text-xs text-amber-200/60 mt-0.5 leading-snug">
                       Blurry image or mixed script detected. Edit the text below, or type your question directly.
                     </p>
@@ -493,7 +496,7 @@ ${editedText.slice(0, 3000)}`
                       <button
                         onClick={() => { setShowManualEntry(true); setEditedText(''); }}
                         className="mt-2 text-xs font-bold px-3 py-1.5 rounded-xl active:scale-95 transition-transform"
-                        style={{ background: 'rgba(251,191,36,0.15)', color: '#FCD34D' }}
+                        style={{ background: 'rgba(251,191,36,0.15)', color: isLight ? '#92400E' : '#FCD34D' }}
                       >
                         Type it manually instead →
                       </button>
@@ -506,8 +509,8 @@ ${editedText.slice(0, 3000)}`
               {result.ocr_source === 'gemini_vision' && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl self-start"
                   style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                  <Sparkles size={11} className="text-violet-400" />
-                  <span className="text-xs font-semibold text-violet-300">Enhanced with Gemini Vision</span>
+                  <Sparkles size={11} style={{ color: isLight ? '#6D28D9' : '#A78BFA' }} />
+                  <span className="text-xs font-semibold" style={{ color: isLight ? '#6D28D9' : '#C4B5FD' }}>Enhanced with Gemini Vision</span>
                 </div>
               )}
 
@@ -515,7 +518,7 @@ ${editedText.slice(0, 3000)}`
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-semibold text-white flex items-center gap-2">
-                    <Sparkles size={14} className="text-cyan-400" />
+                    <Sparkles size={14} style={{ color: isLight ? '#0E7490' : '#22D3EE' }} />
                     {showManualEntry ? 'Type your text' : 'Extracted Text'}
                   </p>
                   <button onClick={copyText}
@@ -550,7 +553,7 @@ ${editedText.slice(0, 3000)}`
                   {/* ── Flashcard generation from scanned text ── */}
                   <button onClick={generateFlashcards}
                     className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-semibold border transition-all active:scale-98"
-                    style={{ background: 'rgba(91,106,245,0.08)', borderColor: 'rgba(91,106,245,0.3)', color: '#5B6AF5' }}>
+                    style={{ background: 'rgba(91,106,245,0.08)', borderColor: 'rgba(91,106,245,0.3)', color: isLight ? '#4338CA' : '#5B6AF5' }}>
                     <Brain size={16} />
                     Generate Flashcards with AI
                   </button>
@@ -604,7 +607,7 @@ ${editedText.slice(0, 3000)}`
               <div className="flex items-start gap-3 mb-5">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(6,182,212,0.15)' }}>
-                  <CameraIcon size={22} className="text-cyan-400" strokeWidth={1.75} />
+                  <CameraIcon size={22} style={{ color: isLight ? '#0E7490' : '#22D3EE' }} strokeWidth={1.75} />
                 </div>
                 <div>
                   <p className="font-bold text-white text-base">Allow camera access?</p>
