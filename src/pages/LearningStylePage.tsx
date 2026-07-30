@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Lightbulb, Brain, Sparkles, Clock, Eye, FileText, List, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   loadLearningStyle,
   STYLE_DESCRIPTIONS,
@@ -93,6 +94,8 @@ function LoadingSkeleton() {
 
 function EmptyState() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -103,7 +106,7 @@ function EmptyState() {
         className="w-24 h-24 rounded-full flex items-center justify-center mb-5"
         style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)' }}
       >
-        <Brain size={44} style={{ color: '#8B9BFA' }} />
+        <Brain size={44} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} />
       </div>
 
       <h2 className="font-heading text-xl font-bold text-white mb-2">
@@ -116,8 +119,8 @@ function EmptyState() {
 
       <button
         onClick={() => navigate('/tutoring')}
-        className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white active:scale-95 transition-all"
-        style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}
+        className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold active:scale-95 transition-all"
+        style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}
       >
         <Sparkles size={15} />
         Go to Tutoring
@@ -138,6 +141,8 @@ interface BarRowProps {
 }
 
 function BarRow({ label, icon: Icon, iconColor, pct, isPrimary, delay }: BarRowProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const displayPct = Math.round(Math.max(0, Math.min(100, pct)));
 
   return (
@@ -167,7 +172,7 @@ function BarRow({ label, icon: Icon, iconColor, pct, isPrimary, delay }: BarRowP
       {/* Pct */}
       <span
         className="w-10 text-right text-xs font-bold shrink-0"
-        style={{ color: isPrimary ? '#8B9BFA' : 'var(--ink-400)' }}
+        style={{ color: isPrimary ? (isLight ? '#4338CA' : '#8B9BFA') : 'var(--ink-400)' }}
       >
         {displayPct}%
       </span>
@@ -180,6 +185,8 @@ function BarRow({ label, icon: Icon, iconColor, pct, isPrimary, delay }: BarRowP
 export default function LearningStylePage() {
   const { user }  = useAuth();
   const navigate  = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const mountedRef = useRef(true);
 
   const [profile,  setProfile]  = useState<LearningStyleProfile | null>(null);
@@ -215,10 +222,10 @@ export default function LearningStylePage() {
 
   const bars = profile
     ? [
-        { label: 'Visual',        icon: Eye,      iconColor: '#8B5CF6', pct: profile.visual_score       * 100, key: 'visual'        },
-        { label: 'Conceptual',    icon: Lightbulb, iconColor: '#F59E0B', pct: profile.conceptual_score  * 100, key: 'conceptual'    },
-        { label: 'Example-Driven',icon: FileText,  iconColor: '#06B6D4', pct: profile.example_score     * 100, key: 'example_driven'},
-        { label: 'Step-by-Step',  icon: List,      iconColor: '#10B981', pct: profile.step_by_step_score* 100, key: 'step_by_step'  },
+        { label: 'Visual',        icon: Eye,      iconColor: isLight ? '#6D28D9' : '#8B5CF6', pct: profile.visual_score       * 100, key: 'visual'        },
+        { label: 'Conceptual',    icon: Lightbulb, iconColor: isLight ? '#92400E' : '#F59E0B', pct: profile.conceptual_score  * 100, key: 'conceptual'    },
+        { label: 'Example-Driven',icon: FileText,  iconColor: isLight ? '#0E7490' : '#06B6D4', pct: profile.example_score     * 100, key: 'example_driven'},
+        { label: 'Step-by-Step',  icon: List,      iconColor: isLight ? '#047857' : '#10B981', pct: profile.step_by_step_score* 100, key: 'step_by_step'  },
       ]
     : [];
 
@@ -285,8 +292,8 @@ export default function LearningStylePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="rounded-3xl p-6 text-white relative overflow-hidden"
-              style={{ background: styleGradient(profile.primary_style) }}
+              className="rounded-3xl p-6 relative overflow-hidden"
+              style={{ background: styleGradient(profile.primary_style), color: '#0F172A' }}
             >
               {/* Decorative circles */}
               <div
@@ -364,7 +371,7 @@ export default function LearningStylePage() {
                   <span
                     key={s}
                     className="px-3 py-1.5 rounded-full text-xs font-bold"
-                    style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34D399' }}
+                    style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: isLight ? '#047857' : '#34D399' }}
                   >
                     {s}
                   </span>
@@ -390,12 +397,12 @@ export default function LearningStylePage() {
                       className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
                       style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}
                     >
-                      <Lightbulb size={13} style={{ color: '#FBBF24' }} />
+                      <Lightbulb size={13} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                     </div>
                     <div className="flex items-start gap-2 flex-1">
                       <span
                         className="text-xs font-bold shrink-0 mt-0.5"
-                        style={{ color: '#5B6AF5' }}
+                        style={{ color: isLight ? '#4338CA' : '#5B6AF5' }}
                       >
                         {i + 1}.
                       </span>
@@ -415,7 +422,7 @@ export default function LearningStylePage() {
               style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.25)' }}
             >
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={14} style={{ color: '#8B9BFA' }} className="shrink-0" />
+                <Sparkles size={14} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} className="shrink-0" />
                 <h3 className="text-sm font-bold text-white">
                   How Novo Adapts
                 </h3>
