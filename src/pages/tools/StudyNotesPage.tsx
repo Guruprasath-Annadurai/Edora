@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { OfflineCache } from '@/lib/offlineCache';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Note {
   id: string;
@@ -18,6 +19,8 @@ interface Note {
 
 export default function StudyNotesPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [notes, setNotes]         = useState<Note[]>([]);
   const [loading, setLoading]     = useState(true);
   const [viewing, setViewing]     = useState<Note | null>(null);
@@ -89,7 +92,7 @@ export default function StudyNotesPage() {
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
           style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)' }}>
-          <FileDownloadIcon size={20} className="text-white" />
+          <FileDownloadIcon size={20} style={{ color: '#0F172A' }} />
         </div>
         <div className="flex-1">
           <h2 className="font-heading font-bold text-white text-sm">Study Notes</h2>
@@ -116,7 +119,7 @@ export default function StudyNotesPage() {
               <button onClick={() => deleteNote(viewing.id)} disabled={deleting === viewing.id}
                 className="p-2 rounded-xl"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <Trash2 size={15} className="text-red-400" />
+                <Trash2 size={15} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
               </button>
             </div>
             <div className="flex-1 native-scroll pb-nav px-4 py-4">
@@ -130,7 +133,7 @@ export default function StudyNotesPage() {
       <div className="flex-1 native-scroll pb-nav px-4 py-4 flex flex-col gap-3">
         {isOffline && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-medium"
-            style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#FBBF24' }}>
+            style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: isLight ? '#92400E' : '#FBBF24' }}>
             <WifiOff size={14} />
             Offline — showing cached notes
           </div>
@@ -168,8 +171,8 @@ export default function StudyNotesPage() {
                 className="shrink-0 p-2 rounded-xl mt-0.5"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
                 {deleting === note.id
-                  ? <Loader2 size={14} className="animate-spin text-red-400" />
-                  : <Trash2 size={14} className="text-red-400" />}
+                  ? <Loader2 size={14} className="animate-spin" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                  : <Trash2 size={14} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />}
               </button>
             </div>
           </motion.div>
