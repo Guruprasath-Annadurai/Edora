@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiCall } from '@/lib/gemini';
 import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Doubt {
   id: string;
@@ -33,6 +34,8 @@ function timeAgo(iso: string): string {
 }
 
 export default function DoubtRoomPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [doubts, setDoubts]   = useState<Doubt[]>([]);
@@ -137,7 +140,7 @@ Give a clear, concise explanation (3-5 sentences max). Use simple language. If i
             className="flex flex-col items-center justify-center py-16 gap-3 text-center">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{ background: 'rgba(91,106,245,0.12)' }}>
-              <BookOpen size={28} style={{ color: '#A0AEFF' }} />
+              <BookOpen size={28} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
             </div>
             <p className="font-heading text-base font-bold text-white">No doubts yet</p>
             <p className="text-sm" style={{ color: 'var(--ink-400)' }}>
@@ -158,7 +161,7 @@ Give a clear, concise explanation (3-5 sentences max). Use simple language. If i
                   <div className="flex items-center gap-2 mb-2">
                     {d.subject && (
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: 'rgba(91,106,245,0.15)', color: '#A0AEFF' }}>
+                        style={{ background: 'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#A0AEFF' }}>
                         {d.subject}
                       </span>
                     )}
@@ -169,12 +172,12 @@ Give a clear, concise explanation (3-5 sentences max). Use simple language. If i
                 {/* Answer */}
                 <div className="px-4 pb-3.5 pt-2.5" style={{ borderTop: '1px solid var(--ink-050)' }}>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <Sparkles size={11} style={{ color: '#A0AEFF' }} />
-                    <span className="text-xs font-bold" style={{ color: '#A0AEFF' }}>Novo</span>
+                    <Sparkles size={11} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
+                    <span className="text-xs font-bold" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>Novo</span>
                   </div>
                   {d.answering || !d.answer ? (
                     <div className="flex items-center gap-2">
-                      <Loader2 size={14} className="animate-spin" style={{ color: '#A0AEFF' }} />
+                      <Loader2 size={14} className="animate-spin" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
                       <span className="text-sm" style={{ color: 'var(--ink-400)' }}>Thinking…</span>
                     </div>
                   ) : (
@@ -197,7 +200,7 @@ Give a clear, concise explanation (3-5 sentences max). Use simple language. If i
               className="px-3 py-1 rounded-xl text-xs font-semibold flex-shrink-0 transition-all"
               style={{
                 background: subject === s ? 'rgba(91,106,245,0.25)' : 'var(--ink-050)',
-                color: subject === s ? '#A0AEFF' : 'var(--ink-400)',
+                color: subject === s ? (isLight ? '#4338CA' : '#A0AEFF') : 'var(--ink-400)',
                 border: `1px solid ${subject === s ? 'rgba(91,106,245,0.4)' : 'var(--ink-070)'}` }}>
               {s}
             </button>
