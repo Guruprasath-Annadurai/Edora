@@ -5,6 +5,7 @@ import {Search, Star, StarOff, ChevronDown, ChevronUp,
   FlaskConical, Microscope, Lightbulb, AlertTriangle, Copy, Check} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Toast } from '@capacitor/toast';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── KaTeX CDN loader (loads once, shared across all FormulaCards) ─────────────
 let _katexLoaded  = false;
@@ -344,6 +345,7 @@ const FORMULAS: Formula[] = [
 const SUBJECTS = ['All', 'Mathematics', 'Physics', 'Chemistry', 'Biology'] as const;
 const SUBJECT_ICONS = { Mathematics: Calculator, Physics: Atom, Chemistry: FlaskConical, Biology: Microscope };
 const SUBJECT_COLORS = { Mathematics: '#93C5FD', Physics: '#C4B5FD', Chemistry: '#6EE7B7', Biology: '#86EFAC' };
+const SUBJECT_COLORS_LIGHT = { Mathematics: '#1D4ED8', Physics: '#6D28D9', Chemistry: '#047857', Biology: '#15803D' };
 const STORAGE_KEY = 'edora_pinned_formulas';
 
 function getPinned(): Set<string> {
@@ -364,6 +366,9 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
   const [katexReady, setKatexReady] = useState(_katexLoaded);
   const latexRef = useRef<HTMLDivElement>(null);
   const SubIcon = SUBJECT_ICONS[f.subject];
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const subjectColor = isLight ? SUBJECT_COLORS_LIGHT[f.subject] : SUBJECT_COLORS[f.subject];
 
   // Load KaTeX on demand when this card has a latex field
   useEffect(() => {
@@ -402,8 +407,8 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-1">
-              <SubIcon size={10} style={{ color: SUBJECT_COLORS[f.subject] }} />
-              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: SUBJECT_COLORS[f.subject] }}>
+              <SubIcon size={10} style={{ color: subjectColor }} />
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: subjectColor }}>
                 {f.subject}
               </span>
               <span className="text-xs text-white/30 font-medium">·</span>
@@ -411,7 +416,7 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
               {f.class && (
                 <>
                   <span className="text-xs text-white/30">·</span>
-                  <span className="text-xs font-bold text-amber-400/70">{f.class}</span>
+                  <span className="text-xs font-bold" style={{ color: isLight ? '#92400E' : 'rgba(251,191,36,0.7)' }}>{f.class}</span>
                 </>
               )}
             </div>
@@ -420,11 +425,11 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={copyFormula} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
               style={{ background: 'var(--ink-060)' }} aria-label="Copy formula">
-              {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} className="text-white/40" />}
+              {copied ? <Check size={13} style={{ color: isLight ? '#047857' : '#34D399' }} /> : <Copy size={13} className="text-white/40" />}
             </button>
             <button onClick={onPin} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
               style={{ background: pinned ? 'rgba(234,179,8,0.15)' : 'var(--ink-060)' }} aria-label={pinned ? 'Unpin' : 'Pin formula'}>
-              {pinned ? <Star size={13} className="text-yellow-400" /> : <StarOff size={13} className="text-white/40" />}
+              {pinned ? <Star size={13} style={{ color: isLight ? '#854D0E' : '#FACC15' }} /> : <StarOff size={13} className="text-white/40" />}
             </button>
           </div>
         </div>
@@ -481,8 +486,8 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
                   <div className="space-y-1">
                     {f.mistakes.map((m, i) => (
                       <div key={i} className="flex items-start gap-1.5">
-                        <AlertTriangle size={10} className="text-red-400 mt-0.5 shrink-0" />
-                        <p className="text-xs text-red-300/80 leading-relaxed">{m}</p>
+                        <AlertTriangle size={10} className="mt-0.5 shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                        <p className="text-xs leading-relaxed" style={{ color: isLight ? '#B91C1C' : 'rgba(252,165,165,0.8)' }}>{m}</p>
                       </div>
                     ))}
                   </div>
@@ -493,10 +498,10 @@ function FormulaCard({ f, pinned, onPin }: { f: Formula; pinned: boolean; onPin:
               {f.mnemonic && (
                 <div className="px-3 py-2.5 rounded-xl" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)' }}>
                   <div className="flex items-center gap-1.5 mb-1">
-                    <Lightbulb size={10} className="text-violet-400" />
-                    <p className="text-xs font-bold uppercase tracking-wider text-violet-400">Mnemonic</p>
+                    <Lightbulb size={10} style={{ color: isLight ? '#6D28D9' : '#A78BFA' }} />
+                    <p className="text-xs font-bold uppercase tracking-wider" style={{ color: isLight ? '#6D28D9' : '#A78BFA' }}>Mnemonic</p>
                   </div>
-                  <p className="text-xs text-violet-200 leading-relaxed italic">{f.mnemonic}</p>
+                  <p className="text-xs leading-relaxed italic" style={{ color: isLight ? '#6D28D9' : '#DDD6FE' }}>{f.mnemonic}</p>
                 </div>
               )}
 
