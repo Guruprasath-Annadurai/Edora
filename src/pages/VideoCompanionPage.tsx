@@ -14,6 +14,7 @@ import {
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,7 @@ function Toast({ message, type, onDismiss }: ToastState & { onDismiss: () => voi
   }, [onDismiss]);
 
   const bg = type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : '#5B6AF5';
+  const fg = type === 'info' ? '#ffffff' : '#0F172A';
   return (
     <motion.div
       initial={{ opacity: 0, y: -48, x: '-50%' }}
@@ -78,11 +80,11 @@ function Toast({ message, type, onDismiss }: ToastState & { onDismiss: () => voi
       exit={{    opacity: 0, y: -48, x: '-50%' }}
       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
       className="fixed top-4 left-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2"
-      style={{ background: bg, minWidth: 200, maxWidth: 320 }}
+      style={{ background: bg, color: fg, minWidth: 200, maxWidth: 320 }}
     >
-      {type === 'success' && <CheckCircle2 size={15} className="text-white shrink-0" />}
-      {type === 'error'   && <AlertCircle  size={15} className="text-white shrink-0" />}
-      <span className="text-sm font-semibold text-white">{message}</span>
+      {type === 'success' && <CheckCircle2 size={15} className="shrink-0" />}
+      {type === 'error'   && <AlertCircle  size={15} className="shrink-0" />}
+      <span className="text-sm font-semibold">{message}</span>
     </motion.div>
   );
 }
@@ -140,14 +142,16 @@ function CyclingStatus() {
 // ── Feature preview cards ──────────────────────────────────────────────────────
 
 const FEATURES = [
-  { icon: BookOpen,      color: '#5B6AF5', title: 'AI Summary',      sub: 'Instant bullet-point overview' },
-  { icon: Layers,        color: '#8B5CF6', title: 'Key Concepts',    sub: 'Extracted and explained' },
-  { icon: Brain,         color: '#06B6D4', title: 'Auto Flashcards', sub: 'Ready to review in Spaced Review' },
+  { icon: BookOpen,      color: '#5B6AF5', colorLight: '#5B6AF5', title: 'AI Summary',      sub: 'Instant bullet-point overview' },
+  { icon: Layers,        color: '#8B5CF6', colorLight: '#8B5CF6', title: 'Key Concepts',    sub: 'Extracted and explained' },
+  { icon: Brain,         color: '#06B6D4', colorLight: '#0E7490', title: 'Auto Flashcards', sub: 'Ready to review in Spaced Review' },
 ];
 
 // ── Recent session row ─────────────────────────────────────────────────────────
 
 function RecentRow({ session, onOpen }: { session: VideoSession; onOpen: () => void }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const vid = session.video_id;
   const isComplete = session.status === 'complete' || session.status === 'no_captions';
   return (
@@ -170,8 +174,8 @@ function RecentRow({ session, onOpen }: { session: VideoSession; onOpen: () => v
       <span
         className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
         style={isComplete
-          ? { background: 'rgba(16,185,129,0.2)', color: '#10B981' }
-          : { background: 'rgba(251,191,36,0.2)', color: '#FBBF24' }}
+          ? { background: 'rgba(16,185,129,0.2)', color: isLight ? '#047857' : '#10B981' }
+          : { background: 'rgba(251,191,36,0.2)', color: isLight ? '#92400E' : '#FBBF24' }}
       >
         {isComplete ? 'Done' : 'Processing'}
       </span>
@@ -184,6 +188,8 @@ function RecentRow({ session, onOpen }: { session: VideoSession; onOpen: () => v
 
 export default function VideoCompanionPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   // Phase
   const [phase, setPhase]         = useState<Phase>('input');
@@ -510,7 +516,7 @@ export default function VideoCompanionPage() {
                       >
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                           style={{ background: `${f.color}22`, border: `1px solid ${f.color}44` }}>
-                          <f.icon size={17} style={{ color: f.color }} />
+                          <f.icon size={17} style={{ color: isLight ? f.colorLight : f.color }} />
                         </div>
                         <div>
                           <p className="text-sm font-bold text-white">{f.title}</p>
@@ -573,7 +579,7 @@ export default function VideoCompanionPage() {
           >
             <div className="w-16 h-16 rounded-full flex items-center justify-center"
               style={{ background: 'rgba(239,68,68,0.15)' }}>
-              <AlertCircle size={30} className="text-red-400" />
+              <AlertCircle size={30} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
             </div>
             <div>
               <p className="text-base font-bold text-white mb-2">Analysis failed</p>
@@ -654,8 +660,8 @@ export default function VideoCompanionPage() {
                       <span
                         className="text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
                         style={session.status === 'complete'
-                          ? { background: 'rgba(16,185,129,0.2)', color: '#10B981' }
-                          : { background: 'rgba(251,191,36,0.2)', color: '#FBBF24' }}
+                          ? { background: 'rgba(16,185,129,0.2)', color: isLight ? '#047857' : '#10B981' }
+                          : { background: 'rgba(251,191,36,0.2)', color: isLight ? '#92400E' : '#FBBF24' }}
                       >
                         {session.status === 'complete'
                           ? <><CheckCircle2 size={11} /> Complete</>
@@ -681,8 +687,8 @@ export default function VideoCompanionPage() {
                     className="mt-3 px-4 py-3 rounded-2xl flex items-start gap-2.5"
                     style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)' }}
                   >
-                    <AlertCircle size={15} style={{ color: '#FBBF24' }} className="shrink-0 mt-0.5" />
-                    <p className="text-xs leading-relaxed" style={{ color: '#FBBF24' }}>
+                    <AlertCircle size={15} style={{ color: isLight ? '#92400E' : '#FBBF24' }} className="shrink-0 mt-0.5" />
+                    <p className="text-xs leading-relaxed" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>
                       This video has no captions. Analysis is based on the video title and description only.
                     </p>
                   </motion.div>
@@ -734,9 +740,9 @@ export default function VideoCompanionPage() {
                       style={{ ...glassCard, borderColor: 'rgba(91,106,245,0.4)' }}
                     >
                       <div className="flex items-center gap-2 mb-3">
-                        <BookOpen size={15} style={{ color: '#5B6AF5' }} />
+                        <BookOpen size={15} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
                         <span className="text-xs font-bold uppercase tracking-wider"
-                          style={{ color: '#5B6AF5' }}>Summary</span>
+                          style={{ color: isLight ? '#4338CA' : '#5B6AF5' }}>Summary</span>
                       </div>
                       <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-800)' }}>
                         {session.summary ?? 'No summary available.'}
@@ -753,7 +759,7 @@ export default function VideoCompanionPage() {
                             <span
                               key={k.concept}
                               className="text-xs font-semibold px-3 py-1 rounded-full"
-                              style={{ background: 'rgba(91,106,245,0.2)', color: '#8B9BFA' }}
+                              style={{ background: 'rgba(91,106,245,0.2)', color: isLight ? '#4338CA' : '#8B9BFA' }}
                             >
                               {k.concept}
                             </span>
@@ -767,10 +773,10 @@ export default function VideoCompanionPage() {
                       const concepts = session.key_concepts.length;
                       const level = concepts >= 8 ? 'Advanced' : concepts >= 4 ? 'Intermediate' : 'Beginner';
                       const style = level === 'Advanced'
-                        ? { background: 'rgba(239,68,68,0.15)', color: '#F87171' }
+                        ? { background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171' }
                         : level === 'Intermediate'
-                        ? { background: 'rgba(251,191,36,0.15)', color: '#FCD34D' }
-                        : { background: 'rgba(16,185,129,0.15)', color: '#34D399' };
+                        ? { background: 'rgba(251,191,36,0.15)', color: isLight ? '#92400E' : '#FCD34D' }
+                        : { background: 'rgba(16,185,129,0.15)', color: isLight ? '#047857' : '#34D399' };
                       return (
                         <div className="flex items-center gap-2">
                           <span className="text-xs" style={{ color: 'var(--ink-400)' }}>Difficulty:</span>
@@ -808,7 +814,7 @@ export default function VideoCompanionPage() {
                         <div className="px-4 py-3.5 flex items-center gap-3">
                           <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
                             style={{ background: 'rgba(91,106,245,0.2)' }}>
-                            <Layers size={13} style={{ color: '#5B6AF5' }} />
+                            <Layers size={13} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
                           </div>
                           <p className="flex-1 text-sm font-semibold text-white">{k.concept}</p>
                           <motion.div animate={{ rotate: expandedConcept === i ? 90 : 0 }} transition={{ duration: 0.2 }}>
@@ -859,7 +865,7 @@ export default function VideoCompanionPage() {
                         disabled={srAdded || srAdding || session.flashcards.length === 0}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white transition-all active:scale-95 disabled:opacity-60"
                         style={srAdded
-                          ? { background: 'rgba(16,185,129,0.25)', color: '#10B981' }
+                          ? { background: 'rgba(16,185,129,0.25)', color: isLight ? '#047857' : '#10B981' }
                           : gradientBtn}
                       >
                         {srAdding ? (
@@ -892,7 +898,7 @@ export default function VideoCompanionPage() {
                             <div className="px-4 py-3.5 flex items-start gap-3">
                               <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
                                 style={{ background: 'rgba(139,92,246,0.2)' }}>
-                                <span className="text-[10px] font-bold" style={{ color: '#8B5CF6' }}>Q</span>
+                                <span className="text-[10px] font-bold" style={{ color: isLight ? '#6D28D9' : '#8B5CF6' }}>Q</span>
                               </div>
                               <p className="flex-1 text-sm text-white leading-snug">{fc.front}</p>
                               <motion.div animate={{ rotate: expandedCard === i ? 90 : 0 }} transition={{ duration: 0.2 }}>
@@ -913,7 +919,7 @@ export default function VideoCompanionPage() {
                                     <div className="flex items-start gap-3 pt-3">
                                       <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                                         style={{ background: 'rgba(16,185,129,0.2)' }}>
-                                        <span className="text-[10px] font-bold" style={{ color: '#10B981' }}>A</span>
+                                        <span className="text-[10px] font-bold" style={{ color: isLight ? '#047857' : '#10B981' }}>A</span>
                                       </div>
                                       <p className="text-sm leading-relaxed"
                                         style={{ color: 'var(--ink-700)' }}>
