@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, TrendingUp, Info, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Monte Carlo engine ────────────────────────────────────────────────────────
 
@@ -224,6 +225,8 @@ function ScoreInput({ label, max, value, onChange, color }: ScoreInputProps) {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function RankPredictorPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [examKey, setExamKey]   = useState<string>('jee_mains');
   const [examOpen, setExamOpen] = useState(false);
   const [physics, setPhysics]   = useState(60);
@@ -251,10 +254,26 @@ export default function RankPredictorPage() {
     neet:         'NEET 2025',
   };
 
-  const rankColor =
+  const rankColorDark =
     (result?.p50Rank ?? 999999) < 1000 ? '#10B981' :
     (result?.p50Rank ?? 999999) < 10000 ? '#5B6AF5' :
     (result?.p50Rank ?? 999999) < 50000 ? '#F59E0B' : '#EF4444';
+  // Light-theme variants of the same 4 tiers — same darkened palette used
+  // throughout this session (700/800-shade equivalents).
+  const rankColorLight =
+    (result?.p50Rank ?? 999999) < 1000 ? '#047857' :
+    (result?.p50Rank ?? 999999) < 10000 ? '#4338CA' :
+    (result?.p50Rank ?? 999999) < 50000 ? '#92400E' : '#B91C1C';
+  const rankColor = isLight ? rankColorLight : rankColorDark;
+  // Rank-range card subtitle used `${rankColor}cc` (alpha-suffix hack) —
+  // stacking alpha on an already-darkened light color re-breaks contrast
+  // (same lesson as ExamPredictionPage/Tournament this session), so use a
+  // separate, still-full-opacity muted shade for that specific label.
+  const rankColorMuted = isLight ? rankColor : `${rankColor}cc`;
+
+  const physicsColor   = isLight ? '#4338CA' : '#5B6AF5';
+  const chemistryColor = isLight ? '#047857' : '#10B981';
+  const thirdColor      = isLight ? '#92400E' : '#F59E0B';
 
   return (
     <div className="flex flex-col h-full">
@@ -301,7 +320,7 @@ export default function RankPredictorPage() {
                     key={key}
                     onClick={() => { setExamKey(key); setExamOpen(false); }}
                     className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-white/5 transition-colors"
-                    style={{ color: key === examKey ? '#A0AEFF' : 'var(--ink-700)' }}>
+                    style={{ color: key === examKey ? (isLight ? '#4338CA' : '#A0AEFF') : 'var(--ink-700)' }}>
                     {label}
                   </button>
                 ))}
@@ -314,9 +333,9 @@ export default function RankPredictorPage() {
         <div className="p-4 rounded-3xl flex flex-col gap-5"
           style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
           <h3 className="text-white font-bold text-sm">Expected Marks</h3>
-          <ScoreInput label="Physics" max={subjectMax} value={physics} onChange={setPhysics} color="#5B6AF5" />
-          <ScoreInput label="Chemistry" max={subjectMax} value={chemistry} onChange={setChemistry} color="#10B981" />
-          <ScoreInput label={examKey === 'neet' ? 'Biology' : 'Maths'} max={subjectMax} value={maths} onChange={setMaths} color="#F59E0B" />
+          <ScoreInput label="Physics" max={subjectMax} value={physics} onChange={setPhysics} color={physicsColor} />
+          <ScoreInput label="Chemistry" max={subjectMax} value={chemistry} onChange={setChemistry} color={chemistryColor} />
+          <ScoreInput label={examKey === 'neet' ? 'Biology' : 'Maths'} max={subjectMax} value={maths} onChange={setMaths} color={thirdColor} />
 
           <div className="pt-1 border-t" style={{ borderColor: 'var(--ink-070)' }}>
             <div className="flex items-center justify-between">
@@ -339,7 +358,7 @@ export default function RankPredictorPage() {
             {/* Rank range card */}
             <div className="p-5 rounded-3xl"
               style={{ background: `linear-gradient(135deg, ${rankColor}18, ${rankColor}08)`, border: `1px solid ${rankColor}33` }}>
-              <p className="text-xs font-bold mb-1" style={{ color: `${rankColor}cc`, letterSpacing: 1 }}>PREDICTED RANK RANGE</p>
+              <p className="text-xs font-bold mb-1" style={{ color: rankColorMuted, letterSpacing: 1 }}>PREDICTED RANK RANGE</p>
               <div className="flex items-baseline gap-2 mb-3">
                 <span className="text-4xl font-black tabular-nums" style={{ color: rankColor }}>
                   {result.p25Rank.toLocaleString('en-IN')}
@@ -397,8 +416,8 @@ export default function RankPredictorPage() {
 
             {/* Disclaimer */}
             <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-              <Info size={14} color="#FCD34D" className="shrink-0 mt-0.5" />
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(252,211,77,0.8)' }}>
+              <Info size={14} color={isLight ? '#92400E' : '#FCD34D'} className="shrink-0 mt-0.5" />
+              <p className="text-xs leading-relaxed" style={{ color: isLight ? '#92400E' : 'rgba(252,211,77,0.8)' }}>
                 Monte Carlo simulation based on historical JEE/NEET score distributions. Actual rank depends on difficulty, number of students, and cut-off changes. Use as guidance only.
               </p>
             </div>
