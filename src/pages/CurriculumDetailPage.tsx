@@ -14,6 +14,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -112,6 +113,10 @@ function Toast({ message, type, onDismiss }: { message: string; type: ToastState
     type === 'success' ? '#10B981' :
     type === 'error'   ? '#EF4444' :
     '#5B6AF5';
+  const fg =
+    type === 'success' ? '#0F172A' :
+    type === 'error'   ? '#0F172A' :
+    '#ffffff';
 
   return (
     <motion.div
@@ -120,12 +125,12 @@ function Toast({ message, type, onDismiss }: { message: string; type: ToastState
       exit={{    opacity: 0, y: -48, x: '-50%' }}
       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
       className="fixed top-4 left-1/2 z-[60] px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-2"
-      style={{ background: bg, minWidth: 200, maxWidth: 320 }}
+      style={{ background: bg, color: fg, minWidth: 200, maxWidth: 320 }}
     >
-      {type === 'success' && <CheckCircle2 size={14} className="text-white shrink-0" />}
-      {type === 'error'   && <AlertTriangle size={14} className="text-white shrink-0" />}
-      {type === 'info'    && <Zap           size={14} className="text-white shrink-0" />}
-      <span className="text-sm font-semibold text-white">{message}</span>
+      {type === 'success' && <CheckCircle2 size={14} className="shrink-0" />}
+      {type === 'error'   && <AlertTriangle size={14} className="shrink-0" />}
+      {type === 'info'    && <Zap           size={14} className="shrink-0" />}
+      <span className="text-sm font-semibold">{message}</span>
     </motion.div>
   );
 }
@@ -457,6 +462,8 @@ export default function CurriculumDetailPage() {
   const { boardCode, subject } = useParams<{ boardCode: string; subject: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const mountedRef = useRef(true);
   const toastCounter = useRef(0);
 
@@ -774,7 +781,7 @@ export default function CurriculumDetailPage() {
           <div className="flex items-center gap-2 mx-4 mt-3 mb-1">
             <span
               className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5"
-              style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981' }}
+              style={{ background: 'rgba(16,185,129,0.15)', color: isLight ? '#047857' : '#10B981' }}
             >
               <CheckCircle2 size={10} />
               Ready
@@ -817,7 +824,7 @@ export default function CurriculumDetailPage() {
                 className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
                 style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.25)' }}
               >
-                <BookOpen size={24} style={{ color: '#818CF8' }} />
+                <BookOpen size={24} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
               </div>
               <p className="text-white/60 font-semibold text-sm">No topics yet</p>
               <p className="text-white/30 text-xs mt-1">
