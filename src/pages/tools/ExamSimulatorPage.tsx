@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { track } from '@/lib/analytics';
 import type { QuizQuestion } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type Phase = 'setup' | 'loading' | 'exam' | 'result';
 
@@ -15,6 +16,8 @@ const TIME_OPTIONS  = [10, 15, 20, 30];
 const COUNT_OPTIONS = [10, 15, 20];
 
 export default function ExamSimulatorPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { profile } = useAuth();
   const [phase, setPhase]     = useState<Phase>('setup');
   const [topic, setTopic]     = useState('');
@@ -132,7 +135,7 @@ export default function ExamSimulatorPage() {
         {phase === 'exam' && (
           <div className="px-3 py-1.5 rounded-xl font-mono font-bold text-sm"
             style={timerUrgent
-              ? { background: 'rgba(239,68,68,0.15)', color: '#F87171', border: '1px solid rgba(239,68,68,0.3)' }
+              ? { background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171', border: '1px solid rgba(239,68,68,0.3)' }
               : { background: 'var(--ink-060)', color: 'var(--ink-850)', border: '1px solid var(--ink-100)' }}>
             {mm}:{ss}
           </div>
@@ -148,7 +151,7 @@ export default function ExamSimulatorPage() {
               className="flex flex-col gap-5 px-4 py-5">
               <div className="rounded-3xl p-5 text-center"
                 style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(59,130,246,0.12))', border: '1px solid rgba(124,58,237,0.2)' }}>
-                <Clock size={36} className="mx-auto mb-3" style={{ color: '#7C3AED' }} strokeWidth={1.5} />
+                <Clock size={36} className="mx-auto mb-3" style={{ color: isLight ? '#6D28D9' : '#7C3AED' }} strokeWidth={1.5} />
                 <h3 className="font-heading text-lg font-bold text-white">Simulate Real Exam Conditions</h3>
                 <p className="text-sm text-muted-foreground mt-1">Timed questions · AI analysis · XP rewards</p>
               </div>
@@ -165,7 +168,7 @@ export default function ExamSimulatorPage() {
                     <button key={n} onClick={() => setCount(n)}
                       className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all"
                       style={count === n
-                        ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: 'var(--ink-950)' }
+                        ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: '#ffffff' }
                         : { background: 'var(--ink-055)', color: 'var(--ink-600)', border: '1px solid var(--ink-080)' }}>
                       {n}
                     </button>
@@ -180,7 +183,7 @@ export default function ExamSimulatorPage() {
                     <button key={m} onClick={() => setMinutes(m)}
                       className="flex-1 py-3 rounded-2xl text-xs font-semibold transition-all"
                       style={minutes === m
-                        ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: 'var(--ink-950)' }
+                        ? { background: 'linear-gradient(135deg, #7C3AED, #3B82F6)', color: '#ffffff' }
                         : { background: 'var(--ink-055)', color: 'var(--ink-600)', border: '1px solid var(--ink-080)' }}>
                       {m}m
                     </button>
@@ -191,7 +194,7 @@ export default function ExamSimulatorPage() {
               {genError && (
                 <div className="rounded-2xl px-4 py-3"
                   style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                  <p className="text-sm text-red-400">{genError}</p>
+                  <p className="text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{genError}</p>
                 </div>
               )}
 
@@ -234,10 +237,15 @@ export default function ExamSimulatorPage() {
                   <button key={i} onClick={() => { setCurrent(i); setSelected(answers[i]); }}
                     className="w-6 h-6 rounded-full text-xs font-bold transition-all flex items-center justify-center"
                     style={{
+                      // Dot fill is one of 3 FIXED colors regardless of app
+                      // theme — white text fails against green (≈2.9:1),
+                      // while dark ink fails against violet (≈3.2:1). Pick
+                      // per-value text color rather than one fixed choice
+                      // (same bug class as BossFightPage's boss buttons).
                       background: answers[i] !== null
                         ? answers[i] === questions[i].correct_answer ? '#10B981' : '#EF4444'
                         : i === current ? '#7C3AED' : 'var(--ink-100)',
-                      color: answers[i] !== null || i === current ? '#fff' : 'var(--ink-500)',
+                      color: answers[i] !== null ? '#0F172A' : i === current ? '#ffffff' : 'var(--ink-500)',
                     }}>
                     {i + 1}
                   </button>
@@ -246,7 +254,7 @@ export default function ExamSimulatorPage() {
 
               <div className="rounded-3xl p-5"
                 style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
-                <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#A78BFA' }}>Question {current + 1}</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: isLight ? '#6D28D9' : '#A78BFA' }}>Question {current + 1}</p>
                 <p className="font-heading text-base font-semibold text-white leading-snug">{q.question}</p>
               </div>
 
@@ -275,8 +283,8 @@ export default function ExamSimulatorPage() {
                           {String.fromCharCode(65 + i)}
                         </span>
                         <span className="text-sm text-white/85 flex-1">{opt}</span>
-                        {answered && isCorrect  && <CheckCircle size={15} style={{ color: '#34D399' }} className="shrink-0" />}
-                        {answered && isSelected && !isCorrect && <XCircle size={15} style={{ color: '#F87171' }} className="shrink-0" />}
+                        {answered && isCorrect  && <CheckCircle size={15} style={{ color: isLight ? '#047857' : '#34D399' }} className="shrink-0" />}
+                        {answered && isSelected && !isCorrect && <XCircle size={15} style={{ color: isLight ? '#B91C1C' : '#F87171' }} className="shrink-0" />}
                       </div>
                     </button>
                   );
@@ -340,12 +348,12 @@ export default function ExamSimulatorPage() {
                       ? { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }
                       : { background: 'rgba(239,68,68,0.08)',  border: '1px solid rgba(239,68,68,0.25)' }}>
                     {answers[i] === q.correct_answer
-                      ? <CheckCircle size={16} style={{ color: '#34D399' }} className="shrink-0 mt-0.5" />
-                      : <XCircle    size={16} style={{ color: '#F87171' }} className="shrink-0 mt-0.5" />}
+                      ? <CheckCircle size={16} style={{ color: isLight ? '#047857' : '#34D399' }} className="shrink-0 mt-0.5" />
+                      : <XCircle    size={16} style={{ color: isLight ? '#B91C1C' : '#F87171' }} className="shrink-0 mt-0.5" />}
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-white/85 leading-snug line-clamp-2">{q.question}</p>
                       {answers[i] !== q.correct_answer && (
-                        <p className="text-xs mt-0.5" style={{ color: '#34D399' }}>Correct: {q.options?.[q.correct_answer]}</p>
+                        <p className="text-xs mt-0.5" style={{ color: isLight ? '#047857' : '#34D399' }}>Correct: {q.options?.[q.correct_answer]}</p>
                       )}
                     </div>
                   </div>
