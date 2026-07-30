@@ -31,6 +31,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Toast } from '@capacitor/toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { QuizQuestion } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const ROOM_CODE_CHARS    = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0,O,1,I ambiguity
@@ -115,6 +116,8 @@ function Avatar({ name, size = 36, online }: { name: string; size?: number; onli
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function StudyRoomPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user, profile } = useAuth();
   const navigate          = useNavigate();
 
@@ -718,8 +721,8 @@ export default function StudyRoomPage() {
           <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
             className="flex items-start gap-2 rounded-2xl px-4 py-3"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-            <XCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-red-400 leading-snug">{error}</p>
+            <XCircle size={15} className="shrink-0 mt-0.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+            <p className="text-xs leading-snug" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
           </motion.div>
         )}
 
@@ -779,7 +782,7 @@ export default function StudyRoomPage() {
                 style={{ background: 'var(--v2-card)', border: '1px solid var(--v2-border)' }}>
                 <div className="w-16 h-16 rounded-3xl flex items-center justify-center"
                   style={{ background: 'rgba(16,185,129,0.12)' }}>
-                  <Users size={30} style={{ color: '#10B981' }} />
+                  <Users size={30} style={{ color: isLight ? '#047857' : '#10B981' }} />
                 </div>
                 <div className="text-center">
                   <p className="font-heading font-bold text-white text-base">Enter Room Code</p>
@@ -832,7 +835,7 @@ export default function StudyRoomPage() {
             <button onClick={copyCode}
               className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90"
               style={{ background: codeCopied ? 'rgba(16,185,129,0.15)' : 'rgba(91,106,245,0.1)' }}>
-              {codeCopied ? <CheckCircle size={18} className="text-green-500" /> : <Copy size={18} style={{ color: '#5B6AF5' }} />}
+              {codeCopied ? <CheckCircle size={18} className="text-green-500" /> : <Copy size={18} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />}
             </button>
           </div>
           <p className="text-xs text-muted-foreground text-center">Share this code with your study partners</p>
@@ -856,7 +859,7 @@ export default function StudyRoomPage() {
                 </div>
                 {m.userId === (user?.id ?? '') && isHost && (
                   <span className="flex items-center gap-1 text-xs font-bold rounded-full px-2 py-0.5"
-                    style={{ color: '#FBBF24', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
+                    style={{ color: isLight ? '#92400E' : '#FBBF24', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
                     <Crown size={10} /> Host
                   </span>
                 )}
@@ -905,7 +908,7 @@ export default function StudyRoomPage() {
 
       <div className="flex-1 flex flex-col items-center justify-between px-4 py-8">
         <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#10B981' }}>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: isLight ? '#047857' : '#10B981' }}>
             Study Phase
           </p>
           <h2 className="font-heading text-xl font-bold text-white">{roomTopic || roomSubject}</h2>
@@ -931,7 +934,7 @@ export default function StudyRoomPage() {
             );
           })()}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <Clock size={20} style={{ color: '#10B981' }} className="mb-1" />
+            <Clock size={20} style={{ color: isLight ? '#047857' : '#10B981' }} className="mb-1" />
             <span className="font-heading text-3xl font-bold text-white">{formatSeconds(studyTimeLeft)}</span>
             <span className="text-xs text-muted-foreground">remaining</span>
           </div>
@@ -975,7 +978,7 @@ export default function StudyRoomPage() {
         connected={connected} onLeave={leaveRoom} />
       {error ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
-          <XCircle size={40} className="text-red-400" />
+          <XCircle size={40} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
           <p className="text-sm text-muted-foreground">{error}</p>
           <button onClick={() => { setError(''); setPhase('studying'); }}
             className="px-6 py-3 rounded-2xl text-sm font-semibold text-white"
@@ -987,7 +990,7 @@ export default function StudyRoomPage() {
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4">
           <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, rgba(91,106,245,0.15), rgba(139,92,246,0.15))' }}>
-            <Zap size={36} style={{ color: '#5B6AF5' }} />
+            <Zap size={36} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
           </div>
           <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
           <div className="text-center">
@@ -1022,8 +1025,10 @@ export default function StudyRoomPage() {
                 animate={{ width: `${((currentQ) / questions.length) * 100}%` }} />
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              <Clock size={13} className={questionTimeLeft <= 5 && !isRevealPhase ? 'text-red-500' : 'text-muted-foreground'} />
-              <span className={`text-sm font-bold tabular-nums ${questionTimeLeft <= 5 && !isRevealPhase ? 'text-red-500' : 'text-white'}`}>
+              <Clock size={13} className={questionTimeLeft <= 5 && !isRevealPhase ? '' : 'text-muted-foreground'}
+                style={questionTimeLeft <= 5 && !isRevealPhase ? { color: isLight ? '#B91C1C' : '#EF4444' } : undefined} />
+              <span className="text-sm font-bold tabular-nums"
+                style={questionTimeLeft <= 5 && !isRevealPhase ? { color: isLight ? '#B91C1C' : '#EF4444' } : { color: 'var(--ink-950)' }}>
                 {isRevealPhase ? '·' : questionTimeLeft}
               </span>
             </div>
@@ -1057,12 +1062,16 @@ export default function StudyRoomPage() {
                 const pct        = totalAnswered > 0 ? Math.round((count / totalAnswered) * 100) : 0;
 
                 let optStyle: React.CSSProperties = { background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' };
-                let textColor = 'text-white';
+                // 'var(--ink-950)' is correct for the default state since
+                // var(--hdr-b-750) is a theme-adaptive card background; the
+                // reveal/selected states use FIXED colored tints, so those
+                // need isLight-branched fixed text colors instead.
+                let textColor = 'var(--ink-950)';
                 if (isRevealPhase) {
-                  if (isCorrect)       { optStyle = { background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)' }; textColor = 'text-[#34D399]'; }
-                  else if (isSelected) { optStyle = { background: 'rgba(239,68,68,0.1)',   border: '1px solid rgba(239,68,68,0.3)'  }; textColor = 'text-red-400'; }
+                  if (isCorrect)       { optStyle = { background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)' }; textColor = isLight ? '#047857' : '#34D399'; }
+                  else if (isSelected) { optStyle = { background: 'rgba(239,68,68,0.1)',   border: '1px solid rgba(239,68,68,0.3)'  }; textColor = isLight ? '#B91C1C' : '#F87171'; }
                 } else if (isSelected) {
-                  optStyle = { background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.3)' }; textColor = 'text-[#818CF8]';
+                  optStyle = { background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.3)' }; textColor = isLight ? '#4338CA' : '#818CF8';
                 }
 
                 return (
@@ -1071,13 +1080,13 @@ export default function StudyRoomPage() {
                     className={`w-full text-left rounded-2xl text-sm font-medium transition-all overflow-hidden relative ${!myAnswer && !isRevealPhase ? 'active:scale-[0.98]' : ''}`}
                     style={optStyle}>
                     <div className="flex items-center gap-3 px-4 py-3 relative z-10">
-                      <span className={`w-6 h-6 rounded-lg border flex items-center justify-center text-xs shrink-0 font-bold border-current ${textColor}`}
-                        style={{ opacity: 0.7 }}>
+                      <span className="w-6 h-6 rounded-lg border flex items-center justify-center text-xs shrink-0 font-bold border-current"
+                        style={{ opacity: 0.7, color: textColor }}>
                         {String.fromCharCode(65 + i)}
                       </span>
-                      <span className={`flex-1 ${textColor}`}>{opt}</span>
-                      {isRevealPhase && isCorrect  && <CheckCircle size={16} className="text-[#34D399] shrink-0" />}
-                      {isRevealPhase && isSelected && !isCorrect && <XCircle size={16} className="text-red-400 shrink-0" />}
+                      <span className="flex-1" style={{ color: textColor }}>{opt}</span>
+                      {isRevealPhase && isCorrect  && <CheckCircle size={16} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />}
+                      {isRevealPhase && isSelected && !isCorrect && <XCircle size={16} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />}
                       {isRevealPhase && count > 0 && (
                         <span className="text-xs font-bold text-muted-foreground shrink-0">{pct}%</span>
                       )}
@@ -1169,7 +1178,7 @@ export default function StudyRoomPage() {
                   <span className="text-xs font-bold w-7 text-center text-muted-foreground">{rankLabels[i] ?? `${i + 1}`}</span>
                   <Avatar name={r.name} size={36} />
                   <div className="flex-1">
-                    <p className={`text-sm font-semibold ${isMe ? 'text-[#818CF8]' : 'text-white'}`}>
+                    <p className="text-sm font-semibold" style={{ color: isMe ? (isLight ? '#4338CA' : '#818CF8') : 'var(--ink-950)' }}>
                       {r.name}{isMe ? ' (You)' : ''}
                     </p>
                     <p className="text-xs text-muted-foreground">{r.score}/{questions.length} correct</p>
@@ -1209,6 +1218,8 @@ function RoomHeader({
   code: string; subject: string; topic: string;
   connected: boolean; onLeave: () => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <div className="px-4 py-3 flex items-center gap-3 shrink-0"
       style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
@@ -1221,7 +1232,7 @@ function RoomHeader({
           <h2 className="font-heading font-bold text-white text-sm">{topic || subject}</h2>
           {connected
             ? <Wifi size={11} className="text-green-500 shrink-0" />
-            : <WifiOff size={11} className="text-red-400 shrink-0 animate-pulse" />}
+            : <WifiOff size={11} className="shrink-0 animate-pulse" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />}
         </div>
         <p className="text-xs text-muted-foreground truncate">
           Room <span className="font-mono font-bold text-white">{code}</span> · {subject}
@@ -1230,7 +1241,7 @@ function RoomHeader({
       <button onClick={onLeave}
         className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-90"
         style={{ background: 'rgba(239,68,68,0.08)' }}>
-        <LogOut size={16} className="text-red-400" />
+        <LogOut size={16} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
       </button>
     </div>
   );
