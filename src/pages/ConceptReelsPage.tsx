@@ -14,6 +14,17 @@ import { supabase } from '@/lib/supabase';
 import { Share } from '@capacitor/share';
 import { Toast } from '@capacitor/toast';
 import { indexUserItem } from '@/lib/userContentIndex';
+import { useTheme } from '@/contexts/ThemeContext';
+
+const COLOR1_LIGHT: Record<string, string> = {
+  '#5B6AF5': '#4338CA',
+  '#F59E0B': '#92400E',
+  '#06B6D4': '#0E7490',
+  '#10B981': '#047857',
+  '#8B5CF6': '#6D28D9',
+  '#A78BFA': '#6D28D9',
+  '#22C55E': '#15803D',
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ConceptReel {
@@ -181,6 +192,9 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
   onLike: () => void; onSave: () => void;
 }) {
   const [showFull, setShowFull] = useState(false);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const textColor1 = isLight ? (COLOR1_LIGHT[reel.color1] ?? reel.color1) : reel.color1;
 
   return (
     <div className="relative w-full h-full flex flex-col" style={{
@@ -195,12 +209,12 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
         {/* Subject / chapter badge */}
         <div className="absolute top-4 left-4 flex items-center gap-2">
           <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-            style={{ background: `${reel.color1}30`, color: reel.color1, border: `1px solid ${reel.color1}40` }}>
+            style={{ background: `${reel.color1}30`, color: textColor1, border: `1px solid ${reel.color1}40` }}>
             {reel.subject} · {reel.chapter}
           </span>
           {viewed && (
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-              <CheckCircle2 size={14} style={{ color: '#10B981', filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.6))' }} />
+              <CheckCircle2 size={14} style={{ color: isLight ? '#047857' : '#10B981', filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.6))' }} />
             </motion.div>
           )}
         </div>
@@ -213,7 +227,7 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
           >
             {(() => {
               const Icon = SUBJECT_ICON[reel.subject] ?? Zap;
-              return <Icon size={64} style={{ color: reel.color1 }} strokeWidth={1.3} />;
+              return <Icon size={64} style={{ color: textColor1 }} strokeWidth={1.3} />;
             })()}
           </motion.div>
         </div>
@@ -223,7 +237,7 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
       <div className="shrink-0 px-5 pb-6 pt-3"
         style={{ background: 'linear-gradient(180deg,transparent,var(--surface-scrim) 30%)' }}>
         <h2 className="font-heading text-2xl font-extrabold text-white mb-1">{reel.concept}</h2>
-        <p className="text-sm font-semibold mb-3" style={{ color: reel.color1 }}>{reel.summary}</p>
+        <p className="text-sm font-semibold mb-3" style={{ color: textColor1 }}>{reel.summary}</p>
 
         <AnimatePresence>
           {showFull && (
@@ -232,7 +246,7 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
               <div className="space-y-1.5 mb-3">
                 {reel.key_points.map((pt, i) => (
                   <div key={i} className="flex items-start gap-2">
-                    <Zap size={10} className="shrink-0 mt-1" style={{ color: reel.color1 }} />
+                    <Zap size={10} className="shrink-0 mt-1" style={{ color: textColor1 }} />
                     <p className="text-xs text-white/60">{pt}</p>
                   </div>
                 ))}
@@ -241,7 +255,7 @@ function ReelCard({ reel, active, viewed, onLike, onSave }: {
           )}
         </AnimatePresence>
 
-        <button onClick={() => setShowFull(s => !s)} className="text-xs font-bold" style={{ color: reel.color1 }}>
+        <button onClick={() => setShowFull(s => !s)} className="text-xs font-bold" style={{ color: textColor1 }}>
           {showFull ? 'Show less ↑' : 'Read more ↓'}
         </button>
       </div>
