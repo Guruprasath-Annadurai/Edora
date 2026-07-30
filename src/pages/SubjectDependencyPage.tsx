@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { loadSubjectMastery } from '@/lib/adaptiveDifficulty';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -63,10 +64,16 @@ const STRENGTH_COLORS: Record<Dep['strength'], string> = {
   helpful:     '#6B7280',
 };
 
-const MASTERY_FILL: (m: number) => string = (m) => {
+const STRENGTH_COLORS_LIGHT: Record<Dep['strength'], string> = {
+  required:    '#B91C1C',
+  recommended: '#92400E',
+  helpful:     '#6B7280',
+};
+
+const MASTERY_FILL: (m: number, isLight?: boolean) => string = (m, isLight = false) => {
   if (m < 0) return '#6B7280';   // unknown
-  if (m >= 0.7) return '#10B981';
-  if (m >= 0.4) return '#F59E0B';
+  if (m >= 0.7) return isLight ? '#047857' : '#10B981';
+  if (m >= 0.4) return isLight ? '#92400E' : '#F59E0B';
   return '#6B7280';
 };
 
@@ -161,8 +168,10 @@ interface BottomSheetProps {
 }
 
 function BottomSheet({ info, onClose, onStudy }: BottomSheetProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   if (!info) return null;
-  const fillColor = MASTERY_FILL(info.mastery);
+  const fillColor = MASTERY_FILL(info.mastery, isLight);
   const masteryPct = info.mastery < 0 ? null : Math.round(info.mastery * 100);
 
   return (
@@ -224,7 +233,7 @@ function BottomSheet({ info, onClose, onStudy }: BottomSheetProps) {
               className="px-2.5 py-0.5 rounded-full text-xs font-bold capitalize"
               style={{
                 background: STRENGTH_COLORS[info.strength] + '22',
-                color:      STRENGTH_COLORS[info.strength],
+                color:      isLight ? STRENGTH_COLORS_LIGHT[info.strength] : STRENGTH_COLORS[info.strength],
               }}
             >
               {info.strength} dependency
@@ -257,6 +266,8 @@ interface GraphProps {
 }
 
 function GraphSVG({ nodes, edges, filter, onNodeTap, allDeps }: GraphProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const nodeMap = new Map<string, GraphNode>();
   for (const n of nodes) nodeMap.set(n.subject, n);
 
@@ -288,7 +299,7 @@ function GraphSVG({ nodes, edges, filter, onNodeTap, allDeps }: GraphProps) {
             >
               <polygon
                 points="0 0, 8 3, 0 6"
-                fill={STRENGTH_COLORS[s]}
+                fill={isLight ? STRENGTH_COLORS_LIGHT[s] : STRENGTH_COLORS[s]}
               />
             </marker>
           ))}
@@ -300,7 +311,7 @@ function GraphSVG({ nodes, edges, filter, onNodeTap, allDeps }: GraphProps) {
           const toNode   = nodeMap.get(edge.to);
           if (!fromNode || !toNode) return null;
 
-          const color    = STRENGTH_COLORS[edge.strength];
+          const color    = isLight ? STRENGTH_COLORS_LIGHT[edge.strength] : STRENGTH_COLORS[edge.strength];
           const isDashed = edge.strength === 'recommended';
           const isDotted = edge.strength === 'helpful';
 
@@ -320,7 +331,7 @@ function GraphSVG({ nodes, edges, filter, onNodeTap, allDeps }: GraphProps) {
 
         {/* Nodes */}
         {nodes.map(node => {
-          const fill   = MASTERY_FILL(node.mastery);
+          const fill   = MASTERY_FILL(node.mastery, isLight);
           const relDeps = allDeps.filter(d => d.subject === node.subject);
           return (
             <g
@@ -346,7 +357,7 @@ function GraphSVG({ nodes, edges, filter, onNodeTap, allDeps }: GraphProps) {
                 dominantBaseline="middle"
                 fontSize={11}
                 fontWeight={600}
-                fill={fill === '#6B7280' ? 'var(--ink-600)' : fill === '#10B981' ? '#34D399' : '#FBBF24'}
+                fill={fill === '#6B7280' ? 'var(--ink-600)' : fill}
                 style={{ fontFamily: 'system-ui, sans-serif', userSelect: 'none' }}
               >
                 {node.subject.length > 14 ? node.subject.slice(0, 13) + '…' : node.subject}
@@ -412,6 +423,10 @@ interface UnlockPathProps {
 }
 
 function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const indigo = isLight ? '#4338CA' : '#8B9BFA';
+  const emerald = isLight ? '#047857' : '#34D399';
   // Sort nodes by column (topological order), then row
   const sorted = [...nodes].sort((a, b) => a.col - b.col || a.row - b.row);
 
@@ -420,7 +435,7 @@ function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
       {sorted.map((node, i) => {
         const mastery    = masteryMap[node.subject] ?? -1;
         const masteryPct = mastery < 0 ? null : Math.round(mastery * 100);
-        const fill       = MASTERY_FILL(mastery);
+        const fill       = MASTERY_FILL(mastery, isLight);
         const isMastered = mastery >= 0.7;
 
         // Prerequisites: find subjects that this node requires
@@ -463,7 +478,7 @@ function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
                 {readyToLearn && (
                   <span
                     className="px-2 py-0.5 rounded-full text-xs font-bold"
-                    style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34D399' }}
+                    style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: emerald }}
                   >
                     Ready to learn
                   </span>
@@ -471,7 +486,7 @@ function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
                 {isMastered && (
                   <span
                     className="px-2 py-0.5 rounded-full text-xs font-bold"
-                    style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34D399' }}
+                    style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: emerald }}
                   >
                     Mastered
                   </span>
@@ -481,8 +496,8 @@ function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
               {prereqs.length > 0 && (
                 <div className="flex items-center gap-1 mt-0.5">
                   {prereqsMet
-                    ? <CheckCircle2 size={11} className="text-emerald-400 shrink-0" />
-                    : <XCircle     size={11} className="text-red-400 shrink-0" />
+                    ? <CheckCircle2 size={11} className="shrink-0" style={{ color: emerald }} />
+                    : <XCircle     size={11} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
                   }
                   <p className="text-xs truncate" style={{ color: 'var(--ink-500)' }}>
                     Needs: {prereqs.join(', ')}
@@ -504,7 +519,7 @@ function UnlockPath({ nodes, masteryMap, allDeps, onStudy }: UnlockPathProps) {
               className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 active:scale-90 transition-all"
               style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)' }}
             >
-              <Zap size={14} style={{ color: '#8B9BFA' }} />
+              <Zap size={14} style={{ color: indigo }} />
             </button>
           </motion.div>
         );
@@ -525,6 +540,8 @@ const FILTERS: { label: string; value: StrengthFilter }[] = [
 export default function SubjectDependencyPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const mountedRef = useRef(true);
 
   const [deps,        setDeps]        = useState<Dep[]>([]);
@@ -677,7 +694,7 @@ export default function SubjectDependencyPage() {
               className="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all active:scale-95"
               style={
                 filter === f.value
-                  ? { background: 'rgba(91,106,245,0.15)', borderColor: '#5B6AF5', color: '#8B9BFA' }
+                  ? { background: 'rgba(91,106,245,0.15)', borderColor: '#5B6AF5', color: isLight ? '#4338CA' : '#8B9BFA' }
                   : { background: 'var(--ink-045)', borderColor: 'var(--ink-100)', color: 'var(--ink-450)' }
               }
             >
@@ -695,7 +712,7 @@ export default function SubjectDependencyPage() {
           <div className="flex flex-col items-center justify-center h-64 gap-3">
             <div
               className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin"
-              style={{ borderColor: '#E5E7EB', borderTopColor: '#5B6AF5' }}
+              style={{ borderColor: 'var(--ink-100)', borderTopColor: isLight ? '#4338CA' : '#5B6AF5' }}
             />
             <p className="text-sm" style={{ color: 'var(--ink-500)' }}>Building subject map…</p>
           </div>
@@ -705,8 +722,8 @@ export default function SubjectDependencyPage() {
         {!loading && error && (
           <div className="mx-4 mt-4 px-4 py-3 rounded-2xl flex items-start gap-2.5"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-            <XCircle size={15} className="text-red-400 mt-0.5 shrink-0" />
-            <p className="text-xs font-medium text-red-400">{error}</p>
+            <XCircle size={15} className="mt-0.5 shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+            <p className="text-xs font-medium" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
           </div>
         )}
 
@@ -721,7 +738,7 @@ export default function SubjectDependencyPage() {
               className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
               style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}
             >
-              <MapIcon size={36} style={{ color: '#8B9BFA' }} />
+              <MapIcon size={36} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} />
             </div>
             <h2 className="font-heading text-xl font-bold text-white mb-2">
               No dependencies yet
