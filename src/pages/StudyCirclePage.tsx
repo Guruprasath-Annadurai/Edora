@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import CircleChatPanel from '@/components/CircleChatPanel';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,8 @@ function formatTime(secs: number) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function StudyCirclePage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 
@@ -298,20 +301,20 @@ export default function StudyCirclePage() {
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{c.name}</div>
                     <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Users size={12} />{c.member_count} members
-                      {c.is_classroom && <span style={{ color: '#A78BFA' }}>· Classroom</span>}
+                      {c.is_classroom && <span style={{ color: isLight ? '#6D28D9' : '#A78BFA' }}>· Classroom</span>}
                     </div>
                   </div>
-                  {c.my_role === 'admin' && <Crown size={16} color="#F59E0B" />}
+                  {c.my_role === 'admin' && <Crown size={16} color={isLight ? '#92400E' : '#F59E0B'} />}
                 </div>
                 <div style={{ display: 'flex', gap: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                    <Flame size={14} color={c.group_streak > 0 ? '#F59E0B' : '#6B7280'} />
-                    <span style={{ color: c.group_streak > 0 ? '#F59E0B' : 'var(--color-text-secondary)', fontWeight: 600 }}>
+                    <Flame size={14} color={c.group_streak > 0 ? (isLight ? '#92400E' : '#F59E0B') : '#6B7280'} />
+                    <span style={{ color: c.group_streak > 0 ? (isLight ? '#92400E' : '#F59E0B') : 'var(--color-text-secondary)', fontWeight: 600 }}>
                       {c.group_streak} day streak
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                    <Zap size={14} color="#60A5FA" />
+                    <Zap size={14} color={isLight ? '#1D4ED8' : '#60A5FA'} />
                     <span style={{ color: 'var(--color-text-secondary)' }}>{c.total_xp.toLocaleString()} XP</span>
                   </div>
                 </div>
@@ -348,6 +351,8 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
   onShareWhatsApp: () => void;
   copied: boolean;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [showSprintPicker, setShowSprintPicker] = useState(false);
   const [sprintSubject, setSprintSubject]       = useState('Physics');
   const [sprintMins, setSprintMins]             = useState(25);
@@ -371,12 +376,12 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
         {/* Streak + XP */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
           <div style={{ background: 'var(--ink-055)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--ink-100)', textAlign: 'center' }}>
-            <Flame size={24} color={circle.group_streak > 0 ? '#F59E0B' : '#6B7280'} style={{ marginBottom: 4 }} />
-            <div style={{ fontWeight: 800, fontSize: 22, color: circle.group_streak > 0 ? '#F59E0B' : 'var(--color-text)' }}>{circle.group_streak}</div>
+            <Flame size={24} color={circle.group_streak > 0 ? (isLight ? '#92400E' : '#F59E0B') : '#6B7280'} style={{ marginBottom: 4 }} />
+            <div style={{ fontWeight: 800, fontSize: 22, color: circle.group_streak > 0 ? (isLight ? '#92400E' : '#F59E0B') : 'var(--color-text)' }}>{circle.group_streak}</div>
             <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Group Streak</div>
           </div>
           <div style={{ background: 'var(--ink-055)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--ink-100)', textAlign: 'center' }}>
-            <Zap size={24} color="#60A5FA" style={{ marginBottom: 4 }} />
+            <Zap size={24} color={isLight ? '#1D4ED8' : '#60A5FA'} style={{ marginBottom: 4 }} />
             <div style={{ fontWeight: 800, fontSize: 22 }}>{circle.total_xp.toLocaleString()}</div>
             <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Total XP</div>
           </div>
@@ -396,10 +401,10 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 15 }}>
-                  <Timer size={18} color="#A78BFA" />
+                  <Timer size={18} color={isLight ? '#6D28D9' : '#A78BFA'} />
                   Sync Sprint — {sprint.subject}
                 </div>
-                <div style={{ fontWeight: 900, fontSize: 24, color: sprintSecs <= 60 ? '#EF4444' : '#A78BFA', fontFamily: 'monospace' }}>
+                <div style={{ fontWeight: 900, fontSize: 24, color: sprintSecs <= 60 ? (isLight ? '#B91C1C' : '#EF4444') : (isLight ? '#6D28D9' : '#A78BFA'), fontFamily: 'monospace' }}>
                   {formatTime(sprintSecs)}
                 </div>
               </div>
@@ -407,7 +412,7 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
                 Started by {sprint.starter_name} · {sprint.duration_mins}min session
               </div>
               {sprint.started_by === myId && (
-                <Button variant="outline" size="sm" onClick={onEndSprint} style={{ borderColor: '#EF4444', color: '#EF4444' }}>
+                <Button variant="outline" size="sm" onClick={onEndSprint} style={{ borderColor: isLight ? '#B91C1C' : '#EF4444', color: isLight ? '#B91C1C' : '#EF4444' }}>
                   <Square size={12} style={{ marginRight: 4 }} /> End Sprint
                 </Button>
               )}
@@ -424,7 +429,7 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
                 style={{
                   width: '100%', padding: '14px', borderRadius: 14,
                   border: '2px dashed rgba(124,58,237,0.4)', background: 'transparent',
-                  color: '#A78BFA', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+                  color: isLight ? '#6D28D9' : '#A78BFA', fontWeight: 600, fontSize: 14, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
                 <Play size={16} />Start Sync Sprint for everyone
@@ -447,7 +452,7 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
                         flex: 1, padding: '8px 4px', borderRadius: 8, fontSize: 13, fontWeight: 600,
                         border: `2px solid ${sprintMins === m ? '#7C3AED' : 'var(--ink-120)'}`,
                         background: sprintMins === m ? 'rgba(124,58,237,0.15)' : 'var(--ink-055)',
-                        color: sprintMins === m ? '#A78BFA' : 'var(--ink-750)', cursor: 'pointer' }}>{m}m</button>
+                        color: sprintMins === m ? (isLight ? '#6D28D9' : '#A78BFA') : 'var(--ink-750)', cursor: 'pointer' }}>{m}m</button>
                     ))}
                   </div>
                 </div>
@@ -466,13 +471,17 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
         <div style={{ background: 'var(--ink-055)', borderRadius: 14, padding: '14px 16px', marginBottom: 20, border: '1px solid var(--ink-100)' }}>
           <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 8, fontWeight: 600 }}>INVITE CODE</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontFamily: 'monospace', fontSize: 24, fontWeight: 800, letterSpacing: 8, flex: 1, color: '#A78BFA' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: 24, fontWeight: 800, letterSpacing: 8, flex: 1, color: isLight ? '#6D28D9' : '#A78BFA' }}>
               {circle.invite_code}
             </div>
-            <button onClick={onCopyCode} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: copied ? '#10B981' : 'var(--color-text-secondary)' }}>
+            <button onClick={onCopyCode} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: copied ? (isLight ? '#047857' : '#10B981') : 'var(--color-text-secondary)' }}>
               {copied ? <Check size={18} /> : <Copy size={18} />}
             </button>
-            <button onClick={onShareWhatsApp} style={{ background: '#25D366', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 8, color: 'var(--ink-950)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
+            {/* WhatsApp brand green is a FIXED background regardless of theme —
+                'var(--ink-950)' here would flip to near-white in dark theme,
+                which is nearly invisible on this green (~2:1). A fixed dark
+                ink works well against this exact green in both themes. */}
+            <button onClick={onShareWhatsApp} style={{ background: '#25D366', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 8, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
               <MessageCircle size={14} />Share
             </button>
           </div>
@@ -483,14 +492,14 @@ function CircleDetailView({ circle, members, sprint, sprintSecs, myId, onBack, o
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {members.map((m, i) => (
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--ink-055)', borderRadius: 12, border: m.id === myId ? '1px solid rgba(124,58,237,0.4)' : '1px solid var(--ink-100)' }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: i === 0 ? '#F59E0B' : i === 1 ? '#9CA3AF' : i === 2 ? '#CD7C2F' : 'var(--color-text-secondary)', minWidth: 24 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: i === 0 ? (isLight ? '#92400E' : '#F59E0B') : i === 1 ? (isLight ? '#52525B' : '#9CA3AF') : i === 2 ? (isLight ? '#7C4A1E' : '#CD7C2F') : 'var(--color-text-secondary)', minWidth: 24 }}>
                 {`#${i + 1}`}
               </div>
               <Avatar url={m.avatar_url} name={m.full_name} size={32} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{m.full_name}{m.id === myId ? ' (you)' : ''}</div>
               </div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#60A5FA' }}>{m.xp?.toLocaleString()} XP</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: isLight ? '#1D4ED8' : '#60A5FA' }}>{m.xp?.toLocaleString()} XP</div>
             </div>
           ))}
         </div>
@@ -526,7 +535,12 @@ function EmptyState({ onJoin, onCreate }: { onJoin: () => void; onCreate: () => 
       </div>
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
         <Button variant="outline" onClick={onJoin}><Hash size={14} style={{ marginRight: 4 }} />Join with Code</Button>
-        <Button onClick={onCreate} style={{ background: '#7C3AED' }}><Plus size={14} style={{ marginRight: 4 }} />Create Circle</Button>
+        {/* Fixed violet background regardless of theme — Button's default
+            variant sets text via the `text-white` className, which the
+            global light-theme safety net would otherwise flip to dark ink
+            here (invisible on this fixed color). Override with a literal
+            white so it stays legible in both themes. */}
+        <Button onClick={onCreate} style={{ background: '#7C3AED', color: '#ffffff' }}><Plus size={14} style={{ marginRight: 4 }} />Create Circle</Button>
       </div>
     </div>
   );
@@ -580,7 +594,7 @@ function CreateCircleModal({ onClose, onCreated, userId }: {
           style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--ink-140)', background: 'var(--ink-070)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'var(--ink-920)', fontSize: 15, marginBottom: 10, boxSizing: 'border-box' }} />
         <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description (optional)" rows={2}
           style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--ink-140)', background: 'var(--ink-070)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'var(--ink-920)', fontSize: 14, marginBottom: 16, resize: 'none', boxSizing: 'border-box' }} />
-        <Button onClick={create} disabled={loading || !name.trim()} style={{ width: '100%', background: '#7C3AED', padding: '13px' }}>
+        <Button onClick={create} disabled={loading || !name.trim()} style={{ width: '100%', background: '#7C3AED', padding: '13px', color: '#ffffff' }}>
           {loading ? 'Creating…' : `${emoji} Create Circle`}
         </Button>
       </motion.div>
@@ -594,6 +608,8 @@ function JoinCircleModal({ onClose, onJoined, userId }: {
   onJoined: (c: Circle) => void;
   userId: string;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -625,9 +641,9 @@ function JoinCircleModal({ onClose, onJoined, userId }: {
         <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Join a Circle</div>
         <div style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginBottom: 20 }}>Enter the 6-character invite code</div>
         <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="ABCDE1" maxLength={6}
-          style={{ width: '100%', padding: '14px', borderRadius: 10, border: `1px solid ${error ? '#EF4444' : 'var(--ink-160)'}`, background: 'var(--ink-070)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'var(--ink-920)', fontSize: 22, fontWeight: 800, letterSpacing: 8, textAlign: 'center', fontFamily: 'monospace', marginBottom: 8, boxSizing: 'border-box' }} />
-        {error && <div style={{ color: '#EF4444', fontSize: 12, marginBottom: 12 }}>{error}</div>}
-        <Button onClick={join} disabled={loading || code.length !== 6} style={{ width: '100%', background: '#7C3AED', padding: '13px', marginTop: 8 }}>
+          style={{ width: '100%', padding: '14px', borderRadius: 10, border: `1px solid ${error ? (isLight ? '#B91C1C' : '#EF4444') : 'var(--ink-160)'}`, background: 'var(--ink-070)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', color: 'var(--ink-920)', fontSize: 22, fontWeight: 800, letterSpacing: 8, textAlign: 'center', fontFamily: 'monospace', marginBottom: 8, boxSizing: 'border-box' }} />
+        {error && <div style={{ color: isLight ? '#B91C1C' : '#EF4444', fontSize: 12, marginBottom: 12 }}>{error}</div>}
+        <Button onClick={join} disabled={loading || code.length !== 6} style={{ width: '100%', background: '#7C3AED', padding: '13px', marginTop: 8, color: '#ffffff' }}>
           {loading ? 'Joining…' : 'Join Circle'}
         </Button>
       </motion.div>
