@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface MainsQuestion {
   id: string;
@@ -37,16 +38,20 @@ interface Evaluation {
   word_count: number;
 }
 
-const BAND_META: Record<string, { label: string; color: string }> = {
-  needs_work: { label: 'Needs Work', color: '#EF4444' },
-  developing: { label: 'Developing', color: '#F59E0B' },
-  good:       { label: 'Good',       color: '#34D399' },
-  excellent:  { label: 'Excellent',  color: '#5B6AF5' },
+const BAND_META: Record<string, { label: string; color: string; colorLight: string }> = {
+  needs_work: { label: 'Needs Work', color: '#EF4444', colorLight: '#B91C1C' },
+  developing: { label: 'Developing', color: '#F59E0B', colorLight: '#92400E' },
+  good:       { label: 'Good',       color: '#34D399', colorLight: '#047857' },
+  excellent:  { label: 'Excellent',  color: '#5B6AF5', colorLight: '#4338CA' },
 };
 
 const PAPER_COLORS: Record<string, string> = {
   Essay: '#A78BFA', GS1: '#60A5FA', GS2: '#34D399', GS3: '#F59E0B', GS4: '#F87171',
   Science: '#34D399', 'Social Science': '#F59E0B', Physics: '#60A5FA', Biology: '#4ADE80', Maths: '#F87171',
+};
+const PAPER_COLORS_LIGHT: Record<string, string> = {
+  Essay: '#6D28D9', GS1: '#1D4ED8', GS2: '#047857', GS3: '#92400E', GS4: '#B91C1C',
+  Science: '#047857', 'Social Science': '#92400E', Physics: '#1D4ED8', Biology: '#15803D', Maths: '#B91C1C',
 };
 
 async function callFn(action: string, body: Record<string, unknown> = {}) {
@@ -59,6 +64,8 @@ async function callFn(action: string, body: Record<string, unknown> = {}) {
 
 export default function UPSCMainsPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [exam, setExam] = useState<'UPSC' | 'CBSE'>('UPSC');
   const [classLevel, setClassLevel] = useState<'10' | '12'>('10');
   const [questions, setQuestions] = useState<MainsQuestion[]>([]);
@@ -124,7 +131,7 @@ export default function UPSCMainsPage() {
           <div className="flex items-center gap-1.5">
             <h1 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Mains &amp; Long-Answer Practice</h1>
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ background: 'rgba(52,211,153,0.15)', color: '#34D399' }}>
+              style={{ background: 'rgba(52,211,153,0.15)', color: isLight ? '#047857' : '#34D399' }}>
               FREE · BETA
             </span>
           </div>
@@ -146,7 +153,7 @@ export default function UPSCMainsPage() {
                   <button key={e} onClick={() => setExam(e)}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold"
                     style={e === exam
-                      ? { background: 'rgba(91,106,245,0.15)', color: '#5B6AF5', border: '1px solid #5B6AF5' }
+                      ? { background: 'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#5B6AF5', border: '1px solid #5B6AF5' }
                       : { background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
                     {e === 'UPSC' ? 'UPSC Mains' : 'CBSE Boards'}
                   </button>
@@ -155,13 +162,13 @@ export default function UPSCMainsPage() {
                   <button key={c} onClick={() => setClassLevel(c)}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold"
                     style={c === classLevel
-                      ? { background: 'rgba(91,106,245,0.15)', color: '#5B6AF5', border: '1px solid #5B6AF5' }
+                      ? { background: 'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#5B6AF5', border: '1px solid #5B6AF5' }
                       : { background: 'var(--color-surface)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
                     Class {c}
                   </button>
                 ))}
               </div>
-              <p className="text-[11px]" style={{ color: '#F59E0B' }}>
+              <p className="text-[11px]" style={{ color: isLight ? '#92400E' : '#F59E0B' }}>
                 Starter set of {questions.length} original practice questions (not real {exam === 'CBSE' ? 'CBSE board PYQs' : 'UPSC PYQs'} — those are copyrighted).
                 Feedback is a coarse band + specific gaps, never a fake-precise score.
               </p>
@@ -171,7 +178,7 @@ export default function UPSCMainsPage() {
                   style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: `${PAPER_COLORS[q.paper] ?? '#5B6AF5'}20`, color: PAPER_COLORS[q.paper] ?? '#5B6AF5' }}>
+                      style={{ background: `${PAPER_COLORS[q.paper] ?? '#5B6AF5'}20`, color: isLight ? (PAPER_COLORS_LIGHT[q.paper] ?? '#4338CA') : (PAPER_COLORS[q.paper] ?? '#5B6AF5') }}>
                       {q.paper}
                     </span>
                     <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -197,7 +204,7 @@ export default function UPSCMainsPage() {
               <div className="p-4 rounded-2xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: `${PAPER_COLORS[selected.paper] ?? '#5B6AF5'}20`, color: PAPER_COLORS[selected.paper] ?? '#5B6AF5' }}>
+                    style={{ background: `${PAPER_COLORS[selected.paper] ?? '#5B6AF5'}20`, color: isLight ? (PAPER_COLORS_LIGHT[selected.paper] ?? '#4338CA') : (PAPER_COLORS[selected.paper] ?? '#5B6AF5') }}>
                     {selected.paper}
                   </span>
                   <span className="text-xs flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
@@ -224,7 +231,7 @@ export default function UPSCMainsPage() {
                       {wordCount} / {selected.word_limit} words
                     </span>
                   </div>
-                  {error && <p className="text-xs" style={{ color: '#F87171' }}>{error}</p>}
+                  {error && <p className="text-xs" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>}
                   <Button onClick={submitAnswer} disabled={evaluating || !answerText.trim()}
                     className="w-full h-12 rounded-2xl font-bold flex items-center justify-center gap-2"
                     style={{ background: '#5B6AF5', color: 'var(--color-on-accent)' }}>
@@ -235,7 +242,7 @@ export default function UPSCMainsPage() {
                 <div className="space-y-3">
                   <div className="p-4 rounded-2xl text-center"
                     style={{ background: `${BAND_META[evaluation.band]?.color ?? '#5B6AF5'}15`, border: `1px solid ${BAND_META[evaluation.band]?.color ?? '#5B6AF5'}` }}>
-                    <p className="text-lg font-bold" style={{ color: BAND_META[evaluation.band]?.color ?? '#5B6AF5' }}>
+                    <p className="text-lg font-bold" style={{ color: isLight ? (BAND_META[evaluation.band]?.colorLight ?? '#4338CA') : (BAND_META[evaluation.band]?.color ?? '#5B6AF5') }}>
                       {BAND_META[evaluation.band]?.label ?? evaluation.band}
                     </p>
                     <p className="text-[11px] mt-1" style={{ color: 'var(--color-text-secondary)' }}>
@@ -252,7 +259,7 @@ export default function UPSCMainsPage() {
 
                   {evaluation.covered_points.length > 0 && (
                     <div className="p-4 rounded-2xl" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: '#34D399' }}>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: isLight ? '#047857' : '#34D399' }}>
                         <CheckCircle2 size={13} /> Covered
                       </p>
                       <ul className="space-y-1">
@@ -265,7 +272,7 @@ export default function UPSCMainsPage() {
 
                   {evaluation.missed_points.length > 0 && (
                     <div className="p-4 rounded-2xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                      <p className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: '#F87171' }}>
+                      <p className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>
                         <XCircle size={13} /> Missed
                       </p>
                       <ul className="space-y-1">
