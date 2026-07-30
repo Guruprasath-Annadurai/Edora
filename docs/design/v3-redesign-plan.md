@@ -752,6 +752,31 @@ sales/procurement conversation coming up.
     This closes out item 27.
 28. **Debate Mode** (`DebateModePage.tsx`), **Peer Explanation**
     (`PeerExplanationPage.tsx`), **Whiteboard** (`WhiteboardPage.tsx`)
+
+    **Debate Mode** and **Whiteboard** — ✅ audited, no fix needed.
+    Both are identical 35-line "coming in v3.7" stub screens using only
+    CSS-variable-based Tailwind classes (`bg-[var(--color-base)]`,
+    `text-[var(--color-novo-light)]`) and `text-white/70` (covered by
+    the global safety net) — no hardcoded hex, fully theme-adaptive.
+
+    **Peer Explanation** (`PeerExplanationPage.tsx`) — ✅ 48th
+    occurrence. This file uses the same older raw-Tailwind convention
+    as ParentPortalPage.tsx (43rd occurrence, Phase 5) —
+    `text-indigo-400`/`text-emerald-400`/`text-amber-400`/
+    `text-pink-400`/`text-red-400` classes have no light-theme CSS
+    override at all (confirmed only `.text-white` variants are
+    covered), so every one directly fails contrast in light theme.
+    Converted ~10 such classes to isLight-branched inline styles across
+    `SUBJECT_COLORS`, the page-local `scoreColor()` helper (gained an
+    `isLight` param, same pattern as Teacher Dashboard's), and the
+    result-phase section headers/bullets. Also fixed 4 instances of the
+    inheritance-based text-white-on-fixed-background bug class (bg-
+    indigo-600 buttons + Novo avatar icon inheriting white from the
+    root `text-white` div, broken by the safety net's downgrade to dark
+    ink). Verified live at `/peer-explain`, no crash,
+    `getComputedStyle()` confirms the active subject pill matches fix.
+
+    This closes out item 28.
 29. **Formula Sheet** (`FormulaSheetPage.tsx`), **Formula AR**
     (`FormulaARPage.tsx`), **Solved Examples** (`SolvedExamplesPage.tsx`),
     **PYQ Bank** (`PYQBankPage.tsx`), **Subject Dependency**
