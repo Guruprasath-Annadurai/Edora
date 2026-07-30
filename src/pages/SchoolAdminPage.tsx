@@ -254,7 +254,7 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
           </div>
         </div>
 
-        {err && <p className="text-sm text-red-400 mb-3">{err}</p>}
+        {err && <p className="text-sm mb-3" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{err}</p>}
 
         <motion.button whileTap={{ scale: 0.97 }} onClick={create} disabled={loading}
           className="w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2"
@@ -456,7 +456,7 @@ export default function SchoolAdminPage() {
               {tierCfg.label}
             </span>
             {institution.is_verified && (
-              <span className="flex items-center gap-1 text-xs text-green-400">
+              <span className="flex items-center gap-1 text-xs" style={{ color: isLight ? '#047857' : '#34D399' }}>
                 <CheckCircle2 size={10} /> Verified
               </span>
             )}
@@ -504,7 +504,7 @@ export default function SchoolAdminPage() {
                       style={{ background: codeCopied ? 'rgba(52,211,153,0.15)' : 'var(--ink-080)', border: `1px solid ${codeCopied ? 'rgba(52,211,153,0.4)' : 'var(--ink-100)'}` }}>
                       <AnimatePresence mode="wait">
                         {codeCopied
-                          ? <motion.div key="chk" initial={{ scale: 0 }} animate={{ scale: 1 }}><Check size={16} className="text-green-400" /></motion.div>
+                          ? <motion.div key="chk" initial={{ scale: 0 }} animate={{ scale: 1 }}><Check size={16} style={{ color: isLight ? '#047857' : '#34D399' }} /></motion.div>
                           : <motion.div key="cp"  initial={{ scale: 0 }} animate={{ scale: 1 }}><Copy  size={16} className="text-white/60" /></motion.div>
                         }
                       </AnimatePresence>
