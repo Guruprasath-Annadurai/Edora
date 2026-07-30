@@ -359,9 +359,52 @@ color or type size.
     `#ffffff`, footer link exactly `#4338CA`.
 
     This closes out item 16 — 17 distinct files fixed this session.
-17. **Study Rooms / Circles / Groups** (`StudyRoomPage.tsx`,
-    `LiveStudyRoomsPage.tsx`, `StudyCirclePage.tsx`, `StudyGroupsPage.tsx`,
-    `GroupDetailPage.tsx`, `DoubtRoomPage.tsx`)
+17. **Study Rooms / Circles / Groups** — ✅ all 6 screens audited + fixed.
+
+    **Study Room** (`StudyRoomPage.tsx`) — ✅ 18th occurrence. Every phase
+    (lobby, waiting room, study, generating, quiz, results) plus the shared
+    RoomHeader had dark-theme-tuned hex on fixed tints — fixed via
+    isLight branches throughout. Converted 3 conditional-className
+    patterns (`text-red-500`/`text-white`, and the quiz option
+    correct/wrong/selected `textColor`) to inline styles so they could
+    branch on isLight — arbitrary Tailwind color classes like
+    `text-[#818CF8]` can't be reached by the global safety net. Verified
+    live: Join Room panel's Users icon renders exactly `#047857`.
+
+    **Live Study Rooms** (`LiveStudyRoomsPage.tsx`), **Study Groups**
+    (`StudyGroupsPage.tsx`) — audited, no fix needed. Both are "coming in
+    v3.7" placeholder stubs using only theme tokens and the
+    globally-remapped `text-white` className.
+
+    **Study Circle** (`StudyCirclePage.tsx`) — ✅ 19th occurrence. Violet/
+    amber/blue/red colors across the circle list, detail view, and modals
+    fixed with isLight branches. Found 2 variants of the "fixed background
+    + bad text token" bug: the WhatsApp-share button's `var(--ink-950)`
+    was actually WORSE in dark theme (≈2:1) and only accidentally okay in
+    light theme — replaced with a literal `#0F172A` that works in both
+    (≈9.3:1), fixing a pre-existing dark-theme bug as a side effect; and 3
+    Create/Join buttons using the `text-white` className over a fixed
+    violet background (same class as SchoolLeaderboardPage's Share
+    button) — overrode with inline `#ffffff`. Verified live: both
+    "Create Circle" buttons render exactly `rgb(255,255,255)`.
+
+    **Group Detail** (`GroupDetailPage.tsx`) — ✅ 20th occurrence. Reused
+    TournamentPage's exact `rankLabel()` gold/silver/bronze light values
+    for consistency. Fixed a literal inline `color: 'white'` (not the
+    remapped className) and the tab-bar's theme-flipping-token-on-fixed-
+    gradient bug (same class as Battle's "Find Opponent" button). Could
+    not live-verify — this route needs a seeded study group reachable via
+    the `study-groups` edge function, and an invalid ID redirects away
+    rather than erroring; relies on the same math verified live elsewhere.
+
+    **Doubt Room** (`DoubtRoomPage.tsx`) — ✅ 21st occurrence. All 6
+    `'#A0AEFF'` instances (empty state, subject badge, Novo answer
+    header/spinner, selected subject chip) fixed to isLight ? '#4338CA'.
+    Verified live: empty-state icon and selected "Physics" chip both
+    render exactly `rgb(67,56,202)`.
+
+    This closes out item 17 — the pale-color-on-light-theme pattern has
+    now been found and fixed in 21 distinct files this session.
 18. **Friends / Referral** (`FriendsPage.tsx`, `ReferralPage.tsx`)
 19. **Achievements** (`AchievementsPage.tsx`, `AchievementFeedPage.tsx`,
     `CertificationsPage.tsx`)
