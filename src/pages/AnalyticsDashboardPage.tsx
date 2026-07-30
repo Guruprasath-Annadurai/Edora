@@ -10,6 +10,7 @@ import { PageErrorState } from '@/components/ui/PageErrorState';
 import { StatsPageSkeleton } from '@/components/ui/skeleton';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { AnalyticsStats } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 
 async function callFn(body: Record<string, unknown>) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -73,10 +74,12 @@ function AccuracyBar({ label, accuracy, total, color = '#5B6AF5' }: {
 
 // ── Predicted score ring ──────────────────────────────────────────────────────
 function ScoreRing({ score }: { score: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const R = 44;
   const circ = 2 * Math.PI * R;
   const dash = (score / 100) * circ;
-  const color = score >= 75 ? '#10B981' : score >= 50 ? '#F59E0B' : '#EF4444';
+  const color = score >= 75 ? (isLight ? '#047857' : '#10B981') : score >= 50 ? (isLight ? '#92400E' : '#F59E0B') : (isLight ? '#B91C1C' : '#EF4444');
 
   return (
     <svg width={108} height={108} viewBox="0 0 108 108">
@@ -199,6 +202,8 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
   onRefresh: () => void;
   refreshing: boolean;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const subjectColors = ['#5B6AF5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
   return (
@@ -207,9 +212,9 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
       {/* ── Summary row — KPI tier (elevated) ── */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { icon: Zap, label: 'Sessions (30d)', value: stats.total_sessions_30d, color: '#5B6AF5' },
-          { icon: Target, label: 'Avg Accuracy', value: `${stats.avg_accuracy_30d}%`, color: '#10B981' },
-          { icon: Clock, label: 'Study Time', value: `${Math.round(stats.study_time_by_subject.reduce((s, x) => s + x.minutes, 0) / 60)}h`, color: '#F59E0B' },
+          { icon: Zap, label: 'Sessions (30d)', value: stats.total_sessions_30d, color: isLight ? '#4338CA' : '#5B6AF5' },
+          { icon: Target, label: 'Avg Accuracy', value: `${stats.avg_accuracy_30d}%`, color: isLight ? '#047857' : '#10B981' },
+          { icon: Clock, label: 'Study Time', value: `${Math.round(stats.study_time_by_subject.reduce((s, x) => s + x.minutes, 0) / 60)}h`, color: isLight ? '#92400E' : '#F59E0B' },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="card-l1 rounded-2xl p-3 flex flex-col items-center gap-1">
             <Icon size={18} style={{ color }} />
@@ -228,10 +233,10 @@ function FullDashboard({ stats, onRefresh, refreshing }: {
             <p className="font-heading font-bold text-white">Predicted Score</p>
             <p className="text-xs text-muted-foreground mt-1">Based on your recent quiz and certification performance with recency weighting.</p>
             {stats.best_subject && (
-              <p className="text-xs text-emerald-400 font-semibold mt-2">Best: {stats.best_subject}</p>
+              <p className="text-xs font-semibold mt-2" style={{ color: isLight ? '#047857' : '#34D399' }}>Best: {stats.best_subject}</p>
             )}
             {stats.worst_subject && (
-              <p className="text-xs text-red-400 font-semibold mt-0.5">Needs work: {stats.worst_subject}</p>
+              <p className="text-xs font-semibold mt-0.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>Needs work: {stats.worst_subject}</p>
             )}
           </div>
         </motion.div>
