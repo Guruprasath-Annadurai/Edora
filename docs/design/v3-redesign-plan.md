@@ -430,8 +430,45 @@ color or type size.
     confirmed `+100 XP` renders exactly `rgb(79,95,228)` (--v2-primary).
 
     This closes out item 18 — 23 distinct files fixed this session.
-19. **Achievements** (`AchievementsPage.tsx`, `AchievementFeedPage.tsx`,
-    `CertificationsPage.tsx`)
+19. **Achievements** — ✅ all 3 audited + fixed.
+
+    **Achievements** (`AchievementsPage.tsx`) — audited, no fix needed.
+    No hardcoded colors found; uses only theme tokens and the globally-
+    remapped `text-white` className.
+
+    **Achievement Feed** (`AchievementFeedPage.tsx`) — ✅ 24th occurrence.
+    The "School Toppers This Week" heading fixed with an isLight branch.
+    Also found a variant of the "fixed background fails regardless of
+    theme" bug class (same as BossFightPage): the #1/#2/#3 rank badge on
+    each topper's avatar uses fixed gold/silver/bronze fills in both
+    themes with white text — white fails 1.5-2.1:1 against all three.
+    Fixed to a literal dark ink, clearing 5.3-8.9:1 against all three.
+    Could not live-verify this specific banner — no seeded feed items in
+    this dev environment (only the empty state renders) — relies on the
+    same math already verified for BossFightPage's identical bug class.
+
+    **Certifications** (`CertificationsPage.tsx`) — ✅ 25th occurrence.
+    Score/percentage text, badges, and icons across the cert list, detail
+    view, and assessment flow fixed with isLight branches. Found 2 more
+    variants of the fixed-background-fails-regardless-of-theme bug: the
+    pass/fail result icon (on a fixed green→cyan or red→amber gradient)
+    and the quiz answer-letter badge (fixed indigo/emerald/red fill) both
+    used white text that fails 3:1-4.5:1 against the emerald/amber/red
+    segments — fixed both to a literal dark ink, which clears 4.2-8.5:1
+    against every fill. Computed contrast for 5 other `text-white`-on-
+    fixed-indigo-gradient icons and left them unchanged — both white and
+    the light-theme remap's dark-ink substitute clear ~4.2-4.4:1 against
+    that specific gradient, so there's no real failure there. Also caught
+    and fixed a JSX syntax bug introduced by my own edit (missing `}`)
+    that broke the dev build — found via live preview reload, since tsc
+    alone didn't catch it (SWC/JSX-level break, not a type error).
+    Verified live: empty-state Award icon (56px) and step-number badges
+    both render exactly `rgb(67,56,202)` (#4338CA).
+
+    This closes out item 19 and all of Phase 3 — the pale-color-on-
+    light-theme pattern has now been found and fixed in 25 distinct
+    files this session, across every competitive and social screen in
+    the app.
 
 ---
 
