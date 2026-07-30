@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { ProGate } from '@/components/ui/ProGate';
 import { track } from '@/lib/analytics';
 import { scoreMockExam } from '@/lib/mockScoring';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type ExamType = 'JEE_Main' | 'JEE_Advanced' | 'NEET' | 'CAT' | 'UPSC_Prelims';
 type Phase = 'setup' | 'loading' | 'exam' | 'submitting' | 'result';
@@ -42,25 +43,25 @@ interface SubjectSection {
 }
 
 const EXAM_CONFIG: Record<ExamType, {
-  label: string; color: string; duration: number; totalMarks: number; sectional?: boolean;
+  label: string; color: string; colorLight: string; duration: number; totalMarks: number; sectional?: boolean;
   sections: { subject: string; count: number; marksPos: number; marksNeg: number; durationMin?: number }[];
 }> = {
   JEE_Main: {
-    label: 'JEE Main', color: '#60A5FA', duration: 180, totalMarks: 300,
+    label: 'JEE Main', color: '#60A5FA', colorLight: '#1D4ED8', duration: 180, totalMarks: 300,
     sections: [
       { subject: 'Physics',   count: 25, marksPos: 4, marksNeg: 1 },
       { subject: 'Chemistry', count: 25, marksPos: 4, marksNeg: 1 },
       { subject: 'Maths',     count: 25, marksPos: 4, marksNeg: 1 },
     ] },
   JEE_Advanced: {
-    label: 'JEE Advanced', color: '#A78BFA', duration: 180, totalMarks: 360,
+    label: 'JEE Advanced', color: '#A78BFA', colorLight: '#6D28D9', duration: 180, totalMarks: 360,
     sections: [
       { subject: 'Physics',   count: 18, marksPos: 4, marksNeg: 2 },
       { subject: 'Chemistry', count: 18, marksPos: 4, marksNeg: 2 },
       { subject: 'Maths',     count: 18, marksPos: 4, marksNeg: 2 },
     ] },
   NEET: {
-    label: 'NEET', color: '#34D399', duration: 210, totalMarks: 720,
+    label: 'NEET', color: '#34D399', colorLight: '#047857', duration: 210, totalMarks: 720,
     sections: [
       { subject: 'Physics',   count: 45, marksPos: 4, marksNeg: 1 },
       { subject: 'Chemistry', count: 45, marksPos: 4, marksNeg: 1 },
@@ -77,7 +78,7 @@ const EXAM_CONFIG: Record<ExamType, {
     // below reflect what's actually seeded (VARC=10, DILR=11, QA=11; capped
     // at 10 per section to keep them even), not the full 66-question format,
     // to avoid silently repeating questions to fake a bigger paper.
-    label: 'CAT', color: '#F59E0B', duration: 120, totalMarks: 90, sectional: true,
+    label: 'CAT', color: '#F59E0B', colorLight: '#92400E', duration: 120, totalMarks: 90, sectional: true,
     sections: [
       { subject: 'VARC', count: 10, marksPos: 3, marksNeg: 1, durationMin: 40 },
       { subject: 'DILR', count: 10, marksPos: 3, marksNeg: 1, durationMin: 40 },
@@ -89,7 +90,7 @@ const EXAM_CONFIG: Record<ExamType, {
     // Starter content pool only (16 original practice MCQs) — not a full
     // 100-question paper; real UPSC PYQs are copyrighted, so this is
     // original practice content, clearly smaller than the real exam.
-    label: 'UPSC Prelims (GS)', color: '#818CF8', duration: 120, totalMarks: 32,
+    label: 'UPSC Prelims (GS)', color: '#818CF8', colorLight: '#4338CA', duration: 120, totalMarks: 32,
     sections: [
       { subject: 'Prelims_GS', count: 16, marksPos: 2, marksNeg: 0.67 },
     ] } };
@@ -136,6 +137,8 @@ function formatTime(secs: number) {
 }
 
 export default function MockTestPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { profile, user } = useAuth();
   const [phase, setPhase]         = useState<Phase>('setup');
   const [examType, setExamType]   = useState<ExamType>('JEE_Main');
@@ -262,9 +265,11 @@ export default function MockTestPage() {
     submitRef.current = false;
     setPhase('loading');
 
-    const subjectColors: Record<string, string> = {
-      Physics: '#60A5FA', Chemistry: '#34D399', Maths: '#A78BFA', Biology: '#4ADE80',
-      VARC: '#F59E0B', DILR: '#818CF8', QA: '#34D399', Prelims_GS: '#818CF8' };
+    const subjectColors: Record<string, string> = isLight
+      ? { Physics: '#1D4ED8', Chemistry: '#047857', Maths: '#6D28D9', Biology: '#166534',
+          VARC: '#92400E', DILR: '#4338CA', QA: '#047857', Prelims_GS: '#4338CA' }
+      : { Physics: '#60A5FA', Chemistry: '#34D399', Maths: '#A78BFA', Biology: '#4ADE80',
+          VARC: '#F59E0B', DILR: '#818CF8', QA: '#34D399', Prelims_GS: '#818CF8' };
     const generatedSections: SubjectSection[] = [];
     const allQ: MockQuestion[] = [];
 
@@ -328,7 +333,7 @@ export default function MockTestPage() {
           correct_value:   isTita ? row.correct_option : null };
       });
 
-      generatedSections.push({ subject: sec.subject, color: subjectColors[sec.subject] ?? '#FBBF24', questions, durationMin: sec.durationMin });
+      generatedSections.push({ subject: sec.subject, color: subjectColors[sec.subject] ?? (isLight ? '#92400E' : '#FBBF24'), questions, durationMin: sec.durationMin });
       allQ.push(...questions);
     }
 
@@ -378,7 +383,7 @@ export default function MockTestPage() {
             <button onClick={() => {
               if (window.confirm('Submit exam now? This cannot be undone.')) submitExam(answers);
             }} className="p-2 rounded-xl" style={{ background: 'var(--color-surface)' }}>
-              <CheckCircle size={20} color="#34D399" />
+              <CheckCircle size={20} color={isLight ? '#047857' : '#34D399'} />
             </button>
           ) : (
             <Link aria-label="Go back" to="/tools">
@@ -400,10 +405,10 @@ export default function MockTestPage() {
         {phase === 'exam' && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
                style={{ background: timerWarning ? 'rgba(248,113,113,0.15)' : 'var(--color-surface)',
-                        border: `1px solid ${timerWarning ? '#F87171' : 'var(--color-border)'}` }}>
-            <Clock size={14} color={timerWarning ? '#F87171' : 'var(--color-text-secondary)'} />
+                        border: `1px solid ${timerWarning ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-border)'}` }}>
+            <Clock size={14} color={timerWarning ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-text-secondary)'} />
             <span className="text-sm font-mono font-bold"
-                  style={{ color: timerWarning ? '#F87171' : 'var(--color-text)' }}>
+                  style={{ color: timerWarning ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-text)' }}>
               {formatTime(displayTime)}{config.sectional ? ` · ${currentSection?.subject}` : ''}
             </span>
           </div>
@@ -431,12 +436,12 @@ export default function MockTestPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="font-bold" style={{ color: examType === id ? cfg.color : 'var(--color-text)' }}>
+                          <p className="font-bold" style={{ color: examType === id ? (isLight ? cfg.colorLight : cfg.color) : 'var(--color-text)' }}>
                             {cfg.label}
                           </p>
                           {FREE_BETA_EXAMS.includes(id) && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                              style={{ background: 'rgba(52,211,153,0.15)', color: '#34D399' }}>
+                              style={{ background: 'rgba(52,211,153,0.15)', color: isLight ? '#047857' : '#34D399' }}>
                               FREE · BETA
                             </span>
                           )}
@@ -447,12 +452,12 @@ export default function MockTestPage() {
                             : `${cfg.duration} min · ${cfg.totalMarks} marks · ${cfg.sections.map(s => s.subject).join(' + ')}`}
                         </p>
                         {(cfg.sectional || id === 'UPSC_Prelims') && (
-                          <p className="text-[11px] mt-1" style={{ color: '#F59E0B' }}>
+                          <p className="text-[11px] mt-1" style={{ color: isLight ? '#92400E' : '#F59E0B' }}>
                             Starter practice set ({cfg.sections.reduce((s, x) => s + x.count, 0)} original questions) — smaller pool than the full real exam, not verbatim past papers
                           </p>
                         )}
                       </div>
-                      <Clock size={20} color={examType === id ? cfg.color : 'var(--color-text-secondary)'} />
+                      <Clock size={20} color={examType === id ? (isLight ? cfg.colorLight : cfg.color) : 'var(--color-text-secondary)'} />
                     </div>
                   </motion.button>
                 ))}
@@ -464,9 +469,9 @@ export default function MockTestPage() {
                 className="w-full flex items-center justify-between p-3.5 rounded-2xl"
                 style={{
                   background: toughMode ? 'rgba(248,113,113,0.1)' : 'var(--color-surface)',
-                  border: `1.5px solid ${toughMode ? '#F87171' : 'var(--color-border)'}` }}>
+                  border: `1.5px solid ${toughMode ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-border)'}` }}>
                 <div className="text-left">
-                  <p className="text-sm font-bold" style={{ color: toughMode ? '#F87171' : 'var(--color-text)' }}>
+                  <p className="text-sm font-bold" style={{ color: toughMode ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-text)' }}>
                     Practice Toughest
                   </p>
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -474,7 +479,7 @@ export default function MockTestPage() {
                   </p>
                 </div>
                 <div className="w-11 h-6 rounded-full flex items-center px-0.5 transition-all flex-shrink-0"
-                  style={{ background: toughMode ? '#F87171' : 'var(--color-border)' }}>
+                  style={{ background: toughMode ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-border)' }}>
                   <div className="w-5 h-5 rounded-full bg-white transition-all"
                     style={{ transform: toughMode ? 'translateX(20px)' : 'translateX(0)' }} />
                 </div>
@@ -490,9 +495,9 @@ export default function MockTestPage() {
 
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Auto-score', icon: <CheckCircle size={18} color="#34D399" /> },
-                { label: 'Percentile', icon: <BarChart2 size={18} color="#A0AEFF" /> },
-                { label: 'PDF Report', icon: <Mail size={18} color="#FBBF24" /> },
+                { label: 'Auto-score', icon: <CheckCircle size={18} color={isLight ? '#047857' : '#34D399'} /> },
+                { label: 'Percentile', icon: <BarChart2 size={18} color={isLight ? '#4338CA' : '#A0AEFF'} /> },
+                { label: 'PDF Report', icon: <Mail size={18} color={isLight ? '#92400E' : '#FBBF24'} /> },
               ].map(f => (
                 <div key={f.label} className="p-3 rounded-2xl text-center"
                   style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
@@ -580,7 +585,7 @@ export default function MockTestPage() {
                           background: isSelected ? `${config.color}15` : 'var(--color-surface)',
                           border: `1.5px solid ${isSelected ? config.color : 'var(--color-border)'}` }}>
                         <span className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0"
-                              style={{ background: `${config.color}20`, color: config.color }}>
+                              style={{ background: `${config.color}20`, color: isLight ? config.colorLight : config.color }}>
                           {OPTION_LABELS[i]}
                         </span>
                         <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{opt}</span>
@@ -645,14 +650,14 @@ export default function MockTestPage() {
           <motion.div key="result" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             className="px-4 py-6 space-y-6">
             <div className="text-center">
-              <Trophy size={52} color="#FBBF24" className="mx-auto mb-3" />
+              <Trophy size={52} color={isLight ? '#92400E' : '#FBBF24'} className="mx-auto mb-3" />
               <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
                 {result.score} / {result.maxScore}
               </h2>
               <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>{config.label}</p>
               <div className="inline-block mt-3 px-4 py-1.5 rounded-full"
                    style={{ background: `${config.color}20`, border: `1px solid ${config.color}` }}>
-                <span className="text-sm font-bold" style={{ color: config.color }}>
+                <span className="text-sm font-bold" style={{ color: isLight ? config.colorLight : config.color }}>
                   Top {(100 - result.percentile).toFixed(0)}% · {result.percentile.toFixed(1)} percentile
                 </span>
               </div>
@@ -691,9 +696,9 @@ export default function MockTestPage() {
             {!isPro && (
               <div className="p-4 rounded-2xl flex items-center gap-3"
                    style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}>
-                <Mail size={20} color="#FBBF24" />
+                <Mail size={20} color={isLight ? '#92400E' : '#FBBF24'} />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold" style={{ color: '#FBBF24' }}>
+                  <p className="text-sm font-semibold" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>
                     PDF report available with Pro
                   </p>
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
