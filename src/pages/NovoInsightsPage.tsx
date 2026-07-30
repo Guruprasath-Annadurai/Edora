@@ -400,7 +400,7 @@ export default function NovoInsightsPage() {
         {insight.strongest_subjects.length > 0 && (
           <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
             <div className="flex items-center gap-2 mb-3">
-              <TrendingUp size={16} className="text-emerald-500 shrink-0" />
+              <TrendingUp size={16} className="shrink-0" style={{ color: isLight ? '#047857' : '#10B981' }} />
               <h2 className="font-heading text-base font-bold text-white">Your Strengths</h2>
             </div>
             <div className="flex flex-col gap-2.5">
@@ -415,7 +415,7 @@ export default function NovoInsightsPage() {
                   <ScoreArc pct={s.score_pct} size={54} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <TrendingUp size={13} className="text-emerald-400 shrink-0" />
+                      <TrendingUp size={13} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
                       <p className="font-bold text-sm text-white truncate">{s.subject}</p>
                     </div>
                     <p className="text-xs text-muted-foreground leading-snug">{s.reason}</p>
@@ -430,14 +430,14 @@ export default function NovoInsightsPage() {
         {insight.streak_insight && (
           <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
             <div className="flex items-center gap-2 mb-3">
-              <Flame size={16} className="text-orange-400 shrink-0" />
+              <Flame size={16} className="shrink-0" style={{ color: isLight ? '#9A3412' : '#FB923C' }} />
               <h2 className="font-heading text-base font-bold text-white">Streak Pattern</h2>
             </div>
             <div className="rounded-2xl p-4 flex items-start gap-3"
               style={{ background: 'var(--hdr-b-750)', border: '1px solid rgba(245,158,11,0.2)' }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(245,158,11,0.15)' }}>
-                <Flame size={18} className="text-amber-400" />
+                <Flame size={18} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
               </div>
               <p className="text-sm text-white/85 leading-relaxed">{insight.streak_insight}</p>
             </div>
