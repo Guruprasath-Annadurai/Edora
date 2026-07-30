@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { withTimeout } from '@/lib/utils';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,12 +44,12 @@ interface HeatmapData {
 
 // ── Colour helpers ────────────────────────────────────────────────────────────
 
-function topicColor(daysSince: number): { bg: string; border: string; text: string; label: string } {
-  if (daysSince <= 3)  return { bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)',  text: '#34D399', label: 'Recent' };
-  if (daysSince <= 7)  return { bg: 'rgba(101,163,13,0.12)', border: 'rgba(101,163,13,0.3)', text: '#a3e635', label: `${daysSince}d ago` };
-  if (daysSince <= 14) return { bg: 'rgba(217,119,6,0.12)',  border: 'rgba(217,119,6,0.3)',  text: '#FBBF24', label: `${daysSince}d` };
-  if (daysSince <= 21) return { bg: 'rgba(234,88,12,0.12)',  border: 'rgba(234,88,12,0.3)',  text: '#FB923C', label: `${daysSince}d` };
-  return { bg: 'rgba(220,38,38,0.12)', border: 'rgba(220,38,38,0.3)', text: '#F87171', label: `${daysSince}d` };
+function topicColor(daysSince: number, isLight: boolean): { bg: string; border: string; text: string; label: string } {
+  if (daysSince <= 3)  return { bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.3)',  text: isLight ? '#047857' : '#34D399', label: 'Recent' };
+  if (daysSince <= 7)  return { bg: 'rgba(101,163,13,0.12)', border: 'rgba(101,163,13,0.3)', text: isLight ? '#4D7C0F' : '#a3e635', label: `${daysSince}d ago` };
+  if (daysSince <= 14) return { bg: 'rgba(217,119,6,0.12)',  border: 'rgba(217,119,6,0.3)',  text: isLight ? '#92400E' : '#FBBF24', label: `${daysSince}d` };
+  if (daysSince <= 21) return { bg: 'rgba(234,88,12,0.12)',  border: 'rgba(234,88,12,0.3)',  text: isLight ? '#9A3412' : '#FB923C', label: `${daysSince}d` };
+  return { bg: 'rgba(220,38,38,0.12)', border: 'rgba(220,38,38,0.3)', text: isLight ? '#B91C1C' : '#F87171', label: `${daysSince}d` };
 }
 
 function sourceLabel(source: string): string {
@@ -73,18 +74,29 @@ function sourceLabel(source: string): string {
 
 // ── Alert Card ────────────────────────────────────────────────────────────────
 
-const URGENCY_CONFIG: Record<string, { bg: string; border: string; text: string; icon: LucideIcon; labelColor: string }> = {
-  high:   { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   text: '#F87171', icon: AlertCircle, labelColor: '#F87171' },
-  medium: { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  text: '#FBBF24', icon: AlertCircle, labelColor: '#FBBF24' },
-  low:    { bg: 'rgba(202,138,4,0.08)',  border: 'rgba(202,138,4,0.25)', text: '#FDE047', icon: Info,         labelColor: '#FDE047' },
-};
+function urgencyConfig(urgency: string, isLight: boolean): { bg: string; border: string; text: string; icon: LucideIcon; buttonText: string } {
+  // The "Study Now" button uses `text` as a solid fixed background — in
+  // dark theme these tier colors are pale (fail with white text), while
+  // in light theme they're now darkened (fail with dark text). Flipping
+  // buttonText with isLight keeps the button legible in both themes.
+  switch (urgency) {
+    case 'high':
+      return { bg: 'rgba(239,68,68,0.1)',  border: 'rgba(239,68,68,0.3)',  text: isLight ? '#B91C1C' : '#F87171', icon: AlertCircle, buttonText: isLight ? '#ffffff' : '#0F172A' };
+    case 'medium':
+      return { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', text: isLight ? '#92400E' : '#FBBF24', icon: AlertCircle, buttonText: isLight ? '#ffffff' : '#0F172A' };
+    default:
+      return { bg: 'rgba(202,138,4,0.08)', border: 'rgba(202,138,4,0.25)', text: isLight ? '#854D0E' : '#FDE047', icon: Info,        buttonText: isLight ? '#ffffff' : '#0F172A' };
+  }
+}
 
 function AlertCard({ alert, index, onStudyNow }: {
   alert: Alert;
   index: number;
   onStudyNow: (subject: string) => void;
 }) {
-  const c = URGENCY_CONFIG[alert.urgency];
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const c = urgencyConfig(alert.urgency, isLight);
   return (
     <motion.div
       initial={{ opacity: 0, x: -12 }}
@@ -112,13 +124,16 @@ function AlertCard({ alert, index, onStudyNow }: {
             >
               {alert.days_since}
             </span>
-            <span className="text-xs font-medium" style={{ color: c.text + 'aa' }}>days since reviewed</span>
+            {/* Stacking alpha on an already-darkened light-theme color
+                re-breaks contrast (same lesson as elsewhere this
+                session) — use full opacity when isLight. */}
+            <span className="text-xs font-medium" style={{ color: isLight ? c.text : c.text + 'aa' }}>days since reviewed</span>
           </div>
-          <p className="text-xs leading-snug mb-3" style={{ color: c.text + 'cc' }}>{alert.message}</p>
+          <p className="text-xs leading-snug mb-3" style={{ color: isLight ? c.text : c.text + 'cc' }}>{alert.message}</p>
           <button
             onClick={() => onStudyNow(alert.subject)}
-            className="text-xs font-bold px-3.5 py-2 rounded-xl transition-all active:scale-95 text-white"
-            style={{ background: c.text }}
+            className="text-xs font-bold px-3.5 py-2 rounded-xl transition-all active:scale-95"
+            style={{ background: c.text, color: c.buttonText }}
           >
             Study Now →
           </button>
@@ -131,7 +146,9 @@ function AlertCard({ alert, index, onStudyNow }: {
 // ── Topic Card ────────────────────────────────────────────────────────────────
 
 function TopicCard({ entry, index }: { entry: TopicEntry; index: number }) {
-  const c = topicColor(entry.days_since);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const c = topicColor(entry.days_since, isLight);
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.93 }}
@@ -143,7 +160,7 @@ function TopicCard({ entry, index }: { entry: TopicEntry; index: number }) {
       <p className="text-xs font-bold leading-snug" style={{ color: c.text }}>
         {entry.topic}
       </p>
-      <p className="text-xs font-semibold" style={{ color: c.text + 'bb' }}>
+      <p className="text-xs font-semibold" style={{ color: isLight ? c.text : c.text + 'bb' }}>
         {c.label}
       </p>
       <span
@@ -210,6 +227,8 @@ function StatsRow({ data }: { data: HeatmapData }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AttentionHeatmapPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -280,7 +299,7 @@ export default function AttentionHeatmapPage() {
         <div className="flex-1 flex items-center justify-center px-6">
           {loadError ? (
             <div className="flex flex-col items-center gap-4 text-center">
-              <AlertCircle size={40} className="text-red-400" />
+              <AlertCircle size={40} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
               <p className="text-sm text-muted-foreground">{loadError}</p>
               <button
                 onClick={() => setRetryKey(k => k + 1)}
@@ -398,10 +417,10 @@ export default function AttentionHeatmapPage() {
         ) : (
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <AlertCircle size={15} className="text-red-500 shrink-0" />
+              <AlertCircle size={15} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#EF4444' }} />
               <h2 className="font-heading text-base font-bold text-white">Novo's Alerts</h2>
               <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
+                style={{ background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171' }}>
                 {data.alerts.length} neglected
               </span>
             </div>
@@ -508,11 +527,11 @@ export default function AttentionHeatmapPage() {
             </p>
             <div className="flex flex-col gap-1.5">
               {[
-                { label: '0–3 days',  color: '#34D399', bg: 'rgba(16,185,129,0.15)'  },
-                { label: '4–7 days',  color: '#a3e635', bg: 'rgba(101,163,13,0.15)'  },
-                { label: '8–14 days', color: '#FBBF24', bg: 'rgba(217,119,6,0.15)'   },
-                { label: '15–21 days',color: '#FB923C', bg: 'rgba(234,88,12,0.15)'   },
-                { label: '22+ days',  color: '#F87171', bg: 'rgba(220,38,38,0.15)'   },
+                { label: '0–3 days',  color: isLight ? '#047857' : '#34D399', bg: 'rgba(16,185,129,0.15)'  },
+                { label: '4–7 days',  color: isLight ? '#4D7C0F' : '#a3e635', bg: 'rgba(101,163,13,0.15)'  },
+                { label: '8–14 days', color: isLight ? '#92400E' : '#FBBF24', bg: 'rgba(217,119,6,0.15)'   },
+                { label: '15–21 days',color: isLight ? '#9A3412' : '#FB923C', bg: 'rgba(234,88,12,0.15)'   },
+                { label: '22+ days',  color: isLight ? '#B91C1C' : '#F87171', bg: 'rgba(220,38,38,0.15)'   },
               ].map(({ label, color, bg }) => (
                 <div key={label} className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-lg shrink-0" style={{ background: bg, border: `1.5px solid ${color}60` }} />
