@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Megaphone } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -201,13 +202,15 @@ function FeedCard({ item, myId, onReact, onShare }: {
 
 // ── School Toppers Banner ─────────────────────────────────────────────────────
 function SchoolToppersBanner({ items }: { items: FeedItem[] }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   if (!items.length) return null;
   const toppers = items.filter(i => i.event_type === 'level_up' || i.event_type === 'streak_milestone').slice(0, 3);
   if (!toppers.length) return null;
 
   return (
     <div style={{ background: 'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(251,191,36,0.08))', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 14, padding: '12px 16px', marginBottom: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontWeight: 700, fontSize: 13, color: '#F59E0B' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontWeight: 700, fontSize: 13, color: isLight ? '#92400E' : '#F59E0B' }}>
         <Star size={15} />School Toppers This Week
       </div>
       <div style={{ display: 'flex', gap: 12 }}>
@@ -215,9 +218,12 @@ function SchoolToppersBanner({ items }: { items: FeedItem[] }) {
           <div key={t.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
             <div style={{ position: 'relative', marginBottom: 4 }}>
               <Avatar url={t.profile?.avatar_url} name={t.profile?.full_name ?? 'User'} size={40} />
+              {/* Gold/silver/bronze badge fills are fixed regardless of
+                  theme, and white text fails against all 3 (1.5-2.1:1) —
+                  a fixed dark ink clears 5.3-8.9:1 against every one. */}
               <div style={{
                 position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#0F172A',
                 background: i === 0 ? '#FBBF24' : i === 1 ? '#C0C0C0' : '#CD7F32',
               }}>{i + 1}</div>
             </div>
