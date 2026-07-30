@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import type { QuizQuestion } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface LiveEvent {
   id: string; title: string; description: string | null; subject: string;
@@ -29,7 +30,7 @@ function Avatar({ url, name, size = 32 }: { url?: string | null; name: string; s
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%', background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.36, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0 }}>{initials}</div>
+      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.36, fontWeight: 700, color: '#ffffff', flexShrink: 0 }}>{initials}</div>
   );
 }
 
@@ -41,6 +42,12 @@ function countdownParts(ms: number) {
 export default function LiveEventPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const indigo = isLight ? '#4338CA' : '#A0AEFF';
+  const amber = isLight ? '#92400E' : '#FBBF24';
+  const emerald = isLight ? '#047857' : '#34D399';
+  const red = isLight ? '#B91C1C' : '#F87171';
 
   const [event, setEvent]       = useState<LiveEvent | null>(null);
   const [countdown, setCountdown] = useState({ d: 0, h: 0, m: 0, s: 0 });
@@ -180,19 +187,19 @@ export default function LiveEventPage() {
           <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
         ) : !event ? (
           <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-            <div className="w-16 h-16 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)' }}><PartyPopper size={26} style={{ color: '#A0AEFF' }} strokeWidth={1.6} /></div>
+            <div className="w-16 h-16 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)' }}><PartyPopper size={26} style={{ color: indigo }} strokeWidth={1.6} /></div>
             <p className="text-white/60 text-sm">No live events scheduled right now.<br />Check back Sunday at 5 PM!</p>
           </div>
         ) : phase === 'waiting' ? (
           <div className="pt-6">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               className="rounded-3xl p-6 text-center mb-6" style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-070)' }}>
-              <PartyPopper size={36} className="mx-auto mb-3" style={{ color: '#A0AEFF' }} strokeWidth={1.5} />
+              <PartyPopper size={36} className="mx-auto mb-3" style={{ color: indigo }} strokeWidth={1.5} />
               <h2 className="font-heading text-xl font-bold text-white mb-1">{event.title}</h2>
               {event.description && <p className="text-sm text-white/50 mb-4">{event.description}</p>}
 
               {isLive ? (
-                <Button onClick={startEvent} className="w-full" style={{ background: cfg.gradient }}>
+                <Button onClick={startEvent} className="w-full" style={{ background: cfg.gradient, color: '#ffffff' }}>
                   <Zap className="w-4 h-4 mr-1.5" /> Join Now — Live!
                 </Button>
               ) : (
@@ -208,7 +215,7 @@ export default function LiveEventPage() {
             </motion.div>
 
             <div className="rounded-2xl p-4 mb-6 flex items-center gap-3" style={{ background: 'rgba(91,106,245,0.08)', border: '1px solid rgba(91,106,245,0.2)' }}>
-              <Trophy className="w-6 h-6 flex-shrink-0" style={{ color: '#FBBF24' }} />
+              <Trophy className="w-6 h-6 flex-shrink-0" style={{ color: amber }} />
               <div>
                 <p className="text-sm font-semibold text-white">{event.reward_badge}</p>
                 <p className="text-xs text-white/50">Winner gets 30 days of Pro free</p>
@@ -224,7 +231,7 @@ export default function LiveEventPage() {
                       <span className="w-6 text-center text-sm font-bold" style={{ color: i < 3 ? '#FBBF24' : 'var(--ink-400)' }}>{i + 1}</span>
                       <Avatar url={l.avatar_url} name={l.full_name ?? ''} />
                       <span className="flex-1 text-sm text-white truncate">{l.full_name}{l.user_id === user?.id ? ' (you)' : ''}</span>
-                      <span className="text-sm font-bold" style={{ color: '#A0AEFF' }}>{l.score}</span>
+                      <span className="text-sm font-bold" style={{ color: indigo }}>{l.score}</span>
                     </div>
                   ))}
                 </div>
@@ -235,7 +242,7 @@ export default function LiveEventPage() {
           <div className="pt-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs text-white/40">Question {current + 1}/{questions.length}</span>
-              <span className="text-xs font-semibold" style={{ color: '#A0AEFF' }}>Score: {score}</span>
+              <span className="text-xs font-semibold" style={{ color: indigo }}>Score: {score}</span>
             </div>
             <p className="text-base font-semibold text-white mb-5 leading-relaxed">{questions[current].question}</p>
             <div className="flex flex-col gap-2.5">
@@ -251,8 +258,8 @@ export default function LiveEventPage() {
                     className="flex items-center justify-between px-4 py-3.5 rounded-2xl text-sm text-left text-white"
                     style={{ background: bg, border: `1px solid ${border}` }}>
                     {opt}
-                    {selected !== null && isCorrect && <CheckCircle className="w-4 h-4" style={{ color: '#34D399' }} />}
-                    {selected !== null && isSelected && !isCorrect && <XCircle className="w-4 h-4" style={{ color: '#F87171' }} />}
+                    {selected !== null && isCorrect && <CheckCircle className="w-4 h-4" style={{ color: emerald }} />}
+                    {selected !== null && isSelected && !isCorrect && <XCircle className="w-4 h-4" style={{ color: red }} />}
                   </button>
                 );
               })}
@@ -260,11 +267,11 @@ export default function LiveEventPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-            <Trophy size={44} className="mb-2" style={{ color: '#FBBF24' }} strokeWidth={1.4} />
+            <Trophy size={44} className="mb-2" style={{ color: amber }} strokeWidth={1.4} />
             <h2 className="font-heading text-2xl font-bold text-white">{score}/{questions.length}</h2>
             <p className="text-sm text-white/50">Your score has been submitted!</p>
-            {myRank > 0 && <p className="text-sm font-semibold" style={{ color: '#A0AEFF' }}>You're ranked #{myRank} right now</p>}
-            <Button onClick={() => setPhase('waiting')} className="mt-4" style={{ background: cfg.gradient }}>View Leaderboard</Button>
+            {myRank > 0 && <p className="text-sm font-semibold" style={{ color: indigo }}>You're ranked #{myRank} right now</p>}
+            <Button onClick={() => setPhase('waiting')} className="mt-4" style={{ background: cfg.gradient, color: '#ffffff' }}>View Leaderboard</Button>
           </div>
         )}
       </div>
