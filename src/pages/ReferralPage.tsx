@@ -13,6 +13,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Referral {
   referee_id: string;
@@ -24,9 +25,9 @@ interface Referral {
 }
 
 const STATUS_CONFIG = {
-  signed_up:       { label: 'Joined',      color: '#A0AEFF', xp: 100 },
-  study_milestone: { label: 'Active',      color: '#34D399', xp: 200 },
-  pro_converted:   { label: 'Went Pro!',   color: '#FBBF24', xp: 500 },
+  signed_up:       { label: 'Joined',      color: '#A0AEFF', colorLight: '#4338CA', xp: 100 },
+  study_milestone: { label: 'Active',      color: '#34D399', colorLight: '#047857', xp: 200 },
+  pro_converted:   { label: 'Went Pro!',   color: '#FBBF24', colorLight: '#92400E', xp: 500 },
 };
 
 function Avatar({ url, name, size = 36 }: { url: string | null; name: string; size?: number }) {
@@ -38,12 +39,17 @@ function Avatar({ url, name, size = 36 }: { url: string | null; name: string; si
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.36, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0,
+      // Fixed indigo/purple gradient regardless of theme — a theme-flipping
+      // var(--ink-950) token here goes near-black in light theme (same bug
+      // class as FriendsPage/BattlePage). Use a literal white instead.
+      fontSize: size * 0.36, fontWeight: 700, color: '#ffffff', flexShrink: 0,
     }}>{initials}</div>
   );
 }
 
 export default function ReferralPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { profile } = useAuth();
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -121,7 +127,7 @@ export default function ReferralPage() {
                 style={{ background: copied ? 'rgba(16,185,129,0.12)' : 'var(--v2-elevated)', border: `1px solid ${copied ? 'var(--v2-success)' : 'var(--v2-border)'}` }}>
                 <AnimatePresence mode="wait">
                   {copied
-                    ? <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }}><Check size={16} style={{ color: 'var(--v2-success)' }} /></motion.div>
+                    ? <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }}><Check size={16} style={{ color: 'var(--v2-success-text)' }} /></motion.div>
                     : <motion.div key="copy"  initial={{ scale: 0 }} animate={{ scale: 1 }}><Copy  size={16} style={{ color: 'var(--v2-text-4)' }} /></motion.div>
                   }
                 </AnimatePresence>
@@ -161,12 +167,12 @@ export default function ReferralPage() {
               <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                 style={{ background: done ? 'rgba(16,185,129,0.10)' : 'var(--v2-elevated)' }}>
                 {done
-                  ? <CheckCircle2 size={16} style={{ color: 'var(--v2-success)' }} />
+                  ? <CheckCircle2 size={16} style={{ color: 'var(--v2-success-text)' }} />
                   : <Icon size={16} style={{ color: 'var(--v2-text-4)' }} />
                 }
               </div>
               <p className="flex-1 text-sm" style={{ color: 'var(--v2-text-2)' }}>{label}</p>
-              <span className="text-sm font-bold v2-tnum" style={{ color: done ? 'var(--v2-success)' : 'var(--v2-primary)' }}>{xp}</span>
+              <span className="text-sm font-bold v2-tnum" style={{ color: done ? 'var(--v2-success-text)' : 'var(--v2-primary)' }}>{xp}</span>
             </div>
           ))}
         </div>
@@ -175,7 +181,7 @@ export default function ReferralPage() {
         {totalXP > 0 && (
           <div className="rounded-2xl p-3 flex items-center gap-3"
             style={{ background: 'rgba(91,106,245,0.08)', border: '1px solid rgba(91,106,245,0.2)' }}>
-            <Zap size={16} style={{ color: '#A0AEFF' }} />
+            <Zap size={16} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
             <p className="text-sm text-white/70 flex-1">Total XP earned from referrals</p>
             <span className="font-heading font-bold text-white">{totalXP.toLocaleString()} XP</span>
           </div>
@@ -198,7 +204,7 @@ export default function ReferralPage() {
                     <p className="text-xs" style={{ color: 'var(--v2-text-4)' }}>{new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
                   </div>
                   <span className="text-xs font-bold px-2 py-1 rounded-full"
-                    style={{ background: `${cfg.color}18`, color: cfg.color, border: `1px solid ${cfg.color}40` }}>
+                    style={{ background: `${cfg.color}18`, color: isLight ? cfg.colorLight : cfg.color, border: `1px solid ${cfg.color}40` }}>
                     {cfg.label}
                   </span>
                   <span className="text-sm font-bold v2-tnum" style={{ color: 'var(--v2-primary)' }}>+{r.xp_awarded}</span>
