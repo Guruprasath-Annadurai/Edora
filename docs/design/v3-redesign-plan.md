@@ -893,6 +893,44 @@ sales/procurement conversation coming up.
     This closes out item 31.
 32. **Mistake Journal / Mnemonic / Study Notes / Study Pack / Scanner /
     Browser** (all under `tools/`) — utility tool screens, low visual risk.
+
+    **Mistake Journal** — ✅ 64th occurrence. Pale hex + raw Tailwind
+    hue-400 classes fixed; header PenLine icon on a fixed pink→violet
+    gradient needed dark ink (computed worst-case ~4.22:1 vs white's
+    ~3.53:1).
+
+    **Mnemonic** — ✅ 65th occurrence. CARDS config gained a
+    `colorLight` field per mnemonic type, picked in the main component.
+
+    **Study Notes** — ✅ 66th occurrence. Pale red/amber fixed; header
+    icon on a fixed emerald→cyan gradient needed dark ink (white failed
+    both ends, ~2.4-2.5:1).
+
+    **Browser** — ✅ 67th occurrence. RESOURCES config gained a
+    `colorLight` field per category; header icon on a fixed blue→cyan
+    gradient needed dark ink (white failed both ends, ~2.4-3.7:1).
+
+    **Scanner** — ✅ 68th occurrence. Extensive raw Tailwind hue-400/300
+    classes fixed; 2 fixed-gradient icon badges (violet→pink via
+    `getFeatureTheme`, cyan→blue) needed dark ink (white failed at
+    least one end of each, ~2.4-3.95:1) — left the pre-established
+    indigo→violet badge unchanged (white already correct there).
+
+    **Study Pack** — ✅ 69th occurrence, largest of the six (958
+    lines). Pale hex + raw Tailwind hue classes fixed across the
+    standalone QuizView component and the main component; 4
+    fixed-gradient buttons/icons fixed — the established indigo→violet
+    gradient needed white (moved from className to inline style to
+    survive the safety net), while 3 icons on a fixed amber→red
+    gradient needed dark ink (white failed as low as ~2.1:1 at the
+    amber end) — the same amber→red gradient/finding as
+    TeacherDashboardPage's Email-modal button earlier this session.
+    Verified live at `/study-pack`, no crash, `getComputedStyle()`
+    confirms all fixes.
+
+    This closes out item 32 — all 6 tool screens fixed, none needed no
+    change.
+
 33. **UPSC Mains** (`UPSCMainsPage.tsx`), **Curriculum /
     Curriculum Detail** (`CurriculumPage.tsx`, `CurriculumDetailPage.tsx`),
     **Course** (`CoursePage.tsx`), **Photo Solver** (`PhotoSolverPage.tsx`),
