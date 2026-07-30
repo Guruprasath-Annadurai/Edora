@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/lib/utils';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,19 +37,19 @@ type SortOrder = 'weakest' | 'strongest' | 'subject';
 
 const LEVEL_CONFIG: Record<
   TopicConfidence['level'],
-  { label: string; color: string; bg: string; badgeBg: string; badgeText: string }
+  { label: string; color: string; colorLight: string; bg: string; badgeBg: string; badgeText: string; badgeTextLight: string }
 > = {
-  high:   { label: 'HIGH',   color: '#34D399', bg: 'rgba(16,185,129,0.12)',  badgeBg: 'rgba(16,185,129,0.2)',  badgeText: '#34D399'  },
-  medium: { label: 'MEDIUM', color: '#818CF8', bg: 'rgba(91,106,245,0.12)',  badgeBg: 'rgba(91,106,245,0.2)',  badgeText: '#818CF8'  },
-  shaky:  { label: 'SHAKY',  color: '#FBBF24', bg: 'rgba(245,158,11,0.12)', badgeBg: 'rgba(245,158,11,0.2)', badgeText: '#FBBF24' },
-  low:    { label: 'LOW',    color: '#F87171', bg: 'rgba(239,68,68,0.12)',   badgeBg: 'rgba(239,68,68,0.2)',  badgeText: '#F87171'  },
+  high:   { label: 'HIGH',   color: '#34D399', colorLight: '#047857', bg: 'rgba(16,185,129,0.12)',  badgeBg: 'rgba(16,185,129,0.2)',  badgeText: '#34D399', badgeTextLight: '#047857'  },
+  medium: { label: 'MEDIUM', color: '#818CF8', colorLight: '#4338CA', bg: 'rgba(91,106,245,0.12)',  badgeBg: 'rgba(91,106,245,0.2)',  badgeText: '#818CF8', badgeTextLight: '#4338CA'  },
+  shaky:  { label: 'SHAKY',  color: '#FBBF24', colorLight: '#92400E', bg: 'rgba(245,158,11,0.12)', badgeBg: 'rgba(245,158,11,0.2)', badgeText: '#FBBF24', badgeTextLight: '#92400E' },
+  low:    { label: 'LOW',    color: '#F87171', colorLight: '#B91C1C', bg: 'rgba(239,68,68,0.12)',   badgeBg: 'rgba(239,68,68,0.2)',  badgeText: '#F87171', badgeTextLight: '#B91C1C'  },
 };
 
-function overallColor(score: number): string {
-  if (score >= 75) return '#10B981';
-  if (score >= 50) return '#5B6AF5';
-  if (score >= 30) return '#F59E0B';
-  return '#EF4444';
+function overallColor(score: number, isLight: boolean): string {
+  if (score >= 75) return isLight ? '#047857' : '#10B981';
+  if (score >= 50) return isLight ? '#4338CA' : '#5B6AF5';
+  if (score >= 30) return isLight ? '#92400E' : '#F59E0B';
+  return isLight ? '#B91C1C' : '#EF4444';
 }
 
 function overallLabel(score: number): string {
@@ -134,7 +135,10 @@ function LegendCard({
 // ── Topic Card ─────────────────────────────────────────────────────────────────
 
 function TopicCard({ topic, index }: { topic: TopicConfidence; index: number }) {
-  const cfg = LEVEL_CONFIG[topic.level];
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const cfgRaw = LEVEL_CONFIG[topic.level];
+  const cfg = { ...cfgRaw, color: isLight ? cfgRaw.colorLight : cfgRaw.color, badgeText: isLight ? cfgRaw.badgeTextLight : cfgRaw.badgeText };
 
   return (
     <motion.div
@@ -199,8 +203,10 @@ function SubjectSection({
   avg: number;
   topics: TopicConfidence[];
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [expanded, setExpanded] = useState(true);
-  const color = overallColor(avg);
+  const color = overallColor(avg, isLight);
 
   return (
     <div className="mb-4">
@@ -271,6 +277,8 @@ function InfoTooltip({ visible }: { visible: boolean }) {
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function ConfidenceScorePage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -342,7 +350,7 @@ export default function ConfidenceScorePage() {
     return Math.round(all.reduce((s, t) => s + t.score, 0) / all.length);
   })();
 
-  const mainColor = overallColor(overallScore);
+  const mainColor = overallColor(overallScore, isLight);
   const mainLabel = overallLabel(overallScore);
 
   const shakyOrLow = data
@@ -417,7 +425,7 @@ export default function ConfidenceScorePage() {
             className="w-16 h-16 rounded-3xl flex items-center justify-center"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}
           >
-            <XCircle size={28} className="text-red-400" />
+            <XCircle size={28} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
           </div>
           <p className="text-white font-semibold">Something went wrong</p>
           <p className="text-sm text-muted-foreground">{error}</p>
@@ -570,7 +578,7 @@ export default function ConfidenceScorePage() {
               label="High"
               range="75–100"
               desc="Fast + Correct — Deep understanding"
-              color={LEVEL_CONFIG.high.color}
+              color={isLight ? LEVEL_CONFIG.high.colorLight : LEVEL_CONFIG.high.color}
               bg={LEVEL_CONFIG.high.bg}
             />
             <LegendCard
@@ -578,7 +586,7 @@ export default function ConfidenceScorePage() {
               label="Medium"
               range="50–74"
               desc="Correct but slower — Solid but practice more"
-              color={LEVEL_CONFIG.medium.color}
+              color={isLight ? LEVEL_CONFIG.medium.colorLight : LEVEL_CONFIG.medium.color}
               bg={LEVEL_CONFIG.medium.bg}
             />
             <LegendCard
@@ -586,7 +594,7 @@ export default function ConfidenceScorePage() {
               label="Shaky"
               range="30–49"
               desc="Slow + Correct — Lucky or memorised"
-              color={LEVEL_CONFIG.shaky.color}
+              color={isLight ? LEVEL_CONFIG.shaky.colorLight : LEVEL_CONFIG.shaky.color}
               bg={LEVEL_CONFIG.shaky.bg}
             />
             <LegendCard
@@ -594,7 +602,7 @@ export default function ConfidenceScorePage() {
               label="Low"
               range="<30"
               desc="Fast+Wrong or Slow+Wrong"
-              color={LEVEL_CONFIG.low.color}
+              color={isLight ? LEVEL_CONFIG.low.colorLight : LEVEL_CONFIG.low.color}
               bg={LEVEL_CONFIG.low.bg}
             />
           </div>
@@ -688,10 +696,10 @@ export default function ConfidenceScorePage() {
                   className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                   style={{ background: 'rgba(245,158,11,0.2)' }}
                 >
-                  <AlertTriangle size={16} style={{ color: '#FBBF24' }} />
+                  <AlertTriangle size={16} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                 </div>
                 <div>
-                  <p className="font-heading font-bold text-sm" style={{ color: '#FBBF24' }}>
+                  <p className="font-heading font-bold text-sm" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>
                     Novo recommends drilling these topics
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -705,7 +713,7 @@ export default function ConfidenceScorePage() {
                   <div key={`${t.subject}-${t.topic}`} className="flex items-center gap-2">
                     <div
                       className="w-2 h-2 rounded-full shrink-0"
-                      style={{ background: LEVEL_CONFIG[t.level].color }}
+                      style={{ background: isLight ? LEVEL_CONFIG[t.level].colorLight : LEVEL_CONFIG[t.level].color }}
                     />
                     <span className="text-sm font-medium text-white">{t.topic}</span>
                     <span className="text-xs text-muted-foreground ml-auto">{t.subject}</span>
@@ -713,9 +721,13 @@ export default function ConfidenceScorePage() {
                 ))}
               </div>
 
+              {/* Fixed amber→red gradient regardless of theme — white text
+                  fails 3:1 against the amber segment (≈2.2:1); a fixed
+                  dark ink clears 4.8-8.5:1 against both stops (same
+                  gradient/bug class as CertificationsPage's fail state). */}
               <button
-                className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm"
-                style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}
+                className="w-full py-3 rounded-2xl text-sm font-bold shadow-sm"
+                style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)', color: '#0F172A' }}
                 onClick={() => navigate('/spaced-review')}
               >
                 Start Targeted Review →
@@ -735,10 +747,10 @@ export default function ConfidenceScorePage() {
                 className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(16,185,129,0.15)' }}
               >
-                <BookMarked size={20} style={{ color: '#34D399' }} />
+                <BookMarked size={20} style={{ color: isLight ? '#047857' : '#34D399' }} />
               </div>
               <div>
-                <p className="font-heading font-bold text-sm" style={{ color: '#34D399' }}>
+                <p className="font-heading font-bold text-sm" style={{ color: isLight ? '#047857' : '#34D399' }}>
                   Great confidence across all topics!
                 </p>
                 <p className="text-xs text-muted-foreground">
