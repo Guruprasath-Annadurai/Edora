@@ -266,8 +266,8 @@ export default function LearningStylePage() {
               className="mx-4 mt-3 px-4 py-3 rounded-2xl flex items-start gap-2.5"
               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}
             >
-              <Brain size={15} className="text-red-400 mt-0.5 shrink-0" />
-              <p className="text-xs font-medium text-red-400">{error}</p>
+              <Brain size={15} className="mt-0.5 shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+              <p className="text-xs font-medium" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
             </div>
           </motion.div>
         )}
