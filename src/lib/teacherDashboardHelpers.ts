@@ -8,11 +8,11 @@ export const SUBJECTS = [
 
 export const CLASS_NUMS = [6, 7, 8, 9, 10, 11, 12];
 
-export function scoreColor(score: number | null) {
-  if (score === null) return '#6B7280';
-  if (score >= 80) return '#10B981';
-  if (score >= 60) return '#F59E0B';
-  return '#EF4444';
+export function scoreColor(score: number | null, isLight = false) {
+  if (score === null) return isLight ? '#52525B' : '#6B7280';
+  if (score >= 80) return isLight ? '#047857' : '#10B981';
+  if (score >= 60) return isLight ? '#92400E' : '#F59E0B';
+  return isLight ? '#B91C1C' : '#EF4444';
 }
 
 export function gradeLetter(score: number | null) {

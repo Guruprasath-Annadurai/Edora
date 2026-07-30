@@ -24,9 +24,12 @@ import { CreateAssignmentModal } from '@/components/teacher/CreateAssignmentModa
 import { AtRiskPanel } from '@/components/teacher/AtRiskPanel';
 import { AITestScheduler } from '@/components/teacher/AITestScheduler';
 import { ReportCard } from '@/components/teacher/ReportCard';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function TeacherDashboardPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { profile } = useAuth();
   const teacher     = useTeacher();
 
@@ -168,7 +171,7 @@ export default function TeacherDashboardPage() {
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '20px' }}>
           <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <School size={36} style={{ color: '#8B9BFA' }} />
+              <School size={36} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} />
             </div>
           <div>
             <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--ink-950)', marginBottom: '8px' }}>
@@ -181,7 +184,7 @@ export default function TeacherDashboardPage() {
           <div style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)', borderRadius: '16px', padding: '20px', maxWidth: '320px', width: '100%', textAlign: 'left' }}>
             {['Assign quizzes directly from Google Classroom', 'Student grades sync to your gradebook automatically', 'School dashboard for principals + parent reports'].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', borderBottom: i < 2 ? '1px solid var(--ink-060)' : 'none' }}>
-                <CheckCircle2 size={16} style={{ color: '#34D399', flexShrink: 0 }} />
+                <CheckCircle2 size={16} style={{ color: isLight ? '#047857' : '#34D399', flexShrink: 0 }} />
                 <span style={{ fontSize: '13px', color: 'var(--ink-700)' }}>{item}</span>
               </div>
             ))}
@@ -191,7 +194,10 @@ export default function TeacherDashboardPage() {
             disabled={becomingTeacher}
             style={{
               background:   'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
-              color: 'var(--ink-950)',
+              // Fixed gradient regardless of theme — a theme-flipping
+              // ink token here goes near-black in light theme (same bug
+              // class as BattlePage/FriendsPage/GroupDetailPage).
+              color: '#ffffff',
               border:       'none',
               borderRadius: '14px',
               padding:      '14px 32px',
@@ -236,7 +242,7 @@ export default function TeacherDashboardPage() {
                 border:       '1px solid rgba(91,106,245,0.3)',
                 borderRadius: '10px',
                 padding:      '8px 12px',
-                color:        '#5B6AF5',
+                color:        isLight ? '#4338CA' : '#5B6AF5',
                 fontSize:     '12px',
                 fontWeight:   600,
                 cursor:       'pointer',
@@ -267,7 +273,7 @@ export default function TeacherDashboardPage() {
                 padding:      '10px 14px',
                 marginBottom: '12px',
                 fontSize:     '13px',
-                color:        syncResult.failed === 0 ? '#10B981' : '#F59E0B',
+                color:        syncResult.failed === 0 ? (isLight ? '#047857' : '#10B981') : (isLight ? '#92400E' : '#F59E0B'),
                 fontWeight:   600,
               }}
             >
@@ -297,7 +303,7 @@ export default function TeacherDashboardPage() {
               padding:      '12px 14px',
               marginBottom: '16px',
               fontSize:     '13px',
-              color:        '#EF4444',
+              color:        isLight ? '#B91C1C' : '#EF4444',
               display:      'flex',
               alignItems:   'center',
               gap:          '8px',
@@ -311,12 +317,12 @@ export default function TeacherDashboardPage() {
         {/* Stats row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '20px' }}>
           {[
-            { label: 'Assignments', value: teacher.assignments.length, color: '#5B6AF5', icon: <ClipboardList size={16} /> },
-            { label: 'Submissions', value: teacher.assignments.reduce((a, b) => a + b.submission_count, 0), color: '#10B981', icon: <Users size={16} /> },
+            { label: 'Assignments', value: teacher.assignments.length, color: isLight ? '#4338CA' : '#5B6AF5', icon: <ClipboardList size={16} /> },
+            { label: 'Submissions', value: teacher.assignments.reduce((a, b) => a + b.submission_count, 0), color: isLight ? '#047857' : '#10B981', icon: <Users size={16} /> },
             { label: 'Avg Score', value: (() => {
               const scored = teacher.assignments.filter(a => a.avg_score !== null);
               return scored.length ? `${Math.round(scored.reduce((a, b) => a + (b.avg_score ?? 0), 0) / scored.length)}%` : '—';
-            })(), color: '#F59E0B', icon: <BarChart2 size={16} /> },
+            })(), color: isLight ? '#92400E' : '#F59E0B', icon: <BarChart2 size={16} /> },
           ].map(stat => (
             <div
               key={stat.label}
@@ -455,7 +461,7 @@ export default function TeacherDashboardPage() {
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: '22px', fontWeight: 800, color: scoreColor(assignment.avg_score) }}>
+                          <div style={{ fontSize: '22px', fontWeight: 800, color: scoreColor(assignment.avg_score, isLight) }}>
                             {gradeLetter(assignment.avg_score)}
                           </div>
                           <div style={{ fontSize: '10px', color: 'var(--ink-500)' }}>avg grade</div>
@@ -473,7 +479,7 @@ export default function TeacherDashboardPage() {
                           {assignment.synced_count} synced
                         </div>
                         {assignment.due_date && (
-                          <div style={{ fontSize: '12px', color: '#F59E0B' }}>
+                          <div style={{ fontSize: '12px', color: isLight ? '#92400E' : '#F59E0B' }}>
                             Due {new Date(assignment.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                           </div>
                         )}
@@ -489,7 +495,7 @@ export default function TeacherDashboardPage() {
                             border:       '1px solid rgba(91,106,245,0.2)',
                             borderRadius: '8px',
                             padding:      '8px',
-                            color:        '#818CF8',
+                            color:        isLight ? '#4338CA' : '#818CF8',
                             fontSize:     '12px',
                             fontWeight:   600,
                             cursor:       'pointer',
@@ -513,7 +519,7 @@ export default function TeacherDashboardPage() {
                               border:         '1px solid rgba(16,185,129,0.2)',
                               borderRadius:   '8px',
                               padding:        '8px',
-                              color:          '#10B981',
+                              color:          isLight ? '#047857' : '#10B981',
                               fontSize:       '12px',
                               fontWeight:     600,
                               cursor:         'pointer',
@@ -535,7 +541,7 @@ export default function TeacherDashboardPage() {
                             border:       '1px solid rgba(239,68,68,0.2)',
                             borderRadius: '8px',
                             padding:      '8px 10px',
-                            color:        '#EF4444',
+                            color:        isLight ? '#B91C1C' : '#EF4444',
                             cursor:       'pointer',
                           }}
                         >
@@ -557,7 +563,7 @@ export default function TeacherDashboardPage() {
                               border:       '1px solid rgba(6,182,212,0.2)',
                               borderRadius: '8px',
                               padding:      '7px',
-                              color:        '#06B6D4',
+                              color:        isLight ? '#0E7490' : '#06B6D4',
                               fontSize:     '11px',
                               fontWeight:   600,
                               cursor:       'pointer',
@@ -579,7 +585,7 @@ export default function TeacherDashboardPage() {
                                 border:       '1px solid rgba(245,158,11,0.2)',
                                 borderRadius: '8px',
                                 padding:      '7px',
-                                color:        '#F59E0B',
+                                color:        isLight ? '#92400E' : '#F59E0B',
                                 fontSize:     '11px',
                                 fontWeight:   600,
                                 cursor:       'pointer',
@@ -616,7 +622,7 @@ export default function TeacherDashboardPage() {
                     icon={Users}
                     title="Parent Weekly Report"
                     subtitle="Beautiful HTML report card — share with parents or print as PDF"
-                    color="#5B6AF5"
+                    color={isLight ? '#4338CA' : '#5B6AF5'}
                     onClick={() => {
                       const url = `${window.location.origin}/teacher/parent-report`;
                       window.open(url, '_blank', 'noopener,noreferrer');
@@ -626,7 +632,7 @@ export default function TeacherDashboardPage() {
                     icon={School}
                     title="School Principal Dashboard"
                     subtitle="School-wide engagement, subject breakdown, top students"
-                    color="#10B981"
+                    color={isLight ? '#047857' : '#10B981'}
                     onClick={() => {
                       const url = `${window.location.origin}/teacher/school-report`;
                       window.open(url, '_blank', 'noopener,noreferrer');
@@ -636,7 +642,7 @@ export default function TeacherDashboardPage() {
                     icon={BarChart2}
                     title="Looker Studio Live Dashboard"
                     subtitle="Connect BigQuery → Looker Studio for always-on school analytics"
-                    color="#F59E0B"
+                    color={isLight ? '#92400E' : '#F59E0B'}
                     onClick={async () => {
                       const { data: { session } } = await supabase.auth.getSession();
                       const res = await supabase.functions.invoke('school-report', {
@@ -658,7 +664,7 @@ export default function TeacherDashboardPage() {
                     }}
                   >
                     <div style={{ fontSize: '13px', color: 'var(--ink-500)', lineHeight: 1.7 }}>
-                      <div style={{ fontWeight: 700, color: '#818CF8', marginBottom: '8px' }}>Looker Studio Setup (one-time)</div>
+                      <div style={{ fontWeight: 700, color: isLight ? '#4338CA' : '#818CF8', marginBottom: '8px' }}>Looker Studio Setup (one-time)</div>
                       <ol style={{ paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <li>Click "Looker Studio Live Dashboard" above to create BQ views</li>
                         <li>Open the generated Looker Studio URL</li>
@@ -699,19 +705,19 @@ export default function TeacherDashboardPage() {
             <motion.div key="services" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {!teacher.connected ? (
                 <div style={{ background: 'var(--hdr-b-750)', borderRadius: '16px', padding: '32px 20px', textAlign: 'center', border: '1px solid var(--ink-070)' }}>
-                  <Link2 size={36} style={{ color: '#5B6AF5', margin: '0 auto 12px' }} />
+                  <Link2 size={36} style={{ color: isLight ? '#4338CA' : '#5B6AF5', margin: '0 auto 12px' }} />
                   <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink-950)', marginBottom: '6px' }}>Connect Google first</div>
                   <div style={{ fontSize: '13px', color: 'var(--ink-500)', marginBottom: '20px' }}>Google Calendar, Gmail, and Drive are available once you connect your Google account.</div>
-                  <button onClick={teacher.connectClassroom} style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: 'var(--ink-950)', border: 'none', borderRadius: '12px', padding: '12px 28px', fontWeight: 700, cursor: 'pointer' }}>
+                  <button onClick={teacher.connectClassroom} style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: '#ffffff', border: 'none', borderRadius: '12px', padding: '12px 28px', fontWeight: 700, cursor: 'pointer' }}>
                     Connect Google
                   </button>
                 </div>
               ) : (
                 <>
                   {gs.error && (
-                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', fontSize: '13px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', fontSize: '13px', color: isLight ? '#B91C1C' : '#EF4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <AlertCircle size={16} />{gs.error}
-                      <button aria-label="Dismiss error" onClick={gs.clearError} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', marginLeft: 'auto' }}><X size={14} /></button>
+                      <button aria-label="Dismiss error" onClick={gs.clearError} style={{ background: 'none', border: 'none', color: isLight ? '#B91C1C' : '#EF4444', cursor: 'pointer', marginLeft: 'auto' }}><X size={14} /></button>
                     </div>
                   )}
 
@@ -719,7 +725,7 @@ export default function TeacherDashboardPage() {
                   <div style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Video size={18} style={{ color: '#06B6D4' }} />
+                        <Video size={18} style={{ color: isLight ? '#0E7490' : '#06B6D4' }} />
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--ink-950)' }}>Google Meet</div>
@@ -728,7 +734,7 @@ export default function TeacherDashboardPage() {
                     </div>
                     <button
                       onClick={() => { setMeetResult(null); setShowMeetModal(true); }}
-                      style={{ width: '100%', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: '10px', padding: '10px', color: '#06B6D4', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' }}
+                      style={{ width: '100%', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: '10px', padding: '10px', color: isLight ? '#0E7490' : '#06B6D4', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' }}
                     >
                       <CalendarPlus size={15} />
                       Schedule New Meet Session
@@ -746,7 +752,7 @@ export default function TeacherDashboardPage() {
                               <div style={{ fontSize: '11px', color: 'var(--ink-400)' }}>{new Date(ev.event_start).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
                             {ev.meet_link && (
-                              <a href={ev.meet_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#06B6D4', fontWeight: 600, textDecoration: 'none' }}>Join</a>
+                              <a href={ev.meet_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: isLight ? '#0E7490' : '#06B6D4', fontWeight: 600, textDecoration: 'none' }}>Join</a>
                             )}
                             <button aria-label="Delete event" onClick={() => gs.deleteCalendarEvent(ev.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-500)', cursor: 'pointer', padding: '0' }}><X size={14} /></button>
                           </div>
@@ -759,7 +765,7 @@ export default function TeacherDashboardPage() {
                   <div style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Mail size={18} style={{ color: '#EF4444' }} />
+                        <Mail size={18} style={{ color: isLight ? '#B91C1C' : '#EF4444' }} />
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--ink-950)' }}>Gmail</div>
@@ -775,7 +781,7 @@ export default function TeacherDashboardPage() {
                           </div>
                           <button
                             onClick={() => { setEmailAssignmentId(a.id); setEmailAction('notify'); setShowEmailModal(true); }}
-                            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '5px 10px', color: '#EF4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '5px 10px', color: isLight ? '#B91C1C' : '#EF4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                           >
                             <Send size={11} />
                             Notify
@@ -783,7 +789,7 @@ export default function TeacherDashboardPage() {
                           {a.due_date && (
                             <button
                               onClick={() => { setEmailAssignmentId(a.id); setEmailAction('remind'); setShowEmailModal(true); }}
-                              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '8px', padding: '5px 10px', color: '#F59E0B', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '8px', padding: '5px 10px', color: isLight ? '#92400E' : '#F59E0B', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                             >
                               <Bell size={11} />
                               Remind
@@ -801,7 +807,7 @@ export default function TeacherDashboardPage() {
                   <div style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Calendar size={18} style={{ color: '#5B6AF5' }} />
+                        <Calendar size={18} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--ink-950)' }}>Google Calendar</div>
@@ -816,15 +822,15 @@ export default function TeacherDashboardPage() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {teacher.assignments.filter(a => a.due_date).map(a => (
                           <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: 'var(--ink-030)', borderRadius: '10px' }}>
-                            <Calendar size={13} style={{ color: '#5B6AF5', flexShrink: 0 }} />
+                            <Calendar size={13} style={{ color: isLight ? '#4338CA' : '#5B6AF5', flexShrink: 0 }} />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: '12px', color: 'var(--ink-950)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
-                              <div style={{ fontSize: '10px', color: '#F59E0B' }}>Due {new Date(a.due_date!).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                              <div style={{ fontSize: '10px', color: isLight ? '#92400E' : '#F59E0B' }}>Due {new Date(a.due_date!).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                             </div>
                             <button
                               onClick={() => gs.addAssignmentDue(a.id)}
                               disabled={gs.loadingCalendar}
-                              style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.2)', borderRadius: '8px', padding: '5px 10px', color: '#818CF8', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                              style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.2)', borderRadius: '8px', padding: '5px 10px', color: isLight ? '#4338CA' : '#818CF8', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                             >
                               <CalendarPlus size={11} />
                               Add
@@ -842,7 +848,7 @@ export default function TeacherDashboardPage() {
                   <div style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)', borderRadius: '16px', padding: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <HardDrive size={18} style={{ color: '#10B981' }} />
+                        <HardDrive size={18} style={{ color: isLight ? '#047857' : '#10B981' }} />
                       </div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--ink-950)' }}>Google Drive</div>
@@ -862,12 +868,12 @@ export default function TeacherDashboardPage() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {gs.driveFiles.slice(0, 10).map(f => (
                           <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: 'var(--ink-030)', borderRadius: '10px' }}>
-                            <FileText size={13} style={{ color: '#10B981', flexShrink: 0 }} />
+                            <FileText size={13} style={{ color: isLight ? '#047857' : '#10B981', flexShrink: 0 }} />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: '12px', color: 'var(--ink-950)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.drive_file_name}</div>
                               {f.file_size_bytes && <div style={{ fontSize: '10px', color: 'var(--ink-400)' }}>{Math.round(f.file_size_bytes / 1024)} KB</div>}
                             </div>
-                            <a href={f.web_view_link} target="_blank" rel="noopener noreferrer" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '8px', padding: '5px 10px', color: '#10B981', fontSize: '11px', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <a href={f.web_view_link} target="_blank" rel="noopener noreferrer" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '8px', padding: '5px 10px', color: isLight ? '#047857' : '#10B981', fontSize: '11px', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <ExternalLink size={11} />
                               Open
                             </a>
@@ -909,7 +915,7 @@ export default function TeacherDashboardPage() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Video size={20} style={{ color: '#06B6D4' }} />
+                  <Video size={20} style={{ color: isLight ? '#0E7490' : '#06B6D4' }} />
                   <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--ink-950)' }}>Schedule Meet Session</h3>
                 </div>
                 <button aria-label="Close" onClick={() => { setShowMeetModal(false); setMeetResult(null); }} style={{ background: 'none', border: 'none', color: 'var(--ink-500)', cursor: 'pointer' }}><X size={20} /></button>
@@ -918,23 +924,23 @@ export default function TeacherDashboardPage() {
               {meetResult ? (
                 <div style={{ textAlign: 'center', padding: '16px 0' }}>
                   <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(6,182,212,0.15)', border: '1px solid rgba(6,182,212,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <Video size={26} style={{ color: '#06B6D4' }} />
+                    <Video size={26} style={{ color: isLight ? '#0E7490' : '#06B6D4' }} />
                   </div>
                   <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--ink-950)', marginBottom: '8px' }}>Meet Created!</h3>
                   {meetResult.meet_link && (
                     <div style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
                       <div style={{ fontSize: '11px', color: 'var(--ink-400)', marginBottom: '4px' }}>MEET LINK</div>
-                      <div style={{ fontSize: '13px', color: '#06B6D4', fontWeight: 600, wordBreak: 'break-all' }}>{meetResult.meet_link}</div>
-                      <button onClick={() => navigator.clipboard.writeText(meetResult.meet_link!)} style={{ marginTop: '8px', background: 'none', border: 'none', color: '#06B6D4', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', margin: '8px auto 0' }}>
+                      <div style={{ fontSize: '13px', color: isLight ? '#0E7490' : '#06B6D4', fontWeight: 600, wordBreak: 'break-all' }}>{meetResult.meet_link}</div>
+                      <button onClick={() => navigator.clipboard.writeText(meetResult.meet_link!)} style={{ marginTop: '8px', background: 'none', border: 'none', color: isLight ? '#0E7490' : '#06B6D4', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', margin: '8px auto 0' }}>
                         <Copy size={13} /> Copy link
                       </button>
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <a href={meetResult.html_link} target="_blank" rel="noopener noreferrer" style={{ flex: 1, background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: '12px', padding: '12px', color: '#06B6D4', fontSize: '14px', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' }}>
+                    <a href={meetResult.html_link} target="_blank" rel="noopener noreferrer" style={{ flex: 1, background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: '12px', padding: '12px', color: isLight ? '#0E7490' : '#06B6D4', fontSize: '14px', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' }}>
                       <ExternalLink size={16} /> View in Calendar
                     </a>
-                    <button onClick={() => { setShowMeetModal(false); setMeetResult(null); setMeetForm({ title: '', date: '', startTime: '09:00', endTime: '10:00', attendees: '' }); }} style={{ flex: 1, background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', border: 'none', borderRadius: '12px', padding: '12px', color: 'var(--ink-950)', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+                    <button onClick={() => { setShowMeetModal(false); setMeetResult(null); setMeetForm({ title: '', date: '', startTime: '09:00', endTime: '10:00', attendees: '' }); }} style={{ flex: 1, background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', border: 'none', borderRadius: '12px', padding: '12px', color: '#ffffff', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
                       Done
                     </button>
                   </div>
@@ -982,7 +988,7 @@ export default function TeacherDashboardPage() {
                   <button
                     onClick={handleCreateMeet}
                     disabled={gs.loadingCalendar || !meetForm.title || !meetForm.date}
-                    style={{ width: '100%', background: 'linear-gradient(135deg,#06B6D4,#0891B2)', border: 'none', borderRadius: '12px', padding: '14px', color: 'var(--ink-950)', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: gs.loadingCalendar || !meetForm.title || !meetForm.date ? 0.6 : 1 }}
+                    style={{ width: '100%', background: 'linear-gradient(135deg,#06B6D4,#0891B2)', border: 'none', borderRadius: '12px', padding: '14px', color: '#0F172A', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: gs.loadingCalendar || !meetForm.title || !meetForm.date ? 0.6 : 1 }}
                   >
                     {gs.loadingCalendar ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Video size={18} />}
                     {gs.loadingCalendar ? 'Creating…' : 'Create Meet Session'}
@@ -1007,7 +1013,7 @@ export default function TeacherDashboardPage() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Mail size={20} style={{ color: emailAction === 'notify' ? '#EF4444' : '#F59E0B' }} />
+                  <Mail size={20} style={{ color: emailAction === 'notify' ? (isLight ? '#B91C1C' : '#EF4444') : (isLight ? '#92400E' : '#F59E0B') }} />
                   <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--ink-950)' }}>
                     {emailAction === 'notify' ? 'Notify Students' : 'Send Reminder'}
                   </h3>
@@ -1017,7 +1023,7 @@ export default function TeacherDashboardPage() {
 
               {emailResult ? (
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <CheckCircle2 size={40} style={{ color: '#34D399', margin: '0 auto 12px' }} />
+                  <CheckCircle2 size={40} style={{ color: isLight ? '#047857' : '#34D399', margin: '0 auto 12px' }} />
                   <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink-950)', marginBottom: '6px' }}>{emailResult}</div>
                   <div style={{ fontSize: '13px', color: 'var(--ink-500)' }}>Email sent via your Gmail account</div>
                 </div>
@@ -1042,7 +1048,7 @@ export default function TeacherDashboardPage() {
                   <button
                     onClick={handleSendEmail}
                     disabled={emailSending || !emailRecipients.trim()}
-                    style={{ width: '100%', background: emailAction === 'notify' ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'linear-gradient(135deg,#F59E0B,#D97706)', border: 'none', borderRadius: '12px', padding: '14px', color: 'var(--ink-950)', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: emailSending || !emailRecipients.trim() ? 0.6 : 1 }}
+                    style={{ width: '100%', background: emailAction === 'notify' ? 'linear-gradient(135deg,#EF4444,#DC2626)' : 'linear-gradient(135deg,#F59E0B,#D97706)', border: 'none', borderRadius: '12px', padding: '14px', color: '#0F172A', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: emailSending || !emailRecipients.trim() ? 0.6 : 1 }}
                   >
                     {emailSending ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={18} />}
                     {emailSending ? 'Sending…' : emailAction === 'notify' ? 'Send Notification' : 'Send Reminder'}
