@@ -134,28 +134,28 @@ function ParagraphCard({ p, onBookmark, isLight }: { p: NcertParagraph; onBookma
               {/* Exam question */}
               <div className="px-3 py-2.5 rounded-xl" style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.18)' }}>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Zap size={9} className="text-indigo-400" />
-                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">Likely Exam Question</p>
+                  <Zap size={9} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
+                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: isLight ? '#4338CA' : '#818CF8' }}>Likely Exam Question</p>
                 </div>
-                <p className="text-xs text-indigo-200/80 leading-relaxed">{p.exam_question}</p>
+                <p className="text-xs leading-relaxed" style={{ color: isLight ? '#4338CA' : 'rgba(196,181,253,0.8)' }}>{p.exam_question}</p>
               </div>
 
               {/* Misconception */}
               <div className="px-3 py-2.5 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <AlertTriangle size={9} className="text-red-400" />
-                  <p className="text-xs font-bold uppercase tracking-wider text-red-400">Common Misconception</p>
+                  <AlertTriangle size={9} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>Common Misconception</p>
                 </div>
-                <p className="text-xs text-red-200/70 leading-relaxed">{p.misconception}</p>
+                <p className="text-xs leading-relaxed" style={{ color: isLight ? '#B91C1C' : 'rgba(254,202,202,0.7)' }}>{p.misconception}</p>
               </div>
 
               {/* Real-world example */}
               <div className="px-3 py-2.5 rounded-xl" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Globe size={9} className="text-emerald-400" />
-                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">Real-World Example</p>
+                  <Globe size={9} style={{ color: isLight ? '#047857' : '#34D399' }} />
+                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: isLight ? '#047857' : '#34D399' }}>Real-World Example</p>
                 </div>
-                <p className="text-xs text-emerald-200/70 leading-relaxed">{p.real_world_example}</p>
+                <p className="text-xs leading-relaxed" style={{ color: isLight ? '#047857' : 'rgba(167,243,208,0.7)' }}>{p.real_world_example}</p>
               </div>
             </div>
           </motion.div>
@@ -332,7 +332,7 @@ Return ONLY valid JSON array:
 
               <div className="flex items-center gap-2 p-4 rounded-2xl"
                 style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.2)' }}>
-                <Sparkles size={14} className="text-indigo-400 shrink-0" />
+                <Sparkles size={14} className="shrink-0" style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
                 <div>
                   <p className="text-sm font-bold text-white">AI Deep Mapping</p>
                   <p className="text-xs text-white/50">Select any chapter → AI maps every paragraph with exam insights</p>
@@ -357,7 +357,7 @@ Return ONLY valid JSON array:
                         <p className="text-sm font-semibold text-white">{ch}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {count > 0 && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background:'rgba(16,185,129,0.15)', color:'#34D399' }}>{count} mapped</span>}
+                        {count > 0 && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background:'rgba(16,185,129,0.15)', color: isLight ? '#047857' : '#34D399' }}>{count} mapped</span>}
                         <ChevronRight size={13} className="text-white/25" />
                       </div>
                     </button>
@@ -378,8 +378,8 @@ Return ONLY valid JSON array:
                       <button onClick={() => setSpeedReaderOpen(true)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white"
                         style={{ background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.3)' }}>
-                        <Zap size={11} className="text-emerald-300" />
-                        <span className="text-emerald-200">Speed Read</span>
+                        <Zap size={11} style={{ color: isLight ? '#047857' : '#6EE7B7' }} />
+                        <span style={{ color: isLight ? '#047857' : '#A7F3D0' }}>Speed Read</span>
                       </button>
                     )}
                     <button onClick={generateChapterContent} disabled={generating}
@@ -395,8 +395,8 @@ Return ONLY valid JSON array:
               {generating && (
                 <div>
                   <div className="flex items-center gap-2 mb-4 px-1">
-                    <Sparkles size={13} className="text-indigo-400 animate-pulse shrink-0" />
-                    <p className="text-xs font-bold text-indigo-300">
+                    <Sparkles size={13} className="animate-pulse shrink-0" style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
+                    <p className="text-xs font-bold" style={{ color: isLight ? '#4338CA' : '#A5B4FC' }}>
                       AI mapping <span className="text-white">{selChapter}</span>…
                     </p>
                   </div>
