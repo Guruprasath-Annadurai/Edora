@@ -544,8 +544,35 @@ color or type size.
     `#047857`/`#B91C1C`.
 
     This closes out item 21 — 32 distinct files fixed this session.
-22. **Analytics Dashboard** (`AnalyticsDashboardPage.tsx`), **Novo Insights**
-    (`NovoInsightsPage.tsx`), **Eval Dashboard** (`EvalDashboardPage.tsx`)
+22. **Analytics Dashboard / Novo Insights / Eval Dashboard** — ✅ all 3
+    audited.
+
+    **Analytics Dashboard** (`AnalyticsDashboardPage.tsx`) — ✅ 33rd
+    occurrence. 3 KPI-tile icons and ScoreRing's 3 score bands fixed with
+    isLight branches. Verified live: icons render exactly `#4338CA`/
+    `#047857`/`#92400E`.
+
+    **Novo Insights** (`NovoInsightsPage.tsx`) — ✅ 34th occurrence. The
+    biggest instance yet of the "background itself flips with theme"
+    bug: the full-report header's `var(--grad-purple-header-*)` tokens
+    are a deep purple gradient in dark theme but a pale lavender gradient
+    in light theme (confirmed in ThemeContext.tsx) — every raw Tailwind
+    color class inside it (text-yellow-300, text-purple-300, 4 stat
+    icons) was tuned for the dark version and fixed with isLight-aware
+    inline styles. ScoreArc and DAY_COLORS also fixed. Could not
+    live-verify the full-report header itself — this test profile has no
+    generated report yet, so only the theme-safe empty state rendered.
+
+    **Eval Dashboard** (`EvalDashboardPage.tsx`) — audited, no fix
+    needed. This is an internal eval/dev console with a permanently
+    fixed `bg-zinc-950` root — it never reads `data-theme` or calls
+    `useTheme()`, so it always renders dark regardless of the app's
+    theme setting. None of its Tailwind zinc/emerald/red/amber classes
+    can ever break in light theme because the page never renders in
+    light theme; this is a different (and valid) pattern from every
+    other file in this session.
+
+    This closes out item 22 — 34 distinct files fixed this session.
 23. **Mock Test** (`MockTestPage.tsx`), **Mock Postmortem**
     (`MockPostmortemPage.tsx`), **Exam Simulator**
     (`tools/ExamSimulatorPage.tsx`), **Exam War Room**
