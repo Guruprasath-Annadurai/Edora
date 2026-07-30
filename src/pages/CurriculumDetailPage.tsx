@@ -60,26 +60,30 @@ interface ToastState {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function DifficultyStars({ value }: { value: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const activeColor = isLight ? '#92400E' : '#FBBF24';
   return (
     <span className="flex items-center gap-0.5">
       {Array.from({ length: 5 }).map((_, i) => (
         <Star
           key={i}
           size={10}
-          className={i < value ? 'text-amber-400' : 'text-white/15'}
-          fill={i < value ? '#FBBF24' : 'none'}
+          className={i < value ? undefined : 'text-white/15'}
+          style={i < value ? { color: activeColor } : undefined}
+          fill={i < value ? activeColor : 'none'}
         />
       ))}
     </span>
   );
 }
 
-function topicStatusIcon(status: TopicProgress['status']) {
+function topicStatusIcon(status: TopicProgress['status'], isLight: boolean) {
   switch (status) {
     case 'locked':      return <Lock      size={13} className="text-white/30" />;
-    case 'complete':    return <CheckCircle2 size={13} className="text-emerald-400" />;
-    case 'in_progress': return <PlayCircle size={13} className="text-blue-400" />;
-    case 'available':   return <PlayCircle size={13} className="text-indigo-400" />;
+    case 'complete':    return <CheckCircle2 size={13} style={{ color: isLight ? '#047857' : '#34D399' }} />;
+    case 'in_progress': return <PlayCircle size={13} style={{ color: isLight ? '#1D4ED8' : '#60A5FA' }} />;
+    case 'available':   return <PlayCircle size={13} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />;
   }
 }
 
@@ -138,6 +142,9 @@ function Toast({ message, type, onDismiss }: { message: string; type: ToastState
 // ── Generating shimmer ────────────────────────────────────────────────────────
 
 function GeneratingBanner() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const fg = isLight ? '#4338CA' : '#A5B4FC';
   return (
     <div
       className="mx-4 mb-3 px-4 py-3 rounded-2xl flex items-center gap-2.5 overflow-hidden relative"
@@ -149,8 +156,8 @@ function GeneratingBanner() {
         animate={{ x: ['-100%', '200%'] }}
         transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
       />
-      <RefreshCw size={14} className="text-indigo-400 animate-spin shrink-0 relative z-10" />
-      <p className="text-indigo-300 text-sm font-semibold relative z-10">Generating curriculum…</p>
+      <RefreshCw size={14} className="animate-spin shrink-0 relative z-10" style={{ color: fg }} />
+      <p className="text-sm font-semibold relative z-10" style={{ color: fg }}>Generating curriculum…</p>
     </div>
   );
 }
@@ -189,6 +196,8 @@ function TopicSheet({
   completing, generatingCards,
 }: TopicSheetProps) {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const canInteract = status === 'available' || status === 'in_progress' || status === 'complete';
 
   return (
@@ -278,7 +287,7 @@ function TopicSheet({
               >
                 {completing
                   ? <div className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
-                  : <CheckCircle2 size={16} className="text-emerald-400" />
+                  : <CheckCircle2 size={16} style={{ color: isLight ? '#047857' : '#34D399' }} />
                 }
                 {completing ? 'Saving…' : 'Mark Complete'}
               </button>
@@ -294,7 +303,7 @@ function TopicSheet({
               >
                 {generatingCards
                   ? <div className="w-4 h-4 border-2 border-amber-400/60 border-t-transparent rounded-full animate-spin" />
-                  : <Zap size={16} className="text-amber-400" />
+                  : <Zap size={16} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                 }
                 {generatingCards ? 'Generating…' : 'Generate Flashcards'}
               </button>
@@ -327,6 +336,8 @@ interface TopicRowProps {
 }
 
 function TopicRow({ topic, progressMap, onSelect, depth = 0 }: TopicRowProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const progress = progressMap.get(topic.id);
   const status   = progress?.status ?? 'locked';
   const hasChildren = topic.children && topic.children.length > 0;
@@ -365,7 +376,7 @@ function TopicRow({ topic, progressMap, onSelect, depth = 0 }: TopicRowProps) {
           <div className="shrink-0">
             {isChapter
               ? <BookOpen size={14} className="text-white/40" />
-              : topicStatusIcon(status)
+              : topicStatusIcon(status, isLight)
             }
           </div>
 
@@ -704,8 +715,8 @@ export default function CurriculumDetailPage() {
         {error && (
           <div className="mx-4 mt-4 px-4 py-3 rounded-2xl flex items-center gap-3"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <AlertTriangle size={14} className="text-red-400 shrink-0" />
-            <p className="text-red-400 text-sm flex-1">{error}</p>
+            <AlertTriangle size={14} style={{ color: isLight ? '#B91C1C' : '#F87171' }} className="shrink-0" />
+            <p className="text-sm flex-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
             <button
               onClick={loadData}
               className="px-3 py-1.5 rounded-xl text-xs font-bold text-white"
@@ -735,7 +746,7 @@ export default function CurriculumDetailPage() {
                 }}
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <BookOpen size={20} className="text-indigo-400" />
+                  <BookOpen size={20} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
                   <div>
                     <p className="text-white font-semibold text-sm">Ready to start?</p>
                     <p className="text-white/50 text-xs">{totalTopics} topics to master</p>
