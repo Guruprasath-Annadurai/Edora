@@ -715,6 +715,41 @@ sales/procurement conversation coming up.
     are the most "playful" screens in the app; decide whether they keep a
     lighter tone deliberately (they're inherently entertainment-adjacent) or
     get folded into the same corporate language as everything else.
+
+    **Concept Reels** (`ConceptReelsPage.tsx`) — ✅ 45th occurrence. Each
+    reel's per-subject `color1` is rendered against a background that
+    gradients into the theme-adaptive `var(--surface-sheet)` token
+    (dark theme: near-black; light theme: pure white) — fixed with a
+    `COLOR1_LIGHT` lookup and `useTheme()` in `ReelCard`. Left the
+    Like/Save/Share action-bar icons unchanged — those sit on a FIXED
+    black `rgba(0,0,0,0.5)` scrim regardless of theme, already correct.
+    Verified live at `/reels`, no crash, icon color confirmed via
+    `getComputedStyle()`.
+
+    **Concept Videos** (`ConceptVideosPage.tsx`) — ✅ 46th occurrence.
+    `subjectColor()` gained an `isLight` param (same pattern as
+    `scoreColor()` from the Teacher Dashboard fix) backed by a
+    `SUBJECT_COLORS_LIGHT` map. Fixed the theme-flipping-token-on-
+    fixed-background bug class on the video-duration badge (fixed
+    black background) and the YouTube CTA button (fixed brand-red
+    background — kept literal white to match YouTube's own universal
+    branding since computed contrast was marginal either way).
+    Verified live at `/concept-videos`, no crash (no seed video data
+    for this test profile to visually exercise the fixed colors).
+
+    **Story Mode** (`StoryModePage.tsx`) — ✅ 47th occurrence. ~20
+    hardcoded amber/emerald/indigo occurrences across all 6 function
+    components fixed with isLight branches. Found the
+    text-white-on-fixed-gradient bug class cutting BOTH ways in one
+    file: the amber→red and amber→dark-amber gradients (header icon
+    badge, Send button) need dark ink (white fails ~2.76:1 there),
+    while the indigo→violet gradient (tab buttons, subject chips,
+    "Explore More Stories") needs white — confirming this bug class
+    requires computing contrast per-gradient, never a blanket rule.
+    Verified live at `/story-mode`, no crash, both fixes confirmed via
+    `getComputedStyle()`.
+
+    This closes out item 27.
 28. **Debate Mode** (`DebateModePage.tsx`), **Peer Explanation**
     (`PeerExplanationPage.tsx`), **Whiteboard** (`WhiteboardPage.tsx`)
 29. **Formula Sheet** (`FormulaSheetPage.tsx`), **Formula AR**
