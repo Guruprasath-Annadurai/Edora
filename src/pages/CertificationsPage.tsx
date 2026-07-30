@@ -25,6 +25,7 @@ async function nativeShare(title: string, text: string): Promise<void> {
 }
 import type {NovoCertification, CertificationAssessment} from '@/types';
 import { maybePromptRating } from '@/lib/appRating';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,8 @@ function formatDate(iso: string) {
 // ── Certificate card ──────────────────────────────────────────────────────────
 
 function CertCard({ cert, onSelect }: { cert: NovoCertification; onSelect: (c: NovoCertification) => void }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
@@ -74,7 +77,7 @@ function CertCard({ cert, onSelect }: { cert: NovoCertification; onSelect: (c: N
               <p className="text-sm text-muted-foreground mt-0.5">{cert.subject}</p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="font-bold text-2xl" style={{ color: cert.pct_score >= 90 ? '#34D399' : '#8B9BFA' }}>
+              <p className="font-bold text-2xl" style={{ color: cert.pct_score >= 90 ? (isLight ? '#047857' : '#34D399') : (isLight ? '#4338CA' : '#8B9BFA') }}>
                 {cert.pct_score}%
               </p>
               <p className="text-xs text-muted-foreground">{cert.score}/{cert.questions_total}</p>
@@ -84,7 +87,7 @@ function CertCard({ cert, onSelect }: { cert: NovoCertification; onSelect: (c: N
         <div className="px-5 py-3 flex items-center justify-between"
           style={{ borderTop: '1px solid var(--ink-060)' }}>
           <p className="text-xs text-muted-foreground">Issued {formatDate(cert.issued_at)}</p>
-          <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: '#8B9BFA' }}>
+          <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: isLight ? '#4338CA' : '#8B9BFA' }}>
             View <ChevronRight size={12} />
           </div>
         </div>
@@ -96,6 +99,8 @@ function CertCard({ cert, onSelect }: { cert: NovoCertification; onSelect: (c: N
 // ── Certificate detail view ───────────────────────────────────────────────────
 
 function CertDetail({ cert, onBack }: { cert: NovoCertification; onBack: () => void }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   async function share() {
     const text = `I just earned a Novo Certification in "${cert.topic}" (${cert.subject}) with a score of ${cert.pct_score}%.\n\nVerification code: ${cert.share_code.toUpperCase()}\n\nStudied with Edora AI.`;
     try {
@@ -121,7 +126,7 @@ function CertDetail({ cert, onBack }: { cert: NovoCertification; onBack: () => v
         <button aria-label="Go back" onClick={onBack} className="text-white"><ChevronLeft size={20} /></button>
         <p className="font-heading font-bold text-white flex-1">Certificate</p>
         <button onClick={share} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl"
-          style={{ color: '#8B9BFA', background: 'rgba(91,106,245,0.15)' }}>
+          style={{ color: isLight ? '#4338CA' : '#8B9BFA', background: 'rgba(91,106,245,0.15)' }}>
           <Share2 size={13} /> Share
         </button>
       </div>
@@ -151,7 +156,7 @@ function CertDetail({ cert, onBack }: { cert: NovoCertification; onBack: () => v
               <p className="text-sm text-muted-foreground mt-1">
                 has demonstrated mastery with a score of
               </p>
-              <p className="font-bold text-4xl mt-2" style={{ color: cert.pct_score >= 90 ? '#34D399' : '#8B9BFA' }}>
+              <p className="font-bold text-4xl mt-2" style={{ color: cert.pct_score >= 90 ? (isLight ? '#047857' : '#34D399') : (isLight ? '#4338CA' : '#8B9BFA') }}>
                 {cert.pct_score}%
               </p>
               <p className="text-xs text-muted-foreground">({cert.score} of {cert.questions_total} correct)</p>
@@ -168,7 +173,7 @@ function CertDetail({ cert, onBack }: { cert: NovoCertification; onBack: () => v
 
         {cert.pct_score >= 90 && (
           <div className="rounded-2xl px-4 py-3 text-sm text-center font-medium flex items-center justify-center gap-2"
-            style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34D399' }}>
+            style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: isLight ? '#047857' : '#34D399' }}>
             <Trophy size={15} /> Distinction — Top 10% score!
           </div>
         )}
@@ -191,6 +196,8 @@ function AssessmentView({
   assessment: CertificationAssessment;
   onFinish: (passed: boolean, cert: NovoCertification | null) => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [currentQ, setCurrentQ]     = useState(assessment.current_q);
   const [questions]                 = useState<SafeQuestion[]>(
     assessment.questions as unknown as SafeQuestion[]
@@ -244,14 +251,18 @@ function AssessmentView({
           style={{ background: result.passed
             ? 'linear-gradient(135deg, #10B981, #06B6D4)'
             : 'linear-gradient(135deg, #EF4444, #F59E0B)' }}>
-          {result.passed ? <Trophy size={44} className="text-white" /> : <RotateCcw size={44} className="text-white" />}
+          {/* Fixed gradients regardless of theme — white icon fails 3:1
+              against the emerald/amber segments of these gradients
+              (≈2.2-2.9:1); a fixed dark ink clears 6.4-8.5:1 against
+              every stop in both gradients. */}
+          {result.passed ? <Trophy size={44} style={{ color: '#0F172A' }} /> : <RotateCcw size={44} style={{ color: '#0F172A' }} />}
         </div>
         <div>
           <p className="font-heading text-3xl font-bold text-white">
             {result.passed ? 'You Passed!' : 'Not Quite'}
           </p>
           <p className="text-5xl font-bold mt-3"
-            style={{ color: result.passed ? '#10B981' : '#EF4444' }}>
+            style={{ color: result.passed ? (isLight ? '#047857' : '#10B981') : (isLight ? '#B91C1C' : '#EF4444') }}>
             {result.pct_score}%
           </p>
           <p className="text-muted-foreground mt-2 text-sm">
@@ -313,8 +324,8 @@ function AssessmentView({
               let border = 'var(--ink-080)';
               let textColor = 'var(--ink-850)';
               if (feedback) {
-                if (isCorrect) { bg = 'rgba(16,185,129,0.12)'; border = '#10B981'; textColor = '#34D399'; }
-                else if (isWrong) { bg = 'rgba(239,68,68,0.12)'; border = '#EF4444'; textColor = '#FCA5A5'; }
+                if (isCorrect) { bg = 'rgba(16,185,129,0.12)'; border = '#10B981'; textColor = isLight ? '#047857' : '#34D399'; }
+                else if (isWrong) { bg = 'rgba(239,68,68,0.12)'; border = '#EF4444'; textColor = isLight ? '#B91C1C' : '#FCA5A5'; }
               } else if (isSelected) {
                 bg = 'rgba(91,106,245,0.15)'; border = '#5B6AF5';
               }
@@ -325,13 +336,18 @@ function AssessmentView({
                   disabled={!!feedback || submitting}
                   className="flex items-start gap-3 px-4 py-3.5 rounded-2xl border text-left transition-all active:scale-[0.98]"
                   style={{ background: bg, borderColor: border }}>
+                  {/* Letter badge fill is one of 3 FIXED colors (indigo/
+                      emerald/red) regardless of theme — white text fails
+                      3:1 against emerald (≈2.9:1) and 4.5:1 against red
+                      (≈3.8:1); a fixed dark ink clears 4.2-6.4:1 against
+                      all 3. */}
                   <span className="w-6 h-6 rounded-lg border flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-                    style={{ background: isSelected || isCorrect ? border : 'var(--ink-080)', borderColor: border, color: isSelected || isCorrect ? '#fff' : 'var(--ink-400)' }}>
+                    style={{ background: isSelected || isCorrect ? border : 'var(--ink-080)', borderColor: border, color: isSelected || isCorrect ? '#0F172A' : 'var(--ink-400)' }}>
                     {OPTION_LABELS[i]}
                   </span>
                   <span className="text-sm leading-relaxed" style={{ color: textColor }}>{opt}</span>
-                  {feedback && isCorrect && <CheckCircle2 size={16} className="text-green-500 shrink-0 mt-0.5" />}
-                  {feedback && isWrong  && <XCircle size={16} className="text-red-400 shrink-0 mt-0.5" />}
+                  {feedback && isCorrect && <CheckCircle2 size={16} className="shrink-0 mt-0.5" style={{ color: isLight ? '#047857' : '#22C55E' }} />}
+                  {feedback && isWrong  && <XCircle size={16} className="shrink-0 mt-0.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />}
                 </button>
               );
             })}
@@ -344,14 +360,14 @@ function AssessmentView({
                 className="mt-3 rounded-2xl px-4 py-3 text-sm leading-relaxed"
                 style={{ background: feedback.correct ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
                          borderLeft: `3px solid ${feedback.correct ? '#10B981' : '#EF4444'}` }}>
-                <p className="font-semibold mb-1" style={{ color: feedback.correct ? '#34D399' : '#FCA5A5' }}>
+                <p className="font-semibold mb-1" style={{ color: feedback.correct ? (isLight ? '#047857' : '#34D399') : (isLight ? '#B91C1C' : '#FCA5A5') }}>
                   {feedback.correct ? 'Correct!' : 'Incorrect'}
                 </p>
                 <p style={{ color: 'var(--ink-700)' }}>{feedback.explanation}</p>
                 {currentQ < total - 1 && (
                   <button onClick={advance}
                     className="mt-2 text-xs font-bold px-3 py-1.5 rounded-xl"
-                    style={{ color: '#8B9BFA', background: 'rgba(91,106,245,0.15)' }}>
+                    style={{ color: isLight ? '#4338CA' : '#8B9BFA', background: 'rgba(91,106,245,0.15)' }}>
                     Next Question →
                   </button>
                 )}
@@ -369,6 +385,8 @@ function AssessmentView({
 type View = 'list' | 'cert_detail' | 'subject_picker' | 'topic_input' | 'assessment' | 'result';
 
 export default function CertificationsPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user } = useAuth();
 
   const [certs, setCerts]           = useState<NovoCertification[]>([]);
@@ -471,15 +489,15 @@ export default function CertificationsPage() {
             <p className="font-heading font-bold text-white text-sm">Certification Assessment</p>
             <p className="text-xs text-muted-foreground">
               {assessment.topic} · {assessment.subject}
-              {isResumed && <span className="ml-2 font-semibold" style={{ color: '#FBBF24' }}>· Resumed</span>}
+              {isResumed && <span className="ml-2 font-semibold" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>· Resumed</span>}
             </p>
           </div>
-          <Shield size={18} style={{ color: '#8B9BFA' }} />
+          <Shield size={18} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} />
         </div>
         {isResumed && (
           <div className="px-4 py-2 shrink-0"
             style={{ background: 'rgba(245,158,11,0.1)', borderBottom: '1px solid rgba(245,158,11,0.2)' }}>
-            <p className="text-xs font-medium" style={{ color: '#FBBF24' }}>
+            <p className="text-xs font-medium" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>
               ↩ Resuming from question {assessment.current_q + 1} of {assessment.questions.length}
             </p>
           </div>
@@ -607,7 +625,7 @@ export default function CertificationsPage() {
             className="flex flex-col items-center justify-center h-full gap-6 pb-8">
             <div className="w-28 h-28 rounded-4xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, rgba(91,106,245,0.1), rgba(139,92,246,0.1))' }}>
-              <Award size={56} style={{ color: '#8B9BFA' }} strokeWidth={1.25} />
+              <Award size={56} style={{ color: isLight ? '#4338CA' : '#8B9BFA' }} strokeWidth={1.25} />
             </div>
             <div className="text-center px-4">
               <h3 className="font-heading text-2xl font-bold text-white">No Certificates Yet</h3>
@@ -622,7 +640,7 @@ export default function CertificationsPage() {
                 {['Pick a subject & topic', `Score ${PASS_THRESHOLD}%+ on 10 questions`, 'Earn your Novo Certificate'].map((s, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-white">
                     <span className="w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center shrink-0"
-                      style={{ background: 'rgba(91,106,245,0.2)', color: '#8B9BFA' }}>{i+1}</span>
+                      style={{ background: 'rgba(91,106,245,0.2)', color: isLight ? '#4338CA' : '#8B9BFA' }}>{i+1}</span>
                     {s}
                   </div>
                 ))}
@@ -649,7 +667,7 @@ export default function CertificationsPage() {
             </AnimatePresence>
             <button onClick={() => setView('subject_picker')}
               className="mt-2 py-3 rounded-2xl text-sm font-semibold text-center flex items-center justify-center gap-1.5"
-              style={{ border: '1px dashed rgba(91,106,245,0.4)', color: '#8B9BFA' }}>
+              style={{ border: '1px dashed rgba(91,106,245,0.4)', color: isLight ? '#4338CA' : '#8B9BFA' }}>
               <Sparkles size={14} /> Earn Another Certificate
             </button>
           </div>
