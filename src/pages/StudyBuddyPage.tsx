@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface BuddyPair {
   id: string;
@@ -32,7 +33,7 @@ function Avatar({ url, name, size = 64 }: { url: string | null; name: string; si
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.34, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0,
+      fontSize: size * 0.34, fontWeight: 700, color: '#ffffff', flexShrink: 0,
     }}>{initials}</div>
   );
 }
@@ -40,6 +41,11 @@ function Avatar({ url, name, size = 64 }: { url: string | null; name: string; si
 export default function StudyBuddyPage() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const indigo = isLight ? '#4338CA' : '#A0AEFF';
+  const emerald = isLight ? '#047857' : '#34D399';
+  const orange = isLight ? '#9A3412' : '#FB923C';
 
   const [pair, setPair]         = useState<BuddyPair | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -137,14 +143,14 @@ export default function StudyBuddyPage() {
           <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
         ) : !pair ? (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-            <div className="w-20 h-20 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)' }}><Handshake size={34} style={{ color: '#A0AEFF' }} strokeWidth={1.6} /></div>
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)' }}><Handshake size={34} style={{ color: indigo }} strokeWidth={1.6} /></div>
             <div>
               <h2 className="font-heading text-xl font-bold text-white mb-2">Get an Accountability Partner</h2>
               <p className="text-sm text-white/60 leading-relaxed max-w-xs mx-auto">
                 Novo matches you with a study buddy preparing for the same exam. Check in together daily and earn bonus XP when you both study.
               </p>
             </div>
-            <Button onClick={findBuddy} disabled={matching} className="mt-2 px-6" style={{ background: cfg.gradient }}>
+            <Button onClick={findBuddy} disabled={matching} className="mt-2 px-6" style={{ background: cfg.gradient, color: '#ffffff' }}>
               {matching ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1.5" />}
               {matching ? 'Matching...' : 'Find My Study Buddy'}
             </Button>
@@ -157,12 +163,12 @@ export default function StudyBuddyPage() {
               style={{ background: 'var(--ink-055)', border: '1px solid var(--ink-070)' }}>
               <div className="flex items-center justify-center gap-3 mb-4">
                 <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? 'You'} />
-                <Handshake size={22} style={{ color: '#A0AEFF' }} strokeWidth={1.7} />
+                <Handshake size={22} style={{ color: indigo }} strokeWidth={1.7} />
                 <Avatar url={pair.buddy_avatar} name={pair.buddy_name} />
               </div>
               <p className="text-sm text-white/60 mb-1">You & {pair.buddy_name}</p>
               <div className="flex items-center justify-center gap-1.5 mt-2">
-                <Flame className="w-5 h-5" style={{ color: '#FB923C' }} />
+                <Flame className="w-5 h-5" style={{ color: orange }} />
                 <span className="font-heading text-2xl font-bold text-white">{pair.pair_streak}</span>
                 <span className="text-sm text-white/50">day pair streak</span>
               </div>
@@ -174,23 +180,23 @@ export default function StudyBuddyPage() {
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-sm text-white/80">You</span>
                 {pair.my_checked_in_today
-                  ? <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: '#34D399' }}><Check className="w-3.5 h-3.5" />Studied</span>
+                  ? <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: emerald }}><Check className="w-3.5 h-3.5" />Studied</span>
                   : <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-400)' }}><Clock className="w-3.5 h-3.5" />Pending</span>}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-white/80">{pair.buddy_name}</span>
                 {pair.buddy_checked_in_today
-                  ? <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: '#34D399' }}><Check className="w-3.5 h-3.5" />Studied</span>
+                  ? <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: emerald }}><Check className="w-3.5 h-3.5" />Studied</span>
                   : <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-400)' }}><Clock className="w-3.5 h-3.5" />Waiting</span>}
               </div>
             </div>
 
             {!pair.my_checked_in_today ? (
-              <Button onClick={checkIn} disabled={checkingIn} className="w-full" style={{ background: cfg.gradient }}>
+              <Button onClick={checkIn} disabled={checkingIn} className="w-full" style={{ background: cfg.gradient, color: '#ffffff' }}>
                 {checkingIn ? 'Checking in...' : "I Studied Today ✓"}
               </Button>
             ) : (
-              <div className="text-center py-3 rounded-2xl text-sm font-semibold" style={{ background: 'rgba(16,185,129,0.1)', color: '#34D399' }}>
+              <div className="text-center py-3 rounded-2xl text-sm font-semibold" style={{ background: 'rgba(16,185,129,0.1)', color: emerald }}>
                 ✓ You've checked in today!
               </div>
             )}
@@ -206,7 +212,7 @@ export default function StudyBuddyPage() {
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
           className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-5 rounded-3xl text-center z-50"
           style={{ background: 'var(--surface-scrim)', border: '1px solid rgba(91,106,245,0.4)' }}>
-          <PartyPopper size={36} className="mx-auto mb-2" style={{ color: '#A0AEFF' }} strokeWidth={1.5} />
+          <PartyPopper size={36} className="mx-auto mb-2" style={{ color: indigo }} strokeWidth={1.5} />
           <p className="font-heading text-lg font-bold text-white">+50 XP Bonus</p>
           <p className="text-sm text-white/60 mt-1">You both studied today</p>
         </motion.div>
