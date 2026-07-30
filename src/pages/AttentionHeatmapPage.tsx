@@ -352,7 +352,7 @@ export default function AttentionHeatmapPage() {
           <ArrowLeft size={17} className="text-white" />
         </button>
         <div className="flex-1 flex items-center gap-2">
-          <Flame size={18} className="text-orange-400" />
+          <Flame size={18} style={{ color: isLight ? '#9A3412' : '#FB923C' }} />
           <h1 className="font-heading text-lg font-bold text-white">Attention Heatmap</h1>
         </div>
         {/* Info icon with tooltip */}
@@ -408,10 +408,10 @@ export default function AttentionHeatmapPage() {
             className="rounded-3xl p-4 flex items-center gap-3"
             style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}
           >
-            <CheckCircle2 size={22} className="text-emerald-400 shrink-0" />
+            <CheckCircle2 size={22} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
             <div>
-              <p className="text-sm font-bold text-emerald-300">All topics reviewed recently!</p>
-              <p className="text-xs text-emerald-400/80 mt-0.5">Keep up the excellent study habit.</p>
+              <p className="text-sm font-bold" style={{ color: isLight ? '#047857' : '#6EE7B7' }}>All topics reviewed recently!</p>
+              <p className="text-xs mt-0.5" style={{ color: isLight ? '#047857' : 'rgba(52,211,153,0.8)' }}>Keep up the excellent study habit.</p>
             </div>
           </motion.div>
         ) : (
