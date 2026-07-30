@@ -8,6 +8,7 @@ import { ArrowLeft, Check, X, ChevronRight, Trophy, Zap, Clock, BookOpen, Brain,
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,11 @@ function _SessionRing({ done, total, size = 80 }: { done: number; total: number;
 // ── Flashcard step ────────────────────────────────────────────────────────────
 function FlashcardStep({ card, onDone }: { card: Flashcard; onDone: (knew: boolean) => void }) {
   const [flipped, setFlipped] = useState(false);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const indigo = isLight ? '#4338CA' : '#A0AEFF';
+  const emerald = isLight ? '#047857' : '#10B981';
+  const red = isLight ? '#B91C1C' : '#F87171';
   return (
     <div className="flex flex-col gap-5">
       <div className="text-center">
@@ -72,14 +78,14 @@ function FlashcardStep({ card, onDone }: { card: Flashcard; onDone: (knew: boole
           {/* Front */}
           <div className="absolute inset-0 rounded-3xl p-6 flex flex-col items-center justify-center text-center"
             style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)', backfaceVisibility: 'hidden' }}>
-            <BookOpen size={20} color="#A0AEFF" style={{ marginBottom: 12 }} />
+            <BookOpen size={20} color={indigo} style={{ marginBottom: 12 }} />
             <p className="text-white font-semibold text-base leading-relaxed">{card.front}</p>
             <p className="text-white/30 text-xs mt-4">Tap to reveal answer</p>
           </div>
           {/* Back */}
           <div className="absolute inset-0 rounded-3xl p-6 flex flex-col items-center justify-center text-center"
             style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-            <Check size={20} color="#10B981" style={{ marginBottom: 12 }} />
+            <Check size={20} color={emerald} style={{ marginBottom: 12 }} />
             <p className="text-white font-medium text-sm leading-relaxed">{card.back}</p>
           </div>
         </motion.div>
@@ -91,12 +97,12 @@ function FlashcardStep({ card, onDone }: { card: Flashcard; onDone: (knew: boole
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
             <button aria-label="Close" onClick={() => onDone(false)}
               className="flex-1 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-              style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', color: '#F87171' }}>
+              style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', color: red }}>
               <X size={15} /> Didn't know
             </button>
             <button onClick={() => onDone(true)}
               className="flex-1 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-              style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#10B981' }}>
+              style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: emerald }}>
               <Check size={15} /> Got it!
             </button>
           </motion.div>
@@ -110,6 +116,9 @@ function FlashcardStep({ card, onDone }: { card: Flashcard; onDone: (knew: boole
 function PYQStep({ q, onDone }: { q: PYQQuestion; onDone: (correct: boolean) => void }) {
   const [selected, setSelected] = useState<number | null>(null);
   const revealed = selected !== null;
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const emerald = isLight ? '#047857' : '#10B981';
   return (
     <div className="flex flex-col gap-4">
       <div className="text-center">
@@ -136,7 +145,7 @@ function PYQStep({ q, onDone }: { q: PYQQuestion; onDone: (correct: boolean) => 
                 {String.fromCharCode(65 + i)}
               </span>
               <span className="flex-1">{opt}</span>
-              {revealed && i === q.correct_option && <Check size={14} color="#10B981" strokeWidth={3} />}
+              {revealed && i === q.correct_option && <Check size={14} color={emerald} strokeWidth={3} />}
             </motion.button>
           );
         })}
@@ -165,6 +174,9 @@ function PYQStep({ q, onDone }: { q: PYQQuestion; onDone: (correct: boolean) => 
 // ── Concept bite step ─────────────────────────────────────────────────────────
 function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: () => void }) {
   const [phase, setPhase] = useState<'read' | 'example' | 'question' | 'answer'>('read');
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const indigo = isLight ? '#4338CA' : '#A0AEFF';
   return (
     <div className="flex flex-col gap-4">
       <div className="text-center">
@@ -173,7 +185,7 @@ function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: ()
       </div>
       <div className="rounded-3xl p-5" style={{ background: 'linear-gradient(135deg,rgba(91,106,245,0.12),rgba(139,92,246,0.12))', border: '1px solid rgba(91,106,245,0.25)' }}>
         <div className="flex items-center gap-2 mb-3">
-          <Brain size={16} color="#A0AEFF" />
+          <Brain size={16} color={indigo} />
           <span className="font-heading font-extrabold text-white text-base">{concept.concept}</span>
         </div>
         <p className="text-white/80 text-sm leading-relaxed">{concept.description}</p>
@@ -240,6 +252,8 @@ function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: ()
 export default function DailyPowerSessionPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const [content, setContent]   = useState<SessionContent | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -367,7 +381,7 @@ export default function DailyPowerSessionPage() {
               className="flex flex-col items-center justify-center h-full gap-6 py-12">
               <div className="w-24 h-24 rounded-3xl flex items-center justify-center"
                 style={{ background: 'linear-gradient(135deg,#10B981,#059669)', boxShadow: '0 8px 32px rgba(16,185,129,0.4)' }}>
-                <Trophy size={42} color="#fff" />
+                <Trophy size={42} color="#0F172A" />
               </div>
               <div className="text-center">
                 <h2 className="font-heading font-extrabold text-white text-2xl mb-2">Session Complete!</h2>
@@ -376,8 +390,8 @@ export default function DailyPowerSessionPage() {
               {xpEarned > 0 && (
                 <div className="flex items-center gap-2 px-5 py-3 rounded-2xl"
                   style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.25)' }}>
-                  <Zap size={18} color="#EAB308" fill="#EAB308" />
-                  <span className="font-heading font-extrabold text-xl" style={{ color: '#EAB308' }}>+{xpEarned} XP</span>
+                  <Zap size={18} color={isLight ? '#854D0E' : '#EAB308'} fill={isLight ? '#854D0E' : '#EAB308'} />
+                  <span className="font-heading font-extrabold text-xl" style={{ color: isLight ? '#854D0E' : '#EAB308' }}>+{xpEarned} XP</span>
                 </div>
               )}
               {/* Busy mode unlock */}
