@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { isInFreeTrial } from '@/lib/trial';
 import { useGeminiStream } from '@/lib/useGeminiStream';
 import { ProGate } from '@/components/ui/ProGate';
+import { useTheme } from '@/contexts/ThemeContext';
 import { track } from '@/lib/analytics';
 
 type ExamDisplay = 'JEE_Main' | 'JEE_Advanced' | 'NEET' | 'CBSE_10' | 'CBSE_12';
@@ -60,20 +61,20 @@ interface TopicFreq {
   last_year:       number;
 }
 
-const EXAM_OPTIONS: { id: ExamDisplay; label: string; color: string; subjects: string[] }[] = [
-  { id: 'JEE_Main',     label: 'JEE Main',     color: '#60A5FA', subjects: ['Physics','Chemistry','Maths'] },
-  { id: 'JEE_Advanced', label: 'JEE Advanced',  color: '#A78BFA', subjects: ['Physics','Chemistry','Maths'] },
-  { id: 'NEET',         label: 'NEET',          color: '#34D399', subjects: ['Physics','Chemistry','Biology'] },
-  { id: 'CBSE_10',      label: 'CBSE Class 10', color: '#FBBF24', subjects: ['Maths','Science','Social Science'] },
-  { id: 'CBSE_12',      label: 'CBSE Class 12', color: '#FB923C', subjects: ['Physics','Chemistry','Biology','Maths'] },
+const EXAM_OPTIONS: { id: ExamDisplay; label: string; color: string; colorLight: string; subjects: string[] }[] = [
+  { id: 'JEE_Main',     label: 'JEE Main',     color: '#60A5FA', colorLight: '#1D4ED8', subjects: ['Physics','Chemistry','Maths'] },
+  { id: 'JEE_Advanced', label: 'JEE Advanced',  color: '#A78BFA', colorLight: '#6D28D9', subjects: ['Physics','Chemistry','Maths'] },
+  { id: 'NEET',         label: 'NEET',          color: '#34D399', colorLight: '#047857', subjects: ['Physics','Chemistry','Biology'] },
+  { id: 'CBSE_10',      label: 'CBSE Class 10', color: '#FBBF24', colorLight: '#92400E', subjects: ['Maths','Science','Social Science'] },
+  { id: 'CBSE_12',      label: 'CBSE Class 12', color: '#FB923C', colorLight: '#9A3412', subjects: ['Physics','Chemistry','Biology','Maths'] },
 ];
 
 const FREE_DAILY_LIMIT = 5;
 
-function difficultyColor(d: string) {
-  if (d === 'easy')   return '#34D399';
-  if (d === 'medium') return '#FBBF24';
-  return '#F87171';
+function difficultyColor(d: string, isLight = false) {
+  if (d === 'easy')   return isLight ? '#047857' : '#34D399';
+  if (d === 'medium') return isLight ? '#92400E' : '#FBBF24';
+  return isLight ? '#B91C1C' : '#F87171';
 }
 
 function heatColor(intensity: number): string {
@@ -89,6 +90,8 @@ function todayKey(userId: string) {
 
 export default function PYQBankPage() {
   const { profile, user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { streamingText, isStreaming, streamMessage } = useGeminiStream();
 
   const isPro = (user?.created_at ? isInFreeTrial(user.created_at) : false)
@@ -318,8 +321,8 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
               {!effectivelyPro && (
                 <div className="p-3 rounded-2xl flex items-center gap-3"
                      style={{ background: 'rgba(91,106,245,0.08)', border: '1px solid rgba(91,106,245,0.2)' }}>
-                  <Lock size={14} style={{ color: '#A0AEFF', flexShrink: 0 }} />
-                  <p className="text-xs" style={{ color: '#A0AEFF' }}>
+                  <Lock size={14} style={{ color: isLight ? '#4338CA' : '#A0AEFF', flexShrink: 0 }} />
+                  <p className="text-xs" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>
                     {remainingFree > 0
                       ? `${remainingFree} free questions today · Pro unlocks unlimited + full solutions`
                       : 'Daily limit reached · Upgrade for unlimited PYQ practice'}
@@ -340,7 +343,7 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
                         background: examType === ex.id ? `${ex.color}20` : 'var(--color-surface)',
                         border: `1.5px solid ${examType === ex.id ? ex.color : 'var(--color-border)'}`,
                       }}>
-                      <span className="text-sm font-semibold" style={{ color: examType === ex.id ? ex.color : 'var(--color-text)' }}>
+                      <span className="text-sm font-semibold" style={{ color: examType === ex.id ? (isLight ? ex.colorLight : ex.color) : 'var(--color-text)' }}>
                         {ex.label}
                       </span>
                     </motion.button>
@@ -369,7 +372,7 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
                       className="h-9 px-3 rounded-xl text-xs font-medium transition-all flex items-center"
                       style={{
                         background: subject === s ? `${examConfig.color}20` : 'var(--color-surface)',
-                        color: subject === s ? examConfig.color : 'var(--color-text-secondary)',
+                        color: subject === s ? (isLight ? examConfig.colorLight : examConfig.color) : 'var(--color-text-secondary)',
                         border: `1px solid ${subject === s ? examConfig.color : 'var(--color-border)'}`,
                       }}>
                       {s}
@@ -395,7 +398,7 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
                       className="h-9 px-3 rounded-xl text-xs font-medium capitalize transition-all flex items-center"
                       style={{
                         background: diffFilter === d ? `${difficultyColor(d)}20` : 'var(--color-surface)',
-                        color: diffFilter === d ? difficultyColor(d) : 'var(--color-text-secondary)',
+                        color: diffFilter === d ? difficultyColor(d, isLight) : 'var(--color-text-secondary)',
                         border: `1px solid ${diffFilter === d ? difficultyColor(d) : 'var(--color-border)'}`,
                       }}>
                       {d}
@@ -428,7 +431,7 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
               {/* Quick stat */}
               <div className="p-4 rounded-2xl flex items-center gap-4"
                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <Flame size={28} color="#FB923C" />
+                <Flame size={28} color={isLight ? '#9A3412' : '#FB923C'} />
                 <div>
                   <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>10 Years of PYQs</p>
                   <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -511,7 +514,7 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
                 </span>
                 <div className="flex gap-1.5 items-center">
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium capitalize"
-                    style={{ background: `${difficultyColor(q.difficulty)}20`, color: difficultyColor(q.difficulty) }}>
+                    style={{ background: `${difficultyColor(q.difficulty)}20`, color: difficultyColor(q.difficulty, isLight) }}>
                     {q.difficulty}
                   </span>
                   {q.year && (
@@ -564,12 +567,12 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
                       className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
                       style={{ background: bg, border: `1.5px solid ${border}` }}>
                       <span className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0"
-                            style={{ background: `${examConfig.color}20`, color: examConfig.color }}>
+                            style={{ background: `${examConfig.color}20`, color: isLight ? examConfig.colorLight : examConfig.color }}>
                         {opt.label}
                       </span>
                       <span className="text-sm font-medium flex-1" style={{ color: textCol }}>{opt.text}</span>
-                      {showResult && isCorrect  && <CheckCircle size={16} color="#34D399" className="flex-shrink-0" />}
-                      {showResult && isSelected && !isCorrect && <XCircle size={16} color="#F87171" className="flex-shrink-0" />}
+                      {showResult && isCorrect  && <CheckCircle size={16} color={isLight ? '#047857' : '#34D399'} className="flex-shrink-0" />}
+                      {showResult && isSelected && !isCorrect && <XCircle size={16} color={isLight ? '#B91C1C' : '#F87171'} className="flex-shrink-0" />}
                     </motion.button>
                   );
                 })}
@@ -581,7 +584,7 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
                   <motion.div key="exp" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     className="p-4 rounded-2xl space-y-2"
                     style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.3)' }}>
-                    <p className="text-xs font-semibold" style={{ color: '#A0AEFF' }}>Novo explains</p>
+                    <p className="text-xs font-semibold" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>Novo explains</p>
                     {effectivelyPro ? (
                       isStreaming ? (
                         <p className="text-sm leading-relaxed animate-pulse" style={{ color: 'var(--color-text)' }}>
@@ -626,7 +629,7 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
             <motion.div key="result" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
               className="px-4 py-8 space-y-6">
               <div className="text-center space-y-3">
-                <Trophy size={52} color="#FBBF24" className="mx-auto" />
+                <Trophy size={52} color={isLight ? '#92400E' : '#FBBF24'} className="mx-auto" />
                 <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>Session Complete!</h2>
                 <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                   {examConfig.label} · {questions.length} questions
@@ -634,9 +637,9 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'Correct', value: score.correct, color: '#34D399' },
-                  { label: 'Marks',   value: `${score.marks}/${score.max}`, color: examConfig.color },
-                  { label: 'Wrong',   value: questions.length - score.correct - answers.filter(a => a === null).length, color: '#F87171' },
+                  { label: 'Correct', value: score.correct, color: isLight ? '#047857' : '#34D399' },
+                  { label: 'Marks',   value: `${score.marks}/${score.max}`, color: isLight ? examConfig.colorLight : examConfig.color },
+                  { label: 'Wrong',   value: questions.length - score.correct - answers.filter(a => a === null).length, color: isLight ? '#B91C1C' : '#F87171' },
                 ].map(s => (
                   <div key={s.label} className="p-4 rounded-2xl text-center"
                     style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
