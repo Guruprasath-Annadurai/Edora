@@ -16,6 +16,7 @@ import { Toast } from '@capacitor/toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 import { track } from '@/lib/analytics';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -74,10 +75,10 @@ type Tab = 'overview' | 'students' | 'topics';
 const BOARDS = ['CBSE', 'ICSE', 'State Board', 'IB', 'IGCSE', 'Other'];
 
 const TIER_CONFIG = {
-  free:       { label: 'Free',       color: '#9CA3AF', limit: '50 students',   price: '' },
-  starter:    { label: 'Starter',    color: '#60A5FA', limit: '200 students',  price: '₹999/mo' },
-  pro:        { label: 'Pro',        color: '#A78BFA', limit: 'Unlimited',     price: '₹4,999/mo' },
-  enterprise: { label: 'Enterprise', color: '#FBBF24', limit: 'Unlimited',     price: 'Custom' } };
+  free:       { label: 'Free',       color: '#9CA3AF', lightColor: '#52525B', limit: '50 students',   price: '' },
+  starter:    { label: 'Starter',    color: '#60A5FA', lightColor: '#1D4ED8', limit: '200 students',  price: '₹999/mo' },
+  pro:        { label: 'Pro',        color: '#A78BFA', lightColor: '#6D28D9', limit: 'Unlimited',     price: '₹4,999/mo' },
+  enterprise: { label: 'Enterprise', color: '#FBBF24', lightColor: '#92400E', limit: 'Unlimited',     price: 'Custom' } };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -90,16 +91,19 @@ function Avatar({ url, name, size = 36 }: { url: string | null; name: string; si
       width: size, height: size, borderRadius: '50%',
       background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.36, fontWeight: 700, color: 'var(--ink-950)', flexShrink: 0 }}>{initials}</div>
+      fontSize: size * 0.36, fontWeight: 700, color: '#ffffff', flexShrink: 0 }}>{initials}</div>
   );
 }
 
-function StatCard({ label, value, sub, color = '#A0AEFF', icon: Icon }:
-  { label: string; value: string | number; sub?: string; color?: string; icon: React.ElementType }) {
+function StatCard({ label, value, sub, color = '#A0AEFF', lightColor, icon: Icon }:
+  { label: string; value: string | number; sub?: string; color?: string; lightColor?: string; icon: React.ElementType }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const iconColor = isLight ? (lightColor ?? '#4338CA') : color;
   return (
     <div className="rounded-2xl p-4 flex flex-col gap-1 v2-card">
       <div className="flex items-center gap-2 mb-1">
-        <Icon size={14} style={{ color }} />
+        <Icon size={14} style={{ color: iconColor }} />
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--v2-text-4)' }}>{label}</span>
       </div>
       <span className="font-heading text-2xl font-black v2-tnum" style={{ color: 'var(--v2-text-1)' }}>{value}</span>
@@ -174,6 +178,8 @@ function QRPlaceholder({ value }: { value: string }) {
 // ── Setup Wizard ───────────────────────────────────────────────────────────────
 
 function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [_step, _setStep]       = useState(0);
   const [name, setName]       = useState('');
   const [city, setCity]       = useState('');
@@ -207,7 +213,7 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
         className="w-full max-w-md">
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
           style={{ background: 'rgba(91,106,245,0.15)', border: '1px solid rgba(91,106,245,0.3)' }}>
-          <Building2 size={32} style={{ color: '#5B6AF5' }} />
+          <Building2 size={32} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
         </div>
         <h2 className="font-heading text-2xl font-black text-white mb-2">Set up your school</h2>
         <p className="text-sm text-white/50 mb-8">Create your institution on Edora to manage students and track progress</p>
@@ -242,7 +248,7 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
                   style={{
                     background: board === b ? 'rgba(91,106,245,0.25)' : 'var(--ink-060)',
                     border: `1px solid ${board === b ? 'rgba(91,106,245,0.5)' : 'var(--ink-100)'}`,
-                    color: board === b ? '#A0AEFF' : 'var(--ink-500)' }}>{b}</button>
+                    color: board === b ? (isLight ? '#4338CA' : '#A0AEFF') : 'var(--ink-500)' }}>{b}</button>
               ))}
             </div>
           </div>
@@ -251,8 +257,8 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
         {err && <p className="text-sm text-red-400 mb-3">{err}</p>}
 
         <motion.button whileTap={{ scale: 0.97 }} onClick={create} disabled={loading}
-          className="w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-          style={{ background: loading ? 'rgba(91,106,245,0.4)' : 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' }}>
+          className="w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2"
+          style={{ background: loading ? 'rgba(91,106,245,0.4)' : 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: '#ffffff' }}>
           {loading ? <Loader2 size={18} className="animate-spin" /> : <><Plus size={18} /> Create Institution</>}
         </motion.button>
         <p className="text-xs text-white/25 mt-3">Free tier includes up to 50 students. Upgrade anytime.</p>
@@ -265,6 +271,8 @@ function SetupWizard({ onCreated }: { onCreated: (inst: Institution) => void }) 
 
 export default function SchoolAdminPage() {
   const { profile } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
 
   const [institution, setInstitution]   = useState<Institution | null>(null);
@@ -418,7 +426,7 @@ export default function SchoolAdminPage() {
             <h2 className="font-heading font-bold text-white text-sm">School Admin</h2>
             <p className="text-xs text-white/40">Institution portal</p>
           </div>
-          <School size={18} style={{ color: '#A0AEFF' }} />
+          <School size={18} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
         </div>
         <SetupWizard onCreated={setInstitution} />
       </div>
@@ -426,6 +434,7 @@ export default function SchoolAdminPage() {
   }
 
   const tierCfg  = TIER_CONFIG[institution.tier];
+  const tierColor = isLight ? tierCfg.lightColor : tierCfg.color;
   const activeRate = analytics
     ? Math.round((analytics.active_last_7d / Math.max(analytics.total_students, 1)) * 100)
     : 0;
@@ -443,7 +452,7 @@ export default function SchoolAdminPage() {
           <h2 className="font-heading font-bold text-white text-sm truncate">{institution.name}</h2>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-              style={{ background: `${tierCfg.color}18`, color: tierCfg.color, border: `1px solid ${tierCfg.color}40` }}>
+              style={{ background: `${tierCfg.color}18`, color: tierColor, border: `1px solid ${tierCfg.color}40` }}>
               {tierCfg.label}
             </span>
             {institution.is_verified && (
@@ -506,7 +515,7 @@ export default function SchoolAdminPage() {
                   <div className="mb-4">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs text-white/40">{institution.student_count} / {institution.max_students} students</span>
-                      <span className="text-xs font-bold" style={{ color: capacityPct > 80 ? '#EF4444' : '#A0AEFF' }}>{Math.round(capacityPct)}%</span>
+                      <span className="text-xs font-bold" style={{ color: capacityPct > 80 ? (isLight ? '#B91C1C' : '#EF4444') : (isLight ? '#4338CA' : '#A0AEFF') }}>{Math.round(capacityPct)}%</span>
                     </div>
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-100)' }}>
                       <div className="h-full rounded-full transition-all"
@@ -519,7 +528,7 @@ export default function SchoolAdminPage() {
                   <div className="flex gap-2">
                     <motion.button whileTap={{ scale: 0.97 }} onClick={copyLink}
                       className="flex-1 py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2"
-                      style={{ background: 'rgba(91,106,245,0.2)', border: '1px solid rgba(91,106,245,0.3)', color: '#A0AEFF' }}>
+                      style={{ background: 'rgba(91,106,245,0.2)', border: '1px solid rgba(91,106,245,0.3)', color: isLight ? '#4338CA' : '#A0AEFF' }}>
                       {linkCopied ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy Invite Link</>}
                     </motion.button>
                     <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowQR(v => !v)}
@@ -557,12 +566,12 @@ export default function SchoolAdminPage() {
                 <>
                   <p className="text-xs font-semibold text-white/40 uppercase tracking-wide">School Overview</p>
                   <div className="grid grid-cols-2 gap-2">
-                    <StatCard label="Total Students" value={analytics.total_students} icon={Users} color="#5B6AF5" />
-                    <StatCard label="Active 7 Days" value={analytics.active_last_7d} sub={`${activeRate}% of school`} icon={Zap} color="#34D399" />
-                    <StatCard label="Avg XP" value={analytics.avg_xp?.toLocaleString() ?? 0} sub="per student" icon={Star} color="#FBBF24" />
-                    <StatCard label="Avg Streak" value={`${analytics.avg_streak ?? 0}d`} sub="streak days" icon={Flame} color="#F97316" />
-                    <StatCard label="Top XP" value={analytics.top_xp?.toLocaleString() ?? 0} sub="best performer" icon={Trophy} color="#A78BFA" />
-                    <StatCard label="Pro Students" value={analytics.pro_students ?? 0} sub={`${Math.round((analytics.pro_students / Math.max(analytics.total_students,1)) * 100)}% of school`} icon={Crown} color="#60A5FA" />
+                    <StatCard label="Total Students" value={analytics.total_students} icon={Users} color="#5B6AF5" lightColor="#4338CA" />
+                    <StatCard label="Active 7 Days" value={analytics.active_last_7d} sub={`${activeRate}% of school`} icon={Zap} color="#34D399" lightColor="#047857" />
+                    <StatCard label="Avg XP" value={analytics.avg_xp?.toLocaleString() ?? 0} sub="per student" icon={Star} color="#FBBF24" lightColor="#92400E" />
+                    <StatCard label="Avg Streak" value={`${analytics.avg_streak ?? 0}d`} sub="streak days" icon={Flame} color="#F97316" lightColor="#9A3412" />
+                    <StatCard label="Top XP" value={analytics.top_xp?.toLocaleString() ?? 0} sub="best performer" icon={Trophy} color="#A78BFA" lightColor="#6D28D9" />
+                    <StatCard label="Pro Students" value={analytics.pro_students ?? 0} sub={`${Math.round((analytics.pro_students / Math.max(analytics.total_students,1)) * 100)}% of school`} icon={Crown} color="#60A5FA" lightColor="#1D4ED8" />
                   </div>
                 </>
               )}
@@ -571,13 +580,13 @@ export default function SchoolAdminPage() {
               {institution.tier === 'free' && institution.student_count >= 40 && (
                 <div className="rounded-2xl p-4 flex items-center gap-3"
                   style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.25)' }}>
-                  <AlertTriangle size={16} style={{ color: '#FBBF24', flexShrink: 0 }} />
+                  <AlertTriangle size={16} style={{ color: isLight ? '#92400E' : '#FBBF24', flexShrink: 0 }} />
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-white">Approaching student limit</p>
                     <p className="text-xs text-white/50">Upgrade to Starter (₹999/mo) to add 200 students</p>
                   </div>
                   <button className="text-xs font-bold px-3 py-1.5 rounded-xl"
-                    style={{ background: 'rgba(251,191,36,0.15)', color: '#FBBF24', border: '1px solid rgba(251,191,36,0.3)' }}>
+                    style={{ background: 'rgba(251,191,36,0.15)', color: isLight ? '#92400E' : '#FBBF24', border: '1px solid rgba(251,191,36,0.3)' }}>
                     Upgrade
                   </button>
                 </div>
@@ -588,25 +597,25 @@ export default function SchoolAdminPage() {
                 <p className="text-xs font-semibold text-white/40 uppercase tracking-wide">Quick Actions</p>
                 <button onClick={() => setTab('students')}
                   className="flex items-center gap-3 px-4 py-3 rounded-2xl v2-card">
-                  <Users size={16} style={{ color: '#5B6AF5' }} />
+                  <Users size={16} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
                   <span className="text-sm flex-1" style={{ color: 'var(--v2-text-2)' }}>View Student Roster</span>
                   <ArrowUpRight size={14} style={{ color: 'var(--v2-chevron)' }} />
                 </button>
                 <button onClick={() => setTab('topics')}
                   className="flex items-center gap-3 px-4 py-3 rounded-2xl v2-card">
-                  <AlertTriangle size={16} style={{ color: '#F59E0B' }} />
+                  <AlertTriangle size={16} style={{ color: isLight ? '#92400E' : '#F59E0B' }} />
                   <span className="text-sm flex-1" style={{ color: 'var(--v2-text-2)' }}>Identify Weak Topics</span>
                   <ArrowUpRight size={14} style={{ color: 'var(--v2-chevron)' }} />
                 </button>
                 <button onClick={exportCSV}
                   className="flex items-center gap-3 px-4 py-3 rounded-2xl v2-card">
-                  <Download size={16} style={{ color: '#34D399' }} />
+                  <Download size={16} style={{ color: isLight ? '#047857' : '#34D399' }} />
                   <span className="text-sm flex-1" style={{ color: 'var(--v2-text-2)' }}>Export Student Data (CSV)</span>
                   <ArrowUpRight size={14} style={{ color: 'var(--v2-chevron)' }} />
                 </button>
                 <Link to="/teacher"
                   className="flex items-center gap-3 px-4 py-3 rounded-2xl v2-card">
-                  <BookOpen size={16} style={{ color: '#A78BFA' }} />
+                  <BookOpen size={16} style={{ color: isLight ? '#6D28D9' : '#A78BFA' }} />
                   <span className="text-sm flex-1" style={{ color: 'var(--v2-text-2)' }}>Teacher Dashboard (Assignments)</span>
                   <ArrowUpRight size={14} style={{ color: 'var(--v2-chevron)' }} />
                 </Link>
@@ -641,7 +650,7 @@ export default function SchoolAdminPage() {
                 <span className="text-xs text-white/40">{filteredStudents.length} students</span>
                 <button onClick={exportCSV}
                   className="text-xs flex items-center gap-1 font-semibold"
-                  style={{ color: '#A0AEFF' }}>
+                  style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>
                   <Download size={12} /> Export CSV
                 </button>
               </div>
@@ -666,20 +675,20 @@ export default function SchoolAdminPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p className="text-sm font-semibold text-white truncate">{s.full_name}</p>
-                          {s.is_pro && <Crown size={11} style={{ color: '#FBBF24', flexShrink: 0 }} />}
+                          {s.is_pro && <Crown size={11} style={{ color: isLight ? '#92400E' : '#FBBF24', flexShrink: 0 }} />}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           {s.class_section && <span className="text-xs text-white/40">{s.class_section}</span>}
                           <span className="text-xs text-white/30">• {s.total_sessions} sessions</span>
-                          <span className="text-xs" style={{ color: s.accuracy_pct >= 70 ? '#34D399' : s.accuracy_pct >= 50 ? '#F59E0B' : '#EF4444' }}>
+                          <span className="text-xs" style={{ color: s.accuracy_pct >= 70 ? (isLight ? '#047857' : '#34D399') : s.accuracy_pct >= 50 ? (isLight ? '#92400E' : '#F59E0B') : (isLight ? '#B91C1C' : '#EF4444') }}>
                             {s.accuracy_pct}% acc
                           </span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-0.5 shrink-0">
-                        <span className="text-sm font-bold" style={{ color: '#A0AEFF' }}>{s.xp.toLocaleString()} XP</span>
+                        <span className="text-sm font-bold" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>{s.xp.toLocaleString()} XP</span>
                         <div className="flex items-center gap-1">
-                          <Flame size={10} style={{ color: s.streak_count > 0 ? '#F97316' : '#4B5563' }} />
+                          <Flame size={10} style={{ color: s.streak_count > 0 ? (isLight ? '#9A3412' : '#F97316') : '#4B5563' }} />
                           <span className="text-xs text-white/40">{s.streak_count}d</span>
                         </div>
                       </div>
@@ -697,7 +706,7 @@ export default function SchoolAdminPage() {
 
               <div className="rounded-2xl p-4 flex items-start gap-3"
                 style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                <AlertTriangle size={16} style={{ color: '#F59E0B', flexShrink: 0, marginTop: 1 }} />
+                <AlertTriangle size={16} style={{ color: isLight ? '#92400E' : '#F59E0B', flexShrink: 0, marginTop: 1 }} />
                 <p className="text-xs text-white/60">
                   Topics where your students struggle most, ranked by average difficulty. Use this to focus teaching time.
                 </p>
@@ -718,7 +727,7 @@ export default function SchoolAdminPage() {
                   {weakTopics.map((t, i) => {
                     const maxStruggle = weakTopics[0]?.avg_struggle ?? 1;
                     const pct = Math.min((Number(t.avg_struggle) / maxStruggle) * 100, 100);
-                    const color = pct > 66 ? '#EF4444' : pct > 33 ? '#F59E0B' : '#FBBF24';
+                    const color = pct > 66 ? (isLight ? '#B91C1C' : '#EF4444') : pct > 33 ? (isLight ? '#92400E' : '#F59E0B') : (isLight ? '#92400E' : '#FBBF24');
                     return (
                       <motion.div key={`${t.subject}-${t.topic}`}
                         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
