@@ -643,6 +643,32 @@ color or type size.
     closes out item 24 in full.
 
 25. **School Admin** (`admin/AdminConsolePage.tsx`, `SchoolAdminPage.tsx`)
+
+    **School Admin Page** (`SchoolAdminPage.tsx`) — ✅ 41st occurrence.
+    Fixed icons/badges/StatCards across the setup wizard, header,
+    Quick Actions, Students tab, and Topics tab with isLight branches
+    (TIER_CONFIG and StatCard each gained a `lightColor` field/prop).
+    Discovered a new bug sub-class: `className="text-white"` (not an
+    inline style) sitting on a FIXED gradient background — the global
+    light-theme safety net that flips `.text-white` to dark ink assumes
+    the background is theme-adaptive, and was silently making these
+    buttons marginally worse-contrast. Fixed by moving `color` into an
+    inline style, which wins on specificity over the class-based rule.
+    Verified live at `/school-admin` in light theme: renders, no crash,
+    `getComputedStyle()` confirms icon and button colors match exactly.
+
+    **Admin Console** (`admin/AdminConsolePage.tsx`) — ✅ 42nd
+    occurrence. Fixed status/severity/verdict badge colors across all 9
+    tabs (Live Events, Audit Log, Admins, Question QA, Anomalies,
+    Content QA, Mains QA, Cron Health, Observability). Same
+    text-white-on-fixed-gradient bug sub-class fixed on 2 buttons.
+    Verified live at `/admin`: test profile lacks the admin role, so
+    the "Admin access required" gate renders correctly with no crash;
+    the 9 RLS-gated tab contents could not be exercised live this
+    session — fixes rely on contrast math established elsewhere.
+
+    This closes out item 25.
+
 26. **Parent Portal** (`settings/ParentDashboardPage.tsx`,
     `ParentPortalPage.tsx`)
 
