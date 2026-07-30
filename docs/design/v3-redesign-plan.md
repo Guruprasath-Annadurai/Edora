@@ -616,6 +616,32 @@ color or type size.
 
 24. **Teacher Dashboard** (`teacher/TeacherDashboardPage.tsx`), **Teacher
     Export** (`TeacherExportPage.tsx`), **Teacher Content Ingest** flows
+
+    **Teacher Export** (`TeacherExportPage.tsx`) — ✅ 39th occurrence.
+    Fixed `TrajectoryBadge`'s 3-tier color (improving/stable/declining),
+    error-patterns `AlertTriangle` icon, predicted-score text, and "View
+    Full Report" button with isLight branches. Left `MasteryBar`'s
+    3-tier color unchanged — verified decorative bar-fill only, no text
+    rendered in that color.
+
+    **Teacher Dashboard** (`teacher/TeacherDashboardPage.tsx`) — ✅ 40th
+    occurrence, largest file this session (1061 lines, 33 hardcoded-hex
+    hits). Fixed icons/buttons/badges across the "not a teacher yet"
+    screen, header sync/stats row, Assignments tab (incl. `scoreColor()`
+    helper in `teacherDashboardHelpers.ts` gaining an `isLight` param),
+    Reports tab, Services tab (Google Meet/Calendar/Drive sections), and
+    the Create Meet / Send Email modals. Also fixed two fixed-gradient
+    buttons using the theme-flipping `var(--ink-950)` token (should be
+    a literal `#ffffff`), and two submit buttons where per-value
+    contrast math showed white failing badly against cyan/amber
+    gradient segments — fixed to literal `#0F172A`. Verified live at
+    `/teacher` in light theme: no crash, `getComputedStyle()` confirms
+    School icon/CheckCircle2/button text all match expected hex exactly.
+
+    No "Teacher Content Ingest" route or file exists in the current
+    codebase (confirmed via grep across `src/` and `App.tsx`) — this
+    closes out item 24 in full.
+
 25. **School Admin** (`admin/AdminConsolePage.tsx`, `SchoolAdminPage.tsx`)
 26. **Parent Portal** (`settings/ParentDashboardPage.tsx`,
     `ParentPortalPage.tsx`)
