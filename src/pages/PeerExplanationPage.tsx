@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,18 +67,18 @@ const SUBJECT_TOPICS: Record<string, string[]> = {
   ],
 };
 
-const SUBJECT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  Physics:     { bg: 'bg-indigo-900/30', text: 'text-indigo-400',  border: 'border-indigo-500/30' },
-  Chemistry:   { bg: 'bg-emerald-900/30', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-  Mathematics: { bg: 'bg-amber-900/30',   text: 'text-amber-400',   border: 'border-amber-500/30'  },
-  Biology:     { bg: 'bg-pink-900/30',    text: 'text-pink-400',    border: 'border-pink-500/30'   },
+const SUBJECT_COLORS: Record<string, { bg: string; textColor: string; textColorLight: string; border: string }> = {
+  Physics:     { bg: 'bg-indigo-900/30',  textColor: '#818CF8', textColorLight: '#4338CA', border: 'border-indigo-500/30' },
+  Chemistry:   { bg: 'bg-emerald-900/30', textColor: '#34D399', textColorLight: '#047857', border: 'border-emerald-500/30' },
+  Mathematics: { bg: 'bg-amber-900/30',   textColor: '#FBBF24', textColorLight: '#92400E', border: 'border-amber-500/30'  },
+  Biology:     { bg: 'bg-pink-900/30',    textColor: '#F472B6', textColorLight: '#9D174D', border: 'border-pink-500/30'   },
 };
 
-function scoreColor(score: number): string {
-  if (score >= 80) return '#10B981';
-  if (score >= 60) return '#F59E0B';
-  if (score >= 40) return '#F97316';
-  return '#EF4444';
+function scoreColor(score: number, isLight = false): string {
+  if (score >= 80) return isLight ? '#047857' : '#10B981';
+  if (score >= 60) return isLight ? '#92400E' : '#F59E0B';
+  if (score >= 40) return isLight ? '#9A3412' : '#F97316';
+  return isLight ? '#B91C1C' : '#EF4444';
 }
 
 function scoreLabel(score: number): string {
@@ -91,10 +92,12 @@ function scoreLabel(score: number): string {
 // ── ScoreRing ─────────────────────────────────────────────────────────────────
 
 function ScoreRing({ score }: { score: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const r = 54;
   const c = 2 * Math.PI * r;
   const fill = (score / 100) * c;
-  const color = scoreColor(score);
+  const color = scoreColor(score, isLight);
 
   return (
     <div className="relative w-36 h-36 mx-auto">
@@ -132,6 +135,8 @@ function ScoreRing({ score }: { score: number }) {
 
 export default function PeerExplanationPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const [phase, setPhase] = useState<'select' | 'teach' | 'result'>('select');
   const [selectedSubject, setSelectedSubject] = useState('Physics');
@@ -281,9 +286,10 @@ Rules:
                   onClick={() => { setSelectedSubject(subj); setSelectedTopic(''); }}
                   className={`py-3 rounded-2xl text-sm font-semibold border transition-all ${
                     active
-                      ? `${col.bg} ${col.text} ${col.border}`
+                      ? `${col.bg} ${col.border}`
                       : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/8'
                   }`}
+                  style={active ? { color: isLight ? col.textColorLight : col.textColor } : undefined}
                 >
                   {subj}
                 </button>
@@ -301,9 +307,10 @@ Rules:
                   onClick={() => { setSelectedTopic(topic); setCustomTopic(''); }}
                   className={`px-3 py-1.5 rounded-xl text-xs border transition-all ${
                     selectedTopic === topic
-                      ? `${sc.bg} ${sc.text} ${sc.border}`
+                      ? `${sc.bg} ${sc.border}`
                       : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/8'
                   }`}
+                  style={selectedTopic === topic ? { color: isLight ? sc.textColorLight : sc.textColor } : undefined}
                 >
                   {topic}
                 </button>
@@ -321,6 +328,7 @@ Rules:
             onClick={() => activeTopic && setPhase('teach')}
             disabled={!activeTopic}
             className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 font-semibold transition-colors flex items-center justify-center gap-2"
+            style={{ color: '#ffffff' }}
           >
             Start Teaching <ChevronRight className="w-4 h-4" />
           </button>
@@ -338,7 +346,7 @@ Rules:
                 {history.map((h) => (
                   <div key={h.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/8">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
-                      style={{ background: `${scoreColor(h.novo_score)}20`, color: scoreColor(h.novo_score) }}>
+                      style={{ background: `${scoreColor(h.novo_score)}20`, color: scoreColor(h.novo_score, isLight) }}>
                       {h.novo_score}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -373,7 +381,7 @@ Rules:
           {/* Novo prompt */}
           <div className="flex gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex-shrink-0 flex items-center justify-center">
-              <Sparkles className="w-5 h-5" />
+              <Sparkles className="w-5 h-5" style={{ color: '#ffffff' }} />
             </div>
             <div className="flex-1 p-4 rounded-2xl rounded-tl-sm bg-white/5 border border-white/8 text-sm text-gray-200">
               Explain <strong className="text-white">{activeTopic}</strong> to me as if I'm a complete beginner.
@@ -391,11 +399,12 @@ Rules:
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 resize-none leading-relaxed"
             />
             <div className="flex items-center justify-between px-1">
-              <span className={`text-xs ${charCount >= MIN_CHARS ? 'text-emerald-400' : 'text-gray-500'}`}>
+              <span className={`text-xs ${charCount >= MIN_CHARS ? '' : 'text-gray-500'}`}
+                style={charCount >= MIN_CHARS ? { color: isLight ? '#047857' : '#34D399' } : undefined}>
                 {charCount} / {MIN_CHARS} chars minimum
               </span>
               {charCount >= MIN_CHARS && (
-                <span className="text-xs text-emerald-400 flex items-center gap-1">
+                <span className="text-xs flex items-center gap-1" style={{ color: isLight ? '#047857' : '#34D399' }}>
                   <CheckCircle2 className="w-3 h-3" /> Ready to evaluate
                 </span>
               )}
@@ -417,6 +426,7 @@ Rules:
             onClick={evaluate}
             disabled={!canSubmit}
             className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 font-semibold transition-colors flex items-center justify-center gap-2"
+            style={{ color: '#ffffff' }}
           >
             {evaluating ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Evaluating your understanding…</>
@@ -456,7 +466,8 @@ Rules:
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.8 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-900/30 border border-amber-500/30 text-amber-400 text-sm font-semibold"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-900/30 border border-amber-500/30 text-sm font-semibold"
+              style={{ color: isLight ? '#92400E' : '#FBBF24' }}
             >
               <Zap className="w-4 h-4" /> +{xpEarned} XP earned
             </motion.div>
@@ -472,13 +483,13 @@ Rules:
             transition={{ delay: 0.3 }}
             className="p-4 rounded-2xl bg-emerald-900/20 border border-emerald-500/20 space-y-3"
           >
-            <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm">
+            <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: isLight ? '#047857' : '#34D399' }}>
               <CheckCircle2 className="w-4 h-4" /> What you got right
             </div>
             <ul className="space-y-2">
               {evalResult.what_correct.map((item, i) => (
                 <li key={i} className="flex gap-2 text-sm text-gray-300">
-                  <span className="text-emerald-500 mt-0.5">✓</span> {item}
+                  <span className="mt-0.5" style={{ color: isLight ? '#047857' : '#10B981' }}>✓</span> {item}
                 </li>
               ))}
             </ul>
@@ -493,13 +504,13 @@ Rules:
             transition={{ delay: 0.45 }}
             className="p-4 rounded-2xl bg-red-900/20 border border-red-500/20 space-y-3"
           >
-            <div className="flex items-center gap-2 text-red-400 font-semibold text-sm">
+            <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>
               <XCircle className="w-4 h-4" /> Gaps found
             </div>
             <ul className="space-y-2">
               {evalResult.gaps.map((item, i) => (
                 <li key={i} className="flex gap-2 text-sm text-gray-300">
-                  <span className="text-red-500 mt-0.5">✗</span> {item}
+                  <span className="mt-0.5" style={{ color: isLight ? '#B91C1C' : '#EF4444' }}>✗</span> {item}
                 </li>
               ))}
             </ul>
@@ -514,13 +525,13 @@ Rules:
             transition={{ delay: 0.6 }}
             className="p-4 rounded-2xl bg-amber-900/20 border border-amber-500/20 space-y-3"
           >
-            <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm">
+            <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>
               <Lightbulb className="w-4 h-4" /> How to improve
             </div>
             <ul className="space-y-2">
               {evalResult.improvements.map((item, i) => (
                 <li key={i} className="flex gap-2 text-sm text-gray-300">
-                  <span className="text-amber-500 mt-0.5">→</span> {item}
+                  <span className="mt-0.5" style={{ color: isLight ? '#92400E' : '#F59E0B' }}>→</span> {item}
                 </li>
               ))}
             </ul>
@@ -535,7 +546,7 @@ Rules:
             transition={{ delay: 0.75 }}
             className="p-4 rounded-2xl bg-indigo-900/20 border border-indigo-500/20 space-y-2"
           >
-            <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm">
+            <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: isLight ? '#4338CA' : '#818CF8' }}>
               <Target className="w-4 h-4" /> Key insight
             </div>
             <p className="text-sm text-gray-300">{evalResult.concept_check}</p>
@@ -558,6 +569,7 @@ Rules:
           <button
             onClick={reset}
             className="py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            style={{ color: '#ffffff' }}
           >
             <BookOpen className="w-4 h-4" /> New Topic
           </button>
