@@ -16,6 +16,7 @@ import { track } from '@/lib/analytics';
 import { maybePromptRating } from '@/lib/appRating';
 import { usePricingVariant, usePaywallCTAVariant } from '@/hooks/useExperiment';
 import { trackConversion, getPricingConfig } from '@/lib/experiments';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // Razorpay checkout SDK (loaded dynamically to avoid SSR issues)
 declare global {
@@ -101,6 +102,8 @@ export default function ProSubscriptionPage() {
   const { user, profile, refetchProfile } = useAuth();
   const navigate = useNavigate();
   const platform = getIAPPlatform();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   // A/B experiments — PostHog determines variant
   const pricingVariant = usePricingVariant();
@@ -316,7 +319,7 @@ export default function ProSubscriptionPage() {
               )}
               {status?.active_plan && (
                 <span className="mt-3 inline-block px-4 py-1 rounded-full text-xs font-semibold"
-                  style={{ background: 'rgba(124,58,237,0.25)', color: '#A855F7', border: '1px solid rgba(124,58,237,0.35)' }}>
+                  style={{ background: 'rgba(124,58,237,0.25)', color: isLight ? '#6D28D9' : '#A855F7', border: '1px solid rgba(124,58,237,0.35)' }}>
                   {PLANS[status.active_plan as keyof typeof PLANS]?.label ?? status.active_plan} plan
                 </span>
               )}
@@ -326,7 +329,7 @@ export default function ProSubscriptionPage() {
           {/* AI content disclosure */}
           <div className="rounded-2xl p-3.5 flex items-start gap-2.5"
             style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)' }}>
-            <Info size={14} className="shrink-0 mt-0.5" style={{ color: '#A855F7' }} />
+            <Info size={14} className="shrink-0 mt-0.5" style={{ color: isLight ? '#6D28D9' : '#A855F7' }} />
             <p className="text-xs" style={{ color: 'var(--ink-550)' }}>
               Novo AI generates content using large language models. All AI responses should be verified against your textbooks and official sources, especially for exams.
             </p>
@@ -344,7 +347,7 @@ export default function ProSubscriptionPage() {
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: 'rgba(124,58,237,0.15)' }}>
-                    <Icon size={14} style={{ color: '#A855F7' }} />
+                    <Icon size={14} style={{ color: isLight ? '#6D28D9' : '#A855F7' }} />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">{f.title}</p>
@@ -383,7 +386,7 @@ export default function ProSubscriptionPage() {
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                     style={{ background: 'rgba(239,68,68,0.12)' }}>
-                    <AlertCircle size={20} className="text-red-400" />
+                    <AlertCircle size={20} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
                   </div>
                   <div>
                     <p className="font-bold text-white">Cancel subscription?</p>
@@ -396,8 +399,8 @@ export default function ProSubscriptionPage() {
                   <button className="flex-1 py-3 rounded-xl font-semibold text-sm text-white"
                     style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}
                     onClick={() => setCancelConfirm(false)}>Keep Pro</button>
-                  <button className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50"
-                    style={{ background: 'rgba(239,68,68,0.75)' }}
+                  <button className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    style={{ background: 'rgba(239,68,68,0.75)', color: '#0F172A' }}
                     onClick={handleCancel} disabled={loading}>
                     {loading ? <RefreshCw size={14} className="animate-spin" /> : 'Yes, cancel'}
                   </button>
@@ -451,7 +454,7 @@ export default function ProSubscriptionPage() {
         {/* AI disclosure — required by Google Play AI policy */}
         <div className="rounded-2xl p-3.5 flex items-start gap-2.5"
           style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
-          <Info size={14} className="shrink-0 mt-0.5 text-indigo-400" />
+          <Info size={14} className="shrink-0 mt-0.5" style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
           <p className="text-xs" style={{ color: 'var(--ink-550)' }}>
             <span className="font-semibold text-white/70">AI-powered app.</span> Novo uses AI to generate educational content, explanations, and diagrams. Always verify important facts with your textbook or official sources.
           </p>
@@ -511,10 +514,10 @@ export default function ProSubscriptionPage() {
           </div>
           <div className="rounded-2xl p-3.5"
             style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)' }}>
-            <p className="text-xs font-bold mb-2.5 uppercase tracking-wide" style={{ color: '#A855F7' }}>Pro</p>
+            <p className="text-xs font-bold mb-2.5 uppercase tracking-wide" style={{ color: isLight ? '#6D28D9' : '#A855F7' }}>Pro</p>
             {['Unlimited certs', 'Unlimited plans', 'Full voice mode', 'AI analytics'].map((l, i) => (
               <div key={i} className="flex items-start gap-1.5 mb-1.5">
-                <CheckCircle2 size={11} className="shrink-0 mt-0.5" style={{ color: '#A855F7' }} />
+                <CheckCircle2 size={11} className="shrink-0 mt-0.5" style={{ color: isLight ? '#6D28D9' : '#A855F7' }} />
                 <p className="text-xs font-medium text-white">{l}</p>
               </div>
             ))}
@@ -536,13 +539,13 @@ export default function ProSubscriptionPage() {
                 style={{ background: 'var(--ink-040)', backdropFilter: 'blur(28px) saturate(160%)', WebkitBackdropFilter: 'blur(28px) saturate(160%)', border: '1px solid rgba(124,58,237,0.12)' }}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                   style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(168,85,247,0.2))' }}>
-                  <Icon size={16} style={{ color: '#A855F7' }} />
+                  <Icon size={16} style={{ color: isLight ? '#6D28D9' : '#A855F7' }} />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-white">{f.title}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--ink-450)' }}>{f.desc}</p>
                 </div>
-                <CheckCircle2 size={14} style={{ color: '#A855F7' }} className="shrink-0 mt-1" />
+                <CheckCircle2 size={14} style={{ color: isLight ? '#6D28D9' : '#A855F7' }} className="shrink-0 mt-1" />
               </motion.div>
             );
           })}
@@ -579,8 +582,8 @@ export default function ProSubscriptionPage() {
         {errorMsg && (
           <div className="rounded-xl p-3 flex items-start gap-2.5"
             style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-red-300">{errorMsg}</p>
+            <AlertCircle size={14} className="shrink-0 mt-0.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+            <p className="text-xs" style={{ color: isLight ? '#B91C1C' : '#FCA5A5' }}>{errorMsg}</p>
           </div>
         )}
       </div>
