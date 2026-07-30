@@ -405,7 +405,31 @@ color or type size.
 
     This closes out item 17 — the pale-color-on-light-theme pattern has
     now been found and fixed in 21 distinct files this session.
-18. **Friends / Referral** (`FriendsPage.tsx`, `ReferralPage.tsx`)
+18. **Friends / Referral** — ✅ both audited + fixed.
+
+    **Friends** (`FriendsPage.tsx`) — ✅ 22nd occurrence. Indigo/orange/
+    green/red dark-theme-tuned colors across the friends list, requests,
+    and search results fixed with isLight branches. Found the fixed-
+    gradient-background bug (same class as Battle/StudyRoom/GroupDetail)
+    in 3 places — Avatar fallback, active tab pill, and the search-result
+    "Add" button all used `var(--ink-950)` on a fixed indigo/purple
+    gradient — fixed to literal `#ffffff`, plus converted the "Share
+    Invite Link" button off the `text-white` className for the same
+    reason. Verified live: active "Friends (0)" tab renders exactly
+    `rgb(255,255,255)`, header Share icon exactly `rgb(67,56,202)`.
+
+    **Referral** (`ReferralPage.tsx`) — ✅ 23rd occurrence. STATUS_CONFIG's
+    3 badge colors and the "Total XP" icon fixed with isLight branches.
+    Found a NEW, distinct bug: this file used `var(--v2-success)` — a
+    fixed `#10B981` in both themes intended for background tints/borders
+    — directly as TEXT/icon color in 3 places, when ThemeContext.tsx
+    already defines a separate `--v2-success-text` token exactly for this
+    (its own code comment notes the darkening exists because the plain
+    token "was 3.6:1, fails AA"). Switched all 3 to the correct token.
+    Verified live: milestone XP values render with correct contrast;
+    confirmed `+100 XP` renders exactly `rgb(79,95,228)` (--v2-primary).
+
+    This closes out item 18 — 23 distinct files fixed this session.
 19. **Achievements** (`AchievementsPage.tsx`, `AchievementFeedPage.tsx`,
     `CertificationsPage.tsx`)
 
