@@ -822,6 +822,45 @@ sales/procurement conversation coming up.
     (`DailyPowerSessionPage.tsx`), **Live Event** (`LiveEventPage.tsx`),
     **Novo Live** (`NovoLivePage.tsx`), **Novo Proactive**
     (`NovoProactivePage.tsx`), **Novo Challenges** (`NovoChallengesPage.tsx`)
+
+    **Novo Live** — ✅ audited, no fix needed (identical theme-adaptive
+    "coming in v3.7" stub as Debate Mode/Whiteboard/Formula AR).
+
+    **Sprint** (`SprintPage.tsx`) — ✅ 54th occurrence. Pale hex across
+    mode cards/status pill/pause-end buttons/completion stats fixed
+    with isLight branches; also fixed a theme-flipping-token-on-fixed-
+    emerald-gradient "Resume" button (dark ink passes ~7.0/4.7:1 vs
+    white's failing ~2.5/3.8:1 at the two gradient ends).
+
+    **Novo Proactive** (`NovoProactivePage.tsx`) — ✅ 55th occurrence.
+    TYPE_STYLES gained a light-color map for the 11 message-type badge
+    colors; fixed 2 more text-white-on-fixed-indigo-gradient icons.
+
+    **Live Event** (`LiveEventPage.tsx`) — ✅ 56th occurrence. Pale hex
+    fixed with isLight branches; fixed 3 more text-white-on-fixed-
+    gradient instances (Avatar helper + 2 shared-Button CTAs whose
+    default `text-white` className was being downgraded by the safety
+    net despite a fixed-gradient background override).
+
+    **Daily Power Session** (`DailyPowerSessionPage.tsx`) — ✅ 57th
+    occurrence. Pale hex across 4 components fixed; also fixed a fixed-
+    emerald-gradient Trophy icon (`color="#fff"` → literal dark ink) —
+    the same gradient/contrast finding as Sprint's Resume button,
+    confirming this is a pre-existing issue independent of theme,
+    surfaced by this session's contrast-math rigor.
+
+    **Sleep Review** (`SleepReviewPage.tsx`) — ✅ 58th occurrence. Pale
+    hex across 6 components fixed; found a genuinely mixed-contrast
+    fixed gradient (`#7C3AED→#A78BFA`) where white and dark ink each
+    win at opposite ends — picked dark ink for the better worst-case
+    minimum.
+
+    **Novo Challenges** (`NovoChallengesPage.tsx`) — ✅ 59th occurrence.
+    `scoreColor()` gained an `isLight` param (4 call sites); `MedalBadge`
+    gold/silver/bronze and a repeated pale amber fixed with isLight
+    branches.
+
+    This closes out item 30.
 31. **Study Buddy** (`StudyBuddyPage.tsx`), **Learning Style**
     (`LearningStylePage.tsx`), **Regional Language**
     (`RegionalLanguagePage.tsx`), **Offline Mode** (`OfflineModePage.tsx`)
