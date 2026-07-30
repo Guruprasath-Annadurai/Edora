@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Toast } from '@capacitor/toast';
 import { geminiJSON } from '@/lib/gemini';
 import type { LucideIcon } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface MnemonicResult {
   acronym:     string;
@@ -14,14 +15,16 @@ interface MnemonicResult {
   metaphor:    string;
 }
 
-const CARDS: { key: keyof MnemonicResult; label: string; Icon: LucideIcon; color: string; bg: string }[] = [
-  { key: 'acronym',  label: 'Acronym',      Icon: BookMarked, color: '#A78BFA', bg: 'rgba(124,58,237,0.1)' },
-  { key: 'story',    label: 'Memory Story', Icon: BookOpen,   color: '#60A5FA', bg: 'rgba(59,130,246,0.1)' },
-  { key: 'rhyme',    label: 'Rhyme',        Icon: Music,      color: '#F472B6', bg: 'rgba(236,72,153,0.1)' },
-  { key: 'metaphor', label: 'Metaphor',     Icon: Puzzle,     color: '#34D399', bg: 'rgba(16,185,129,0.1)' },
+const CARDS: { key: keyof MnemonicResult; label: string; Icon: LucideIcon; color: string; colorLight: string; bg: string }[] = [
+  { key: 'acronym',  label: 'Acronym',      Icon: BookMarked, color: '#A78BFA', colorLight: '#6D28D9', bg: 'rgba(124,58,237,0.1)' },
+  { key: 'story',    label: 'Memory Story', Icon: BookOpen,   color: '#60A5FA', colorLight: '#1D4ED8', bg: 'rgba(59,130,246,0.1)' },
+  { key: 'rhyme',    label: 'Rhyme',        Icon: Music,      color: '#F472B6', colorLight: '#9D174D', bg: 'rgba(236,72,153,0.1)' },
+  { key: 'metaphor', label: 'Metaphor',     Icon: Puzzle,     color: '#34D399', colorLight: '#047857', bg: 'rgba(16,185,129,0.1)' },
 ];
 
 export default function MnemonicPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [topic, setTopic]   = useState('');
   const [context, setContext] = useState('');
   const [phase, setPhase]   = useState<'idle' | 'loading' | 'result'>('idle');
@@ -88,7 +91,7 @@ Return ONLY valid JSON (no markdown): {
                 style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.12))', border: '1px solid rgba(245,158,11,0.25)' }}>
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto"
                   style={{ background: 'rgba(245,158,11,0.15)' }}>
-                  <Brain size={28} style={{ color: '#FBBF24' }} />
+                  <Brain size={28} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                 </div>
                 <h3 className="font-heading text-base font-bold text-white mt-2">Never Forget Again</h3>
                 <p className="text-xs text-muted-foreground mt-1">Get 4 memory techniques for any concept instantly</p>
@@ -119,20 +122,22 @@ Return ONLY valid JSON (no markdown): {
             <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="flex flex-col gap-3">
               <p className="font-heading font-bold text-white text-base">"{topic}"</p>
-              {CARDS.map(({ key, label, Icon, color, bg }) => (
+              {CARDS.map(({ key, label, Icon, color: colorDark, colorLight, bg }) => {
+                const color = isLight ? colorLight : colorDark;
+                return (
                 <motion.div key={key}
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   className="rounded-3xl overflow-hidden"
-                  style={{ border: `1px solid ${color}30`, background: 'var(--hdr-b-750)' }}>
+                  style={{ border: `1px solid ${colorDark}30`, background: 'var(--hdr-b-750)' }}>
                   <div className="flex items-center justify-between px-4 py-3"
-                    style={{ background: bg, borderBottom: `1px solid ${color}20` }}>
+                    style={{ background: bg, borderBottom: `1px solid ${colorDark}20` }}>
                     <div className="flex items-center gap-2">
                       <Icon size={14} style={{ color }} />
                       <p className="text-xs font-bold uppercase tracking-wide" style={{ color }}>{label}</p>
                     </div>
                     <button onClick={() => copyText(result[key])}
                       className="p-1.5 rounded-lg"
-                      style={{ background: 'var(--ink-080)', border: `1px solid ${color}30` }}>
+                      style={{ background: 'var(--ink-080)', border: `1px solid ${colorDark}30` }}>
                       <Copy size={12} style={{ color }} />
                     </button>
                   </div>
@@ -140,7 +145,8 @@ Return ONLY valid JSON (no markdown): {
                     <p className="text-sm text-white/85 leading-relaxed">{result[key]}</p>
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
               <Button onClick={() => { setPhase('idle'); setResult(null); }} variant="secondary" className="w-full mt-1">
                 Try Another Topic
               </Button>
