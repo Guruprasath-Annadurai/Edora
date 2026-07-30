@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,13 +49,25 @@ const SUBJECT_COLORS: Record<string, string> = {
   Other:      '#6B7280',
 };
 
-function subjectColor(s: string) { return SUBJECT_COLORS[s] ?? SUBJECT_COLORS.Other; }
+const SUBJECT_COLORS_LIGHT: Record<string, string> = {
+  Physics:    '#6D28D9',
+  Chemistry:  '#047857',
+  Maths:      '#1D4ED8',
+  Biology:    '#92400E',
+  History:    '#B91C1C',
+  English:    '#9D174D',
+  Other:      '#52525B',
+};
 
-function masteryColor(pct: number) {
-  if (pct >= 75) return '#10B981';
-  if (pct >= 50) return '#F59E0B';
-  if (pct >= 30) return '#F97316';
-  return '#EF4444';
+function subjectColor(s: string, isLight: boolean) {
+  return isLight ? (SUBJECT_COLORS_LIGHT[s] ?? SUBJECT_COLORS_LIGHT.Other) : (SUBJECT_COLORS[s] ?? SUBJECT_COLORS.Other);
+}
+
+function masteryColor(pct: number, isLight: boolean) {
+  if (pct >= 75) return isLight ? '#047857' : '#10B981';
+  if (pct >= 50) return isLight ? '#92400E' : '#F59E0B';
+  if (pct >= 30) return isLight ? '#9A3412' : '#F97316';
+  return isLight ? '#B91C1C' : '#EF4444';
 }
 
 // ── SVG Radar / Spider chart ──────────────────────────────────────────────────
@@ -77,6 +90,8 @@ function pointsToPath(pts: { x: number; y: number }[]): string {
 }
 
 function RadarChart({ axes }: { axes: RadarAxis[] }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   if (axes.length < 3) return null;
   const n      = axes.length;
   const step   = (2 * Math.PI) / n;
@@ -118,12 +133,12 @@ function RadarChart({ axes }: { axes: RadarAxis[] }) {
 
       {/* User accuracy shape */}
       <path d={pointsToPath(userPts)} fill="rgba(91,106,245,0.15)"
-        stroke="#5B6AF5" strokeWidth={2} />
+        stroke={isLight ? '#4338CA' : '#5B6AF5'} strokeWidth={2} />
 
       {/* User data points */}
       {userPts.map((p, i) => (
         <circle key={`pt-${i}`} cx={p.x} cy={p.y} r={4}
-          fill={masteryColor(axes[i].accuracy)}
+          fill={masteryColor(axes[i].accuracy, isLight)}
           stroke="rgba(0,0,0,0.4)" strokeWidth={1} />
       ))}
 
@@ -134,7 +149,7 @@ function RadarChart({ axes }: { axes: RadarAxis[] }) {
         const anchor = p.x < RADAR_CX - 2 ? 'end' : p.x > RADAR_CX + 2 ? 'start' : 'middle';
         return (
           <text key={`ax-${i}`} x={p.x} y={p.y} textAnchor={anchor}
-            fontSize={9} fontWeight="700" fill={subjectColor(a.subject)}
+            fontSize={9} fontWeight="700" fill={subjectColor(a.subject, isLight)}
             dominantBaseline="middle">
             {a.subject}
           </text>
@@ -142,7 +157,7 @@ function RadarChart({ axes }: { axes: RadarAxis[] }) {
       })}
 
       {/* Center dot */}
-      <circle cx={RADAR_CX} cy={RADAR_CY} r={3} fill="#5B6AF5" />
+      <circle cx={RADAR_CX} cy={RADAR_CY} r={3} fill={isLight ? '#4338CA' : '#5B6AF5'} />
     </svg>
   );
 }
@@ -150,7 +165,9 @@ function RadarChart({ axes }: { axes: RadarAxis[] }) {
 // ── Topic row ─────────────────────────────────────────────────────────────────
 
 function TopicRow({ stat }: { stat: TopicStat }) {
-  const color = masteryColor(stat.accuracy_pct);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const color = masteryColor(stat.accuracy_pct, isLight);
   return (
     <div className="flex items-center gap-3 py-2">
       <div className="flex-1 min-w-0">
@@ -176,6 +193,8 @@ function TopicRow({ stat }: { stat: TopicStat }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function WeaknessRadarPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 
@@ -282,7 +301,7 @@ export default function WeaknessRadarPage() {
           <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
             <div className="w-16 h-16 rounded-3xl flex items-center justify-center"
               style={{ background: 'rgba(91,106,245,0.1)', border: '2px solid rgba(91,106,245,0.2)' }}>
-              <Target size={28} style={{ color: '#5B6AF5' }} />
+              <Target size={28} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />
             </div>
             <div>
               <h2 className="font-heading text-xl font-bold text-white">No Data Yet</h2>
@@ -329,15 +348,15 @@ export default function WeaknessRadarPage() {
         {error && (
           <div className="rounded-2xl px-4 py-3 flex items-center gap-3"
             style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <AlertTriangle size={14} style={{ color: '#F87171' }} />
-            <p className="text-sm" style={{ color: '#F87171' }}>{error}</p>
+            <AlertTriangle size={14} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+            <p className="text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
           </div>
         )}
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-10 h-10 rounded-full border-2 border-secondary animate-spin"
-              style={{ borderTopColor: '#5B6AF5' }} />
+              style={{ borderTopColor: isLight ? '#4338CA' : '#5B6AF5' }} />
           </div>
         ) : (
           <>
@@ -352,7 +371,7 @@ export default function WeaknessRadarPage() {
                   <RadarChart axes={radarAxes} />
                   <div className="flex items-center gap-6 text-xs">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-4 h-0.5 rounded" style={{ background: '#5B6AF5' }} />
+                      <div className="w-4 h-0.5 rounded" style={{ background: isLight ? '#4338CA' : '#5B6AF5' }} />
                       <span style={{ color: 'var(--ink-500)' }}>Your Score</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -379,11 +398,11 @@ export default function WeaknessRadarPage() {
                 style={{ background: 'rgba(239,68,68,0.06)', border: '1.5px solid rgba(239,68,68,0.2)' }}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle size={16} style={{ color: '#F87171' }} />
+                    <AlertTriangle size={16} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
                     <h2 className="font-heading text-base font-bold text-white">Needs Attention</h2>
                   </div>
                   <span className="text-xs font-bold px-2 py-1 rounded-lg"
-                    style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
+                    style={{ background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171' }}>
                     {weakTopics.length} topics
                   </span>
                 </div>
@@ -461,7 +480,7 @@ export default function WeaknessRadarPage() {
                   className="rounded-3xl p-5"
                   style={{ background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)' }}>
                   <h2 className="font-heading text-base font-bold text-white mb-3 flex items-center gap-2">
-                    <Target size={16} style={{ color: '#FBBF24' }} />
+                    <Target size={16} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
                     JEE Previous Year Weights
                   </h2>
                   <div className="flex flex-col gap-2">
