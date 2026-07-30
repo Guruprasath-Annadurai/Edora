@@ -4,6 +4,7 @@ import { ArrowLeft, Share2, Loader2, Zap, Flame, Target, BookOpen, Trophy } from
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -214,6 +215,8 @@ function buildShareCard(stats: WeeklyStats, name: string): string {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function StudyDNAPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user, profile } = useAuth();
   const [stats,   setStats]   = useState<WeeklyStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -369,10 +372,10 @@ export default function StudyDNAPage() {
 
         {/* Stats grid */}
         <div className="flex gap-2">
-          <StatCard icon={Zap}      label="XP Earned"  value={`+${stats.xpEarned}`}  color="#F59E0B" />
-          <StatCard icon={Flame}    label="Streak"     value={`${stats.streakDays}d`} color="#EF4444" />
-          <StatCard icon={Target}   label="Accuracy"   value={`${stats.quizAccuracy}%`} color="#10B981" />
-          <StatCard icon={BookOpen} label="Sessions"   value={stats.sessionsCompleted} color="#5B6AF5" />
+          <StatCard icon={Zap}      label="XP Earned"  value={`+${stats.xpEarned}`}  color={isLight ? '#92400E' : '#F59E0B'} />
+          <StatCard icon={Flame}    label="Streak"     value={`${stats.streakDays}d`} color={isLight ? '#B91C1C' : '#EF4444'} />
+          <StatCard icon={Target}   label="Accuracy"   value={`${stats.quizAccuracy}%`} color={isLight ? '#047857' : '#10B981'} />
+          <StatCard icon={BookOpen} label="Sessions"   value={stats.sessionsCompleted} color={isLight ? '#4338CA' : '#5B6AF5'} />
         </div>
 
         {/* Subject breakdown */}
@@ -383,7 +386,7 @@ export default function StudyDNAPage() {
             <div className="flex-1 flex flex-col gap-1">
               <p className="text-xs text-white/40">Strongest</p>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-400" />
+                <div className="w-2 h-2 rounded-full" style={{ background: isLight ? '#047857' : '#4ADE80' }} />
                 <p className="text-white font-bold text-sm">{stats.strongestSubject}</p>
               </div>
             </div>
@@ -391,7 +394,7 @@ export default function StudyDNAPage() {
             <div className="flex-1 flex flex-col gap-1">
               <p className="text-xs text-white/40">Needs work</p>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-400" />
+                <div className="w-2 h-2 rounded-full" style={{ background: isLight ? '#B91C1C' : '#F87171' }} />
                 <p className="text-white font-bold text-sm">{stats.weakestSubject}</p>
               </div>
             </div>
@@ -403,7 +406,7 @@ export default function StudyDNAPage() {
           <div className="p-4 rounded-2xl"
             style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
             <div className="flex items-center gap-2 mb-3">
-              <Trophy size={14} color="#F59E0B" />
+              <Trophy size={14} color={isLight ? '#92400E' : '#F59E0B'} />
               <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Top Topics This Week</p>
             </div>
             {stats.topTopics.map((t, i) => (
@@ -414,7 +417,7 @@ export default function StudyDNAPage() {
                   <p className="text-sm font-bold text-white">{t.topic}</p>
                   <p className="text-xs text-white/40">{t.subject}</p>
                 </div>
-                <span className="text-xs font-bold" style={{ color: '#10B981' }}>{t.wins} wins</span>
+                <span className="text-xs font-bold" style={{ color: isLight ? '#047857' : '#10B981' }}>{t.wins} wins</span>
               </div>
             ))}
           </div>
@@ -424,12 +427,12 @@ export default function StudyDNAPage() {
         {stats.weakTopics.length > 0 && (
           <div className="p-4 rounded-2xl"
             style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <p className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: '#F87171' }}>Focus Next Week</p>
+            <p className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>Focus Next Week</p>
             {stats.weakTopics.map((t, i) => (
               <div key={i} className="flex items-center gap-3 py-1.5">
-                <span className="text-xs text-red-400">⚠</span>
+                <span className="text-xs" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>⚠</span>
                 <p className="text-sm text-white/70 flex-1">{t.topic} <span className="text-white/30 text-xs">({t.subject})</span></p>
-                <span className="text-xs" style={{ color: '#F87171' }}>{t.struggles} struggles</span>
+                <span className="text-xs" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{t.struggles} struggles</span>
               </div>
             ))}
           </div>
