@@ -573,10 +573,42 @@ color or type size.
     other file in this session.
 
     This closes out item 22 — 34 distinct files fixed this session.
-23. **Mock Test** (`MockTestPage.tsx`), **Mock Postmortem**
-    (`MockPostmortemPage.tsx`), **Exam Simulator**
-    (`tools/ExamSimulatorPage.tsx`), **Exam War Room**
-    (`ExamWarRoomPage.tsx`)
+23. **Mock Test / Mock Postmortem / Exam Simulator / Exam War Room** —
+    ✅ all 4 audited + fixed.
+
+    **Mock Test** (`MockTestPage.tsx`) — ✅ 35th occurrence. EXAM_CONFIG's
+    5 exam-brand colors and the per-subject color map fixed with isLight
+    branches (resolved once at generation time so downstream consumers
+    stay correct). Left the exam-brand buttons unchanged — they pair a
+    fixed background with `var(--color-on-accent)`, a single fixed near-
+    black defined once with no per-theme override, already correct in
+    both themes since every exam color is light/mid enough for dark text
+    to read well regardless of app theme. Verified live: selected "JEE
+    Main" title exactly `#1D4ED8`, "FREE · BETA" badge exactly `#047857`.
+
+    **Mock Postmortem** (`MockPostmortemPage.tsx`) — ✅ 36th occurrence.
+    Fixed indigo `topicColor`, summary stats, coach-note colors, and a
+    literal inline `color: 'white'` (not the remapped className) on the
+    active tab pill. Verified live: Accuracy stat exactly `#B91C1C`,
+    active tab in dark ink per `var(--ink-950)`.
+
+    **Exam Simulator** (`tools/ExamSimulatorPage.tsx`) — ✅ 37th
+    occurrence. Fixed the count/time-picker chips' theme-flipping-token-
+    on-fixed-gradient bug (same class as Battle/StudyRoom/GroupDetail).
+    Found and fixed a new "one fixed background, single hardcoded text
+    color fails regardless of theme" instance (BossFightPage's bug
+    class) in the question-navigator dots — white fails against the
+    green fill while dark ink fails against the violet fill, so text
+    color is now chosen per fill value instead of one fixed choice.
+    Verified live: selected "10" questions chip exactly `#ffffff`.
+
+    **Exam War Room** (`ExamWarRoomPage.tsx`) — ✅ 38th occurrence. Fixed
+    CheckCircle2, subject/priority badges, and 6 mindset-card icons with
+    isLight branches. Verified live: renders with real checklist data, no
+    crash, no new console errors.
+
+    This closes out item 23 and all of Phase 4 — 38 distinct files fixed
+    this session.
 
 ---
 
