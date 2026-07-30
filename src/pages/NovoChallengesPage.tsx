@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -101,25 +102,28 @@ function msToMidnight(): { hours: number; minutes: number } {
   };
 }
 
-function scoreColor(score: number): string {
-  if (score >= 70) return '#10B981';
-  if (score >= 40) return '#F59E0B';
-  return '#EF4444';
+function scoreColor(score: number, isLight = false): string {
+  if (score >= 70) return isLight ? '#047857' : '#10B981';
+  if (score >= 40) return isLight ? '#92400E' : '#F59E0B';
+  return isLight ? '#B91C1C' : '#EF4444';
 }
 
 function MedalBadge({ rank }: { rank: number }) {
-  if (rank === 1) return <span className="text-sm font-bold" style={{ color: '#F59E0B' }}>1st</span>;
-  if (rank === 2) return <span className="text-sm font-bold" style={{ color: '#94A3B8' }}>2nd</span>;
-  if (rank === 3) return <span className="text-sm font-bold" style={{ color: '#CD7F32' }}>3rd</span>;
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  if (rank === 1) return <span className="text-sm font-bold" style={{ color: isLight ? '#92400E' : '#F59E0B' }}>1st</span>;
+  if (rank === 2) return <span className="text-sm font-bold" style={{ color: isLight ? '#52525B' : '#94A3B8' }}>2nd</span>;
+  if (rank === 3) return <span className="text-sm font-bold" style={{ color: isLight ? '#7C4A1E' : '#CD7F32' }}>3rd</span>;
   return <span className="text-xs font-bold text-muted-foreground">#{rank}</span>;
 }
 
 // ── ScoreCircle ───────────────────────────────────────────────────────────────
 
 function ScoreCircle({ score }: { score: number }) {
+  const { theme } = useTheme();
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
-  const color = scoreColor(score);
+  const color = scoreColor(score, theme === 'light');
 
   return (
     <div className="relative w-36 h-36 flex items-center justify-center mx-auto">
@@ -151,6 +155,8 @@ function ScoreCircle({ score }: { score: number }) {
 
 export default function NovoChallengesPage() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const [screen, setScreen] = useState<Screen>('picker');
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -480,7 +486,7 @@ export default function NovoChallengesPage() {
                             </p>
                           </div>
                           <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                            style={{ background: `${scoreColor(h.score)}18`, color: scoreColor(h.score) }}>
+                            style={{ background: `${scoreColor(h.score)}18`, color: scoreColor(h.score, isLight) }}>
                             {h.score}
                           </div>
                         </div>
@@ -634,7 +640,7 @@ export default function NovoChallengesPage() {
                       onClick={handleGetHint}
                       disabled={loadingHint}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-all active:scale-95 w-fit"
-                      style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', color: '#FCD34D', WebkitTapHighlightColor: 'transparent' }}
+                      style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', color: isLight ? '#92400E' : '#FCD34D', WebkitTapHighlightColor: 'transparent' }}
                     >
                       <Lightbulb size={15} />
                       {loadingHint ? 'Getting hint…' : `Hint ${hintsUsed.length + 1} of ${maxHints}`}
@@ -689,7 +695,7 @@ export default function NovoChallengesPage() {
                   </span>
                 </motion.div>
 
-                <p className="text-sm font-semibold" style={{ color: scoreColor(result.score) }}>
+                <p className="text-sm font-semibold" style={{ color: scoreColor(result.score, isLight) }}>
                   {result.score >= 70 ? 'Excellent work!' : result.score >= 40 ? 'Good effort!' : 'Keep practising!'}
                 </p>
               </div>
@@ -750,7 +756,7 @@ export default function NovoChallengesPage() {
                     <span className="text-sm font-semibold text-white">Leaderboard</span>
                     {leaderboard.length > 0 && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                        style={{ background: 'rgba(245,158,11,0.15)', color: '#FCD34D' }}>
+                        style={{ background: 'rgba(245,158,11,0.15)', color: isLight ? '#92400E' : '#FCD34D' }}>
                         {leaderboard.length}
                       </span>
                     )}
@@ -791,7 +797,7 @@ export default function NovoChallengesPage() {
                               </p>
                             </div>
                             <div className="flex flex-col items-end shrink-0 gap-0.5">
-                              <span className="text-sm font-bold" style={{ color: scoreColor(entry.score) }}>
+                              <span className="text-sm font-bold" style={{ color: scoreColor(entry.score, isLight) }}>
                                 {entry.score}
                               </span>
                               <span className="text-xs text-amber-400 font-semibold">+{entry.xp_earned} XP</span>
