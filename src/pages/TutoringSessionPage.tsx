@@ -21,6 +21,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { track } from '@/lib/analytics';
 import { geminiJSON } from '@/lib/gemini';
 import { useTypewriter } from '@/lib/useTypewriter';
+import { useTheme } from '@/contexts/ThemeContext';
 import { createCardsFromSession } from '@/lib/spacedRepetition';
 import { updateStyleProfile } from '@/lib/learningStyle';
 import type {
@@ -36,6 +37,8 @@ import { CompleteScreen } from '@/components/tutoring/CompleteScreen';
 export default function TutoringSessionPage() {
   const { user }       = useAuth();
   const navigate       = useNavigate();
+  const { theme }      = useTheme();
+  const isLight        = theme === 'light';
   const [searchParams] = useSearchParams();
 
   // ── URL param defaults ──
@@ -532,9 +535,9 @@ Rules:
   const progressPct   = totalConcepts > 0 ? Math.min(100, Math.round((conceptsDone / totalConcepts) * 100)) : 0;
 
   const MODE_META = {
-    standard:  { label: 'Teach', Icon: GraduationCap, color: '#5B6AF5' },
-    socratic:  { label: 'Guide', Icon: HelpCircle,    color: '#8B5CF6' },
-    drill:     { label: 'Drill', Icon: Wrench,        color: '#EC4899' },
+    standard:  { label: 'Teach', Icon: GraduationCap, color: isLight ? '#4338CA' : '#5B6AF5' },
+    socratic:  { label: 'Guide', Icon: HelpCircle,    color: isLight ? '#6D28D9' : '#8B5CF6' },
+    drill:     { label: 'Drill', Icon: Wrench,        color: isLight ? '#9D174D' : '#EC4899' },
   };
 
   // ── Render: starting (full-screen spinner) ──
@@ -586,11 +589,11 @@ Rules:
               initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
               className="rounded-2xl px-4 py-3 flex items-start gap-2"
               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-              <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
+              <AlertCircle size={15} style={{ color: isLight ? '#B91C1C' : '#F87171' }} className="shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm text-red-400">{errorBanner}</p>
+                <p className="text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{errorBanner}</p>
               </div>
-              <button onClick={() => setErrorBanner('')} className="text-red-400 shrink-0">✕</button>
+              <button onClick={() => setErrorBanner('')} style={{ color: isLight ? '#B91C1C' : '#F87171' }} className="shrink-0">✕</button>
             </motion.div>
           )}
 
@@ -641,9 +644,9 @@ Rules:
                   key={level}
                   onClick={() => setStudyLevel(level)}
                   className={`py-3 rounded-2xl text-sm font-semibold capitalize transition-all active:scale-95
-                    ${studyLevel === level ? 'text-white' : 'text-white/70'}`}
+                    ${studyLevel === level ? '' : 'text-white/70'}`}
                   style={studyLevel === level
-                    ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', border: 'none' }
+                    ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', border: 'none', color: '#ffffff' }
                     : { background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
                   {level}
                 </button>
@@ -671,9 +674,9 @@ Rules:
                     : { background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all
-                      ${mode === key ? 'text-white' : 'text-primary'}`}
+                      ${mode === key ? '' : 'text-primary'}`}
                       style={mode === key
-                        ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }
+                        ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }
                         : { background: 'rgba(91,106,245,0.12)' }}>
                       {icon}
                     </div>
@@ -698,8 +701,8 @@ Rules:
           <button
             onClick={handleStartSession}
             disabled={!subject.trim() || !topic.trim()}
-            className="w-full py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
+            className="w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}>
             <GraduationCap size={18} />
             Start Session
             <ChevronRight size={16} />
@@ -763,7 +766,7 @@ Rules:
             {totalChk > 0 && (
               <div className="flex items-center gap-1 px-2 py-1 rounded-full"
                 style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
-                <CheckCircle2 size={11} className="text-green-400" />
+                <CheckCircle2 size={11} style={{ color: isLight ? '#047857' : '#4ADE80' }} />
                 <span className="text-[11px] font-bold text-white">{score}/{totalChk}</span>
               </div>
             )}
@@ -791,11 +794,12 @@ Rules:
             className="overflow-hidden shrink-0">
             <div className="px-4 py-2.5 flex items-center gap-2"
               style={{ background: 'rgba(239,68,68,0.1)', borderBottom: '1px solid rgba(239,68,68,0.2)' }}>
-              <AlertCircle size={14} className="text-red-400 shrink-0" />
-              <p className="text-xs text-red-400 flex-1">{errorBanner}</p>
+              <AlertCircle size={14} style={{ color: isLight ? '#B91C1C' : '#F87171' }} className="shrink-0" />
+              <p className="text-xs flex-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{errorBanner}</p>
               <button
                 onClick={() => setErrorBanner('')}
-                className="text-red-400 shrink-0 ml-2">
+                style={{ color: isLight ? '#B91C1C' : '#F87171' }}
+                className="shrink-0 ml-2">
                 <RefreshCw size={13} />
               </button>
             </div>
@@ -900,7 +904,7 @@ Rules:
                       onClick={requestCheckpoint}
                       disabled={checkpointLoading || loading}
                       className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 disabled:opacity-60"
-                      style={{ borderColor: '#5B6AF5', color: '#5B6AF5', background: 'rgba(91,106,245,0.06)' }}>
+                      style={{ borderColor: '#5B6AF5', color: isLight ? '#4338CA' : '#5B6AF5', background: 'rgba(91,106,245,0.06)' }}>
                       {checkpointLoading
                         ? <><Loader2 size={13} className="animate-spin" /> Loading checkpoint…</>
                         : <><HelpCircle size={13} /> Test My Understanding →</>
@@ -934,7 +938,7 @@ Rules:
                     disabled={!inputText.trim() || loading}
                     className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-40"
                     style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-                    <Send size={14} className="text-white" />
+                    <Send size={14} style={{ color: '#ffffff' }} />
                   </button>
                 </div>
               </div>
