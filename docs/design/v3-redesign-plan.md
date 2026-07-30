@@ -781,6 +781,42 @@ sales/procurement conversation coming up.
     (`FormulaARPage.tsx`), **Solved Examples** (`SolvedExamplesPage.tsx`),
     **PYQ Bank** (`PYQBankPage.tsx`), **Subject Dependency**
     (`SubjectDependencyPage.tsx`), **Concept Map** (`ConceptMapPage.tsx`)
+
+    **Formula AR** — ✅ audited, no fix needed (identical theme-adaptive
+    "coming in v3.7" stub as Debate Mode/Whiteboard).
+
+    **Formula Sheet** (`FormulaSheetPage.tsx`) — ✅ 49th occurrence.
+    Raw Tailwind hue-400/300/200 classes (no light-theme CSS override
+    exists for these) converted to isLight-branched inline styles in
+    the standalone `FormulaCard` component.
+
+    **Solved Examples** (`SolvedExamplesPage.tsx`) — ✅ 50th occurrence.
+    Same class of fix across `StepBlock` and `ExampleCard` (each gained
+    `useTheme()`), plus a `background:'#5B6AF5'`+`text-white`
+    Bot-icon badge converted to inline for consistency. Verified live:
+    all 3 seed examples render legibly.
+
+    **Concept Map** (`ConceptMapPage.tsx`) — ✅ 51st occurrence.
+    `masteryColor()` gained an `isLight` param, threaded through
+    `MasteryArc`, `DetailPanel`, and `ConceptGraph` (each a standalone
+    component needing its own `useTheme()`).
+
+    **Subject Dependency** (`SubjectDependencyPage.tsx`) — ✅ 52nd
+    occurrence. `MASTERY_FILL()`/`STRENGTH_COLORS` gained isLight
+    variants across 4 components + the main page. Also fixed a
+    backwards case: the loading spinner's `#E5E7EB` base ring is
+    nearly invisible against a LIGHT background (opposite of the usual
+    pattern) — replaced with the theme-adaptive `var(--ink-100)`.
+
+    **PYQ Bank** (`PYQBankPage.tsx`) — ✅ 53rd occurrence. EXAM_OPTIONS
+    and `difficultyColor()` gained isLight variants across the exam/
+    subject/difficulty selectors, question badges, and session-summary
+    stat cards. Left the `var(--color-on-accent)` buttons and the fixed
+    red-gradient submit button unchanged — both already correct
+    (on-accent is an intentionally fixed dark-ink token; white passes
+    better than dark ink on that specific red gradient).
+
+    This closes out item 29.
 30. **Sleep Review** (`SleepReviewPage.tsx`), **Sprint**
     (`SprintPage.tsx`), **Daily Power Session**
     (`DailyPowerSessionPage.tsx`), **Live Event** (`LiveEventPage.tsx`),
