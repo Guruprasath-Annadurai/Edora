@@ -878,9 +878,9 @@ export function getChapter(classNum: number, subjectId: string, chapterId: strin
   return getSubject(classNum, subjectId)?.chapters.find(c => c.id === chapterId);
 }
 
-export const LESSON_TYPE_META: Record<string, { label: string; color: string; bg: string }> = {
-  concept:  { label: 'Concept',  color: '#60A5FA', bg: 'rgba(96,165,250,0.12)'  },
-  example:  { label: 'Example',  color: '#FBBF24', bg: 'rgba(251,191,36,0.12)'  },
-  practice: { label: 'Practice', color: '#F472B6', bg: 'rgba(244,114,182,0.12)' },
-  revision: { label: 'Revision', color: '#34D399', bg: 'rgba(52,211,153,0.12)'  },
+export const LESSON_TYPE_META: Record<string, { label: string; color: string; colorLight: string; bg: string }> = {
+  concept:  { label: 'Concept',  color: '#60A5FA', colorLight: '#1D4ED8', bg: 'rgba(96,165,250,0.12)'  },
+  example:  { label: 'Example',  color: '#FBBF24', colorLight: '#92400E', bg: 'rgba(251,191,36,0.12)'  },
+  practice: { label: 'Practice', color: '#F472B6', colorLight: '#9D174D', bg: 'rgba(244,114,182,0.12)' },
+  revision: { label: 'Revision', color: '#34D399', colorLight: '#047857', bg: 'rgba(52,211,153,0.12)'  },
 };

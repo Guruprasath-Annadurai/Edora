@@ -17,6 +17,7 @@ import { SyncQueue } from '@/lib/syncQueue';
 import { PageErrorState } from '@/components/ui/PageErrorState';
 import { ListPageSkeleton } from '@/components/ui/skeleton';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   COURSES, getSubject, getChapter,
   type Subject, type Chapter, type Lesson, LESSON_TYPE_META,
@@ -89,12 +90,14 @@ function useLessonProgress(userId: string | undefined) {
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function ClassSelector({ onSelect }: { onSelect: (classNum: number) => void }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <div className="flex flex-col gap-4 px-4 pt-2">
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
           style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
-          <GraduationCap size={20} className="text-white" />
+          <GraduationCap size={20} style={{ color: '#ffffff' }} />
         </div>
         <div>
           <h2 className="font-heading text-xl font-bold text-white">My Courses</h2>
@@ -121,8 +124,8 @@ function ClassSelector({ onSelect }: { onSelect: (classNum: number) => void }) {
             <div className="absolute top-0 right-0 w-20 h-20 rounded-full pointer-events-none"
               style={{ background: 'radial-gradient(circle, rgba(91,106,245,0.15), transparent 70%)', transform: 'translate(30%, -30%)' }} />
             {c.classNum >= 11
-              ? <Target size={22} className="mb-2" style={{ color: '#A0AEFF' }} strokeWidth={1.7} />
-              : <BookOpen size={22} className="mb-2" style={{ color: '#A0AEFF' }} strokeWidth={1.7} />}
+              ? <Target size={22} className="mb-2" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} strokeWidth={1.7} />
+              : <BookOpen size={22} className="mb-2" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} strokeWidth={1.7} />}
             <p className="font-heading font-bold text-white text-sm leading-tight">{c.label}</p>
             <p className="text-xs mt-1" style={{ color: 'var(--ink-500)' }}>
               {c.subjects.length} subjects
@@ -137,10 +140,10 @@ function ClassSelector({ onSelect }: { onSelect: (classNum: number) => void }) {
         style={{ background: 'linear-gradient(135deg, rgba(91,106,245,0.12), rgba(139,92,246,0.08))', border: '1px solid rgba(91,106,245,0.15)' }}>
         <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
           style={{ background: 'rgba(91,106,245,0.2)' }}>
-          <Star size={14} style={{ color: '#A0AEFF' }} />
+          <Star size={14} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
         </div>
         <div>
-          <p className="text-xs font-semibold" style={{ color: '#A0AEFF' }}>Free for Everyone</p>
+          <p className="text-xs font-semibold" style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>Free for Everyone</p>
           <p className="text-xs" style={{ color: 'var(--ink-500)' }}>NCERT-aligned · Classes 9–12</p>
         </div>
       </div>
@@ -258,7 +261,7 @@ function ChapterList({
                   border: `1px solid ${subject.color}30`,
                 }}>
                 {isComplete
-                  ? <CheckCircle size={18} className="text-white" />
+                  ? <CheckCircle size={18} style={{ color: '#0F172A' }} />
                   : <span className="text-xs font-bold" style={{ color: subject.color }}>{ch.num}</span>
                 }
               </div>
@@ -302,6 +305,8 @@ function LessonList({
   progress: Record<string, LessonProgress>;
   onSelect: (lesson: Lesson, index: number) => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   function isUnlocked(index: number): boolean {
     if (index === 0) return true;
     return !!progress[chapter.lessons[index - 1].id]?.completed;
@@ -356,7 +361,7 @@ function LessonList({
                   border: `1px solid ${isDone ? 'transparent' : subject.color + '25'}`,
                 }}>
                 {isDone
-                  ? <CheckCircle size={20} className="text-white" />
+                  ? <CheckCircle size={20} style={{ color: '#0F172A' }} />
                   : unlocked
                     ? <PlayCircle size={20} style={{ color: subject.color }} />
                     : <Lock size={16} style={{ color: 'var(--ink-200)' }} />
@@ -370,7 +375,7 @@ function LessonList({
                     style={{ background: meta.bg, color: meta.color }}>
                     {meta.label}
                   </span>
-                  {isDone && <span className="text-xs font-semibold" style={{ color: '#FBBF24' }}>+{lesson.duration * 2} XP</span>}
+                  {isDone && <span className="text-xs font-semibold" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>+{lesson.duration * 2} XP</span>}
                 </div>
                 <p className="font-heading font-semibold text-sm text-white leading-tight">{lesson.title}</p>
                 <div className="flex items-center gap-2 mt-1">
@@ -406,6 +411,8 @@ function LessonViewer({
   onComplete: () => void;
   onBack: () => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [showTip, setShowTip] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -439,8 +446,8 @@ function LessonViewer({
         <p className="text-sm mb-2" style={{ color: 'var(--ink-500)' }}>{lesson.title}</p>
         <div className="flex items-center gap-2 px-4 py-2 rounded-2xl mb-8"
           style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)' }}>
-          <Zap size={16} style={{ color: '#FBBF24' }} />
-          <span className="text-sm font-bold" style={{ color: '#FBBF24' }}>+{lesson.duration * 2} XP earned</span>
+          <Zap size={16} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
+          <span className="text-sm font-bold" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>+{lesson.duration * 2} XP earned</span>
         </div>
         <button
           onClick={onBack}
@@ -460,12 +467,12 @@ function LessonViewer({
         style={{ background: `linear-gradient(180deg, ${subject.color}15 0%, transparent 100%)` }}>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-            style={{ background: meta.bg, color: meta.color }}>{meta.label}</span>
+            style={{ background: meta.bg, color: isLight ? meta.colorLight : meta.color }}>{meta.label}</span>
           <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-500)' }}>
             <Clock size={10} /> {lesson.duration} min
           </span>
           {isComplete && (
-            <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: '#4ADE80' }}>
+            <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: isLight ? '#047857' : '#4ADE80' }}>
               <CheckCircle size={10} /> Done
             </span>
           )}
@@ -518,8 +525,8 @@ function LessonViewer({
             whileTap={{ scale: 0.98 }}
           >
             <div className="flex items-center gap-2 mb-1">
-              <Target size={14} style={{ color: '#FBBF24' }} />
-              <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#FBBF24' }}>
+              <Target size={14} style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
+              <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>
                 Exam Tip {showTip ? '▲' : '▼ (tap to reveal)'}
               </h3>
             </div>
@@ -530,7 +537,7 @@ function LessonViewer({
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   className="text-sm leading-relaxed"
-                  style={{ color: 'rgba(251,191,36,0.9)' }}
+                  style={{ color: isLight ? 'rgba(146,64,14,0.95)' : 'rgba(251,191,36,0.9)' }}
                 >
                   {lesson.examTip}
                 </motion.p>
@@ -543,7 +550,7 @@ function LessonViewer({
         {lesson.type === 'practice' && (
           <div className="p-4 rounded-3xl flex items-start gap-3"
             style={{ background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)' }}>
-            <Lightbulb size={16} style={{ color: '#60A5FA', flexShrink: 0, marginTop: 2 }} />
+            <Lightbulb size={16} style={{ color: isLight ? '#1D4ED8' : '#60A5FA', flexShrink: 0, marginTop: 2 }} />
             <p className="text-xs leading-relaxed" style={{ color: 'var(--ink-600)' }}>
               This is a practice session. Work through each point carefully, attempt the questions on paper, then verify. Rushed practice builds false confidence.
             </p>
@@ -556,22 +563,23 @@ function LessonViewer({
         <motion.button
           onClick={handleComplete}
           disabled={completing}
-          className="w-full py-4 rounded-2xl font-heading font-semibold text-white flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-2xl font-heading font-semibold flex items-center justify-center gap-2"
           style={{
             background: isComplete
               ? 'rgba(74,222,128,0.15)'
               : `linear-gradient(135deg, ${subject.color}, ${subject.color}CC)`,
             border: isComplete ? '1.5px solid rgba(74,222,128,0.3)' : 'none',
+            color: isComplete ? undefined : '#0F172A',
           }}
           whileTap={{ scale: 0.97 }}
         >
           {isComplete ? (
             <>
-              <CheckCircle size={18} style={{ color: '#4ADE80' }} />
-              <span style={{ color: '#4ADE80' }}>Completed</span>
+              <CheckCircle size={18} style={{ color: isLight ? '#047857' : '#4ADE80' }} />
+              <span style={{ color: isLight ? '#047857' : '#4ADE80' }}>Completed</span>
             </>
           ) : completing ? (
-            <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+            <div className="w-5 h-5 rounded-full border-2 border-[#0F172A]/30 border-t-[#0F172A] animate-spin" />
           ) : (
             <>
               <span>Mark as Complete</span>
