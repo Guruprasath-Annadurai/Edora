@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { Capacitor } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
 import type { StudyGroup, StudyGroupMember, GroupLeaderboardEntry } from '@/types';
+import { useTheme } from '@/contexts/ThemeContext';
 
 async function callFn(body: Record<string, unknown>) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -20,15 +21,17 @@ async function callFn(body: Record<string, unknown>) {
   });
 }
 
-function rankLabel(rank: number): { text: string; color: string } {
-  if (rank === 1) return { text: '1st', color: '#FFD700' };
-  if (rank === 2) return { text: '2nd', color: '#C0C0C0' };
-  if (rank === 3) return { text: '3rd', color: '#CD7F32' };
+function rankLabel(rank: number, isLight: boolean): { text: string; color: string } {
+  if (rank === 1) return { text: '1st', color: isLight ? '#78350F' : '#FFD700' };
+  if (rank === 2) return { text: '2nd', color: isLight ? '#52525B' : '#C0C0C0' };
+  if (rank === 3) return { text: '3rd', color: isLight ? '#7C4A1E' : '#CD7F32' };
   return { text: `#${rank}`, color: 'var(--ink-400)' };
 }
 
 // ── Leaderboard tab ───────────────────────────────────────────────────────────
 function LeaderboardTab({ groupId }: { groupId: string; userId?: string }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [board, setBoard]         = useState<GroupLeaderboardEntry[]>([]);
   const [weekStart, setWeekStart] = useState('');
   const [loading, setLoading]     = useState(true);
@@ -76,7 +79,7 @@ function LeaderboardTab({ groupId }: { groupId: string; userId?: string }) {
             ? { background: 'rgba(91,106,245,0.12)', border: '1px solid #5B6AF5' }
             : { background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
           <div className="px-4 py-3 flex items-center gap-3">
-            {(() => { const r = rankLabel(entry.rank); return <span className="w-9 text-center shrink-0 text-sm font-bold" style={{ color: r.color }}>{r.text}</span>; })()}
+            {(() => { const r = rankLabel(entry.rank, isLight); return <span className="w-9 text-center shrink-0 text-sm font-bold" style={{ color: r.color }}>{r.text}</span>; })()}
 
             {/* Avatar */}
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 font-bold text-white text-sm"
@@ -85,16 +88,16 @@ function LeaderboardTab({ groupId }: { groupId: string; userId?: string }) {
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate" style={{ color: entry.is_current_user ? '#8B9BFA' : 'white' }}>
+              <p className="text-sm font-bold truncate" style={{ color: entry.is_current_user ? (isLight ? '#4338CA' : '#8B9BFA') : (isLight ? 'var(--ink-950)' : 'white') }}>
                 {entry.full_name ?? 'Anonymous'}
                 {entry.is_current_user && <span className="ml-1 text-xs font-normal text-muted-foreground">(you)</span>}
               </p>
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                  <Flame size={10} className="text-orange-400" /> {entry.streak_count}d
+                  <Flame size={10} style={{ color: isLight ? '#B45309' : '#FB923C' }} /> {entry.streak_count}d
                 </span>
                 <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                  <Star size={10} className="text-amber-400" /> {entry.xp.toLocaleString()} XP total
+                  <Star size={10} style={{ color: isLight ? '#92400E' : '#FBBF24' }} /> {entry.xp.toLocaleString()} XP total
                 </span>
               </div>
             </div>
@@ -118,7 +121,7 @@ function LeaderboardTab({ groupId }: { groupId: string; userId?: string }) {
         </motion.div>
       ))}
 
-      <button onClick={load} className="flex items-center justify-center gap-2 py-3 text-xs font-semibold" style={{ color: '#8B9BFA' }}>
+      <button onClick={load} className="flex items-center justify-center gap-2 py-3 text-xs font-semibold" style={{ color: isLight ? '#4338CA' : '#8B9BFA' }}>
         <RefreshCw size={12} /> Refresh
       </button>
     </div>
@@ -131,6 +134,8 @@ function MembersTab({ members }: {
   myRole?: 'admin' | 'member';
   groupId?: string;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <div className="flex flex-col gap-3 px-4 py-4">
       <p className="text-xs text-muted-foreground font-semibold">{members.length} member{members.length !== 1 ? 's' : ''}</p>
@@ -147,15 +152,15 @@ function MembersTab({ members }: {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-white">{m.full_name ?? 'Anonymous'}</p>
-              {m.role === 'admin' && <Crown size={11} className="text-amber-500" />}
+              {m.role === 'admin' && <Crown size={11} style={{ color: isLight ? '#92400E' : '#F59E0B' }} />}
             </div>
             <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-              <span><Flame size={10} className="inline text-orange-400" /> {m.streak_count ?? 0}d streak</span>
-              <span><Star size={10} className="inline text-amber-400" /> {(m.xp ?? 0).toLocaleString()} XP</span>
+              <span><Flame size={10} className="inline" style={{ color: isLight ? '#B45309' : '#FB923C' }} /> {m.streak_count ?? 0}d streak</span>
+              <span><Star size={10} className="inline" style={{ color: isLight ? '#92400E' : '#FBBF24' }} /> {(m.xp ?? 0).toLocaleString()} XP</span>
             </div>
           </div>
           {m.role === 'admin' && (
-            <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ color: '#FBBF24', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)' }}>Admin</span>
+            <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ color: isLight ? '#92400E' : '#FBBF24', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)' }}>Admin</span>
           )}
         </motion.div>
       ))}
@@ -165,6 +170,8 @@ function MembersTab({ members }: {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function GroupDetailPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -258,7 +265,7 @@ export default function GroupDetailPage() {
             <h2 className="font-heading font-bold text-white text-sm truncate">{group.name}</h2>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span><Users size={10} className="inline" /> {members.length} members</span>
-              <button onClick={copyCode} className="flex items-center gap-1 font-semibold" style={{ color: '#8B9BFA' }}>
+              <button onClick={copyCode} className="flex items-center gap-1 font-semibold" style={{ color: isLight ? '#4338CA' : '#8B9BFA' }}>
                 <Hash size={10} /> {group.invite_code.toUpperCase()}
                 {copied ? <Check size={10} /> : <Copy size={10} />}
               </button>
@@ -269,7 +276,7 @@ export default function GroupDetailPage() {
             <button onClick={() => setShowDelete(true)}
               className="w-8 h-8 rounded-xl flex items-center justify-center"
               style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>
-              <Trash2 size={14} className="text-red-400" />
+              <Trash2 size={14} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
             </button>
           ) : (
             <button onClick={() => setShowLeave(true)}
@@ -286,7 +293,11 @@ export default function GroupDetailPage() {
             <button key={t} onClick={() => setTab(t)}
               className="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all"
               style={tab === t
-                ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'var(--ink-950)' }
+                // Fixed indigo/purple gradient regardless of theme — a
+                // theme-flipping var(--ink-950) token here would go
+                // near-black on this background in light theme (same bug
+                // class as BattlePage's "Find Opponent" button).
+                ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }
                 : { background: 'var(--ink-055)', border: '1px solid var(--ink-080)', color: 'var(--ink-500)' }}>
               {t === 'leaderboard' ? <><Trophy size={11} className="inline mr-1" />Leaderboard</> : <><Users size={11} className="inline mr-1" />Members</>}
             </button>
@@ -314,7 +325,7 @@ export default function GroupDetailPage() {
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                   style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                  <AlertCircle size={20} className="text-red-400" />
+                  <AlertCircle size={20} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
                 </div>
                 <div>
                   <p className="font-bold text-white">
