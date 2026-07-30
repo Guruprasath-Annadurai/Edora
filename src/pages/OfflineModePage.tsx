@@ -27,6 +27,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { supabase } from '@/lib/supabase';
 import { OfflineCache } from '@/lib/offlineCache';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -50,11 +51,11 @@ interface OfflineFeature {
 
 const SUBJECTS = ['Physics', 'Chemistry', 'Mathematics', 'Biology'];
 
-const SUBJECT_META: Record<string, { icon: React.FC<{ className?: string; style?: React.CSSProperties }>; color: string }> = {
-  Physics:     { icon: Atom,         color: '#5B6AF5' },
-  Chemistry:   { icon: FlaskConical, color: '#10B981' },
-  Mathematics: { icon: Hash,         color: '#F59E0B' },
-  Biology:     { icon: Brain,        color: '#EC4899' },
+const SUBJECT_META: Record<string, { icon: React.FC<{ className?: string; style?: React.CSSProperties }>; color: string; colorLight: string }> = {
+  Physics:     { icon: Atom,         color: '#5B6AF5', colorLight: '#4338CA' },
+  Chemistry:   { icon: FlaskConical, color: '#10B981', colorLight: '#047857' },
+  Mathematics: { icon: Hash,         color: '#F59E0B', colorLight: '#92400E' },
+  Biology:     { icon: Brain,        color: '#EC4899', colorLight: '#9D174D' },
 };
 
 // Questions to pre-fetch per subject
@@ -86,6 +87,8 @@ function formatTime(ts: number | null): string {
 
 export default function OfflineModePage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { isOnline, queueSize, isSyncing, flush } = useOfflineSync();
 
   const [subjectStatus, setSubjectStatus] = useState<SubjectCacheStatus[]>(
@@ -272,14 +275,14 @@ export default function OfflineModePage() {
       {/* Header */}
       <div className="sticky top-0 z-20 border-b border-white/10 px-4 py-3 flex items-center gap-3" style={{ background: 'var(--hdr-a-820)', backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)', WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)' }}>
         <Link aria-label="Go back" to="/home" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
-          <ArrowLeft className="w-5 h-5 text-gray-400" />
+          <ArrowLeft className="w-5 h-5" style={{ color: isLight ? '#52525B' : '#9CA3AF' }} />
         </Link>
         <div className="flex-1">
           <h1 className="font-bold text-white">Offline Mode</h1>
-          <p className="text-xs text-gray-400">Study without internet</p>
+          <p className="text-xs" style={{ color: isLight ? '#52525B' : '#9CA3AF' }}>Study without internet</p>
         </div>
         <button onClick={refreshStatus} className="p-2 rounded-xl hover:bg-white/5">
-          <RefreshCw className="w-4 h-4 text-gray-400" />
+          <RefreshCw className="w-4 h-4" style={{ color: isLight ? '#52525B' : '#9CA3AF' }} />
         </button>
       </div>
 
@@ -296,14 +299,14 @@ export default function OfflineModePage() {
           }`}
         >
           {isOnline
-            ? <Wifi className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-            : <WifiOff className="w-5 h-5 text-amber-400 flex-shrink-0" />
+            ? <Wifi className="w-5 h-5 flex-shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
+            : <WifiOff className="w-5 h-5 flex-shrink-0" style={{ color: isLight ? '#92400E' : '#FBBF24' }} />
           }
           <div className="flex-1">
-            <div className={`font-semibold text-sm ${isOnline ? 'text-emerald-300' : 'text-amber-300'}`}>
+            <div className="font-semibold text-sm" style={{ color: isOnline ? (isLight ? '#047857' : '#6EE7B7') : (isLight ? '#92400E' : '#FCD34D') }}>
               {isOnline ? 'You\'re online' : 'Offline mode active'}
             </div>
-            <div className="text-xs text-gray-400">
+            <div className="text-xs" style={{ color: isLight ? '#52525B' : '#9CA3AF' }}>
               {isOnline
                 ? `${totalCached} items cached for offline use`
                 : `Using ${totalCached} cached items · ${queueSize} action${queueSize !== 1 ? 's' : ''} will sync`
@@ -315,6 +318,7 @@ export default function OfflineModePage() {
               onClick={flush}
               disabled={isSyncing}
               className="px-3 py-1.5 rounded-xl bg-emerald-600 text-xs font-medium flex items-center gap-1.5"
+              style={{ color: '#0F172A' }}
             >
               {isSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
               Sync {queueSize}
@@ -324,8 +328,8 @@ export default function OfflineModePage() {
 
         {/* SW status */}
         <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-xl ${
-          swRegistered ? 'bg-emerald-900/15 text-emerald-400' : 'bg-amber-900/15 text-amber-400'
-        }`}>
+          swRegistered ? 'bg-emerald-900/15' : 'bg-amber-900/15'
+        }`} style={{ color: swRegistered ? (isLight ? '#047857' : '#34D399') : (isLight ? '#92400E' : '#FBBF24') }}>
           {swRegistered
             ? <><CheckCircle2 className="w-3.5 h-3.5" /> App shell cached — loads offline</>
             : <><AlertCircle className="w-3.5 h-3.5" /> Service worker not registered</>
@@ -342,9 +346,9 @@ export default function OfflineModePage() {
           >
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2 text-white font-medium">
-                <HardDrive className="w-4 h-4 text-indigo-400" /> Storage Usage
+                <HardDrive className="w-4 h-4" style={{ color: isLight ? '#4338CA' : '#818CF8' }} /> Storage Usage
               </div>
-              <span className="text-gray-400 text-xs">
+              <span className="text-xs" style={{ color: isLight ? '#52525B' : '#9CA3AF' }}>
                 {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.quota)}
               </span>
             </div>
@@ -365,6 +369,7 @@ export default function OfflineModePage() {
             onClick={downloadAll}
             disabled={downloadAllBusy}
             className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+            style={{ color: '#ffffff' }}
           >
             {downloadAllBusy
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Downloading all subjects…</>
@@ -380,7 +385,7 @@ export default function OfflineModePage() {
             {subjectStatus.map((status, i) => {
               const meta   = SUBJECT_META[status.subject];
               const Icon   = meta?.icon ?? Brain;
-              const color  = meta?.color ?? '#6B7280';
+              const color  = (isLight ? meta?.colorLight : meta?.color) ?? '#6B7280';
               const isCached = status.quizCount > 0 || status.flashcardCount > 0;
 
               return (
@@ -400,7 +405,7 @@ export default function OfflineModePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-white">{status.subject}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs" style={{ color: isLight ? '#71717A' : '#6B7280' }}>
                         {status.quizCount} questions · {status.flashcardCount} flashcards
                         {status.lastCached && ` · Updated ${formatTime(status.lastCached)}`}
                       </div>
@@ -412,10 +417,12 @@ export default function OfflineModePage() {
                         disabled={status.downloading}
                         className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
                           isCached
-                            ? 'bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10'
-                            : 'text-white'
+                            ? 'bg-white/5 border border-white/10 hover:bg-white/10'
+                            : ''
                         }`}
-                        style={!isCached ? { background: `${color}30`, border: `1px solid ${color}40` } : {}}
+                        style={!isCached
+                          ? { background: `${color}30`, border: `1px solid ${color}40`, color: isLight ? '#0F172A' : '#ffffff' }
+                          : { color: isLight ? '#52525B' : '#9CA3AF' }}
                       >
                         {status.downloading ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -427,7 +434,7 @@ export default function OfflineModePage() {
                       </button>
                     ) : (
                       isCached
-                        ? <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                        ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
                         : <WifiOff className="w-4 h-4 text-gray-600 flex-shrink-0" />
                     )}
                   </div>
@@ -456,7 +463,7 @@ export default function OfflineModePage() {
 
                   {/* Error */}
                   {status.error && (
-                    <div className="flex items-center gap-1.5 text-xs text-red-400">
+                    <div className="flex items-center gap-1.5 text-xs" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>
                       <AlertCircle className="w-3 h-3" /> {status.error}
                     </div>
                   )}
@@ -480,14 +487,14 @@ export default function OfflineModePage() {
                 <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${
                   f.available ? 'bg-emerald-900/40' : 'bg-white/5'
                 }`}>
-                  <f.icon className={`w-3.5 h-3.5 ${f.available ? 'text-emerald-400' : 'text-gray-600'}`} />
+                  <f.icon className={`w-3.5 h-3.5 ${f.available ? '' : 'text-gray-600'}`} style={f.available ? { color: isLight ? '#047857' : '#34D399' } : undefined} />
                 </div>
                 <div className="flex-1">
                   <div className={`text-xs font-medium ${f.available ? 'text-white' : 'text-gray-500'}`}>{f.label}</div>
                   <div className="text-xs text-gray-600">{f.description}</div>
                 </div>
                 {f.available
-                  ? <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
                   : <WifiOff className="w-3.5 h-3.5 text-gray-700 flex-shrink-0" />
                 }
               </div>
@@ -499,7 +506,8 @@ export default function OfflineModePage() {
         <button
           onClick={clearAll}
           disabled={clearing || totalCached === 0}
-          className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-red-900/20 hover:border-red-500/30 disabled:opacity-40 text-sm text-gray-400 hover:text-red-400 transition-all flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-red-900/20 hover:border-red-500/30 disabled:opacity-40 text-sm transition-all flex items-center justify-center gap-2"
+          style={{ color: isLight ? '#52525B' : '#9CA3AF' }}
         >
           {clearing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
           {clearing ? 'Clearing…' : 'Clear All Cached Data'}
