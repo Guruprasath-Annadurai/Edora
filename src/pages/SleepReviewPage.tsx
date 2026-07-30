@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Flashcard {
   id: string;
@@ -34,6 +35,10 @@ function IntroCard({ onStart, examName, examDaysLeft, onOpenChecklist }: {
   examDaysLeft?: number;
   onOpenChecklist?: () => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const violet = isLight ? '#6D28D9' : '#A78BFA';
+  const amber = isLight ? '#92400E' : '#F59E0B';
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -45,7 +50,7 @@ function IntroCard({ onStart, examName, examDaysLeft, onOpenChecklist }: {
         animate={{ scale: [1, 1.08, 1], opacity: [0.7, 1, 0.7] }}
         transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
       >
-        <Moon size={64} style={{ color: '#A78BFA', filter: 'drop-shadow(0 0 24px rgba(167,139,250,0.6))' }} />
+        <Moon size={64} style={{ color: violet, filter: 'drop-shadow(0 0 24px rgba(167,139,250,0.6))' }} />
       </motion.div>
 
       <div>
@@ -63,9 +68,9 @@ function IntroCard({ onStart, examName, examDaysLeft, onOpenChecklist }: {
           className="w-full max-w-xs flex items-center gap-3 px-4 py-3 rounded-2xl text-left"
           style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}
         >
-          <AlertTriangle size={18} style={{ color: '#F59E0B', flexShrink: 0 }} />
+          <AlertTriangle size={18} style={{ color: amber, flexShrink: 0 }} />
           <div>
-            <div className="text-sm font-bold" style={{ color: '#F59E0B' }}>
+            <div className="text-sm font-bold" style={{ color: amber }}>
               {examName} in {examDaysLeft} day{examDaysLeft === 1 ? '' : 's'}!
             </div>
             <div className="text-xs text-white/50">Tap for AI night-before checklist →</div>
@@ -77,7 +82,7 @@ function IntroCard({ onStart, examName, examDaysLeft, onOpenChecklist }: {
         {['5 cards · spaced repetition', 'No time pressure', 'Gentle on your eyes'].map((t) => (
           <div key={t} className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl"
             style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.15)' }}>
-            <Star size={12} style={{ color: '#A78BFA', fill: '#A78BFA' }} />
+            <Star size={12} style={{ color: violet, fill: violet }} />
             <span className="text-sm text-white/70">{t}</span>
           </div>
         ))}
@@ -86,10 +91,11 @@ function IntroCard({ onStart, examName, examDaysLeft, onOpenChecklist }: {
       <motion.button
         whileTap={{ scale: 0.96 }}
         onClick={onStart}
-        className="w-full max-w-xs py-4 rounded-2xl font-bold text-white text-base"
+        className="w-full max-w-xs py-4 rounded-2xl font-bold text-base"
         style={{
           background: 'linear-gradient(135deg,#7C3AED,#A78BFA)',
           boxShadow: '0 8px 32px rgba(124,58,237,0.4)',
+          color: '#0F172A',
         }}
       >
         Begin Review
@@ -107,6 +113,10 @@ interface CardStepProps {
 }
 function CardStep({ card, index, total, onResult }: CardStepProps) {
   const [flipped, setFlipped] = useState(false);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const red = isLight ? '#B91C1C' : '#FCA5A5';
+  const violet = isLight ? '#6D28D9' : '#C4B5FD';
 
   return (
     <motion.div
@@ -204,7 +214,7 @@ function CardStep({ card, index, total, onResult }: CardStepProps) {
               style={{
                 background: 'rgba(239,68,68,0.12)',
                 border: '1px solid rgba(239,68,68,0.2)',
-                color: '#FCA5A5',
+                color: red,
               }}
             >
               <X size={16} /> Review again
@@ -216,7 +226,7 @@ function CardStep({ card, index, total, onResult }: CardStepProps) {
               style={{
                 background: 'rgba(167,139,250,0.15)',
                 border: '1px solid rgba(167,139,250,0.3)',
-                color: '#C4B5FD',
+                color: violet,
               }}
             >
               <Check size={16} /> Got it
@@ -231,6 +241,9 @@ function CardStep({ card, index, total, onResult }: CardStepProps) {
 // ── Completion screen ─────────────────────────────────────────────────────────
 function CompletionScreen({ known, total, onRestart }: { known: number; total: number; onRestart: () => void }) {
   const navigate  = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const violet = isLight ? '#6D28D9' : '#A78BFA';
   const retention = Math.round((known / total) * 100);
 
   const TIPS = [
@@ -299,7 +312,7 @@ function CompletionScreen({ known, total, onRestart }: { known: number; total: n
         }}
       >
         <div className="flex items-center gap-2 mb-1.5">
-          <Sparkles size={12} style={{ color: '#A78BFA' }} />
+          <Sparkles size={12} style={{ color: violet }} />
           <span className="text-xs font-bold uppercase tracking-wider text-violet-400/70">Sleep insight</span>
         </div>
         <p className="text-sm text-white/60 leading-relaxed">{tip}</p>
@@ -333,6 +346,10 @@ function NightBeforeChecklist({ examName, daysLeft, onClose }: { examName: strin
   const [checked, setChecked] = useState<boolean[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const amber = isLight ? '#92400E' : '#F59E0B';
+  const violet = isLight ? '#6D28D9' : '#A78BFA';
 
   useEffect(() => {
     (async () => {
@@ -378,7 +395,7 @@ Keep each item under 8 words. No numbering. No markdown.`
 
       {/* Urgency banner */}
       <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
-        <AlertTriangle size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />
+        <AlertTriangle size={16} style={{ color: amber, flexShrink: 0 }} />
         <p className="text-xs text-amber-300/80">
           {daysLeft <= 1 ? 'Your exam is tomorrow! Tick these key concepts.' : `Only ${daysLeft} days left — review these high-yield topics.`}
         </p>
@@ -388,7 +405,7 @@ Keep each item under 8 words. No numbering. No markdown.`
       {loading ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
-            <Loader2 size={28} style={{ color: '#A78BFA' }} />
+            <Loader2 size={28} style={{ color: violet }} />
           </motion.div>
           <p className="text-sm text-white/40">Generating your checklist…</p>
         </div>
@@ -412,7 +429,7 @@ Keep each item under 8 words. No numbering. No markdown.`
               }}
             >
               {checked[i]
-                ? <CheckSquare size={16} style={{ color: '#A78BFA', marginTop: 1, flexShrink: 0 }} />
+                ? <CheckSquare size={16} style={{ color: violet, marginTop: 1, flexShrink: 0 }} />
                 : <Square size={16} style={{ color: 'var(--ink-250)', marginTop: 1, flexShrink: 0 }} />
               }
               <span className="text-sm leading-snug" style={{ color: checked[i] ? 'var(--ink-500)' : 'var(--ink-850)', textDecoration: checked[i] ? 'line-through' : 'none' }}>
@@ -447,6 +464,9 @@ Keep each item under 8 words. No numbering. No markdown.`
 // ── Empty state ───────────────────────────────────────────────────────────────
 function EmptyState() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const violet = isLight ? '#6D28D9' : '#C4B5FD';
   return (
     <div className="flex flex-col items-center justify-center h-full gap-5 px-6 text-center">
       <Moon size={48} style={{ color: 'rgba(167,139,250,0.4)' }} />
@@ -459,7 +479,7 @@ function EmptyState() {
       <button
         onClick={() => navigate('/flashcard')}
         className="px-6 py-3 rounded-2xl text-sm font-bold"
-        style={{ background: 'rgba(167,139,250,0.15)', color: '#C4B5FD', border: '1px solid rgba(167,139,250,0.25)' }}
+        style={{ background: 'rgba(167,139,250,0.15)', color: violet, border: '1px solid rgba(167,139,250,0.25)' }}
       >
         Go to flashcards
       </button>
@@ -471,6 +491,8 @@ function EmptyState() {
 export default function SleepReviewPage() {
   const { user } = useAuth();
   const navigate    = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [phase, setPhase]     = useState<'intro' | 'review' | 'done' | 'checklist'>('intro');
   const [cards, setCards]     = useState<Flashcard[]>([]);
   const [cardIndex, setCardIndex] = useState(0);
@@ -545,7 +567,7 @@ export default function SleepReviewPage() {
         style={{ background: 'transparent' }}
       >
         <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 2 }}>
-          <Moon size={32} style={{ color: '#A78BFA' }} />
+          <Moon size={32} style={{ color: isLight ? '#6D28D9' : '#A78BFA' }} />
         </motion.div>
       </div>
     );
