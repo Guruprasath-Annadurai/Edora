@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { Share } from '@capacitor/share';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -341,7 +342,10 @@ function SetupScreen({
             className="w-16 h-16 rounded-2xl flex items-center justify-center font-heading font-bold text-xl transition-all active:scale-95"
             style={
               !useCustom && selectedGrade === g
-                ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'var(--ink-950)', boxShadow: '0 4px 20px rgba(91,106,245,0.4)' }
+                // Fixed indigo/purple gradient regardless of theme — a
+                // theme-flipping var(--ink-950) token here goes near-black
+                // in light theme (same bug class as BattlePage/FriendsPage).
+                ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff', boxShadow: '0 4px 20px rgba(91,106,245,0.4)' }
                 : { background: 'var(--ink-055)', color: 'var(--ink-700)', border: '2px solid var(--ink-120)' }
             }
           >
@@ -353,7 +357,7 @@ function SetupScreen({
           className="w-16 h-16 rounded-2xl flex items-center justify-center font-heading font-bold text-sm transition-all active:scale-95"
           style={
             useCustom
-              ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: 'var(--ink-950)', boxShadow: '0 4px 20px rgba(91,106,245,0.4)' }
+              ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff', boxShadow: '0 4px 20px rgba(91,106,245,0.4)' }
               : { background: '#fff', color: '#1A2035', border: '2px solid #E4E8F7' }
           }
         >
@@ -421,9 +425,9 @@ function SetupScreen({
 // ── Confidence badge ──────────────────────────────────────────────────────────
 
 const CONFIDENCE_CONFIG = {
-  high:   { color: '#34D399', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  label: 'High Confidence',   desc: "Novo has plenty of data and is very sure about this prediction." },
-  medium: { color: '#FBBF24', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', label: 'Medium Confidence', desc: "Prediction is solid but could improve with more study sessions." },
-  low:    { color: '#F87171', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   label: 'Low Confidence',    desc: "Not enough data yet — keep studying to improve accuracy." },
+  high:   { color: '#34D399', colorLight: '#047857', descLight: '#065F46', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)',  label: 'High Confidence',   desc: "Novo has plenty of data and is very sure about this prediction." },
+  medium: { color: '#FBBF24', colorLight: '#92400E', descLight: '#78350F', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', label: 'Medium Confidence', desc: "Prediction is solid but could improve with more study sessions." },
+  low:    { color: '#F87171', colorLight: '#B91C1C', descLight: '#991B1B', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.3)',   label: 'Low Confidence',    desc: "Not enough data yet — keep studying to improve accuracy." },
 };
 
 // ── Score Trajectory Chart ────────────────────────────────────────────────────
@@ -438,6 +442,8 @@ function ScoreTrajectory({
   targetScore: number;
   daysRemaining: number | null;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const DAYS = 30;
   const W = 300; const H = 130;
   const PAD = { l: 34, r: 16, t: 12, b: 28 };
@@ -481,8 +487,8 @@ function ScoreTrajectory({
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="inline-block w-5 h-0.5 rounded" style={{ background: 'rgba(107,114,128,0.6)' }} /> Current pace
         </div>
-        <div className="flex items-center gap-1.5 text-xs" style={{ color: '#34D399' }}>
-          <span className="inline-block w-5 h-0.5 rounded" style={{ background: '#34D399' }} /> Optimised pace
+        <div className="flex items-center gap-1.5 text-xs" style={{ color: isLight ? '#047857' : '#34D399' }}>
+          <span className="inline-block w-5 h-0.5 rounded" style={{ background: isLight ? '#047857' : '#34D399' }} /> Optimised pace
         </div>
       </div>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible' }}>
@@ -506,7 +512,7 @@ function ScoreTrajectory({
               x1={examX} y1={PAD.t} x2={examX} y2={PAD.t + chartH}
               stroke="rgba(251,191,36,0.5)" strokeWidth={1.5} strokeDasharray="4 3"
             />
-            <text x={examX} y={PAD.t - 3} textAnchor="middle" fontSize={8} fill="#FBBF24">
+            <text x={examX} y={PAD.t - 3} textAnchor="middle" fontSize={8} fill={isLight ? '#92400E' : '#FBBF24'}>
               Exam
             </text>
           </>
@@ -525,7 +531,7 @@ function ScoreTrajectory({
         <path
           d={makePath(optimizedLine)}
           fill="none"
-          stroke="#34D399"
+          stroke={isLight ? '#047857' : '#34D399'}
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -534,7 +540,7 @@ function ScoreTrajectory({
         {/* Target score dot */}
         <circle
           cx={toX(optDays)} cy={toY(Math.min(100, targetScore))}
-          r={4} fill="#34D399" stroke="rgba(0,0,0,0.4)" strokeWidth={1.5}
+          r={4} fill={isLight ? '#047857' : '#34D399'} stroke="rgba(0,0,0,0.4)" strokeWidth={1.5}
         />
 
         {/* X-axis labels */}
@@ -565,8 +571,10 @@ function ResultsScreen({
   hasExamDate: boolean;
   onShare: () => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const conf = CONFIDENCE_CONFIG[prediction.confidence_level];
-  const hoursColor = prediction.daily_hours_needed > 2 ? '#FBBF24' : '#34D399';
+  const hoursColor = prediction.daily_hours_needed > 2 ? (isLight ? '#92400E' : '#FBBF24') : (isLight ? '#047857' : '#34D399');
   const hoursBg    = prediction.daily_hours_needed > 2 ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)';
   const hoursBorder= prediction.daily_hours_needed > 2 ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)';
 
@@ -602,7 +610,7 @@ function ResultsScreen({
         )}
         <button onClick={onShare}
           className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-          style={{ background: 'rgba(91,106,245,0.12)', color: '#818CF8', border: '1px solid rgba(91,106,245,0.25)' }}>
+          style={{ background: 'rgba(91,106,245,0.12)', color: isLight ? '#4338CA' : '#818CF8', border: '1px solid rgba(91,106,245,0.25)' }}>
           <Share2 size={12} /> Share my score
         </button>
       </motion.div>
@@ -616,14 +624,14 @@ function ResultsScreen({
           className="rounded-2xl px-4 py-3 flex items-center gap-3"
           style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.3)' }}
         >
-          <Calendar size={18} style={{ color: '#818CF8' }} className="shrink-0" />
+          <Calendar size={18} style={{ color: isLight ? '#4338CA' : '#818CF8' }} className="shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold" style={{ color: '#818CF8' }}>Add your exam date</p>
-            <p className="text-xs" style={{ color: 'rgba(129,140,248,0.8)' }}>
+            <p className="text-xs font-bold" style={{ color: isLight ? '#4338CA' : '#818CF8' }}>Add your exam date</p>
+            <p className="text-xs" style={{ color: isLight ? '#4338CA' : 'rgba(129,140,248,0.8)' }}>
               Get a personalised countdown, study schedule, and daily hour targets.
             </p>
           </div>
-          <Zap size={15} style={{ color: '#818CF8' }} className="shrink-0" />
+          <Zap size={15} style={{ color: isLight ? '#4338CA' : '#818CF8' }} className="shrink-0" />
         </motion.div>
       )}
 
@@ -647,7 +655,7 @@ function ResultsScreen({
           daysRemaining={prediction.days_remaining}
         />
         {prediction.days_remaining !== null && prediction.target_score > prediction.predicted_score && (
-          <p className="text-xs text-center mt-2 leading-snug" style={{ color: 'rgba(52,211,153,0.8)' }}>
+          <p className="text-xs text-center mt-2 leading-snug" style={{ color: isLight ? '#047857' : 'rgba(52,211,153,0.8)' }}>
             Follow the study plan to gain {prediction.target_score - prediction.predicted_score}% in {Math.min(prediction.days_remaining, 30)} days
           </p>
         )}
@@ -679,11 +687,11 @@ function ResultsScreen({
             className="rounded-3xl p-4 flex flex-col gap-1"
             style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.3)' }}
           >
-            <Calendar size={20} style={{ color: '#818CF8' }} />
-            <p className="font-heading font-bold text-2xl leading-none" style={{ color: '#818CF8' }}>
+            <Calendar size={20} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
+            <p className="font-heading font-bold text-2xl leading-none" style={{ color: isLight ? '#4338CA' : '#818CF8' }}>
               {prediction.days_remaining}
             </p>
-            <p className="text-xs font-medium" style={{ color: '#818CF8' }}>days to exam</p>
+            <p className="text-xs font-medium" style={{ color: isLight ? '#4338CA' : '#818CF8' }}>days to exam</p>
           </motion.div>
         ) : (
           <motion.div
@@ -693,8 +701,8 @@ function ResultsScreen({
             className="rounded-3xl p-4 flex flex-col gap-1"
             style={{ background: conf.bg, border: `1px solid ${conf.border}` }}
           >
-            <Target size={20} style={{ color: conf.color }} />
-            <p className="font-heading font-bold text-sm leading-snug" style={{ color: conf.color }}>
+            <Target size={20} style={{ color: isLight ? conf.colorLight : conf.color }} />
+            <p className="font-heading font-bold text-sm leading-snug" style={{ color: isLight ? conf.colorLight : conf.color }}>
               {conf.label}
             </p>
           </motion.div>
@@ -709,10 +717,14 @@ function ResultsScreen({
         className="rounded-2xl p-4 flex items-start gap-3"
         style={{ background: conf.bg, border: `1px solid ${conf.border}` }}
       >
-        <Info size={17} style={{ color: conf.color }} className="shrink-0 mt-0.5" />
+        <Info size={17} style={{ color: isLight ? conf.colorLight : conf.color }} className="shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-bold" style={{ color: conf.color }}>{conf.label}</p>
-          <p className="text-xs mt-0.5 leading-snug" style={{ color: conf.color + 'cc' }}>
+          <p className="text-sm font-bold" style={{ color: isLight ? conf.colorLight : conf.color }}>{conf.label}</p>
+          {/* Stacking alpha on an already-darkened light-theme color
+              re-breaks contrast (same lesson as NcertDeepPage/Tournament
+              this session) — use a distinct, slightly muted-but-still-
+              full-opacity dark shade instead of conf.color + alpha. */}
+          <p className="text-xs mt-0.5 leading-snug" style={{ color: isLight ? conf.descLight : conf.color + 'cc' }}>
             {conf.desc}
           </p>
         </div>
@@ -785,7 +797,7 @@ function ResultsScreen({
           transition={{ delay: 0.34 }}
         >
           <div className="flex items-center gap-2 mb-3">
-            <AlertCircle size={15} className="text-red-500 shrink-0" />
+            <AlertCircle size={15} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#EF4444' }} />
             <h2 className="font-heading text-base font-bold text-white">Weak Topics</h2>
           </div>
           <div className="flex flex-col gap-2">
@@ -795,8 +807,8 @@ function ResultsScreen({
                 className="flex items-center gap-3 rounded-2xl px-4 py-3"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}
               >
-                <AlertCircle size={15} className="text-red-400 shrink-0" />
-                <span className="text-sm font-medium text-red-400">{topic}</span>
+                <AlertCircle size={15} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                <span className="text-sm font-medium" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{topic}</span>
               </div>
             ))}
           </div>
@@ -811,7 +823,7 @@ function ResultsScreen({
           transition={{ delay: 0.38 }}
         >
           <div className="flex items-center gap-2 mb-3">
-            <CheckCircle2 size={15} className="text-green-500 shrink-0" />
+            <CheckCircle2 size={15} className="shrink-0" style={{ color: isLight ? '#047857' : '#22C55E' }} />
             <h2 className="font-heading text-base font-bold text-white">Strong Topics</h2>
           </div>
           <div className="flex flex-col gap-2">
@@ -821,8 +833,8 @@ function ResultsScreen({
                 className="flex items-center gap-3 rounded-2xl px-4 py-3"
                 style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}
               >
-                <CheckCircle2 size={15} style={{ color: '#34D399' }} className="shrink-0" />
-                <span className="text-sm font-medium" style={{ color: '#34D399' }}>{topic}</span>
+                <CheckCircle2 size={15} style={{ color: isLight ? '#047857' : '#34D399' }} className="shrink-0" />
+                <span className="text-sm font-medium" style={{ color: isLight ? '#047857' : '#34D399' }}>{topic}</span>
               </div>
             ))}
           </div>
@@ -856,6 +868,8 @@ function ResultsScreen({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ExamPredictionPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -997,7 +1011,7 @@ export default function ExamPredictionPage() {
         {phase === 'results' && (
           <div
             className="px-2.5 py-1 rounded-full text-xs font-bold"
-            style={{ background: 'rgba(91,106,245,0.2)', color: '#818CF8' }}
+            style={{ background: 'rgba(91,106,245,0.2)', color: isLight ? '#4338CA' : '#818CF8' }}
           >
             AI Powered
           </div>
@@ -1014,8 +1028,8 @@ export default function ExamPredictionPage() {
             className="px-4 py-2.5 flex items-center gap-2"
             style={{ background: 'rgba(239,68,68,0.1)', borderBottom: '1px solid rgba(239,68,68,0.3)' }}
           >
-            <AlertCircle size={14} className="text-red-500 shrink-0" />
-            <p className="text-xs text-red-400 font-medium">{error}</p>
+            <AlertCircle size={14} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#EF4444' }} />
+            <p className="text-xs font-medium" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
           </motion.div>
         )}
       </AnimatePresence>
