@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,9 @@ function genId(): string {
 // ── CheckpointToast ───────────────────────────────────────────────────────────
 
 function CheckpointToast({ xp }: { xp: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const color = isLight ? '#047857' : '#34D399';
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9, y: 8 }}
@@ -84,8 +88,8 @@ function CheckpointToast({ xp }: { xp: number }) {
       exit={{ opacity: 0, scale: 0.9, y: 8 }}
       className="flex items-center gap-2 px-4 py-2.5 rounded-2xl self-center"
       style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)' }}>
-      <CheckCircle2 size={14} style={{ color: '#34D399' }} />
-      <span className="text-xs font-bold" style={{ color: '#34D399' }}>Checkpoint passed! +{xp} XP</span>
+      <CheckCircle2 size={14} style={{ color }} />
+      <span className="text-xs font-bold" style={{ color }}>Checkpoint passed! +{xp} XP</span>
     </motion.div>
   );
 }
@@ -97,6 +101,9 @@ function ConceptPills({ concepts, expanded, onToggle }: {
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const color = isLight ? '#92400E' : '#FBBF24';
   if (concepts.length === 0) return null;
 
   return (
@@ -105,13 +112,13 @@ function ConceptPills({ concepts, expanded, onToggle }: {
       <button
         onClick={onToggle}
         className="flex items-center gap-1.5 w-full">
-        <BookOpen size={11} style={{ color: '#FBBF24' }} />
-        <span className="text-xs font-bold uppercase tracking-wide flex-1 text-left" style={{ color: '#FBBF24' }}>
+        <BookOpen size={11} style={{ color }} />
+        <span className="text-xs font-bold uppercase tracking-wide flex-1 text-left" style={{ color }}>
           Topics covered so far
         </span>
         {expanded
-          ? <ChevronUp size={12} style={{ color: '#FBBF24' }} />
-          : <ChevronDown size={12} style={{ color: '#FBBF24' }} />}
+          ? <ChevronUp size={12} style={{ color }} />
+          : <ChevronDown size={12} style={{ color }} />}
       </button>
       <AnimatePresence>
         {expanded && (
@@ -125,7 +132,7 @@ function ConceptPills({ concepts, expanded, onToggle }: {
                 <span
                   key={i}
                   className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#FBBF24' }}>
+                  style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color }}>
                   {c}
                 </span>
               ))}
@@ -145,6 +152,10 @@ interface ScenarioCardProps {
 }
 
 function ScenarioCard({ scenario, onStart }: ScenarioCardProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const amber = isLight ? '#92400E' : '#FBBF24';
+  const indigo = isLight ? '#4338CA' : '#5B6AF5';
   return (
     <motion.button
       initial={{ opacity: 0, y: 8 }}
@@ -162,7 +173,7 @@ function ScenarioCard({ scenario, onStart }: ScenarioCardProps) {
           <h3 className="font-heading text-base font-bold text-white leading-tight mb-1">{scenario.title}</h3>
           <span
             className="inline-block text-xs font-bold px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(91,106,245,0.1)', color: '#5B6AF5' }}>
+            style={{ background: 'rgba(91,106,245,0.1)', color: indigo }}>
             teaches: {scenario.topic}
           </span>
         </div>
@@ -175,8 +186,8 @@ function ScenarioCard({ scenario, onStart }: ScenarioCardProps) {
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <Trophy size={12} style={{ color: '#FBBF24' }} />
-          <span className="text-xs font-bold" style={{ color: '#FBBF24' }}>Up to {scenario.xp_max} XP</span>
+          <Trophy size={12} style={{ color: amber }} />
+          <span className="text-xs font-bold" style={{ color: amber }}>Up to {scenario.xp_max} XP</span>
         </div>
         <div className="flex items-center gap-1 text-primary">
           <BookOpen size={12} />
@@ -190,11 +201,15 @@ function ScenarioCard({ scenario, onStart }: ScenarioCardProps) {
 // ── PastStoryRow ──────────────────────────────────────────────────────────────
 
 function PastStoryRow({ session }: { session: PastStorySession }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const amber = isLight ? '#92400E' : '#FBBF24';
+  const emerald = isLight ? '#047857' : '#34D399';
   return (
     <div className="flex items-center gap-3 py-3 last:border-b-0" style={{ borderBottom: '1px solid var(--ink-060)' }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
         style={{ background: 'rgba(245,158,11,0.12)' }}>
-        <BookOpen size={16} style={{ color: '#FBBF24' }} />
+        <BookOpen size={16} style={{ color: amber }} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">{session.scenario_title}</p>
@@ -202,8 +217,8 @@ function PastStoryRow({ session }: { session: PastStorySession }) {
       </div>
       <span className="text-xs font-bold px-2 py-0.5 rounded-full"
         style={session.status === 'completed'
-          ? { background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34D399' }
-          : { background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#FBBF24' }}>
+          ? { background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: emerald }
+          : { background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: amber }}>
         {session.status === 'completed' ? 'Done' : 'In Progress'}
       </span>
     </div>
@@ -221,6 +236,10 @@ interface CompletionOverlayProps {
 }
 
 function CompletionOverlay({ title, totalXp, concepts, onSaveNotes, onExploreMore }: CompletionOverlayProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const amber = isLight ? '#92400E' : '#FBBF24';
+  const emerald = isLight ? '#047857' : '#34D399';
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -240,7 +259,7 @@ function CompletionOverlay({ title, totalXp, concepts, onSaveNotes, onExploreMor
             style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(239,68,68,0.1))', border: '1px solid rgba(245,158,11,0.3)' }}
             animate={{ rotate: [0, 8, -8, 0] }}
             transition={{ duration: 1.2, repeat: 2 }}>
-            <BookOpen size={36} style={{ color: '#FBBF24' }} />
+            <BookOpen size={36} style={{ color: amber }} />
           </motion.div>
           <div>
             <h2 className="font-heading text-xl font-bold text-white">Adventure Complete!</h2>
@@ -248,21 +267,21 @@ function CompletionOverlay({ title, totalXp, concepts, onSaveNotes, onExploreMor
           </div>
           <div className="flex items-center gap-2 px-4 py-2 rounded-full"
             style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <Sparkles size={14} style={{ color: '#FBBF24' }} />
-            <span className="text-sm font-bold" style={{ color: '#FBBF24' }}>+{totalXp} XP Earned!</span>
+            <Sparkles size={14} style={{ color: amber }} />
+            <span className="text-sm font-bold" style={{ color: amber }}>+{totalXp} XP Earned!</span>
           </div>
         </div>
 
         {concepts.length > 0 && (
           <div className="rounded-2xl p-4"
             style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-            <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#FBBF24' }}>Concepts Learned</p>
+            <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: amber }}>Concepts Learned</p>
             <div className="flex flex-wrap gap-1.5">
               {concepts.map((c, i) => (
                 <span
                   key={i}
                   className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                  style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#FBBF24' }}>
+                  style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: amber }}>
                   {c}
                 </span>
               ))}
@@ -275,13 +294,13 @@ function CompletionOverlay({ title, totalXp, concepts, onSaveNotes, onExploreMor
             onClick={onSaveNotes}
             className="w-full py-3.5 rounded-2xl text-sm font-bold text-muted-foreground flex items-center justify-center gap-2 active:scale-95 transition-all"
             style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>
-            <CheckCircle2 size={16} className="text-[#34D399]" />
+            <CheckCircle2 size={16} style={{ color: emerald }} />
             Save to Notes
           </button>
           <button
             onClick={onExploreMore}
-            className="w-full py-3.5 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 active:scale-95 transition-all"
-            style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }}>
+            className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
+            style={{ background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }}>
             <BookOpen size={16} />
             Explore More Stories
           </button>
@@ -294,6 +313,9 @@ function CompletionOverlay({ title, totalXp, concepts, onSaveNotes, onExploreMor
 // ── TypingIndicator ───────────────────────────────────────────────────────────
 
 function TypingIndicator() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const amber = isLight ? '#92400E' : '#FBBF24';
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -302,12 +324,12 @@ function TypingIndicator() {
       className="w-full">
       <div className="rounded-2xl px-5 py-4 flex gap-1.5 items-center"
         style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
-        <BookOpen size={13} className="mr-1 shrink-0" style={{ color: '#FBBF24' }} />
+        <BookOpen size={13} className="mr-1 shrink-0" style={{ color: amber }} />
         {[0, 0.15, 0.3].map((delay, i) => (
           <motion.div
             key={i}
             className="w-2 h-2 rounded-full"
-            style={{ background: '#FBBF24' }}
+            style={{ background: amber }}
             animate={{ y: [0, -5, 0] }}
             transition={{ duration: 0.55, repeat: Infinity, delay }}
           />
@@ -322,6 +344,9 @@ function TypingIndicator() {
 export default function StoryModePage() {
   const { user }  = useAuth();
   const navigate  = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const amber = isLight ? '#92400E' : '#FBBF24';
 
   const [screen, setScreen] = useState<Screen>('selector');
   const [selectorTab, setSelectorTab] = useState<'new' | 'continue'>('new');
@@ -529,7 +554,7 @@ export default function StoryModePage() {
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
-              <BookOpen size={16} className="text-white" />
+              <BookOpen size={16} style={{ color: '#0F172A' }} />
             </div>
           </div>
 
@@ -541,11 +566,11 @@ export default function StoryModePage() {
                 onClick={() => setSelectorTab(tab)}
                 className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
                   selectorTab === tab
-                    ? 'text-white'
+                    ? ''
                     : 'text-muted-foreground'
                 }`}
                 style={selectorTab === tab
-                  ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }
+                  ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }
                   : { background: 'var(--ink-050)' }}>
                 {tab === 'new' ? 'New Story' : 'Continue Reading'}
               </button>
@@ -579,10 +604,10 @@ export default function StoryModePage() {
                   <button
                     onClick={() => setSelectedSubject('')}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
-                      selectedSubject === '' ? 'text-white border-transparent' : 'text-muted-foreground'
+                      selectedSubject === '' ? 'border-transparent' : 'text-muted-foreground'
                     }`}
                     style={selectedSubject === ''
-                      ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }
+                      ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }
                       : { background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
                     All
                   </button>
@@ -591,10 +616,10 @@ export default function StoryModePage() {
                       key={s}
                       onClick={() => setSelectedSubject(s === selectedSubject ? '' : s)}
                       className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 ${
-                        selectedSubject === s ? 'text-white border-transparent' : 'text-muted-foreground'
+                        selectedSubject === s ? 'border-transparent' : 'text-muted-foreground'
                       }`}
                       style={selectedSubject === s
-                        ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)' }
+                        ? { background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)', color: '#ffffff' }
                         : { background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
                       {s}
                     </button>
@@ -668,7 +693,7 @@ export default function StoryModePage() {
               style={{ background: 'rgba(0,0,0,0.4)' }}>
               <div className="rounded-3xl p-8 flex flex-col items-center gap-4 mx-6"
                 style={{ background: 'var(--hdr-a-880)', border: '1px solid var(--ink-100)' }}>
-                <BookOpen size={36} className="animate-bounce" style={{ color: '#FBBF24' }} />
+                <BookOpen size={36} className="animate-bounce" style={{ color: amber }} />
                 <p className="font-heading text-base font-bold text-white">Opening the story…</p>
                 <p className="text-xs text-muted-foreground text-center">Setting the scene for your adventure</p>
               </div>
@@ -698,7 +723,7 @@ export default function StoryModePage() {
             <ArrowLeft size={17} className="text-white" />
           </button>
           <div className="flex-1 min-w-0 flex items-center gap-2">
-            <BookOpen size={15} className="shrink-0" style={{ color: '#FBBF24' }} />
+            <BookOpen size={15} className="shrink-0" style={{ color: amber }} />
             <p className="font-heading text-sm font-bold text-white truncate">
               {session?.scenario_title ?? 'Story Mode'}
             </p>
@@ -708,8 +733,8 @@ export default function StoryModePage() {
             <div
               className="flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0"
               style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)' }}>
-              <Sparkles size={10} style={{ color: '#FBBF24' }} />
-              <span className="text-xs font-bold" style={{ color: '#FBBF24' }}>+{totalXp} XP</span>
+              <Sparkles size={10} style={{ color: amber }} />
+              <span className="text-xs font-bold" style={{ color: amber }}>+{totalXp} XP</span>
             </div>
           )}
           <button aria-label="Close"
@@ -759,8 +784,8 @@ export default function StoryModePage() {
                     className="w-full rounded-2xl px-5 py-4"
                     style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
                     <div className="flex items-center gap-1.5 mb-2">
-                      <BookOpen size={11} style={{ color: '#FBBF24' }} />
-                      <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#FBBF24' }}>Narrator</span>
+                      <BookOpen size={11} style={{ color: amber }} />
+                      <span className="text-xs font-bold uppercase tracking-wide" style={{ color: amber }}>Narrator</span>
                     </div>
                     <p className="text-sm text-white/90 leading-relaxed whitespace-pre-wrap"
                       style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
@@ -833,7 +858,7 @@ export default function StoryModePage() {
               disabled={!inputText.trim() || storyLoading}
               className="w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-40 shrink-0"
               style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)' }}>
-              <Send size={15} className="text-white" />
+              <Send size={15} style={{ color: '#0F172A' }} />
             </button>
           </div>
           <p className="text-xs text-muted-foreground text-center mt-2">Continue →</p>
