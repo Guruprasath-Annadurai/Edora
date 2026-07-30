@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,8 @@ function BattingRow({ rank, topic, subject, attempted, correct, color }: {
   rank: number; topic: string; subject: string;
   attempted: number; correct: number; color: string;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const avg    = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
   const isPoor = avg < 50;
   return (
@@ -110,7 +113,7 @@ function BattingRow({ rank, topic, subject, attempted, correct, color }: {
         </div>
         <div>
           <p className="text-xs text-white/30">Avg</p>
-          <p className="text-xs font-bold" style={{ color: isPoor ? '#EF4444' : color }}>{avg}%</p>
+          <p className="text-xs font-bold" style={{ color: isPoor ? (isLight ? '#B91C1C' : '#EF4444') : color }}>{avg}%</p>
         </div>
       </div>
     </div>
@@ -120,6 +123,8 @@ function BattingRow({ rank, topic, subject, attempted, correct, color }: {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function MockPostmortemPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user, profile } = useAuth();
   const [searchParams]    = useSearchParams();
   const _sessionId        = searchParams.get('session');
@@ -206,7 +211,7 @@ Return a JSON coaching report:
     ? Math.round(recentSessions.reduce((s, q) => s + (q.score / Math.max(1, q.total)), 0) / recentSessions.length * 100)
     : 0;
 
-  const topicColor = '#5B6AF5';
+  const topicColor = isLight ? '#4338CA' : '#5B6AF5';
 
   if (loading) {
     return (
@@ -237,9 +242,9 @@ Return a JSON coaching report:
         {/* Summary row */}
         <div className="flex gap-3 mb-4">
           {[
-            { icon: Target, label: 'Accuracy', value: `${overallAcc}%`, color: overallAcc >= 70 ? '#10B981' : overallAcc >= 50 ? '#F59E0B' : '#EF4444' },
-            { icon: TrendingDown, label: 'Weak Topics', value: String(topicStats.filter(t => t.struggle_count > t.win_count).length), color: '#EF4444' },
-            { icon: TrendingUp, label: 'Strong Topics', value: String(topicStats.filter(t => t.win_count >= t.struggle_count).length), color: '#10B981' },
+            { icon: Target, label: 'Accuracy', value: `${overallAcc}%`, color: overallAcc >= 70 ? (isLight ? '#047857' : '#10B981') : overallAcc >= 50 ? (isLight ? '#92400E' : '#F59E0B') : (isLight ? '#B91C1C' : '#EF4444') },
+            { icon: TrendingDown, label: 'Weak Topics', value: String(topicStats.filter(t => t.struggle_count > t.win_count).length), color: isLight ? '#B91C1C' : '#EF4444' },
+            { icon: TrendingUp, label: 'Strong Topics', value: String(topicStats.filter(t => t.win_count >= t.struggle_count).length), color: isLight ? '#047857' : '#10B981' },
           ].map(({ icon: Icon, label, value, color }) => (
             <div key={label} className="flex-1 p-3 rounded-2xl text-center"
               style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-070)' }}>
@@ -261,7 +266,7 @@ Return a JSON coaching report:
               className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
               style={{
                 background: activeTab === tab.key ? 'var(--ink-100)' : 'transparent',
-                color: activeTab === tab.key ? 'white' : 'var(--ink-400)' }}>
+                color: activeTab === tab.key ? (isLight ? 'var(--ink-950)' : 'white') : 'var(--ink-400)' }}>
               {tab.label}
             </button>
           ))}
@@ -320,7 +325,7 @@ Return a JSON coaching report:
                       animate={{ width: `${radarValues[i]}%` }}
                       transition={{ delay: i * 0.1, duration: 0.6, ease: 'easeOut' }}
                       className="h-full rounded-full"
-                      style={{ background: radarValues[i] >= 70 ? '#10B981' : radarValues[i] >= 50 ? '#5B6AF5' : '#EF4444' }}
+                      style={{ background: radarValues[i] >= 70 ? (isLight ? '#047857' : '#10B981') : radarValues[i] >= 50 ? (isLight ? '#4338CA' : '#5B6AF5') : (isLight ? '#B91C1C' : '#EF4444') }}
                     />
                   </div>
                   <span className="text-sm font-bold text-white w-10 text-right">{radarValues[i]}%</span>
@@ -336,7 +341,7 @@ Return a JSON coaching report:
             <div className="p-4 rounded-2xl"
               style={{ background: 'linear-gradient(135deg, rgba(91,106,245,0.15), rgba(139,92,246,0.1))', border: '1px solid rgba(91,106,245,0.3)' }}>
               <div className="flex items-center gap-2 mb-2">
-                <Brain size={16} color="#A0AEFF" />
+                <Brain size={16} color={isLight ? '#4338CA' : '#A0AEFF'} />
                 <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Coach Verdict</p>
               </div>
               <p className="text-white text-sm leading-relaxed">{coachNote.verdict}</p>
@@ -345,12 +350,12 @@ Return a JSON coaching report:
             <div className="grid grid-cols-2 gap-2">
               <div className="p-3 rounded-2xl"
                 style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                <p className="text-xs font-bold mb-1" style={{ color: '#10B981' }}>STRENGTH</p>
+                <p className="text-xs font-bold mb-1" style={{ color: isLight ? '#047857' : '#10B981' }}>STRENGTH</p>
                 <p className="text-xs text-white/70 leading-relaxed">{coachNote.topStrength}</p>
               </div>
               <div className="p-3 rounded-2xl"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <p className="text-xs font-bold mb-1" style={{ color: '#EF4444' }}>⚠️ FIX THIS</p>
+                <p className="text-xs font-bold mb-1" style={{ color: isLight ? '#B91C1C' : '#EF4444' }}>⚠️ FIX THIS</p>
                 <p className="text-xs text-white/70 leading-relaxed">{coachNote.topWeakness}</p>
               </div>
             </div>
@@ -368,7 +373,7 @@ Return a JSON coaching report:
 
             <div className="p-4 rounded-2xl text-center"
               style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
-              <p className="text-sm font-bold italic" style={{ color: '#FCD34D' }}>"{coachNote.motivationLine}"</p>
+              <p className="text-sm font-bold italic" style={{ color: isLight ? '#92400E' : '#FCD34D' }}>"{coachNote.motivationLine}"</p>
             </div>
           </motion.div>
         )}
