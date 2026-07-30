@@ -20,6 +20,7 @@ import {
   type ErrorPattern,
 } from '@/lib/errorPatterns';
 import { track } from '@/lib/analytics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -35,19 +36,19 @@ function relativeTime(iso: string): string {
   return `${days} days ago`;
 }
 
-function patternColor(patternType: string): string {
+function patternColor(patternType: string, isLight: boolean): string {
   switch (patternType) {
     case 'sign_error':
     case 'calculation_error':
-      return '#EF4444';
+      return isLight ? '#B91C1C' : '#EF4444';
     case 'formula_recall':
     case 'definition_gap':
-      return '#F59E0B';
+      return isLight ? '#92400E' : '#F59E0B';
     case 'conceptual_gap':
     case 'unit_conversion':
-      return '#F97316';
+      return isLight ? '#9A3412' : '#F97316';
     default:
-      return '#5B6AF5';
+      return isLight ? '#4338CA' : '#5B6AF5';
   }
 }
 
@@ -68,11 +69,13 @@ function patternBg(patternType: string): string {
 }
 
 function OccurrenceBadge({ count }: { count: number }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   if (count >= 4) {
     return (
       <span
         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold animate-pulse"
-        style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}
+        style={{ background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171' }}
       >
         {count}×+
       </span>
@@ -82,7 +85,7 @@ function OccurrenceBadge({ count }: { count: number }) {
     return (
       <span
         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
-        style={{ background: 'rgba(245,158,11,0.15)', color: '#FBBF24' }}
+        style={{ background: 'rgba(245,158,11,0.15)', color: isLight ? '#92400E' : '#FBBF24' }}
       >
         {count}×
       </span>
@@ -154,8 +157,10 @@ function PatternCard({
   onReopen,
   resolving = false,
 }: PatternCardProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [expanded, setExpanded] = useState(false);
-  const color = patternColor(pattern.pattern_type);
+  const color = patternColor(pattern.pattern_type, isLight);
   const bg    = patternBg(pattern.pattern_type);
 
   return (
@@ -246,7 +251,7 @@ function PatternCard({
                         {ex.student_answer}
                       </p>
                       <p className="text-white/80">
-                        <span className="font-bold" style={{ color: '#34D399' }}>Correct:</span>{' '}
+                        <span className="font-bold" style={{ color: isLight ? '#047857' : '#34D399' }}>Correct:</span>{' '}
                         {ex.correct_answer}
                       </p>
                     </div>
@@ -330,6 +335,8 @@ function SkeletonCard({ index }: { index: number }) {
 // ── Empty State ───────────────────────────────────────────────────────────────
 
 function EmptyState({ onScan, scanning }: { onScan: () => void; scanning: boolean }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -340,7 +347,7 @@ function EmptyState({ onScan, scanning }: { onScan: () => void; scanning: boolea
         className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
         style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}
       >
-        <CheckCircle2 size={36} style={{ color: '#34D399' }} />
+        <CheckCircle2 size={36} style={{ color: isLight ? '#047857' : '#34D399' }} />
       </div>
 
       <h2 className="font-heading text-xl font-bold text-white mb-2">
@@ -369,7 +376,7 @@ function EmptyState({ onScan, scanning }: { onScan: () => void; scanning: boolea
         className="rounded-2xl p-4 text-left w-full max-w-xs"
         style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}
       >
-        <p className="text-xs font-bold mb-1" style={{ color: '#FBBF24' }}>How it works</p>
+        <p className="text-xs font-bold mb-1" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>How it works</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
           Novo needs at least 2 wrong answers in the same area to detect a pattern.
           Complete a few quizzes first.
@@ -388,6 +395,8 @@ interface ToastState {
 }
 
 export default function ErrorPatternsPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user } = useAuth();
   const navigate = useNavigate();
   const mountedRef = useRef(true);
@@ -630,8 +639,8 @@ export default function ErrorPatternsPage() {
           >
             <div className="mx-4 mt-3 px-4 py-3 rounded-2xl flex items-start gap-2.5"
               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-              <AlertTriangle size={15} className="text-red-400 mt-0.5 shrink-0" />
-              <p className="text-xs font-medium text-red-400">{error}</p>
+              <AlertTriangle size={15} className="mt-0.5 shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+              <p className="text-xs font-medium" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
             </div>
           </motion.div>
         )}
@@ -648,9 +657,13 @@ export default function ErrorPatternsPage() {
               style={
                 activeSubject === null
                   ? {
+                      // Fixed indigo/purple gradient regardless of theme
+                      // — see Avatar-fallback comments in FriendsPage /
+                      // ReferralPage for why a theme-flipping ink token
+                      // breaks here.
                       background: 'linear-gradient(135deg, #5B6AF5, #8B5CF6)',
                       border: '1px solid rgba(91,106,245,0.5)',
-                      color: 'var(--ink-950)',
+                      color: '#ffffff',
                     }
                   : { background: 'var(--ink-055)', border: '1px solid var(--ink-100)', color: 'var(--ink-500)' }
               }
@@ -737,7 +750,7 @@ export default function ErrorPatternsPage() {
               className="w-14 h-14 rounded-full flex items-center justify-center mb-3"
               style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}
             >
-              <CheckCircle2 size={26} style={{ color: '#34D399' }} />
+              <CheckCircle2 size={26} style={{ color: isLight ? '#047857' : '#34D399' }} />
             </div>
             <p className="text-sm font-bold text-white mb-1">All caught up!</p>
             <p className="text-xs text-muted-foreground">
