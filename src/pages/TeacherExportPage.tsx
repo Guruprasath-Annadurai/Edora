@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import { Share } from '@capacitor/share';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -170,10 +171,12 @@ function MasteryBar({ subject, mastered, total }: { subject: string; mastered: n
 // ── Trajectory badge ──────────────────────────────────────────────────────────
 
 function TrajectoryBadge({ direction }: { direction: 'improving' | 'stable' | 'declining' }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const map = {
-    improving: { icon: TrendingUp,   label: 'Improving', bg: 'rgba(16,185,129,0.12)',  color: '#34D399' },
-    stable:    { icon: Minus,        label: 'Stable',    bg: 'rgba(245,158,11,0.12)',  color: '#FBBF24' },
-    declining: { icon: TrendingDown, label: 'Declining', bg: 'rgba(239,68,68,0.12)',   color: '#F87171' },
+    improving: { icon: TrendingUp,   label: 'Improving', bg: 'rgba(16,185,129,0.12)',  color: isLight ? '#047857' : '#34D399' },
+    stable:    { icon: Minus,        label: 'Stable',    bg: 'rgba(245,158,11,0.12)',  color: isLight ? '#92400E' : '#FBBF24' },
+    declining: { icon: TrendingDown, label: 'Declining', bg: 'rgba(239,68,68,0.12)',   color: isLight ? '#B91C1C' : '#F87171' },
   };
   const { icon: Icon, label, bg, color } = map[direction];
   return (
@@ -193,6 +196,8 @@ function Skeleton({ className }: { className?: string }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function TeacherExportPage() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { user } = useAuth();
 
   const [exportData, setExportData] = useState<TeacherExport | null>(null);
@@ -356,7 +361,7 @@ export default function TeacherExportPage() {
                   <div className="flex items-center gap-2">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                       style={{ background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.25)' }}>
-                      <AlertTriangle size={16} style={{ color: '#F472B6' }} />
+                      <AlertTriangle size={16} style={{ color: isLight ? '#9D174D' : '#F472B6' }} />
                     </div>
                     <div>
                       <p className="font-heading font-bold text-white text-lg leading-none">
@@ -377,7 +382,7 @@ export default function TeacherExportPage() {
                 <p className="font-semibold text-white text-sm mb-1">Exam Prediction</p>
                 <div className="flex items-center gap-4">
                   <div>
-                    <p className="font-heading font-bold text-3xl leading-none" style={{ color: '#8B9BFA' }}>
+                    <p className="font-heading font-bold text-3xl leading-none" style={{ color: isLight ? '#4338CA' : '#8B9BFA' }}>
                       {ed.prediction.predicted_score}%
                     </p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--ink-500)' }}>predicted score</p>
@@ -399,7 +404,7 @@ export default function TeacherExportPage() {
               <button
                 onClick={() => setShowModal(true)}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-semibold border-2 flex items-center justify-center gap-2 transition-colors"
-                style={{ borderColor: '#5B6AF5', color: '#8B9BFA', background: 'rgba(91,106,245,0.1)' }}>
+                style={{ borderColor: '#5B6AF5', color: isLight ? '#4338CA' : '#8B9BFA', background: 'rgba(91,106,245,0.1)' }}>
                 <Eye size={15} /> View Full Report
               </button>
               <button
