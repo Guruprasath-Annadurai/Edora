@@ -440,7 +440,7 @@ export default function WeaknessRadarPage() {
                     onClick={() => setSelectedSubject(s)}
                     className="px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all"
                     style={selectedSubject === s ? {
-                      background: subjectColor(s),
+                      background: subjectColor(s, isLight),
                       color: 'var(--ink-950)',
                     } : {
                       background: 'var(--ink-060)',
@@ -509,7 +509,7 @@ export default function WeaknessRadarPage() {
                               style={{ color: 'rgba(251,191,36,0.7)' }}>{j.weight_pct}%</span>
                             {myAcc !== null && (
                               <span className="text-xs w-8 text-right shrink-0 font-bold"
-                                style={{ color: masteryColor(myAcc) }}>{Math.round(myAcc)}%</span>
+                                style={{ color: masteryColor(myAcc, isLight) }}>{Math.round(myAcc)}%</span>
                             )}
                           </div>
                         );
