@@ -69,21 +69,29 @@ serve(withSentry('ocr', async (req) => {
       }],
     };
 
-    const visionRes = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(visionRequest),
+    // A single transient network blip previously failed the whole
+    // photo-solve request outright (immediate throw, no retry) — retry with
+    // backoff, matching the pattern used in ai-question-gen.
+    let visionData: any = null;
+    let lastVisionErr = '';
+    for (let attempt = 0; attempt < 3 && !visionData; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+      try {
+        const visionRes = await fetch(
+          `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(visionRequest),
+          }
+        );
+        if (!visionRes.ok) { lastVisionErr = await visionRes.text(); continue; }
+        visionData = await visionRes.json();
+      } catch (e) {
+        lastVisionErr = (e as Error).message ?? 'fetch failed';
       }
-    );
-
-    if (!visionRes.ok) {
-      const err = await visionRes.text();
-      throw new Error(`Cloud Vision error: ${err}`);
     }
-
-    const visionData = await visionRes.json();
+    if (!visionData) throw new Error(`Cloud Vision error after retries: ${lastVisionErr}`);
     const response = visionData.responses?.[0];
 
     // ── 4. Extract text ──────────────────────────────────────────

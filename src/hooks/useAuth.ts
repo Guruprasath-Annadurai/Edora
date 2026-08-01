@@ -97,7 +97,19 @@ export function useAuth() {
       const msLeft = current.expires_at * 1000 - Date.now();
       if (msLeft < TOKEN_REFRESH_THRESHOLD_MS) {
         const { error } = await supabase.auth.refreshSession();
-        if (error) console.warn('[useAuth] proactive refresh failed:', error.message);
+        if (error) {
+          console.warn('[useAuth] proactive refresh failed:', error.message);
+          // Previously silent otherwise — a genuinely dead refresh token (the
+          // server explicitly rejecting it, status 400/401) left the user
+          // sitting on a session that would only fail on their *next* real
+          // action, with no SessionExpiredModal shown until then. A network-
+          // level failure (no status — e.g. offline) is left alone; it'll
+          // just retry on the next 4-minute tick.
+          const status = (error as { status?: number }).status;
+          if (status === 400 || status === 401) {
+            setState(prev => ({ ...prev, sessionExpired: true }));
+          }
+        }
       }
     }, TOKEN_REFRESH_INTERVAL_MS);
 

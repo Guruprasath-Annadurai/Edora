@@ -369,8 +369,15 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
         <Route path="/privacy-policy"   element={<PrivacyPolicyPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-        {/* All protected routes share the AppShell (tab bar) */}
-        <Route element={<AuthGuard><AppShell /></AuthGuard>}>
+        {/* All protected routes share the AppShell (tab bar). AppShell itself
+            (nav chrome / bottom tab bar / header) previously rendered outside
+            any RouteErrorBoundary — only the single top-level ErrorBoundary
+            caught errors there, forcing a full app reload instead of a
+            graceful per-page recovery. Each child page still gets its own
+            nested RouteErrorBoundary below (unaffected — Outlet renders
+            inside this one), this just adds a boundary around the shell
+            itself. */}
+        <Route element={<AuthGuard><RouteErrorBoundary label="app-shell"><AppShell /></RouteErrorBoundary></AuthGuard>}>
           <Route path="/home"      element={<RouteErrorBoundary label="home"><HomePage /></RouteErrorBoundary>} />
           <Route path="/sprint"    element={<RouteErrorBoundary label="sprint"><SprintPage /></RouteErrorBoundary>} />
           <Route path="/learning"  element={<RouteErrorBoundary label="learning"><LearningPage /></RouteErrorBoundary>} />
