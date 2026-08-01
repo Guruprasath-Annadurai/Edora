@@ -11,16 +11,32 @@ import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 async function gemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+  // A single transient network blip previously failed narrative generation
+  // outright — retry with backoff, matching the pattern used elsewhere
+  // (mains-answer-evaluator, ai-question-gen) for the same class of failure.
+  const MAX_ATTEMPTS = 3;
+  let lastErr = '';
+  let text: string | null = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && text === null; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        }
+      );
+      if (!res.ok) { lastErr = `Gemini ${res.status}: ${await res.text()}`; continue; }
+      const d = await res.json();
+      text = d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    } catch (e) {
+      lastErr = (e as Error).message ?? 'fetch failed';
     }
-  );
-  const d = await res.json();
-  return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  }
+  if (text === null) throw new Error(`Gemini call failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
+  return text;
 }
 
 // ── Experimental: NVIDIA NIM (Nemotron) narrative generator ──────────────────
@@ -31,19 +47,34 @@ async function gemini(prompt: string): Promise<string> {
 async function nemotron(prompt: string, maxTokens = 1024): Promise<string> {
   const key = Deno.env.get('NVIDIA_API_KEY');
   if (!key) throw new Error('NVIDIA_API_KEY not configured');
-  const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'nvidia/nemotron-3-ultra-550b-a55b',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: maxTokens,
-    }),
-  });
-  if (!res.ok) throw new Error(`NVIDIA API error: ${res.status}`);
-  const d = await res.json();
-  return d.choices?.[0]?.message?.content ?? '';
+  // A single transient network blip previously failed the Nemotron attempt
+  // outright, forcing an immediate fallback to Gemini — retry with backoff
+  // first, matching the pattern used elsewhere for the same class of failure.
+  const MAX_ATTEMPTS = 3;
+  let lastErr = '';
+  let text: string | null = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && text === null; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+    try {
+      const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'nvidia/nemotron-3-ultra-550b-a55b',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: maxTokens,
+        }),
+      });
+      if (!res.ok) { lastErr = `NVIDIA API error: ${res.status}`; continue; }
+      const d = await res.json();
+      text = d.choices?.[0]?.message?.content ?? '';
+    } catch (e) {
+      lastErr = (e as Error).message ?? 'fetch failed';
+    }
+  }
+  if (text === null) throw new Error(`Nemotron call failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
+  return text;
 }
 
 // ── Parent digest — a 3-sentence renewal-driving headline distinct from the
@@ -58,13 +89,29 @@ async function generateParentDigest(prompt: string): Promise<{ text: string; mod
   } catch (e) {
     console.error('Nemotron parent digest failed, falling back to Gemini:', e);
     const key = Deno.env.get('GEMINI_API_KEY')!;
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
-    );
-    const d = await res.json();
-    return { text: (d.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim(), model: 'gemini-1.5-flash' };
+    // Same transient-blip retry as gemini()/nemotron() above — this is the
+    // last fallback before a deterministic message, so it's worth a retry
+    // rather than giving up on the first network hiccup.
+    const MAX_ATTEMPTS = 3;
+    let lastErr = '';
+    let text = '';
+    for (let attempt = 0; attempt < MAX_ATTEMPTS && !text; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
+        );
+        if (!res.ok) { lastErr = `Gemini ${res.status}`; continue; }
+        const d = await res.json();
+        text = (d.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
+      } catch (err) {
+        lastErr = (err as Error).message ?? 'fetch failed';
+      }
+    }
+    if (!text) console.error(`Gemini digest fallback failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
+    return { text, model: 'gemini-1.5-flash' };
   }
 }
 

@@ -25,16 +25,35 @@ const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
 
 async function gemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    },
-  );
-  const d = await res.json();
-  return d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+  // A single transient network blip previously failed the brief generation
+  // outright for that user (or the whole cron batch, for that one user's
+  // Promise.all entry) — retry with backoff, matching the pattern used
+  // elsewhere (mains-answer-evaluator, ai-question-gen) for the same class
+  // of failure. The per-user try/catch in the cron loop below still ensures
+  // one user's persistent failure never aborts the batch for others.
+  const MAX_ATTEMPTS = 3;
+  let lastErr = '';
+  let text: string | null = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && text === null; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        },
+      );
+      if (!res.ok) { lastErr = `Gemini ${res.status}: ${await res.text()}`; continue; }
+      const d = await res.json();
+      text = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+    } catch (e) {
+      lastErr = (e as Error).message ?? 'fetch failed';
+    }
+  }
+  if (text === null) throw new Error(`Gemini call failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
+  return text;
 }
 
 // ── Build personalised brief text ─────────────────────────────────────────────

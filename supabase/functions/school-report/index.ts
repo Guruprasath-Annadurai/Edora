@@ -427,27 +427,36 @@ serve(withSentry('school-report', async (req) => {
     let novoMessage = `${profile.full_name} completed ${quizEvents.length} quizzes this week with an average score of ${avgQuizScore}%. They were active on ${activeDates.size} days.`;
 
     if (geminiKey && quizEvents.length > 0) {
-      try {
-        const prompt = `You are Novo, an AI tutor. Write a 2-sentence parent-friendly assessment for ${profile.full_name}'s week:
+      const prompt = `You are Novo, an AI tutor. Write a 2-sentence parent-friendly assessment for ${profile.full_name}'s week:
 - Active ${activeDates.size}/7 days
 - ${quizEvents.length} quizzes, average score ${avgQuizScore}%
 - Strong in: ${topStrengths.join(', ') || 'still building'}
 - Needs work on: ${areasToImprove.join(', ') || 'maintaining consistency'}
 Be warm, specific, and end with one actionable tip. Max 60 words.`;
 
-        const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] }),
-          },
-        );
-        if (r.ok) {
-          const d = await r.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-          novoMessage = d.candidates?.[0]?.content?.parts?.[0]?.text ?? novoMessage;
-        }
-      } catch { /* use default message */ }
+      // A single transient network blip previously fell straight back to the
+      // generic default message — retry with backoff, matching the pattern
+      // used elsewhere (mains-answer-evaluator, ai-question-gen) before
+      // giving up and using the deterministic fallback.
+      const MAX_ATTEMPTS = 3;
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+        try {
+          const r = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] }),
+            },
+          );
+          if (r.ok) {
+            const d = await r.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+            novoMessage = d.candidates?.[0]?.content?.parts?.[0]?.text ?? novoMessage;
+            break;
+          }
+        } catch { /* retry */ }
+      }
     }
 
     const html = buildParentReportHTML({

@@ -252,37 +252,52 @@ Rules:
 
   const userPrompt = `Generate a Novo Insights report for this student:\n\n${dataSummary}`;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+  // A single transient network blip previously failed this user's insight
+  // generation outright for the week — retry with backoff, matching the
+  // pattern used elsewhere (mains-answer-evaluator, ai-question-gen) for the
+  // same class of failure. The per-user try/catch in the caller's loop
+  // still ensures one user's persistent failure never aborts the batch.
+  const MAX_ATTEMPTS = 3;
+  let lastErr = '';
+  let payload: NovoInsightPayload | null = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && !payload; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+    try {
+      const resp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: RESPONSE_SCHEMA,
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+          },
+        }),
+      });
 
-  try {
-    const resp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: RESPONSE_SCHEMA,
-          temperature: 0.7,
-          maxOutputTokens: 1024,
-        },
-      }),
-    });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        lastErr = `Gemini ${resp.status}: ${errText.slice(0, 200)}`;
+        continue;
+      }
 
-    if (!resp.ok) {
-      const errText = await resp.text();
-      throw new Error(`Gemini ${resp.status}: ${errText.slice(0, 200)}`);
+      const json = await resp.json();
+      const raw = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
+      payload = JSON.parse(raw) as NovoInsightPayload;
+    } catch (e) {
+      lastErr = (e as Error).message ?? 'fetch failed';
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const json = await resp.json();
-    const raw = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
-    return JSON.parse(raw) as NovoInsightPayload;
-  } finally {
-    clearTimeout(timeoutId);
   }
+  if (!payload) throw new Error(`Gemini call failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
+  return payload;
 }
 
 /** Send FCM push via Legacy HTTP API (multicast batch) */
