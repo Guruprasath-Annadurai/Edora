@@ -694,7 +694,7 @@ export default function StudyRoomPage() {
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
           style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)' }}>
-          <Users size={20} className="text-white" />
+          <Users size={20} style={{ color: '#0F172A' }} />
         </div>
         <div>
           <h2 className="font-heading font-bold text-white text-sm">Study Rooms</h2>
@@ -709,9 +709,9 @@ export default function StudyRoomPage() {
           {(['create', 'join'] as const).map(tab => (
             <button key={tab} onClick={() => { setLobbyTab(tab); setError(''); }}
               className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                lobbyTab === tab ? 'text-white shadow-sm' : 'text-muted-foreground'
+                lobbyTab === tab ? 'shadow-sm' : 'text-muted-foreground'
               }`}
-              style={lobbyTab === tab ? { background: 'linear-gradient(135deg, #10B981, #06B6D4)' } : {}}>
+              style={lobbyTab === tab ? { background: 'linear-gradient(135deg, #10B981, #06B6D4)', color: '#0F172A' } : {}}>
               {tab === 'create' ? 'Create Room' : 'Join Room'}
             </button>
           ))}
@@ -739,10 +739,10 @@ export default function StudyRoomPage() {
                     {SUBJECTS.map(s => (
                       <button key={s} onClick={() => setSubject(s)}
                         className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition-all border text-left ${
-                          subject === s ? 'text-white border-transparent' : 'text-muted-foreground'
+                          subject === s ? 'border-transparent' : 'text-muted-foreground'
                         }`}
                         style={subject === s
-                          ? { background: 'linear-gradient(135deg, #10B981, #06B6D4)' }
+                          ? { background: 'linear-gradient(135deg, #10B981, #06B6D4)', color: '#0F172A' }
                           : { background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
                         {s}
                       </button>
@@ -766,8 +766,8 @@ export default function StudyRoomPage() {
               </div>
 
               <button onClick={createRoom} disabled={!subject || loading}
-                className="w-full py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)' }}>
+                className="w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-40"
+                style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)', color: '#0F172A' }}>
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <Users size={18} />}
                 {loading ? 'Creating Room…' : 'Create Room'}
               </button>
@@ -803,8 +803,8 @@ export default function StudyRoomPage() {
                 />
               </div>
               <button onClick={joinRoom} disabled={codeInput.length !== 6 || loading}
-                className="w-full py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)' }}>
+                className="w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-40"
+                style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)', color: '#0F172A' }}>
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <ChevronRight size={18} />}
                 {loading ? 'Joining…' : 'Join Room'}
               </button>
@@ -835,7 +835,7 @@ export default function StudyRoomPage() {
             <button onClick={copyCode}
               className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90"
               style={{ background: codeCopied ? 'rgba(16,185,129,0.15)' : 'rgba(91,106,245,0.1)' }}>
-              {codeCopied ? <CheckCircle size={18} className="text-green-500" /> : <Copy size={18} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />}
+              {codeCopied ? <CheckCircle size={18} style={{ color: isLight ? '#047857' : '#34D399' }} /> : <Copy size={18} style={{ color: isLight ? '#4338CA' : '#5B6AF5' }} />}
             </button>
           </div>
           <p className="text-xs text-muted-foreground text-center">Share this code with your study partners</p>
@@ -880,8 +880,8 @@ export default function StudyRoomPage() {
         {isHost ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
             <button onClick={startStudying} disabled={onlineCount < 1}
-              className="w-full py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-40"
-              style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)' }}>
+              className="w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40"
+              style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)', color: '#0F172A' }}>
               <Zap size={18} /> Start Studying
             </button>
             <p className="text-xs text-center text-muted-foreground">
@@ -1138,7 +1138,7 @@ export default function StudyRoomPage() {
           style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
             style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
-            <Trophy size={20} className="text-white" />
+            <Trophy size={20} style={{ color: '#0F172A' }} />
           </div>
           <div className="flex-1">
             <h2 className="font-heading font-bold text-white text-sm">Final Results</h2>
@@ -1154,7 +1154,7 @@ export default function StudyRoomPage() {
               style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.1))' , border: '1.5px solid rgba(245,158,11,0.3)' }}>
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto"
                 style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
-                <Trophy size={28} className="text-white" />
+                <Trophy size={28} style={{ color: '#0F172A' }} />
               </div>
               <p className="font-heading font-bold text-white text-xl mt-2">{results[0].name}</p>
               <p className="text-muted-foreground text-sm mt-0.5">
@@ -1193,8 +1193,8 @@ export default function StudyRoomPage() {
           </div>
 
           <button onClick={leaveRoom}
-            className="w-full py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)' }}>
+            className="w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2"
+            style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)', color: '#0F172A' }}>
             <RefreshCw size={16} /> Play Again
           </button>
           <button onClick={() => navigate('/sprint')}
@@ -1225,13 +1225,13 @@ function RoomHeader({
       style={{ background: 'var(--hdr-a-820)', borderBottom: '1px solid var(--ink-100)', backdropFilter: 'blur(64px) saturate(220%) brightness(1.04)', WebkitBackdropFilter: 'blur(64px) saturate(220%) brightness(1.04)' }}>
       <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
         style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)' }}>
-        <Users size={20} className="text-white" />
+        <Users size={20} style={{ color: '#0F172A' }} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <h2 className="font-heading font-bold text-white text-sm">{topic || subject}</h2>
           {connected
-            ? <Wifi size={11} className="text-green-500 shrink-0" />
+            ? <Wifi size={11} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />
             : <WifiOff size={11} className="shrink-0 animate-pulse" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />}
         </div>
         <p className="text-xs text-muted-foreground truncate">
