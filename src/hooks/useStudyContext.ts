@@ -2,7 +2,7 @@
 // useStudyContext — pulls recent study activity for Novo contextual awareness
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
 export interface StudyContextLesson {
@@ -32,69 +32,65 @@ const EMPTY: StudyContext = {
   streak: 0,
 };
 
+// Previously a raw useEffect+useState fetch — refetched from scratch on
+// every mount with no cache, on a page (chat) that gets navigated to/from
+// constantly. Now backed by TanStack Query so repeat visits within
+// staleTime reuse the cached result instead of re-querying Supabase.
+async function fetchStudyContext(userId: string, streak: number): Promise<StudyContext> {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [lessonsRes, quizzesRes] = await Promise.all([
+    supabase
+      .from('lesson_progress')
+      .select('lesson_id, completed_at, xp_earned')
+      .eq('user_id', userId)
+      .eq('completed', true)
+      .order('completed_at', { ascending: false })
+      .limit(5),
+    supabase
+      .from('quiz_sessions')
+      .select('topic, score, total_questions, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(3),
+  ]);
+
+  const recentLessons: StudyContextLesson[] = (lessonsRes.data ?? []).map(r => ({
+    lesson_id: r.lesson_id,
+    completed_at: r.completed_at ?? new Date().toISOString(),
+    xp_earned: r.xp_earned ?? 0,
+  }));
+
+  const todayXP = recentLessons
+    .filter(l => new Date(l.completed_at) >= todayStart)
+    .reduce((sum, l) => sum + l.xp_earned, 0);
+
+  const recentQuizTopics: StudyContextQuiz[] = (quizzesRes.data ?? []).map(r => ({
+    topic: r.topic ?? 'General',
+    score: r.score ?? 0,
+    total: r.total_questions ?? 0,
+    created_at: r.created_at,
+  }));
+
+  return { recentLessons, recentQuizTopics, todayXP, streak };
+}
+
 export function useStudyContext(userId: string | undefined, streak: number): {
   ctx: StudyContext;
   loading: boolean;
 } {
-  const [ctx, setCtx]     = useState<StudyContext>(EMPTY);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useQuery({
+    queryKey: ['study-context', userId, streak],
+    queryFn: () => fetchStudyContext(userId!, streak),
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 2,
+    // Non-critical — Novo falls back to generic mode on failure, matching
+    // the previous silent-catch behavior.
+    retry: 1,
+  });
 
-  useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-
-        const [lessonsRes, quizzesRes] = await Promise.all([
-          supabase
-            .from('lesson_progress')
-            .select('lesson_id, completed_at, xp_earned')
-            .eq('user_id', userId)
-            .eq('completed', true)
-            .order('completed_at', { ascending: false })
-            .limit(5),
-          supabase
-            .from('quiz_sessions')
-            .select('topic, score, total_questions, created_at')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(3),
-        ]);
-
-        if (cancelled) return;
-
-        const recentLessons: StudyContextLesson[] = (lessonsRes.data ?? []).map(r => ({
-          lesson_id: r.lesson_id,
-          completed_at: r.completed_at ?? new Date().toISOString(),
-          xp_earned: r.xp_earned ?? 0,
-        }));
-
-        const todayXP = recentLessons
-          .filter(l => new Date(l.completed_at) >= todayStart)
-          .reduce((sum, l) => sum + l.xp_earned, 0);
-
-        const recentQuizTopics: StudyContextQuiz[] = (quizzesRes.data ?? []).map(r => ({
-          topic: r.topic ?? 'General',
-          score: r.score ?? 0,
-          total: r.total_questions ?? 0,
-          created_at: r.created_at,
-        }));
-
-        setCtx({ recentLessons, recentQuizTopics, todayXP, streak });
-      } catch {
-        // non-critical — Novo falls back to generic mode
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [userId, streak]);
-
-  return { ctx, loading };
+  return { ctx: data ?? EMPTY, loading: userId ? isLoading : false };
 }
 
 // ── Helpers used by ChatPage ──────────────────────────────────────────────────

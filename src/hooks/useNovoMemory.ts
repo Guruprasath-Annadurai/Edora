@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
 export interface NovoMemory {
@@ -32,43 +33,40 @@ interface UseNovoMemoryReturn {
 
 const PAGE_SIZE = 50;
 
+interface MemoryQueryResult { memories: NovoMemory[]; totalCount: number }
+
+async function fetchMemories(filter: MemoryFilter): Promise<MemoryQueryResult> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { memories: [], totalCount: 0 };
+
+  let query = supabase
+    .from('novo_memories')
+    .select('*', { count: 'exact' })
+    .eq('user_id', user.id)
+    .order('importance', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(PAGE_SIZE);
+
+  if (filter.memory_type) query = query.eq('memory_type', filter.memory_type);
+  if (filter.subject)     query = query.eq('subject', filter.subject);
+
+  const { data, error: fetchError, count } = await query;
+  if (fetchError) throw new Error(fetchError.message);
+  return { memories: (data as NovoMemory[]) ?? [], totalCount: count ?? 0 };
+}
+
+// Previously a raw useEffect+useState fetch, refetching from scratch on
+// every mount/filter change with no cache. Now backed by TanStack Query.
 export function useNovoMemory(): UseNovoMemoryReturn {
-  const [memories, setMemories]   = useState<NovoMemory[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState<string | null>(null);
-  const [totalCount, setTotal]    = useState(0);
-  const [filter, setFilter]       = useState<MemoryFilter>({});
+  const [filter, setFilter] = useState<MemoryFilter>({});
+  const queryClient = useQueryClient();
+  const queryKey = ['novo-memories', filter];
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
-
-    let query = supabase
-      .from('novo_memories')
-      .select('*', { count: 'exact' })
-      .eq('user_id', user.id)
-      .order('importance', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(PAGE_SIZE);
-
-    if (filter.memory_type) query = query.eq('memory_type', filter.memory_type);
-    if (filter.subject)     query = query.eq('subject', filter.subject);
-
-    const { data, error: fetchError, count } = await query;
-
-    if (fetchError) {
-      setError(fetchError.message);
-    } else {
-      setMemories((data as NovoMemory[]) ?? []);
-      setTotal(count ?? 0);
-    }
-    setLoading(false);
-  }, [filter]);
-
-  useEffect(() => { fetch(); }, [fetch]);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey,
+    queryFn: () => fetchMemories(filter),
+    staleTime: 1000 * 30,
+  });
 
   const deleteMemory = useCallback(async (id: string) => {
     const { error: delErr } = await supabase
@@ -76,9 +74,12 @@ export function useNovoMemory(): UseNovoMemoryReturn {
       .delete()
       .eq('id', id);
     if (delErr) throw new Error(delErr.message);
-    setMemories((prev) => prev.filter((m) => m.id !== id));
-    setTotal((t) => Math.max(0, t - 1));
-  }, []);
+    queryClient.setQueryData<MemoryQueryResult>(queryKey, prev => prev && {
+      memories: prev.memories.filter(m => m.id !== id),
+      totalCount: Math.max(0, prev.totalCount - 1),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient, filter]);
 
   const deleteAll = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -88,20 +89,20 @@ export function useNovoMemory(): UseNovoMemoryReturn {
       .delete()
       .eq('user_id', user.id);
     if (delErr) throw new Error(delErr.message);
-    setMemories([]);
-    setTotal(0);
-  }, []);
+    queryClient.setQueryData<MemoryQueryResult>(queryKey, { memories: [], totalCount: 0 });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient, filter]);
 
   return {
-    memories,
-    loading,
-    error,
-    totalCount,
+    memories: data?.memories ?? [],
+    loading: isLoading,
+    error: error ? (error as Error).message : null,
+    totalCount: data?.totalCount ?? 0,
     filter,
     setFilter,
     deleteMemory,
     deleteAll,
-    refresh: fetch,
+    refresh: async () => { await refetch(); },
   };
 }
 
