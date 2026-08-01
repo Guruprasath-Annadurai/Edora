@@ -9,9 +9,12 @@ import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { useTeacher } from '@/hooks/useTeacher';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function ClassroomCallbackPage() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const { completeOAuth } = useTeacher();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [message, setMessage] = useState('Connecting your Google Classroom…');
@@ -88,10 +91,10 @@ export default function ClassroomCallbackPage() {
             />
           )}
           {status === 'success' && (
-            <CheckCircle2 size={52} style={{ color: '#34D399', margin: '0 auto' }} />
+            <CheckCircle2 size={52} style={{ color: isLight ? '#047857' : '#34D399', margin: '0 auto' }} />
           )}
           {status === 'error' && (
-            <AlertCircle size={52} style={{ color: '#F87171', margin: '0 auto' }} />
+            <AlertCircle size={52} style={{ color: isLight ? '#B91C1C' : '#F87171', margin: '0 auto' }} />
           )}
         </div>
 
@@ -127,7 +130,7 @@ export default function ClassroomCallbackPage() {
               borderRadius: '10px',
               padding:      '10px 16px',
               fontSize:     '13px',
-              color:        '#34D399',
+              color:        isLight ? '#047857' : '#34D399',
               fontWeight:   600,
             }}
           >
