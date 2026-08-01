@@ -1188,8 +1188,8 @@ html.perf-low .nav-island {
   .liquid-glass-panel           { background: var(--surface-panel-perf); }
   .liquid-glass-nav             { background: var(--surface-nav-perf);   }
   .liquid-glass-modal           { background: var(--surface-modal-perf);   }
-  .glass-strong, .card-surface  { background: rgba(14,12,32,0.95); }
-  .bento-cell                   { background: rgba(20,18,40,0.91); }
+  .glass-strong, .card-surface  { background: var(--surface-panel-perf); }
+  .bento-cell                   { background: var(--surface-glass-perf); }
   .bento-cell-elevated          { background: var(--surface-glass-perf); }
 }
 
@@ -1205,9 +1205,9 @@ html.perf-low .liquid-glass-panel  { background: var(--surface-panel-perf) !impo
 html.perf-low .liquid-glass-nav    { background: var(--surface-nav-perf)   !important; }
 html.perf-low .liquid-glass-modal  { background: var(--surface-modal-perf)   !important; }
 html.perf-low .glass               { background: var(--surface-glass-perf) !important; }
-html.perf-low .glass-strong        { background: rgba(14,12,32,0.95) !important; }
-html.perf-low .card-surface        { background: rgba(14,12,32,0.95) !important; }
-html.perf-low .bento-cell          { background: rgba(20,18,40,0.91) !important; }
+html.perf-low .glass-strong        { background: var(--surface-panel-perf) !important; }
+html.perf-low .card-surface        { background: var(--surface-panel-perf) !important; }
+html.perf-low .bento-cell          { background: var(--surface-glass-perf) !important; }
 html.perf-low .bento-cell-elevated { background: var(--surface-glass-perf) !important; }
 
 /* Inline-style glass cards (e.g. var(--ink-055) panels) stay
@@ -1252,7 +1252,7 @@ html.perf-low [style*="will-change"] {
     0 0 0 0.5px var(--ink-060);
   border-radius: 28px;
 }
-html.perf-low .card-hero { background: rgba(24,22,46,0.94) !important; }
+html.perf-low .card-hero { background: var(--surface-panel-perf) !important; }
 
 /* ════════════════════════════════════════════════════════════════════════════
    CARD ELEVATION — 3 strict levels (v3.6.0)
@@ -1299,10 +1299,11 @@ html.perf-low .card-hero { background: rgba(24,22,46,0.94) !important; }
 .bento-cell          { background: var(--ink-030);  border-color: var(--ink-050); }
 .bento-cell-elevated { background: var(--ink-055); border-color: var(--ink-080); }
 
-/* perf-low overrides — strip blur, flatten to solid equivalents */
-html.perf-low .card-l0 { background: rgba(18,16,38,0.92)  !important; }
-html.perf-low .card-l1 { background: rgba(20,18,42,0.93)  !important; box-shadow: none !important; }
-html.perf-low .card-l2 { background: rgba(24,22,46,0.95)  !important; box-shadow: none !important; }
+/* perf-low: .card-l0/.card-l1/.card-l2 never used backdrop-filter, so
+   nothing to flatten here — they keep their normal adaptive var(--ink-XXX)
+   background in perf-low mode too. (Previously hardcoded to a fixed dark
+   rgba value that broke light theme on any perf-low-tier device — quad-core
+   or fewer, which is common hardware, not just budget phones.) */
 
 /* ════════════════════════════════════════════════════════════════════════════
    AVATAR GROUNDING SHADOW — Issue 10
