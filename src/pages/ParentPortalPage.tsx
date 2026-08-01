@@ -275,7 +275,7 @@ export default function ParentPortalPage() {
   if (phase === 'loading') {
     return (
       <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
       </div>
     );
   }
@@ -324,7 +324,7 @@ export default function ParentPortalPage() {
                     <div className="text-sm text-white font-medium">{p.parent_name}</div>
                     <div className="text-xs text-gray-500">Linked {timeAgo(p.linked_at)}</div>
                   </div>
-                  <Shield className="w-4 h-4 text-emerald-400 ml-auto" />
+                  <Shield className="w-4 h-4 ml-auto" style={{ color: isLight ? '#047857' : '#34D399' }} />
                 </div>
               ))}
             </div>
@@ -333,7 +333,7 @@ export default function ParentPortalPage() {
           {/* Generate code */}
           <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Users className="w-4 h-4 text-indigo-400" />
+              <Users className="w-4 h-4" style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
               Generate Parent Invite Code
             </div>
 
@@ -350,7 +350,7 @@ export default function ParentPortalPage() {
                     onClick={copyCode}
                     className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-sm transition-colors"
                   >
-                    {codeCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    {codeCopied ? <Check className="w-4 h-4" style={{ color: isLight ? '#047857' : '#34D399' }} /> : <Copy className="w-4 h-4" />}
                     {codeCopied ? 'Copied!' : 'Copy Code'}
                   </button>
                   <button
@@ -392,7 +392,7 @@ export default function ParentPortalPage() {
               { icon: Clock, label: 'Weekly study time' },
             ].map(({ icon: Icon, label }, i) => (
               <div key={i} className="flex items-center gap-3 py-2 px-1 text-sm text-gray-400">
-                <Icon className="w-4 h-4 text-indigo-400" /> {label}
+                <Icon className="w-4 h-4" style={{ color: isLight ? '#4338CA' : '#818CF8' }} /> {label}
               </div>
             ))}
           </div>
@@ -432,7 +432,7 @@ export default function ParentPortalPage() {
               className="w-full text-center px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-2xl font-mono font-black tracking-[0.35em] text-white placeholder:text-gray-700 focus:outline-none focus:border-indigo-500"
             />
             {codeError && (
-              <div className="flex items-center gap-2 text-red-400 text-sm">
+              <div className="flex items-center gap-2 text-sm" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>
                 <AlertCircle className="w-4 h-4 flex-shrink-0" /> {codeError}
               </div>
             )}
@@ -494,7 +494,7 @@ export default function ParentPortalPage() {
       <div className="flex-1 overflow-y-auto pb-nav">
       {statsLoading && !childStats ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
         </div>
       ) : !childStats ? (
         <div className="text-center py-20 space-y-3 px-4">
@@ -517,16 +517,16 @@ export default function ParentPortalPage() {
               </div>
               <div className="flex-1">
                 <div className="font-bold text-white text-lg">{childStats.profile.full_name}</div>
-                <div className="text-sm text-indigo-300">Level {childStats.profile.level}</div>
+                <div className="text-sm" style={{ color: isLight ? '#4338CA' : '#A5B4FC' }}>Level {childStats.profile.level}</div>
                 <div className="mt-1.5">
                   <XPBar value={childStats.profile.xp % 1000} max={1000} />
                   <div className="text-xs text-gray-500 mt-0.5">{childStats.profile.xp} XP total</div>
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-black text-orange-400">{childStats.profile.streak_count}</div>
+                <div className="text-2xl font-black" style={{ color: isLight ? '#9A3412' : '#FB923C' }}>{childStats.profile.streak_count}</div>
                 <div className="text-xs text-gray-500">day streak</div>
-                <Flame className="w-5 h-5 text-orange-400 mx-auto mt-0.5" />
+                <Flame className="w-5 h-5 mx-auto mt-0.5" style={{ color: isLight ? '#9A3412' : '#FB923C' }} />
               </div>
             </div>
           </motion.div>
@@ -565,7 +565,7 @@ export default function ParentPortalPage() {
               className="p-4 rounded-2xl bg-white/5 border border-white/8 space-y-3"
             >
               <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                <TrendingUp className="w-4 h-4 text-indigo-400" /> Weekly XP Trend
+                <TrendingUp className="w-4 h-4" style={{ color: isLight ? '#4338CA' : '#818CF8' }} /> Weekly XP Trend
               </div>
               <WeeklyChart history={childStats.xp_history} />
             </motion.div>
@@ -580,7 +580,7 @@ export default function ParentPortalPage() {
               className="p-4 rounded-2xl bg-white/5 border border-white/8 space-y-4"
             >
               <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                <BarChart2 className="w-4 h-4 text-indigo-400" /> Subject Progress
+                <BarChart2 className="w-4 h-4" style={{ color: isLight ? '#4338CA' : '#818CF8' }} /> Subject Progress
               </div>
               <div className="space-y-3">
                 {childStats.subjects.map((s) => (
@@ -633,7 +633,7 @@ export default function ParentPortalPage() {
               transition={{ delay: 0.4 }}
               className="p-4 rounded-2xl bg-red-900/15 border border-red-500/20 space-y-3"
             >
-              <div className="flex items-center gap-2 text-sm font-semibold text-red-400">
+              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>
                 <AlertCircle className="w-4 h-4" /> Topics Needing Attention
               </div>
               <div className="space-y-2">
@@ -643,7 +643,7 @@ export default function ParentPortalPage() {
                       <span className="text-white">{t.topic}</span>
                       <span className="text-gray-500 ml-1.5">· {t.subject}</span>
                     </div>
-                    <span className="text-red-400 font-semibold">{t.accuracy}%</span>
+                    <span className="font-semibold" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{t.accuracy}%</span>
                   </div>
                 ))}
               </div>
@@ -659,7 +659,7 @@ export default function ParentPortalPage() {
               className="p-4 rounded-2xl bg-white/5 border border-white/8 space-y-3"
             >
               <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                <Brain className="w-4 h-4 text-indigo-400" /> Recent Activity
+                <Brain className="w-4 h-4" style={{ color: isLight ? '#4338CA' : '#818CF8' }} /> Recent Activity
               </div>
               <div className="space-y-2">
                 {childStats.recent_activity.slice(0, 6).map((a, i) => (
