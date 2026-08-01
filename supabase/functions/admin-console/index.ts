@@ -228,12 +228,73 @@ serve(withSentry('admin-console', async (req) => {
     });
   }
 
+  // ── list_question_reports — the student "report wrong answer" review queue ──
+  // question_reports (supabase/migrations/20260728_production_systems.sql) has
+  // been a pure write-sink since it was created: every AI surface that reports
+  // into it (QuizPage, AIQuizBankPage, ChatPage, and — as of this pass — the
+  // rest of the AI surfaces) had no way for anyone to ever read the reports
+  // back out. This is the read side.
+  if (action === 'list_question_reports') {
+    const status = (body.status as string | undefined) ?? 'pending';
+    const limit   = Math.min(body.limit ?? 50, 200);
+    const offset  = Math.max(body.offset ?? 0, 0);
+
+    let q = serviceDb
+      .from('question_reports')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false });
+    if (status !== 'all') q = q.eq('status', status);
+
+    const { data, error, count } = await q.range(offset, offset + limit - 1);
+    if (error) return json({ error: error.message }, 500);
+
+    // Group identical question_text within the page so a question reported
+    // by 20 different students shows up once with a count, not 20 rows.
+    const byText = new Map<string, { report: Record<string, unknown>; count: number; ids: string[] }>();
+    for (const r of (data ?? []) as Record<string, unknown>[]) {
+      const key = String(r.question_text);
+      const existing = byText.get(key);
+      if (existing) { existing.count += 1; existing.ids.push(String(r.id)); }
+      else byText.set(key, { report: r, count: 1, ids: [String(r.id)] });
+    }
+
+    return json({
+      reports: Array.from(byText.values()).map(({ report, count: n, ids }) => ({ ...report, report_count: n, grouped_ids: ids })),
+      total: count ?? 0,
+      offset, limit,
+    });
+  }
+
+  // ── update_report_status — triage a report (or its whole duplicate group) ──
+  if (action === 'update_report_status') {
+    const { report_id, report_ids, status: newStatus } = body as {
+      report_id?: string; report_ids?: string[]; status: string;
+    };
+    const ids = report_ids?.length ? report_ids : (report_id ? [report_id] : []);
+    if (!ids.length || !newStatus) return json({ error: 'report_id(s) and status required' }, 400);
+    if (!['pending', 'reviewed', 'fixed', 'dismissed'].includes(newStatus)) {
+      return json({ error: 'Invalid status' }, 400);
+    }
+
+    const { error } = await serviceDb
+      .from('question_reports').update({ status: newStatus }).in('id', ids);
+    if (error) return json({ error: error.message }, 500);
+
+    await logAdminAction(serviceDb, {
+      actorId: user.id, actorRole: 'service',
+      action: 'question_report_triaged', source: 'admin-console:update_report_status',
+      targetId: ids[0], metadata: { status: newStatus, count: ids.length },
+    });
+
+    return json({ ok: true });
+  }
+
   // Note: role granting/revoking (grant_role / revoke_role) is intentionally
   // NOT implemented here. Elevating a user to admin/moderator is a real
   // privilege-escalation action — do it via a direct SQL migration reviewed
   // by a human, not a self-service edge-function button.
 
   return json({
-    error: 'Unknown action. Use: create_live_event | list_live_events | cancel_live_event | list_audit_log | list_audit_actions | list_admins | get_observability',
+    error: 'Unknown action. Use: create_live_event | list_live_events | cancel_live_event | list_audit_log | list_audit_actions | list_admins | get_observability | list_question_reports | update_report_status',
   }, 400);
 }));

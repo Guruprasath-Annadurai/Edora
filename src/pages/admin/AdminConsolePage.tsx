@@ -29,6 +29,13 @@ function originalOptionsList(sample: unknown): string[] {
   return Array.isArray(sample) ? sample.map(optionLabel) : [];
 }
 
+interface QuestionReportRow {
+  id: string; user_id: string; question_id: string | null; question_text: string;
+  report_type: 'wrong_answer' | 'ambiguous' | 'outdated' | 'inappropriate' | 'other';
+  details: string | null; status: 'pending' | 'reviewed' | 'fixed' | 'dismissed';
+  created_at: string; report_count: number; grouped_ids: string[];
+}
+
 interface AnomalyFlag {
   id: string; user_id: string; flag_type: string; severity: string;
   reasoning: string; model_used: string; created_at: string;
@@ -97,7 +104,7 @@ export default function AdminConsolePage() {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const [tab, setTab] = useState<'events' | 'audit' | 'admins' | 'quality' | 'anomalies' | 'pyqcontent' | 'mainsqa' | 'cronhealth' | 'observability'>('events');
+  const [tab, setTab] = useState<'events' | 'reports' | 'audit' | 'admins' | 'quality' | 'anomalies' | 'pyqcontent' | 'mainsqa' | 'cronhealth' | 'observability'>('events');
   const [forbidden, setForbidden] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -114,6 +121,11 @@ export default function AdminConsolePage() {
   const [auditSources, setAuditSources] = useState<string[]>([]);
 
   const [admins, setAdmins] = useState<AdminRow[]>([]);
+
+  const [reports, setReports] = useState<QuestionReportRow[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsStatus, setReportsStatus] = useState<'pending' | 'reviewed' | 'fixed' | 'dismissed' | 'all'>('pending');
+  const [reportsTotal, setReportsTotal] = useState(0);
 
   const [qFlags, setQFlags] = useState<QuestionFlag[]>([]);
   const [qFlagsLoading, setQFlagsLoading] = useState(false);
@@ -137,6 +149,23 @@ export default function AdminConsolePage() {
   const [obsFunctions, setObsFunctions] = useState<ObservabilityFnRow[] | null>(null);
   const [obsConnStats, setObsConnStats] = useState<ConnectionStats | null>(null);
   const [obsLoading, setObsLoading] = useState(false);
+
+  const loadReports = useCallback(async (status: typeof reportsStatus = reportsStatus) => {
+    setReportsLoading(true);
+    const { data, error } = await callAdminConsole('list_question_reports', { status });
+    if (!error && !data?.error) {
+      setReports(data.reports ?? []);
+      setReportsTotal(data.total ?? 0);
+    }
+    setReportsLoading(false);
+  }, [reportsStatus]);
+
+  const updateReportStatus = useCallback(async (row: QuestionReportRow, status: 'reviewed' | 'fixed' | 'dismissed') => {
+    const ids = row.grouped_ids.length ? row.grouped_ids : [row.id];
+    await callAdminConsole('update_report_status', { report_ids: ids, status });
+    setReports(prev => prev.filter(r => r.id !== row.id));
+    setReportsTotal(prev => Math.max(0, prev - 1));
+  }, []);
 
   const loadQualityFlags = useCallback(async () => {
     setQFlagsLoading(true);
@@ -308,8 +337,15 @@ export default function AdminConsolePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auditActionFilter, auditSourceFilter, auditSearch]);
 
+  // Re-fetch reports whenever the status filter changes (only while the tab is open).
+  useEffect(() => {
+    if (tab === 'reports') loadReports(reportsStatus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportsStatus]);
+
   // Lazy-load the two AI-review tabs only when first opened.
   useEffect(() => {
+    if (tab === 'reports' && reports.length === 0 && !reportsLoading) loadReports();
     if (tab === 'quality' && qFlags.length === 0 && !qFlagsLoading) loadQualityFlags();
     if (tab === 'anomalies' && anomFlags.length === 0 && !anomLoading) loadAnomalies();
     if (tab === 'pyqcontent' && pcFlags.length === 0 && !pcLoading) loadPyqFlags();
@@ -352,13 +388,13 @@ export default function AdminConsolePage() {
       </div>
 
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto">
-        {(['events', 'audit', 'admins', 'quality', 'anomalies', 'pyqcontent', 'mainsqa', 'cronhealth', 'observability'] as const).map(t => (
+        {(['events', 'reports', 'audit', 'admins', 'quality', 'anomalies', 'pyqcontent', 'mainsqa', 'cronhealth', 'observability'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="shrink-0 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
             style={t === tab
               ? { background: 'var(--v2-primary-tint-2)', color: 'var(--v2-primary)', border: '1px solid var(--v2-primary)' }
               : { background: 'var(--v2-card)', color: 'var(--v2-text-4)', border: '1px solid var(--v2-border)' }}>
-            {t === 'events' ? 'Live Events' : t === 'audit' ? 'Audit Log' : t === 'admins' ? 'Admins' : t === 'quality' ? 'Question QA' : t === 'anomalies' ? 'Anomalies' : t === 'pyqcontent' ? 'Content QA' : t === 'mainsqa' ? 'Mains QA' : t === 'cronhealth' ? 'Cron Health' : 'Observability'}
+            {t === 'events' ? 'Live Events' : t === 'reports' ? `Reports${reportsTotal ? ` (${reportsTotal})` : ''}` : t === 'audit' ? 'Audit Log' : t === 'admins' ? 'Admins' : t === 'quality' ? 'Question QA' : t === 'anomalies' ? 'Anomalies' : t === 'pyqcontent' ? 'Content QA' : t === 'mainsqa' ? 'Mains QA' : t === 'cronhealth' ? 'Cron Health' : 'Observability'}
           </button>
         ))}
       </div>
@@ -395,6 +431,71 @@ export default function AdminConsolePage() {
               </div>
             )}
           </>
+        )}
+
+        {tab === 'reports' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {(['pending', 'reviewed', 'fixed', 'dismissed', 'all'] as const).map(s => (
+                <button key={s} onClick={() => setReportsStatus(s)}
+                  className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold capitalize whitespace-nowrap"
+                  style={s === reportsStatus
+                    ? { background: 'var(--v2-primary-tint-2)', color: 'var(--v2-primary)', border: '1px solid var(--v2-primary)' }
+                    : { background: 'var(--v2-card)', color: 'var(--v2-text-4)', border: '1px solid var(--v2-border)' }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {reportsLoading ? (
+              <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-white/40 animate-spin" /></div>
+            ) : reports.length === 0 ? (
+              <p className="text-white/40 text-sm text-center py-10">
+                No {reportsStatus === 'all' ? '' : reportsStatus} reports.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {reports.map(r => (
+                  <div key={r.id} className="rounded-2xl p-3.5 flex flex-col gap-2" style={{ background: 'var(--ink-040)' }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
+                        style={{ background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171' }}>
+                        {r.report_type.replace('_', ' ')}
+                      </span>
+                      {r.report_count > 1 && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
+                          style={{ background: 'rgba(245,158,11,0.15)', color: isLight ? '#92400E' : '#FBBF24' }}>
+                          {r.report_count}× reported
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-white leading-snug line-clamp-4">{r.question_text}</p>
+                    {r.details && <p className="text-xs text-white/40 leading-snug">{r.details}</p>}
+                    <p className="text-xs text-white/30">{new Date(r.created_at).toLocaleString()}</p>
+                    <div className="flex gap-2 mt-1">
+                      <button onClick={() => updateReportStatus(r, 'fixed')}
+                        className="flex-1 py-2 rounded-xl text-xs font-bold"
+                        style={{ background: 'rgba(16,185,129,0.15)', color: isLight ? '#047857' : '#34D399' }}>
+                        Mark Fixed
+                      </button>
+                      <button onClick={() => updateReportStatus(r, 'dismissed')}
+                        className="flex-1 py-2 rounded-xl text-xs font-bold"
+                        style={{ background: 'var(--ink-060)', color: 'var(--ink-500)' }}>
+                        Dismiss
+                      </button>
+                      {reportsStatus === 'pending' && (
+                        <button onClick={() => updateReportStatus(r, 'reviewed')}
+                          className="flex-1 py-2 rounded-xl text-xs font-bold"
+                          style={{ background: 'rgba(91,106,245,0.15)', color: isLight ? '#4338CA' : '#A0AEFF' }}>
+                          Reviewed
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {tab === 'audit' && (
