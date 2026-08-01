@@ -15,6 +15,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ReportButton } from '@/components/ui/ReportButton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -245,7 +246,18 @@ function TopicSheet({
 
           {/* Description */}
           {topic.description && (
-            <p className="text-white/60 text-sm leading-relaxed mb-4">{topic.description}</p>
+            <>
+              <p className="text-white/60 text-sm leading-relaxed mb-1.5">{topic.description}</p>
+              <div className="flex justify-end mb-4">
+                <ReportButton
+                  contentText={topic.description}
+                  source="curriculum_detail"
+                  details={`Subject: ${subject} · Topic: ${topic.title}`}
+                  contentId={topic.id}
+                  compact
+                />
+              </div>
+            </>
           )}
 
           {/* Meta row */}

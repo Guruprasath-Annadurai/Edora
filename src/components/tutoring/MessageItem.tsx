@@ -3,6 +3,7 @@ import { CheckCircle2, XCircle, BookOpen } from 'lucide-react';
 import { NovoAvatar } from '@/components/tutoring/NovoAvatar';
 import { MCQCard } from '@/components/tutoring/MCQCard';
 import { renderMarkdown } from '@/lib/tutoringMarkdown';
+import { ReportButton } from '@/components/ui/ReportButton';
 import type { TutoringMessage } from '@/lib/tutoringTypes';
 
 interface MessageItemProps {
@@ -13,9 +14,11 @@ interface MessageItemProps {
   answered?: boolean;
   selectedIdx?: number | null;
   correctIdx?: number | null;
+  /** Subject/topic of the session — passed through to ReportButton's `details`. */
+  reportDetails?: string;
 }
 
-export function MessageItem({ msg, displayContent, isTyping, onAnswer, answered, selectedIdx, correctIdx }: MessageItemProps) {
+export function MessageItem({ msg, displayContent, isTyping, onAnswer, answered, selectedIdx, correctIdx, reportDetails }: MessageItemProps) {
   if (msg.type === 'transition') {
     return (
       <motion.div
@@ -145,6 +148,11 @@ export function MessageItem({ msg, displayContent, isTyping, onAnswer, answered,
             : renderMarkdown(visibleContent)
           }
         </div>
+        {!isTyping && visibleContent && (
+          <div className="flex justify-end mt-1.5">
+            <ReportButton contentText={visibleContent} source="tutoring_session" details={reportDetails} />
+          </div>
+        )}
       </div>
     </motion.div>
   );

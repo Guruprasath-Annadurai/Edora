@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { track } from '@/lib/analytics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ReportButton } from '@/components/ui/ReportButton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -337,7 +338,18 @@ function DetailPanel({
 
         {/* Description */}
         {node.description && (
-          <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{node.description}</p>
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">{node.description}</p>
+            <div className="flex justify-end mt-1">
+              <ReportButton
+                contentText={node.description}
+                source="concept_map"
+                details={`Subject: ${node.subject} | Node: ${node.title}`}
+                contentId={node.id}
+                compact
+              />
+            </div>
+          </div>
         )}
 
         {/* Stats */}

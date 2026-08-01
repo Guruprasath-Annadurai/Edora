@@ -14,6 +14,7 @@ import type { Flashcard } from '@/types';
 import { indexUserItem } from '@/lib/userContentIndex';
 import { getFeatureTheme } from '@/lib/featureTheme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ReportButton } from '@/components/ui/ReportButton';
 
 type ReviewRating = 'again' | 'hard' | 'good' | 'easy';
 
@@ -312,6 +313,14 @@ export default function FlashcardPage() {
                   </div>
                 </motion.div>
               </motion.div>
+            <div className="flex justify-end -mt-1">
+              <ReportButton
+                compact
+                contentText={`Front: ${card.front}\n\nBack: ${card.back}`}
+                source="flashcard"
+                contentId={card.id}
+                details={card.subject ? `Subject: ${card.subject}` : undefined}
+              />
             </div>
 
             {flipped && (

@@ -819,6 +819,7 @@ Rules:
                 msg={msg}
                 displayContent={tw.text}
                 isTyping={tw.typing}
+                reportDetails={subject ? `Subject: ${subject}${topic ? ` — Topic: ${topic}` : ''}` : undefined}
                 onAnswer={
                   msg.type === 'checkpoint_question'
                     ? submitAnswer

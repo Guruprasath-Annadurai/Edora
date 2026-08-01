@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
+import { ReportButton } from '@/components/ui/ReportButton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface SolutionStep {
@@ -187,6 +188,13 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
     onNovoAsk(`In the problem "${ex.question}", can you explain step ${step.step}: "${step.action}"? The reasoning given is: ${step.reasoning}`);
   }
 
+  const solutionText = [
+    `Question: ${ex.question}`,
+    `Key concept: ${ex.key_concept}`,
+    ...ex.steps.map(s => `Step ${s.step}: ${s.action}${s.formula ? ` — ${s.formula}` : ''} (${s.reasoning})${s.result ? ` → ${s.result}` : ''}`),
+    `Answer: ${ex.answer}`,
+  ].join('\n');
+
   return (
     <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'var(--ink-040)', backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)', border: '1px solid var(--ink-080)' }}>
       {/* Header */}
@@ -244,6 +252,16 @@ function ExampleCard({ ex, onSave, onNovoAsk }: {
                   <span key={t} className="text-[9px] px-2 py-0.5 rounded-full font-medium"
                     style={{ background: 'var(--ink-060)', color: 'var(--ink-500)' }}>#{t}</span>
                 ))}
+              </div>
+
+              {/* Report */}
+              <div className="flex justify-end mt-3">
+                <ReportButton
+                  contentText={solutionText}
+                  source="solved_examples"
+                  details={`Subject: ${ex.subject} · Chapter: ${ex.chapter}`}
+                  contentId={ex.id}
+                />
               </div>
             </div>
           </motion.div>

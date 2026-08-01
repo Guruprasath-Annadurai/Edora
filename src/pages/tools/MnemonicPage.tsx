@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Toast } from '@capacitor/toast';
 import { geminiJSON } from '@/lib/gemini';
+import { ReportButton } from '@/components/ui/ReportButton';
 import type { LucideIcon } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -135,11 +136,19 @@ Return ONLY valid JSON (no markdown): {
                       <Icon size={14} style={{ color }} />
                       <p className="text-xs font-bold uppercase tracking-wide" style={{ color }}>{label}</p>
                     </div>
-                    <button onClick={() => copyText(result[key])}
-                      className="p-1.5 rounded-lg"
-                      style={{ background: 'var(--ink-080)', border: `1px solid ${colorDark}30` }}>
-                      <Copy size={12} style={{ color }} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <ReportButton
+                        contentText={result[key]}
+                        source="mnemonic"
+                        details={`Topic: ${topic}${context ? ` | Context: ${context}` : ''} | Type: ${label}`}
+                        compact
+                      />
+                      <button onClick={() => copyText(result[key])}
+                        className="p-1.5 rounded-lg"
+                        style={{ background: 'var(--ink-080)', border: `1px solid ${colorDark}30` }}>
+                        <Copy size={12} style={{ color }} />
+                      </button>
+                    </div>
                   </div>
                   <div className="px-4 py-3">
                     <p className="text-sm text-white/85 leading-relaxed">{result[key]}</p>

@@ -28,6 +28,7 @@ import { track } from '@/lib/analytics';
 import { Capacitor } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ReportButton } from '@/components/ui/ReportButton';
 
 // Use the local worker bundled by Vite — no CDN dependency
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -151,14 +152,22 @@ async function extractPdfTextViaOCR(
 }
 
 // ── Flashcard component (tap to flip) ─────────────────────────────────────────
-function FlashcardItem({ card, index, total }: { card: Flashcard; index: number; total: number }) {
+function FlashcardItem({ card, index, total, fileName }: { card: Flashcard; index: number; total: number; fileName?: string }) {
   const [flipped, setFlipped] = useState(false);
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <p className="text-xs text-muted-foreground font-medium">
-        Card {index + 1} of {total} · {flipped ? 'Back' : 'Front'}
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs text-muted-foreground font-medium">
+          Card {index + 1} of {total} · {flipped ? 'Back' : 'Front'}
+        </p>
+        <ReportButton
+          contentText={`Front: ${card.front}\nBack: ${card.back}`}
+          source="study_pack"
+          details={fileName ? `File: ${fileName} | Section: Flashcards` : 'Section: Flashcards'}
+          compact
+        />
+      </div>
       <motion.div
         className="w-full cursor-pointer"
         style={{ perspective: 1200 }}
@@ -193,7 +202,7 @@ function FlashcardItem({ card, index, total }: { card: Flashcard; index: number;
 }
 
 // ── Quiz component ────────────────────────────────────────────────────────────
-function QuizView({ questions }: { questions: QuizQ[] }) {
+function QuizView({ questions, fileName }: { questions: QuizQ[]; fileName?: string }) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [current,  setCurrent]  = useState(0);
@@ -271,6 +280,14 @@ function QuizView({ questions }: { questions: QuizQ[] }) {
           <div className="rounded-2xl p-4"
             style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-070)' }}>
             <p className="text-white font-semibold text-sm leading-relaxed">{q.question}</p>
+            <div className="flex justify-end mt-2">
+              <ReportButton
+                contentText={`Q: ${q.question}\nAnswer: ${q.options[q.correct_answer]}\nExplanation: ${q.explanation}`}
+                source="study_pack"
+                details={fileName ? `File: ${fileName} | Section: Quiz` : 'Section: Quiz'}
+                compact
+              />
+            </div>
           </div>
 
           {/* Options */}
@@ -725,6 +742,15 @@ export default function StudyPackPage() {
                     <h3 className="font-heading font-bold text-white text-sm">Summary</h3>
                   </div>
                   <p className="text-sm text-white/80 leading-relaxed whitespace-pre-line">{viewing.summary}</p>
+                  <div className="flex justify-end mt-3">
+                    <ReportButton
+                      contentText={viewing.summary}
+                      source="study_pack"
+                      details={`File: ${viewing.file_name} | Section: Summary`}
+                      contentId={viewing.id}
+                      compact
+                    />
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -737,7 +763,8 @@ export default function StudyPackPage() {
                 <FlashcardItem
                   card={viewing.flashcards[cardIndex]}
                   index={cardIndex}
-                  total={viewing.flashcards.length} />
+                  total={viewing.flashcards.length}
+                  fileName={viewing.file_name} />
 
                 {/* Navigation */}
                 <div className="flex items-center justify-between gap-3">
@@ -772,7 +799,7 @@ export default function StudyPackPage() {
             {activeTab === 'quiz' && (
               <motion.div key="quiz"
                 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <QuizView questions={viewing.quiz} />
+                <QuizView questions={viewing.quiz} fileName={viewing.file_name} />
               </motion.div>
             )}
 
@@ -787,7 +814,15 @@ export default function StudyPackPage() {
                     transition={{ delay: i * 0.04 }}
                     className="rounded-2xl p-4"
                     style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
-                    <p className="font-semibold text-white text-sm mb-1">{term.term}</p>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="font-semibold text-white text-sm">{term.term}</p>
+                      <ReportButton
+                        contentText={`${term.term}: ${term.definition}`}
+                        source="study_pack"
+                        details={`File: ${viewing.file_name} | Section: Key Terms`}
+                        compact
+                      />
+                    </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">{term.definition}</p>
                   </motion.div>
                 ))}

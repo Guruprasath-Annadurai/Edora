@@ -12,6 +12,7 @@ import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
 import { SpeedReaderOverlay } from '@/components/study/SpeedReaderOverlay';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ReportButton } from '@/components/ui/ReportButton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface NcertParagraph {
@@ -104,10 +105,19 @@ function ParagraphCard({ p, onBookmark, isLight }: { p: NcertParagraph; onBookma
             <span className="text-xs text-white/40">{p.chapter_title}</span>
             <span className="text-xs text-white/30">· Class {p.class_num}</span>
           </div>
-          <button onClick={() => onBookmark(p.id)} aria-label={p.bookmarked ? 'Remove bookmark' : 'Bookmark'}
-            className="flex items-center justify-center -mr-1 -my-1" style={{ width: 44, height: 44 }}>
-            <BookMarked size={14} style={{ color: p.bookmarked ? color : 'var(--ink-250)' }} fill={p.bookmarked ? color : 'none'} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <ReportButton
+              contentText={`${p.paragraph_text}\n\nConcept: ${p.concept}\nExam question: ${p.exam_question}\nMisconception: ${p.misconception}\nReal-world example: ${p.real_world_example}`}
+              source="ncert_deep_dive"
+              details={`Subject: ${p.subject} · Chapter: ${p.chapter_title}`}
+              contentId={p.id}
+              compact
+            />
+            <button onClick={() => onBookmark(p.id)} aria-label={p.bookmarked ? 'Remove bookmark' : 'Bookmark'}
+              className="flex items-center justify-center -mr-1 -my-1" style={{ width: 44, height: 44 }}>
+              <BookMarked size={14} style={{ color: p.bookmarked ? color : 'var(--ink-250)' }} fill={p.bookmarked ? color : 'none'} />
+            </button>
+          </div>
         </div>
 
         {/* Paragraph text */}

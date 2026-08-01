@@ -17,6 +17,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ReportButton } from '@/components/ui/ReportButton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -897,6 +898,13 @@ export default function PhotoSolverPage() {
                   <p className="text-xs font-bold uppercase tracking-wide" style={{ color: isLight ? '#047857' : '#34D399' }}>Final Answer</p>
                 </div>
                 <p className="text-base font-bold text-white leading-snug">{result.final_answer}</p>
+                <div className="mt-2 flex justify-end">
+                  <ReportButton
+                    contentText={`${result.problem_statement}\n\n${result.final_answer}`}
+                    source="photo_solver"
+                    details={`Subject: ${result.subject_detected}`}
+                  />
+                </div>
               </div>
 
               {/* Concept Summary */}
