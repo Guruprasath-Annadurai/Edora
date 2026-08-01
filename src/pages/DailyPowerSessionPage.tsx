@@ -204,7 +204,7 @@ function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: ()
           <motion.div key="example" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
             <div className="rounded-2xl p-4 text-sm text-white/70 leading-relaxed"
               style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-              <span className="text-xs font-bold text-emerald-400 uppercase block mb-1">Example</span>
+              <span className="text-xs font-bold uppercase block mb-1" style={{ color: isLight ? '#047857' : '#34D399' }}>Example</span>
               {concept.example}
             </div>
             <button onClick={() => setPhase(concept.question ? 'question' : 'answer')}
@@ -217,7 +217,7 @@ function ConceptBiteStep({ concept, onDone }: { concept: ConceptBite; onDone: ()
         {phase === 'question' && concept.question && (
           <motion.div key="question" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
             <div className="rounded-2xl p-4" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-              <span className="text-xs font-bold text-amber-400 uppercase block mb-1">Quick Check</span>
+              <span className="text-xs font-bold uppercase block mb-1" style={{ color: isLight ? '#92400E' : '#FBBF24' }}>Quick Check</span>
               <p className="text-white/80 text-sm leading-relaxed">{concept.question}</p>
             </div>
             <button onClick={() => setPhase('answer')}

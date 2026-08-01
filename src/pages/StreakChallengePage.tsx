@@ -680,8 +680,8 @@ function ChallengeCard({ challenge, onOpenTask, onAbandon, index }: ChallengeCar
               Cancel
             </button>
             <button onClick={() => onAbandon(challenge.id)}
-              className="text-xs text-red-600 font-semibold px-2 py-1"
-              style={{ WebkitTapHighlightColor: 'transparent' }}>
+              className="text-xs font-semibold px-2 py-1"
+              style={{ color: isLight ? '#B91C1C' : '#DC2626', WebkitTapHighlightColor: 'transparent' }}>
               Abandon
             </button>
           </div>
