@@ -1104,6 +1104,24 @@ sales/procurement conversation coming up.
     This closes the systematic sweep across every page tracked in this
     document.
 
+36. **Full inventory reconciliation** — diffed every file in `src/pages/`
+    (including subdirectories) against this document's mentions to
+    confirm nothing was missed. Found one genuine gap never listed
+    anywhere here: **Classroom Callback** (`auth/ClassroomCallbackPage.tsx`,
+    the Google Classroom OAuth-connect screen, teacher-only) — ✅ 81st
+    occurrence. Sits on the adaptive `--page-bg-start/end` gradient and
+    `--ink-060` card but had no `useTheme`; its success/error icons and
+    connected-email chip used literal `#34D399`/`#F87171`, isLight-branched
+    to `#047857`/`#B91C1C`. `npx tsc --noEmit` passes clean; could not
+    live-verify (route requires an authenticated teacher session). The
+    handful of other "missing" filenames from the diff (the 6 `tools/`
+    screens) are false positives — already closed under item 32, just
+    referenced there by display name rather than literal filename.
+
+    This closes the sweep with full file-level confirmation — every page
+    in `src/pages/` is now accounted for, either fixed or explicitly
+    confirmed safe.
+
 ---
 
 ## Open decisions (need your call, not mine to silently pick)
