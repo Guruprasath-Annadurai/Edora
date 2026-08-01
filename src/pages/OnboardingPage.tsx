@@ -9,6 +9,7 @@ import { NovoAvatar } from '@/components/novo/NovoAvatar';
 import type { NovoState } from '@/components/novo/NovoAvatar';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { incrementSession, maybePromptRating } from '@/lib/appRating';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STUDY_LEVELS = [
@@ -19,14 +20,14 @@ const STUDY_LEVELS = [
 ];
 
 const SUBJECTS = [
-  { value: 'Mathematics', color: '#93C5FD' },
-  { value: 'Physics',     color: '#C4B5FD' },
-  { value: 'Chemistry',   color: '#6EE7B7' },
-  { value: 'Biology',     color: '#86EFAC' },
-  { value: 'English',     color: '#FCA5A5' },
-  { value: 'History',     color: '#FDE68A' },
-  { value: 'Economics',   color: '#A5F3FC' },
-  { value: 'Computer Science', color: '#DDD6FE' },
+  { value: 'Mathematics', color: '#93C5FD', colorLight: '#1D4ED8' },
+  { value: 'Physics',     color: '#C4B5FD', colorLight: '#6D28D9' },
+  { value: 'Chemistry',   color: '#6EE7B7', colorLight: '#047857' },
+  { value: 'Biology',     color: '#86EFAC', colorLight: '#15803D' },
+  { value: 'English',     color: '#FCA5A5', colorLight: '#B91C1C' },
+  { value: 'History',     color: '#FDE68A', colorLight: '#92400E' },
+  { value: 'Economics',   color: '#A5F3FC', colorLight: '#0E7490' },
+  { value: 'Computer Science', color: '#DDD6FE', colorLight: '#6D28D9' },
 ];
 
 const EXAMS = [
@@ -49,12 +50,12 @@ const LANGUAGES = [
 ];
 
 const MOODS = [
-  { icon: Flame,     label: 'Excited',    value: 'focused',    color: '#F97316' },
-  { icon: Zap,       label: 'Determined', value: 'determined', color: '#7C3AED' },
-  { icon: Smile,     label: 'Curious',    value: 'good',       color: '#10B981' },
-  { icon: Meh,       label: 'Uncertain',  value: 'okay',       color: '#F59E0B' },
-  { icon: CloudRain, label: 'Anxious',    value: 'anxious',    color: '#EF4444' },
-  { icon: Moon,      label: 'Tired',      value: 'low',        color: '#6B7280' },
+  { icon: Flame,     label: 'Excited',    value: 'focused',    color: '#F97316', colorLight: '#9A3412' },
+  { icon: Zap,       label: 'Determined', value: 'determined', color: '#7C3AED', colorLight: '#6D28D9' },
+  { icon: Smile,     label: 'Curious',    value: 'good',       color: '#10B981', colorLight: '#047857' },
+  { icon: Meh,       label: 'Uncertain',  value: 'okay',       color: '#F59E0B', colorLight: '#92400E' },
+  { icon: CloudRain, label: 'Anxious',    value: 'anxious',    color: '#EF4444', colorLight: '#B91C1C' },
+  { icon: Moon,      label: 'Tired',      value: 'low',        color: '#6B7280', colorLight: '#52525B' },
 ];
 
 // ── Novo intro messages for each step ────────────────────────────────────────
@@ -154,6 +155,8 @@ function StepLayout({ heading, body, novoState, children }: {
 export default function OnboardingPage() {
   const { user } = useAuth();
   const navigate  = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const [step, setStep]               = useState(0);
   const [studyLevel, setStudyLevel]   = useState('');
@@ -278,7 +281,7 @@ export default function OnboardingPage() {
                   style={{
                     padding: '16px 40px', borderRadius: 18,
                     background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
-                    color: 'var(--ink-950)', fontSize: 15, fontWeight: 700,
+                    color: '#ffffff', fontSize: 15, fontWeight: 700,
                     display: 'flex', alignItems: 'center', gap: 8,
                     boxShadow: '0 8px 32px rgba(124,58,237,0.5)',
                     border: 'none', cursor: 'pointer', minHeight: 52 }}
@@ -307,10 +310,10 @@ export default function OnboardingPage() {
                         cursor: 'pointer', minHeight: 44 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Icon size={20} style={{ color: active ? '#A855F7' : 'var(--ink-500)', marginBottom: 8 }} />
+                      <Icon size={20} style={{ color: active ? (isLight ? '#6D28D9' : '#A855F7') : 'var(--ink-500)', marginBottom: 8 }} />
                       <div style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--ink-950)' : 'var(--ink-700)', marginBottom: 2 }}>{label}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink-400)' }}>{sub}</div>
-                      {active && <div style={{ position: 'absolute', top: 12, right: 12 }}><Check size={14} style={{ color: '#A855F7' }} /></div>}
+                      {active && <div style={{ position: 'absolute', top: 12, right: 12 }}><Check size={14} style={{ color: isLight ? '#6D28D9' : '#A855F7' }} /></div>}
                     </motion.button>
                   );
                 })}
@@ -334,12 +337,12 @@ export default function OnboardingPage() {
                         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
                       whileTap={{ scale: 0.97 }}
                     >
-                      <Languages size={20} style={{ color: active ? '#A855F7' : 'var(--ink-400)' }} strokeWidth={1.7} />
+                      <Languages size={20} style={{ color: active ? (isLight ? '#6D28D9' : '#A855F7') : 'var(--ink-400)' }} strokeWidth={1.7} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--ink-950)' : 'var(--ink-700)' }}>{lang.label}</div>
                         <div style={{ fontSize: 12, color: 'var(--ink-400)' }}>{lang.native}</div>
                       </div>
-                      {active && <Check size={16} style={{ color: '#A855F7', flexShrink: 0 }} />}
+                      {active && <Check size={16} style={{ color: isLight ? '#6D28D9' : '#A855F7', flexShrink: 0 }} />}
                     </motion.button>
                   );
                 })}
@@ -350,8 +353,9 @@ export default function OnboardingPage() {
           {step === 3 && (
             <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {SUBJECTS.map(({ value, color }) => {
+                {SUBJECTS.map(({ value, color, colorLight }) => {
                   const active = subjects.includes(value);
+                  const activeColor = isLight ? colorLight : color;
                   return (
                     <motion.button
                       key={value}
@@ -363,7 +367,7 @@ export default function OnboardingPage() {
                         padding: '8px 16px', borderRadius: 100,
                         background: active ? `rgba(${hexToRgb(color)}, 0.18)` : 'var(--ink-050)',
                         border: active ? `1.5px solid ${color}60` : '1.5px solid var(--ink-080)',
-                        color: active ? color : 'var(--ink-600)',
+                        color: active ? activeColor : 'var(--ink-600)',
                         fontSize: 13, fontWeight: 700,
                         cursor: 'pointer', minHeight: 36, display: 'flex', alignItems: 'center', gap: 4 }}
                       whileTap={{ scale: 0.92 }}
@@ -392,7 +396,7 @@ export default function OnboardingPage() {
                           padding: '8px 14px', borderRadius: 100,
                           background: active ? 'rgba(124,58,237,0.18)' : 'var(--ink-050)',
                           border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid var(--ink-080)',
-                          color: active ? '#A855F7' : 'var(--ink-600)',
+                          color: active ? (isLight ? '#6D28D9' : '#A855F7') : 'var(--ink-600)',
                           fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 36,
                           display: 'flex', alignItems: 'center', gap: 4 }}
                         whileTap={{ scale: 0.92 }}
@@ -440,6 +444,7 @@ export default function OnboardingPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {MOODS.map(m => {
                   const active = mood === m.value;
+                  const moodColor = isLight ? m.colorLight : m.color;
                   return (
                     <motion.button
                       key={m.value}
@@ -453,8 +458,8 @@ export default function OnboardingPage() {
                       whileTap={{ scale: 0.93 }}
                       animate={active ? { scale: [1, 1.05, 1] } : { scale: 1 }}
                     >
-                      <m.icon size={26} style={{ color: m.color }} strokeWidth={1.7} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: active ? m.color : 'var(--ink-550)' }}>
+                      <m.icon size={26} style={{ color: moodColor }} strokeWidth={1.7} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: active ? moodColor : 'var(--ink-550)' }}>
                         {m.label}
                       </span>
                     </motion.button>
@@ -479,7 +484,7 @@ export default function OnboardingPage() {
                   display: 'flex', alignItems: 'center', gap: 12,
                   background: 'var(--ink-060)', borderRadius: 16,
                   border: '1px solid var(--ink-100)', padding: '12px 16px' }}>
-                  <Gift size={18} style={{ color: '#A0AEFF', flexShrink: 0 }} />
+                  <Gift size={18} style={{ color: isLight ? '#4338CA' : '#A0AEFF', flexShrink: 0 }} />
                   <input
                     value={referralCode}
                     onChange={e => { setReferralCode(e.target.value.toUpperCase()); setReferralStatus('idle'); }}
@@ -490,15 +495,15 @@ export default function OnboardingPage() {
                       fontSize: 16, fontWeight: 700, letterSpacing: '0.12em',
                       color: 'var(--ink-950)' }}
                   />
-                  {referralStatus === 'ok' && <Check size={16} style={{ color: '#34D399' }} />}
+                  {referralStatus === 'ok' && <Check size={16} style={{ color: isLight ? '#047857' : '#34D399' }} />}
                 </div>
 
                 {referralStatus === 'ok' && (
                   <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 14,
                       background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
-                    <Check size={16} style={{ color: '#34D399' }} />
-                    <p style={{ fontSize: 13, color: '#34D399', fontWeight: 600 }}>
+                    <Check size={16} style={{ color: isLight ? '#047857' : '#34D399' }} />
+                    <p style={{ fontSize: 13, color: isLight ? '#047857' : '#34D399', fontWeight: 600 }}>
                       Code applied. You'll get 50 bonus XP after setup.
                     </p>
                   </motion.div>
@@ -509,7 +514,7 @@ export default function OnboardingPage() {
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '8px 16px', borderRadius: 100,
                     background: 'rgba(160,174,255,0.08)', border: '1px solid rgba(160,174,255,0.15)' }}>
-                    <Gift size={13} style={{ color: '#A0AEFF' }} />
+                    <Gift size={13} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
                     <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>Both you and your friend earn bonus XP</span>
                   </div>
                 </div>

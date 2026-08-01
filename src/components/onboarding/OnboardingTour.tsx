@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { useTheme } from '@/contexts/ThemeContext';
 
 async function haptic() {
   try { await Haptics.impact({ style: ImpactStyle.Light }); } catch { /* web */ }
@@ -222,6 +223,8 @@ interface OnboardingTourProps {
 }
 
 export function OnboardingTour({ onDone }: OnboardingTourProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [step, setStep]     = useState(0);
   const [exiting, setExiting] = useState(false);
   const totalSteps          = STEPS.length;
@@ -333,10 +336,12 @@ export function OnboardingTour({ onDone }: OnboardingTourProps) {
                       borderBottom: '7px solid rgba(124,58,237,0.35)',
                     }}
                   />
-                  <h2 className="font-heading text-[18px] font-extrabold text-white leading-tight mb-1.5">
+                  <h2 className="font-heading text-[18px] font-extrabold leading-tight mb-1.5"
+                    style={{ color: isLight ? '#0F172A' : '#ffffff' }}>
                     {current.heading}
                   </h2>
-                  <p className="text-sm leading-relaxed text-white/60">
+                  <p className="text-sm leading-relaxed"
+                    style={{ color: isLight ? 'rgba(15,23,42,0.65)' : 'rgba(255,255,255,0.6)' }}>
                     {current.body}
                   </p>
                 </motion.div>
