@@ -168,7 +168,7 @@ function CardStep({ card, index, total, onResult }: CardStepProps) {
               boxShadow: '0 8px 40px rgba(109,40,217,0.2)',
             }}
           >
-            <p className="text-xs font-bold uppercase tracking-widest text-violet-400/60 mb-4">Question</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: violet, opacity: 0.8 }}>Question</p>
             <p className="text-xl font-bold text-white leading-snug">{card.front}</p>
             {!flipped && (
               <p className="mt-5 text-xs text-white/30 font-semibold">Tap to reveal answer</p>
@@ -187,7 +187,7 @@ function CardStep({ card, index, total, onResult }: CardStepProps) {
               boxShadow: '0 8px 40px rgba(109,40,217,0.3)',
             }}
           >
-            <p className="text-xs font-bold uppercase tracking-widest text-violet-400/60 mb-4">Answer</p>
+            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: violet, opacity: 0.8 }}>Answer</p>
             <p className="text-lg font-semibold text-white/90 leading-snug">{card.back}</p>
           </div>
         </motion.div>
@@ -313,7 +313,7 @@ function CompletionScreen({ known, total, onRestart }: { known: number; total: n
       >
         <div className="flex items-center gap-2 mb-1.5">
           <Sparkles size={12} style={{ color: violet }} />
-          <span className="text-xs font-bold uppercase tracking-wider text-violet-400/70">Sleep insight</span>
+          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: violet, opacity: 0.85 }}>Sleep insight</span>
         </div>
         <p className="text-sm text-white/60 leading-relaxed">{tip}</p>
       </div>
@@ -396,7 +396,7 @@ Keep each item under 8 words. No numbering. No markdown.`
       {/* Urgency banner */}
       <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
         <AlertTriangle size={16} style={{ color: amber, flexShrink: 0 }} />
-        <p className="text-xs text-amber-300/80">
+        <p className="text-xs" style={{ color: amber, opacity: 0.9 }}>
           {daysLeft <= 1 ? 'Your exam is tomorrow! Tick these key concepts.' : `Only ${daysLeft} days left — review these high-yield topics.`}
         </p>
       </div>
