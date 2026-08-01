@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabase';
 import { Events, track } from '@/lib/analytics';
 import {GeminiRateLimitError, GeminiTimeoutError, GeminiNetworkError} from '@/lib/gemini';
 import { writeSessionCache, getOfflineFallback } from '@/lib/ragCache';
+import { reportContent, type ReportType } from '@/lib/contentReport';
 import { getBestFallbackAnswer } from '@/lib/fallbackQA';
 import { inferOffline, isModelReady, initOfflineModel, onStatusChange as onModelStatusChange, onProgress as onModelProgress, type ModelStatus } from '@/lib/offlineModel';
 import { useGeminiStream } from '@/lib/useGeminiStream';
@@ -321,15 +322,28 @@ export default function ChatPage() {
   async function submitReport(msg: Message, reason: 'incorrect' | 'confusing' | 'off_topic' | 'other') {
     if (!user) return;
     setReportingMsgId(null);
-    const { error } = await supabase.from('answer_reports').insert({
-      user_id:         user.id,
-      message_content: msg.displayContent ?? msg.content,
-      chunk_ids:       msg.citations?.map(c => c.id) ?? [],
-      reason,
+    // Previously inserted into a table ('answer_reports') that was never
+    // created by any migration — the insert always failed silently, so
+    // neither the "Reported" confirmation nor the analytics event ever
+    // actually fired. Routed into the real question_reports review queue
+    // (same table QuizPage/AIQuizBankPage write to) via the shared helper.
+    const REASON_MAP: Record<typeof reason, ReportType> = {
+      incorrect:  'wrong_answer',
+      confusing:  'ambiguous',
+      off_topic:  'other',
+      other:      'other',
+    };
+    const chunkIds = msg.citations?.map(c => c.id) ?? [];
+    const { error } = await reportContent({
+      userId: user.id,
+      contentText: msg.displayContent ?? msg.content,
+      reportType: REASON_MAP[reason],
+      source: 'chat',
+      details: `reason=${reason}${chunkIds.length ? `; chunk_ids=${chunkIds.join(',')}` : ''}`,
     });
     if (!error) {
       setReportSubmittedFor(prev => new Set(prev).add(msg.id));
-      track('answer_reported', { reason, hasCitations: (msg.citations?.length ?? 0) > 0 });
+      track('answer_reported', { reason, hasCitations: chunkIds.length > 0 });
     }
   }
 
