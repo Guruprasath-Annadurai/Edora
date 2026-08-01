@@ -697,7 +697,7 @@ export default function PhotoSolverPage() {
                 }}
               >
                 <Lightbulb size={15} style={{ color: isLight ? '#92400E' : '#FBBF24' }} className="shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-300/80 leading-relaxed">
+                <p className="text-sm leading-relaxed" style={{ color: isLight ? '#92400E' : '#FCD34D', opacity: isLight ? 1 : 0.8 }}>
                   Hold camera still and ensure the problem is well-lit for best results.
                 </p>
               </div>
@@ -930,7 +930,7 @@ export default function PhotoSolverPage() {
                     className="w-full flex items-center gap-2.5 px-4 py-3"
                   >
                     <AlertCircle size={15} style={{ color: isLight ? '#92400E' : '#FBBF24' }} className="shrink-0" />
-                    <span className="text-sm font-bold text-amber-300 flex-1 text-left">
+                    <span className="text-sm font-bold flex-1 text-left" style={{ color: isLight ? '#92400E' : '#FCD34D' }}>
                       Common Mistakes
                     </span>
                     {mistakesOpen ? (
@@ -957,7 +957,7 @@ export default function PhotoSolverPage() {
                               >
                                 {i + 1}
                               </span>
-                              <p className="text-sm text-amber-200/80 leading-relaxed">{m}</p>
+                              <p className="text-sm leading-relaxed" style={{ color: isLight ? '#92400E' : '#FDE68A', opacity: isLight ? 1 : 0.8 }}>{m}</p>
                             </div>
                           ))}
                         </div>
