@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, X, CheckCircle2, AlertTriangle, Trophy, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   fetchDueCards,
   fetchAllCards,
@@ -163,6 +164,8 @@ interface FlipCardProps {
 }
 
 function FlipCard({ card, isFlipped }: FlipCardProps) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   return (
     <div style={{ perspective: '1000px' }} className="w-full">
       <div
@@ -203,7 +206,7 @@ function FlipCard({ card, isFlipped }: FlipCardProps) {
             border: '1px solid rgba(91,106,245,0.3)',
           }}
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-indigo-300/60 mb-4">
+          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: isLight ? 'rgba(67,56,202,0.7)' : 'rgba(196,181,253,0.6)' }}>
             Answer
           </p>
           <p className="text-center text-lg font-bold text-white leading-snug">
@@ -256,6 +259,8 @@ function intervalLabel(days: number): string {
 
 export default function SpacedRepetitionPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const mountedRef = useRef(true);
 
   // ── Data state
@@ -705,8 +710,8 @@ export default function SpacedRepetitionPage() {
               className="mx-4 mt-3 px-4 py-3 rounded-2xl flex items-start gap-2.5"
               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}
             >
-              <AlertTriangle size={15} className="text-red-400 mt-0.5 shrink-0" />
-              <p className="text-xs font-medium text-red-400">{error}</p>
+              <AlertTriangle size={15} className="mt-0.5 shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+              <p className="text-xs font-medium" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{error}</p>
             </div>
           </motion.div>
         )}
