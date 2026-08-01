@@ -13,7 +13,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 import { withSentry }   from '../_shared/sentry.ts';
 import { normalizeMemories } from '../_shared/memoryExtraction.ts';
-import { checkRateLimit as sharedCheckRateLimit } from '../_shared/rateLimit.ts';
+import { checkRateLimit as sharedCheckRateLimit, checkGlobalLLMBudget } from '../_shared/rateLimit.ts';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 // Primary:  llama-3.3-70b-versatile  (best quality, 6000 TPM free)
@@ -1850,25 +1850,41 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
   const controller = new AbortController();
   const timeoutId  = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+  // Proactive admission check across ALL users, not just this one — at real
+  // concurrent load, waiting for Groq to hand back a 429 (previous behavior)
+  // means every over-budget request still pays a full failed-request round
+  // trip before falling back. GROQ_GLOBAL_RPM_BUDGET should be tuned to your
+  // actual Groq plan's requests-per-minute ceiling from the Groq console —
+  // this default is conservative on purpose. See checkGlobalLLMBudget's
+  // comment in _shared/rateLimit.ts for what this is and isn't.
+  const groqRpmBudget = Number(Deno.env.get('GROQ_GLOBAL_RPM_BUDGET')) || 60;
+  const { withinBudget } = await checkGlobalLLMBudget(serviceDb, 'gemini-chat-groq', groqRpmBudget, 1);
+
   let groqRes: Response;
   let modelUsed = routedModel;
-  try {
-    groqRes = await callGroq(routedModel, controller.signal);
+  if (!withinBudget) {
+    console.warn('[novo] Global Groq budget exhausted this window — skipping straight to Gemini fallback');
+    groqRes = new Response(null, { status: 429 });
+  } else {
+    try {
+      groqRes = await callGroq(routedModel, controller.signal);
 
-    // Rate-limited → fall back to small model without tools
-    if (groqRes.status === 429) {
-      console.warn('[novo] Model rate-limited — falling back to', GROQ_MODEL_FALLBACK);
-      modelUsed = GROQ_MODEL_FALLBACK;
-      groqRes   = await callGroq(GROQ_MODEL_FALLBACK, controller.signal, false);
+      // Rate-limited → fall back to small model without tools
+      if (groqRes.status === 429) {
+        console.warn('[novo] Model rate-limited — falling back to', GROQ_MODEL_FALLBACK);
+        modelUsed = GROQ_MODEL_FALLBACK;
+        groqRes   = await callGroq(GROQ_MODEL_FALLBACK, controller.signal, false);
+      }
+    } catch (fetchErr) {
+      console.error('[novo] Groq fetch threw:', (fetchErr as Error)?.message);
+      clearTimeout(timeoutId);
+      return jsonRes({ error: `Groq unreachable: ${(fetchErr as Error)?.message}` }, 503);
     }
-  } catch (fetchErr) {
-    console.error('[novo] Groq fetch threw:', (fetchErr as Error)?.message);
-    return jsonRes({ error: `Groq unreachable: ${(fetchErr as Error)?.message}` }, 503);
-  } finally {
-    clearTimeout(timeoutId);
   }
+  clearTimeout(timeoutId);
 
-  // Both Groq models rate-limited → last resort: Gemini, plain text, no tools
+  // Both Groq models rate-limited (or global budget already exhausted) →
+  // last resort: Gemini, plain text, no tools
   if (groqRes.status === 429) {
     const gemText = await callGeminiFallback(messages, controller.signal);
     if (gemText) {
