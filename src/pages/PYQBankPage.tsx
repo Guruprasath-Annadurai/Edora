@@ -11,7 +11,7 @@ import { ProGate } from '@/components/ui/ProGate';
 import { useTheme } from '@/contexts/ThemeContext';
 import { track } from '@/lib/analytics';
 
-type ExamDisplay = 'JEE_Main' | 'JEE_Advanced' | 'NEET' | 'CBSE_10' | 'CBSE_12';
+type ExamDisplay = 'JEE_Main' | 'JEE_Advanced' | 'NEET' | 'CBSE_10' | 'CBSE_12' | 'UPSC' | 'CAT';
 type Phase = 'browse' | 'heatmap' | 'quiz' | 'result';
 
 // Maps display type → pyq_content.exam values
@@ -21,6 +21,8 @@ const EXAM_DB_MAP: Record<ExamDisplay, string> = {
   NEET:         'NEET',
   CBSE_10:      'BOARDS',
   CBSE_12:      'BOARDS',
+  UPSC:         'UPSC',
+  CAT:          'CAT',
 };
 
 // CBSE_10 and CBSE_12 share the same exam value ('BOARDS') — without this,
@@ -29,6 +31,7 @@ const EXAM_DB_MAP: Record<ExamDisplay, string> = {
 const CLASS_LEVEL_MAP: Record<ExamDisplay, string | null> = {
   JEE_Main: null, JEE_Advanced: null, NEET: null,
   CBSE_10: '10', CBSE_12: '12',
+  UPSC: null, CAT: null,
 };
 
 interface PYQOption {
@@ -67,6 +70,8 @@ const EXAM_OPTIONS: { id: ExamDisplay; label: string; color: string; colorLight:
   { id: 'NEET',         label: 'NEET',          color: '#34D399', colorLight: '#047857', subjects: ['Physics','Chemistry','Biology'] },
   { id: 'CBSE_10',      label: 'CBSE Class 10', color: '#FBBF24', colorLight: '#92400E', subjects: ['Maths','Science','Social Science'] },
   { id: 'CBSE_12',      label: 'CBSE Class 12', color: '#FB923C', colorLight: '#9A3412', subjects: ['Physics','Chemistry','Biology','Maths'] },
+  { id: 'UPSC',         label: 'UPSC Prelims',  color: '#F472B6', colorLight: '#9D174D', subjects: ['Prelims_GS'] },
+  { id: 'CAT',          label: 'CAT',           color: '#22D3EE', colorLight: '#0E7490', subjects: ['QA','DILR','VARC'] },
 ];
 
 const FREE_DAILY_LIMIT = 5;
