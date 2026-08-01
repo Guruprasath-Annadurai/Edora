@@ -588,9 +588,9 @@ export default function StoryModePage() {
                 initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="rounded-2xl px-4 py-3 flex items-center gap-2"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <AlertCircle size={15} className="text-red-400 shrink-0" />
-                <p className="text-sm text-red-400 flex-1">{selectorError}</p>
-                <button aria-label="Close" onClick={() => setSelectorError('')} className="text-red-400"><X size={14} /></button>
+                <AlertCircle size={15} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                <p className="text-sm flex-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{selectorError}</p>
+                <button aria-label="Close" onClick={() => setSelectorError('')} style={{ color: isLight ? '#B91C1C' : '#F87171' }}><X size={14} /></button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -761,9 +761,9 @@ export default function StoryModePage() {
             className="overflow-hidden shrink-0">
             <div className="px-4 py-2.5 flex items-center gap-2"
               style={{ background: 'rgba(239,68,68,0.1)', borderBottom: '1px solid rgba(239,68,68,0.3)' }}>
-              <AlertCircle size={14} className="text-red-400 shrink-0" />
-              <p className="text-xs text-red-400 flex-1">{storyError}</p>
-              <button onClick={() => setStoryError('')} className="text-red-400"><RefreshCw size={12} /></button>
+              <AlertCircle size={14} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+              <p className="text-xs flex-1" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>{storyError}</p>
+              <button onClick={() => setStoryError('')} style={{ color: isLight ? '#B91C1C' : '#F87171' }}><RefreshCw size={12} /></button>
             </div>
           </motion.div>
         )}
