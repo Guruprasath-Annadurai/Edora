@@ -77,10 +77,28 @@ color or type size.
    AI tutor with memory / weak-topic targeting) instead of generic feature
    bullets, and migrate any hardcoded colors onto tokens.
 3. **Login / Sign up** (`auth/LoginPage.tsx`) — ✅ **done**: vector character
-   removed, replaced with a minimal monogram + wordmark mark. Still to do:
-   migrate its inline hex colors (`BG`, `DARK`, `GRAY` consts) onto the
-   existing token system, and verify it renders correctly across all 8
-   themes (`ThemeContext.tsx`), not just dark.
+   removed, replaced with a minimal monogram + wordmark mark. Token
+   migration ✅ 79th occurrence: the page never used `useTheme` at all —
+   `BG`/`DARK` were hardcoded module-level consts (`BG` near-black,
+   `DARK` near-white used as PRIMARY TEXT). Every field/card already used
+   the adaptive `--surface-elev-09`/`--surface-elev-095` tokens, so in
+   light theme this was literal near-white text (`#F4F6FA`) on a
+   near-white card — invisible body text and inputs across the whole
+   login/signup/OTP flow. Removed the consts; `AppleIcon`/`OtpInput` (both
+   standalone, used `DARK`) got their own `useTheme()`; the main
+   component gained `useTheme()`/isLight plus local `dark`/`accent`
+   (branches the pervasive `#5B6AF5` link color, ~4.35:1 vs white,
+   borderline)/`iconMuted` (branches `#9CA3AF` input icons, ~2.54:1,
+   fails 3:1) values. Root wrapper's `background: BG` replaced with the
+   adaptive `var(--surface-elev-095)` so the whole page flips
+   consistently instead of only the card backgrounds. Also fixed along
+   the way: ShieldCheck DPDP badge, OTP email highlight, "or" divider
+   text, bottom-sheet drag handle (was nearly invisible on a light
+   sheet), and 4 raw-Tailwind-hue error-message classes (no light-theme
+   override). Verified live under light theme: Sign In tab, Email OTP
+   tab, and the Reset Password bottom-sheet all fully legible;
+   `getComputedStyle` on the ShieldCheck icon confirmed the expected
+   `#047857`. `npx tsc --noEmit` passes clean. This closes item 3.
 4. **Terms of Service / Privacy Policy** (`TermsOfServicePage.tsx`,
    `PrivacyPolicyPage.tsx`) — ✅ **done**: both used `CharacterImage`
    (`terms-character`, `privacy-character`); replaced with the professional
