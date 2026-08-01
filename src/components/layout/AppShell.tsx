@@ -11,6 +11,7 @@ import { CommandPalette } from '@/components/ui/CommandPalette';
 import { useAuth } from '@/hooks/useAuth';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
 
 export function AppShell() {
   useAndroidBack();
@@ -64,6 +65,15 @@ export function AppShell() {
 
       {/* Status bar safe area */}
       <div style={{ height: 'env(safe-area-inset-top)', backgroundColor: 'transparent', flexShrink: 0, position: 'relative', zIndex: 1 }} />
+
+      {/* Offline banner — was a fully built, wired-up-nowhere component.
+          Every one of the ~87 protected routes renders through AppShell, so
+          this single line gives every page a clear "you're offline" signal
+          instead of a silent hang/spinner on a dropped connection, without
+          needing per-page wiring. Individual pages can still layer richer
+          offline-specific UI (cached data, retry banners) on top of this —
+          see OfflineCache/offlineStudy for the handful of pages that already do. */}
+      <div style={{ position: 'relative', zIndex: 2 }}><OfflineBanner /></div>
 
       {/* Page content */}
       <main className="flex-1 overflow-hidden relative" style={{ zIndex: 1 }} role="main">
