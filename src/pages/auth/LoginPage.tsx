@@ -67,6 +67,17 @@ function AppleIcon() {
   );
 }
 
+function MicrosoftIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="1"    y="1"    width="10.5" height="10.5" fill="#F35325"/>
+      <rect x="12.5" y="1"    width="10.5" height="10.5" fill="#81BC06"/>
+      <rect x="1"    y="12.5" width="10.5" height="10.5" fill="#05A6F0"/>
+      <rect x="12.5" y="12.5" width="10.5" height="10.5" fill="#FFBA08"/>
+    </svg>
+  );
+}
+
 // ── OTP digit input ──────────────────────────────────────────────────────────
 function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const { theme } = useTheme();
@@ -297,7 +308,7 @@ export default function LoginPage() {
   }
 
   // ── OAuth ────────────────────────────────────────────────────────────────
-  async function openOAuth(provider: 'google' | 'apple') {
+  async function openOAuth(provider: 'google' | 'apple' | 'azure') {
     setError('');
     if (Capacitor.isNativePlatform()) {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -706,9 +717,11 @@ export default function LoginPage() {
               Apple since it's an App Store review requirement there whenever
               other third-party sign-in is offered. */}
           {isAndroidNative ? (
-            // TODO(task #40): swap in the Microsoft button here once Azure AD
-            // app registration values are configured in Supabase Auth Providers.
-            null
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('azure')}
+              className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
+              style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: dark }}>
+              <MicrosoftIcon /> Microsoft
+            </motion.button>
           ) : (
             <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('apple')}
               className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
