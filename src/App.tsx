@@ -159,7 +159,7 @@ function useOAuthDeepLink() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
-    const listener = CapApp.addListener('appUrlOpen', async ({ url }) => {
+    async function handleUrl(url: string) {
       await Browser.close().catch(() => {});
 
       // ── Google Classroom OAuth callback ──────────────────────────────────
@@ -190,7 +190,25 @@ function useOAuthDeepLink() {
         // profile yet, so /home is a safe target for brand-new users too.
         navigateRef.current?.('/home');
       }
-    });
+    }
+
+    // Warm start: app was still alive in the background when the OAuth
+    // browser redirected back — this is the common case on flagship/high-RAM
+    // devices where Android didn't need to reclaim the app's process.
+    const listener = CapApp.addListener('appUrlOpen', ({ url }) => { void handleUrl(url); });
+
+    // Cold start: Android killed the app's process while the Google/Microsoft
+    // Custom Tab was in the foreground (very common — the OAuth flow leaves
+    // the app backgrounded for as long as sign-in takes, and low/mid-range
+    // Android devices reclaim backgrounded processes aggressively). In that
+    // case the deep link arrives as the launch intent, not an appUrlOpen
+    // event, and was previously dropped entirely — the user landed back on
+    // a fresh cold boot with no session and no error, i.e. exactly
+    // "Google sign-in not leading to the dashboard". getLaunchUrl() reads
+    // whichever URL actually started this process.
+    CapApp.getLaunchUrl().then(result => {
+      if (result?.url) void handleUrl(result.url);
+    }).catch(() => {});
 
     return () => { listener.then(l => l.remove()); };
   }, []);

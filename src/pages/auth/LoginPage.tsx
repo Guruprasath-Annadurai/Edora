@@ -12,6 +12,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 
 const NATIVE_REDIRECT = 'com.edora.app://auth/callback';
 const WEB_REDIRECT    = `${window.location.origin}/home`;
+const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 
 // Maps raw Supabase/network error messages to user-friendly copy.
 // Never expose internal error codes or server stack traces to the user.
@@ -699,11 +700,22 @@ export default function LoginPage() {
             style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: dark }}>
             <GoogleIcon /> Google
           </motion.button>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('apple')}
-            className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: dark }}>
-            <AppleIcon /> Apple
-          </motion.button>
+          {/* Apple Sign In has no native benefit on Android (no Apple ID
+              integration, would fall back to a web OAuth redirect) — Android
+              gets Google + Microsoft only, per product decision. iOS/web keep
+              Apple since it's an App Store review requirement there whenever
+              other third-party sign-in is offered. */}
+          {isAndroidNative ? (
+            // TODO(task #40): swap in the Microsoft button here once Azure AD
+            // app registration values are configured in Supabase Auth Providers.
+            null
+          ) : (
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('apple')}
+              className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
+              style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: dark }}>
+              <AppleIcon /> Apple
+            </motion.button>
+          )}
         </div>
 
         <div style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} className="pb-6" />
