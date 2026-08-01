@@ -72,10 +72,26 @@ color or type size.
    (that's a brand-identity decision, out of scope for "remove characters").
 2. **Onboarding** (`OnboardingPage.tsx`, `components/onboarding/OnboardingTour.tsx`)
    — checked: neither actually uses `CharacterImage` (the original plan's
-   claim here was wrong, corrected). Real work item instead: rewrite each
-   step's copy to make one concrete promise per screen (exam-specific prep /
-   AI tutor with memory / weak-topic targeting) instead of generic feature
-   bullets, and migrate any hardcoded colors onto tokens.
+   claim here was wrong, corrected). Copy rewrite (one concrete promise per
+   screen instead of generic feature bullets) is still an open item — not
+   part of the contrast sweep. Token migration ✅ 80th occurrence:
+   `OnboardingPage.tsx` had no `useTheme` despite sitting on the adaptive
+   `.bg-deep-space` — the SUBJECTS/MOODS config arrays (8 + 6 pale colors)
+   and ~10 scattered literal hex values fixed with a `colorLight` field and
+   isLight-branched inline styles; also fixed the step-0 CTA button, which
+   paired the fixed `#7C3AED→#A855F7` gradient (established earlier this
+   session: white's worst-case ~3.96:1 beats dark ink's ~3.13:1) with
+   `var(--ink-950)` — backwards for this specific gradient, since ink-950
+   resolves opposite to what's needed here; replaced with a universal
+   literal `#ffffff`. `OnboardingTour.tsx` (shown as a full-screen overlay
+   on first HomePage visit): its illustration mock-panels sit on `var(--s3)`,
+   confirmed via globals.css's own comment to be a permanently-dark legacy
+   token with no light-theme override — left untouched (already a known,
+   flagged pending migration, out of scope here); fixed the one genuine bug,
+   the step speech-bubble's `text-white`/`text-white/60` sitting directly on
+   the translucent tint over the adaptive scrim. `npx tsc --noEmit` passes
+   clean for both files. Could not live-verify — both screens require a
+   real authenticated session unavailable in this preview environment.
 3. **Login / Sign up** (`auth/LoginPage.tsx`) — ✅ **done**: vector character
    removed, replaced with a minimal monogram + wordmark mark. Token
    migration ✅ 79th occurrence: the page never used `useTheme` at all —
