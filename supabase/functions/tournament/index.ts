@@ -286,7 +286,13 @@ Include exactly 10 questions, increasing difficulty.`, v => !!v?.name && Array.i
       .eq('tournament_id', tournament_id)
       .eq('user_id', user.id);
 
-    // Re-rank all participants
+    // Re-rank all participants in one set-based statement (was previously one
+    // sequential UPDATE per participant here — O(N) writes per submit, O(N²)
+    // total across a tournament, and a race between concurrent submits
+    // interleaving stale rank writes). recompute_tournament_ranks() does the
+    // whole re-rank atomically in a single UPDATE ... FROM.
+    await supabase.rpc('recompute_tournament_ranks', { p_tournament_id: tournament_id });
+
     const { data: allParts } = await supabase
       .from('tournament_participants')
       .select('id, user_id, score, time_taken_ms')
@@ -294,15 +300,6 @@ Include exactly 10 questions, increasing difficulty.`, v => !!v?.name && Array.i
       .not('completed_at', 'is', null)
       .order('score', { ascending: false })
       .order('time_taken_ms', { ascending: true });
-
-    if (allParts) {
-      for (let i = 0; i < allParts.length; i++) {
-        await supabase
-          .from('tournament_participants')
-          .update({ rank: i + 1 })
-          .eq('id', allParts[i].id);
-      }
-    }
 
     // Award XP based on rank
     const myRank = (allParts ?? []).findIndex(p => p.user_id === user.id) + 1;

@@ -15,6 +15,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { withSentry } from '../_shared/sentry.ts';
 
 async function embedText(text: string, geminiKey: string): Promise<number[] | null> {
   try {
@@ -45,7 +46,7 @@ function buildNoteText(title: string, content: string, subject?: string): string
   return [subject && `Subject: ${subject}`, `Title: ${title}`, content].filter(Boolean).join('\n');
 }
 
-Deno.serve(async (req: Request) => {
+Deno.serve(withSentry('user-content-index', async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCors(req) });
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -212,4 +213,4 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     return jsonRes({ error: (err as Error).message }, 500);
   }
-});
+}));

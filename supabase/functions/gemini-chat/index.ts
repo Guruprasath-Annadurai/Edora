@@ -13,6 +13,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 import { withSentry }   from '../_shared/sentry.ts';
 import { normalizeMemories } from '../_shared/memoryExtraction.ts';
+import { checkRateLimit as sharedCheckRateLimit } from '../_shared/rateLimit.ts';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 // Primary:  llama-3.3-70b-versatile  (best quality, 6000 TPM free)
@@ -1284,40 +1285,19 @@ function resolveImageTags(text: string): string {
 // Rate limit — 30 requests / user / hour via api_rate_limits table
 // Run `TRUNCATE api_rate_limits;` in Dashboard if stale rows block all users.
 // ─────────────────────────────────────────────────────────────────────────────
+// Previously read/wrote `request_count`/`window_start` columns that don't
+// exist anywhere on api_rate_limits (the real schema is id/user_id/endpoint/
+// created_at, one row per request — see _shared/rateLimit.ts). Every call
+// errored, hit the `if (error) return true` fail-open branch, and this
+// endpoint — the core Novo AI chat, the single highest-traffic user-facing
+// feature — has had no working rate limit at all in production. Delegates
+// to the shared, schema-correct, fail-closed limiter instead.
 async function checkRateLimit(
   serviceDb: ReturnType<typeof createClient>,
   userId: string,
 ): Promise<boolean> {
-  try {
-    const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data, error } = await serviceDb
-      .from('api_rate_limits')
-      .select('request_count, window_start')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) return true; // fail open on DB error — don't block users
-
-    const isStale = !data || data.window_start < windowStart;
-
-    if (isStale) {
-      await serviceDb.from('api_rate_limits').upsert(
-        { user_id: userId, request_count: 1, window_start: new Date().toISOString() },
-        { onConflict: 'user_id' },
-      );
-      return true;
-    }
-
-    if (data.request_count >= 30) return false;
-
-    await serviceDb.from('api_rate_limits')
-      .update({ request_count: data.request_count + 1 })
-      .eq('user_id', userId);
-
-    return true;
-  } catch {
-    return true; // fail open
-  }
+  const result = await sharedCheckRateLimit(serviceDb, userId, 'gemini-chat', 30, 60);
+  return result.allowed;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

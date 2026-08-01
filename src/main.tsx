@@ -106,8 +106,16 @@ bootstrap();
 // but we add an explicit handler so they're never silently swallowed in dev.
 window.addEventListener('unhandledrejection', (event) => {
   const reason = event.reason as unknown;
-  if (sentryDsn && reason instanceof Error) {
+  if (!sentryDsn) return;
+  // Supabase-js commonly rejects with plain PostgrestError/AuthError-shaped
+  // objects that are NOT `instanceof Error` — the old `instanceof Error`
+  // check silently dropped most Supabase-originated rejections here.
+  if (reason instanceof Error) {
     Sentry.captureException(reason, { extra: { source: 'unhandledrejection' } });
+  } else if (reason && typeof reason === 'object') {
+    Sentry.captureException(new Error(`Unhandled rejection: ${JSON.stringify(reason).slice(0, 500)}`), {
+      extra: { source: 'unhandledrejection', original: reason },
+    });
   }
 });
 

@@ -77,11 +77,17 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  const cronSecret  = Deno.env.get('CRON_SECRET') ?? serviceKey.slice(0, 20);
+  // No fallback here on purpose: every Supabase service-role key shares the
+  // same JWT header, so `serviceKey.slice(0, N)` is NOT project-specific —
+  // it's a fixed, guessable string across every Supabase project. Falling
+  // back to it when CRON_SECRET is unset would mean a missing env var (an
+  // ops mistake, not an attack) silently makes this endpoint callable by
+  // anyone. Fail closed instead: no CRON_SECRET means no cron-header auth.
+  const cronSecret  = Deno.env.get('CRON_SECRET');
   const authHeader  = req.headers.get('Authorization') ?? '';
   const cronHeader  = req.headers.get('x-cron-secret') ?? '';
   const isServiceKey = authHeader === `Bearer ${serviceKey}`;
-  const isCron       = !!cronHeader && cronHeader === cronSecret;
+  const isCron       = !!cronSecret && !!cronHeader && cronHeader === cronSecret;
   if (!isServiceKey && !isCron) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: CORS });
   }

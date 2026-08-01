@@ -65,21 +65,36 @@ Evaluate holistically:
 Respond with ONLY valid JSON, no markdown fences:
 {"band":"...", "covered_points":["..."], "missed_points":["..."], "structure_feedback":"...", "suggestions":["...","..."]}`;
 
-  const res = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-    }),
-  });
-  if (!res.ok) throw new Error(`Groq ${res.status}`);
-  const data = await res.json();
-  const parsed = JSON.parse(data.choices[0].message.content);
-  const band: Evaluation['band'] = ['needs_work', 'developing', 'good', 'excellent'].includes(parsed.band)
-    ? parsed.band : 'developing';
+  // A single transient network blip previously failed the student's exam-
+  // answer evaluation outright — retry with backoff, matching the pattern
+  // already used in ai-question-gen for the same class of failure.
+  const MAX_ATTEMPTS = 3;
+  let lastErr = '';
+  let parsed: { band?: string; covered_points?: string[]; missed_points?: string[]; structure_feedback?: string; suggestions?: string[] } | null = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && !parsed; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
+    try {
+      const res = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
+        body: JSON.stringify({
+          model: GROQ_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.2,
+          response_format: { type: 'json_object' },
+        }),
+      });
+      if (!res.ok) { lastErr = `Groq ${res.status}`; continue; }
+      const data = await res.json();
+      parsed = JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+      lastErr = (e as Error).message ?? 'fetch failed';
+    }
+  }
+  if (!parsed) throw new Error(`Grading failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
+  const bands: Evaluation['band'][] = ['needs_work', 'developing', 'good', 'excellent'];
+  const band: Evaluation['band'] = bands.includes(parsed.band as Evaluation['band'])
+    ? (parsed.band as Evaluation['band']) : 'developing';
   return {
     band,
     covered_points: Array.isArray(parsed.covered_points) ? parsed.covered_points : [],

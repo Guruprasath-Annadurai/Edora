@@ -250,10 +250,13 @@ serve(async (req) => {
   const authHeader   = req.headers.get('Authorization') ?? '';
   const cronHeader   = req.headers.get('x-cron-secret') ?? '';
   const serviceKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  const cronSecret   = Deno.env.get('CRON_SECRET') ?? serviceKey.slice(0, 20);
+  // No fallback here on purpose — see backfill-corpus-embeddings/index.ts for
+  // why `serviceKey.slice(0, N)` is a fixed, guessable string across every
+  // Supabase project, not a real secret. Fail closed if CRON_SECRET is unset.
+  const cronSecret   = Deno.env.get('CRON_SECRET');
 
   const isServiceKey = authHeader === `Bearer ${serviceKey}`;
-  const isCron       = cronHeader === cronSecret;
+  const isCron       = !!cronSecret && cronHeader === cronSecret;
 
   if (!isServiceKey && !isCron) {
     return json({ error: 'Unauthorized' }, 401);
