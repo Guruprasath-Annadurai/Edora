@@ -1,7 +1,16 @@
 import './styles/globals.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import * as Sentry from '@sentry/react';
+// @sentry/capacitor wraps @sentry/react and adds the native bridge (Android/
+// iOS crash + ANR/OOM capture) — previously only @sentry/react was used, so
+// WebView crashes and OOM kills happened below the JS layer and were
+// invisible; they only ever surfaced to you as an unexplained app restart.
+// Sentry.init() below comes from @sentry/capacitor; the integrations
+// (browserTracingIntegration etc.) still come from @sentry/react — the
+// capacitor init call takes sentryReactInit as its second argument and
+// calls it internally, which is what actually wires those integrations up.
+import * as Sentry from '@sentry/capacitor';
+import { init as sentryReactInit, browserTracingIntegration, replayIntegration, extraErrorDataIntegration } from '@sentry/react';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { initAnalytics } from '@/lib/analytics';
@@ -19,14 +28,21 @@ if (sentryDsn) {
     release: import.meta.env.VITE_APP_VERSION as string | undefined,
     environment: import.meta.env.MODE,
     integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false }),
+      browserTracingIntegration(),
+      // @sentry/capacitor doesn't re-export replayIntegration itself and its
+      // bundled (nested) @sentry/replay type declaration is a version behind
+      // the hoisted @sentry/react one this repo otherwise uses — sessionSampleRate/
+      // errorSampleRate are valid, documented replayIntegration options at
+      // runtime (this is exactly the same feature @sentry/react's replay
+      // integration provides), but the type checker resolves two different
+      // declaration files for the "same" package here. The cast is a type-
+      // level workaround for that duplicate-install mismatch, not a runtime one.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (replayIntegration as (opts: any) => ReturnType<typeof replayIntegration>)({ maskAllText: false, blockAllMedia: false, sessionSampleRate: 0.05, errorSampleRate: 1.0 }),
       // Capture unhandled promise rejections (edge function failures, etc.)
-      Sentry.extraErrorDataIntegration({ depth: 5 }),
+      extraErrorDataIntegration({ depth: 5 }),
     ],
-    tracesSampleRate:           import.meta.env.PROD ? 0.1 : 1.0,
-    replaysSessionSampleRate:   0.05,
-    replaysOnErrorSampleRate:   1.0,
+    tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
     // Tag every event with platform + version for filtering in Sentry dashboard
     initialScope: {
       tags: {
@@ -40,7 +56,7 @@ if (sentryDsn) {
       if (event.exception?.values?.[0]?.value?.includes('IDBDatabase')) return null;
       return event;
     },
-  });
+  }, sentryReactInit);
 }
 
 // ── Production console suppression ───────────────────────────────────────────

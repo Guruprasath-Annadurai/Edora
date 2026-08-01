@@ -313,6 +313,7 @@ export default function FlashcardPage() {
                   </div>
                 </motion.div>
               </motion.div>
+            </div>
             <div className="flex justify-end -mt-1">
               <ReportButton
                 compact

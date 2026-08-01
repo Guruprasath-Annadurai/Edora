@@ -49,3 +49,6 @@ project(':capacitor-toast').projectDir = new File('../node_modules/@capacitor/to
 
 include ':revenuecat-purchases-capacitor'
 project(':revenuecat-purchases-capacitor').projectDir = new File('../node_modules/@revenuecat/purchases-capacitor/android')
+
+include ':sentry-capacitor'
+project(':sentry-capacitor').projectDir = new File('../node_modules/@sentry/capacitor/android')
