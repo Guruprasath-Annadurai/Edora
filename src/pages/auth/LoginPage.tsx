@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Events } from '@/lib/analytics';
 import { isPasswordPwned } from '@/lib/hibp';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const NATIVE_REDIRECT = 'com.edora.app://auth/callback';
 const WEB_REDIRECT    = `${window.location.origin}/home`;
@@ -40,9 +41,7 @@ function humaniseAuthError(raw: string): string {
   return 'Something went wrong. Please try again.';
 }
 
-const BG     = '#0A0A0F';
 const PURPLE = 'linear-gradient(135deg,#6D28D9,#9333EA)';
-const DARK   = '#F4F6FA';
 const GRAY   = 'var(--ink-500)';
 const BORDER = 'var(--ink-180)';
 
@@ -58,15 +57,19 @@ function GoogleIcon() {
 }
 
 function AppleIcon() {
+  const { theme } = useTheme();
+  const dark = theme === 'light' ? '#0F172A' : '#F4F6FA';
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-      <path fill={DARK} d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      <path fill={dark} d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
     </svg>
   );
 }
 
 // ── OTP digit input ──────────────────────────────────────────────────────────
 function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { theme } = useTheme();
+  const dark = theme === 'light' ? '#0F172A' : '#F4F6FA';
   const ref0 = useRef<HTMLInputElement>(null);
   const ref1 = useRef<HTMLInputElement>(null);
   const ref2 = useRef<HTMLInputElement>(null);
@@ -116,7 +119,7 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
           style={{
             background: 'var(--surface-elev-09)',
             border: value[i] ? '2px solid #5B6AF5' : `1.5px solid ${BORDER}`,
-            color: DARK,
+            color: dark,
             WebkitUserSelect: 'text',
             caretColor: '#5B6AF5',
           }}
@@ -128,6 +131,11 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const dark = isLight ? '#0F172A' : '#F4F6FA';
+  const accent = isLight ? '#4338CA' : '#5B6AF5';
+  const iconMuted = isLight ? '#71717A' : '#9CA3AF';
 
   // Auth method: password or otp
   const [authMethod, setAuthMethod] = useState<'password' | 'otp'>('password');
@@ -343,7 +351,7 @@ export default function LoginPage() {
   }
 
   const inputClass = "flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400";
-  const inputStyle = { color: DARK, WebkitUserSelect: 'text' as const, userSelect: 'text' as const };
+  const inputStyle = { color: dark, WebkitUserSelect: 'text' as const, userSelect: 'text' as const };
   const fieldWrap  = {
     background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`,
     borderRadius: 16, display: 'flex', alignItems: 'center',
@@ -352,7 +360,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: BG }}>
+    <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--surface-elev-095)' }}>
       <div style={{ paddingTop: 'env(safe-area-inset-top)' }} />
 
       {/* Hero */}
@@ -363,9 +371,9 @@ export default function LoginPage() {
         </div>
         <div className="relative flex flex-col items-center gap-1.5">
           <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}>
-            <span className="font-heading text-lg font-black" style={{ color: '#5B6AF5' }}>E</span>
+            <span className="font-heading text-lg font-black" style={{ color: accent }}>E</span>
           </div>
-          <p className="font-heading text-xl font-black tracking-wider" style={{ color: '#5B6AF5' }}>EDORA</p>
+          <p className="font-heading text-xl font-black tracking-wider" style={{ color: accent }}>EDORA</p>
         </div>
       </div>
 
@@ -379,7 +387,7 @@ export default function LoginPage() {
       >
         {/* Title */}
         <div className="mb-4">
-          <h1 className="font-heading text-2xl font-bold" style={{ color: DARK }}>
+          <h1 className="font-heading text-2xl font-bold" style={{ color: dark }}>
             {authMethod === 'otp' ? 'Quick Sign In' : mode === 'login' ? 'Welcome Back' : 'Create Account'}
           </h1>
           <p className="text-sm mt-1" style={{ color: GRAY }}>
@@ -433,7 +441,7 @@ export default function LoginPage() {
                     <motion.div key="name-field"
                       initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 56 }}
                       exit={{ opacity: 0, height: 0 }} style={fieldWrap}>
-                      <User size={18} color="#9CA3AF" />
+                      <User size={18} color={iconMuted} />
                       <input type="text" placeholder="Your full name" value={name}
                         onChange={e => setName(e.target.value)}
                         className={inputClass} style={inputStyle} autoComplete="name"
@@ -443,7 +451,7 @@ export default function LoginPage() {
                 </AnimatePresence>
 
                 <div style={fieldWrap}>
-                  <Mail size={18} color="#9CA3AF" />
+                  <Mail size={18} color={iconMuted} />
                   <input type="email" placeholder="Email address" value={email}
                     onChange={e => setEmail(e.target.value)}
                     className={inputClass} style={inputStyle} autoComplete="email"
@@ -451,7 +459,7 @@ export default function LoginPage() {
                 </div>
 
                 <div style={fieldWrap}>
-                  <Lock size={18} color="#9CA3AF" />
+                  <Lock size={18} color={iconMuted} />
                   <input type={showPass ? 'text' : 'password'} placeholder="Password"
                     value={password} onChange={e => setPassword(e.target.value)}
                     className={inputClass} style={inputStyle}
@@ -459,7 +467,7 @@ export default function LoginPage() {
                     aria-label="Password" />
                   <button type="button" onClick={() => setShowPass(v => !v)} className="shrink-0"
                     aria-label={showPass ? 'Hide password' : 'Show password'}>
-                    {showPass ? <EyeOff size={18} color="#9CA3AF" /> : <Eye size={18} color="#9CA3AF" />}
+                    {showPass ? <EyeOff size={18} color={iconMuted} /> : <Eye size={18} color={iconMuted} />}
                   </button>
                 </div>
 
@@ -468,14 +476,14 @@ export default function LoginPage() {
                     <motion.div key="confirm-field"
                       initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 56 }}
                       exit={{ opacity: 0, height: 0 }} style={fieldWrap}>
-                      <Lock size={18} color="#9CA3AF" />
+                      <Lock size={18} color={iconMuted} />
                       <input type={showConfirm ? 'text' : 'password'} placeholder="Confirm password"
                         value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
                         className={inputClass} style={inputStyle} autoComplete="new-password"
                         aria-label="Confirm password" />
                       <button type="button" onClick={() => setShowConfirm(v => !v)} className="shrink-0"
                         aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}>
-                        {showConfirm ? <EyeOff size={18} color="#9CA3AF" /> : <Eye size={18} color="#9CA3AF" />}
+                        {showConfirm ? <EyeOff size={18} color={iconMuted} /> : <Eye size={18} color={iconMuted} />}
                       </button>
                     </motion.div>
                   )}
@@ -496,13 +504,13 @@ export default function LoginPage() {
                       </div>
                       <span className="text-xs leading-relaxed" style={{ color: GRAY }}>
                         I agree to Edora's{' '}
-                        <span className="font-semibold underline" style={{ color: '#5B6AF5' }}
+                        <span className="font-semibold underline" style={{ color: accent }}
                           onClick={e => { e.stopPropagation(); navigate('/privacy-policy'); }}>Privacy Policy</span>
                         {' '}and{' '}
-                        <span className="font-semibold underline" style={{ color: '#5B6AF5' }}
+                        <span className="font-semibold underline" style={{ color: accent }}
                           onClick={e => { e.stopPropagation(); navigate('/terms-of-service'); }}>Terms of Service</span>.
                         {' '}My data is protected under India's DPDP Act 2023.{' '}
-                        <ShieldCheck size={12} className="inline mb-0.5" style={{ color: '#10B981' }} />
+                        <ShieldCheck size={12} className="inline mb-0.5" style={{ color: isLight ? '#047857' : '#10B981' }} />
                       </span>
                     </motion.button>
                   )}
@@ -522,7 +530,7 @@ export default function LoginPage() {
                     </button>
                     <button type="button"
                       onClick={() => { setForgotOpen(true); setForgotEmail(email); setForgotSent(false); }}
-                      className="text-xs font-semibold" style={{ color: '#5B6AF5' }}>
+                      className="text-xs font-semibold" style={{ color: accent }}>
                       Forgot Password?
                     </button>
                   </div>
@@ -530,8 +538,10 @@ export default function LoginPage() {
 
                 {error && (
                   <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                    className={`text-xs text-center px-2 py-2 rounded-xl font-medium ${
-                      error.startsWith('✓') ? 'text-emerald-300 bg-emerald-500/10' : 'text-red-300 bg-red-500/10'}`}>
+                    className="text-xs text-center px-2 py-2 rounded-xl font-medium"
+                    style={error.startsWith('✓')
+                      ? { color: isLight ? '#047857' : '#6EE7B7', background: 'rgba(16,185,129,0.1)' }
+                      : { color: isLight ? '#B91C1C' : '#FCA5A5', background: 'rgba(239,68,68,0.1)' }}>
                     {error}
                   </motion.p>
                 )}
@@ -549,7 +559,7 @@ export default function LoginPage() {
               <p className="text-center text-sm mt-4 mb-1" style={{ color: GRAY }}>
                 {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
                 <button type="button" onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-                  className="font-bold" style={{ color: '#5B6AF5' }}>
+                  className="font-bold" style={{ color: accent }}>
                   {mode === 'login' ? 'Sign Up' : 'Sign In'}
                 </button>
               </p>
@@ -570,7 +580,7 @@ export default function LoginPage() {
                   <motion.div key="otp-email" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="flex flex-col gap-3">
                     <div style={fieldWrap}>
-                      <Mail size={18} color="#9CA3AF" />
+                      <Mail size={18} color={iconMuted} />
                       <input type="email" placeholder="Email address" value={otpEmail}
                         onChange={e => setOtpEmail(e.target.value)}
                         className={inputClass} style={inputStyle} autoComplete="email"
@@ -588,18 +598,19 @@ export default function LoginPage() {
                       </div>
                       <span className="text-xs leading-relaxed" style={{ color: GRAY }}>
                         I agree to Edora's{' '}
-                        <span className="font-semibold underline" style={{ color: '#5B6AF5' }}
+                        <span className="font-semibold underline" style={{ color: accent }}
                           onClick={e => { e.stopPropagation(); navigate('/privacy-policy'); }}>Privacy Policy</span>
                         {' '}and{' '}
-                        <span className="font-semibold underline" style={{ color: '#5B6AF5' }}
+                        <span className="font-semibold underline" style={{ color: accent }}
                           onClick={e => { e.stopPropagation(); navigate('/terms-of-service'); }}>Terms of Service</span>.
-                        {' '}<ShieldCheck size={12} className="inline mb-0.5" style={{ color: '#10B981' }} />
+                        {' '}<ShieldCheck size={12} className="inline mb-0.5" style={{ color: isLight ? '#047857' : '#10B981' }} />
                       </span>
                     </button>
 
                     {error && (
                       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                        className="text-xs text-center px-2 py-2 rounded-xl font-medium text-red-300 bg-red-500/10">
+                        className="text-xs text-center px-2 py-2 rounded-xl font-medium"
+                        style={{ color: isLight ? '#B91C1C' : '#FCA5A5', background: 'rgba(239,68,68,0.1)' }}>
                         {error}
                       </motion.p>
                     )}
@@ -625,10 +636,10 @@ export default function LoginPage() {
                         style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.2)' }}>
                         <Mail size={24} color="#A0AEFF" />
                       </div>
-                      <p className="text-sm font-semibold" style={{ color: DARK }}>Check your inbox</p>
+                      <p className="text-sm font-semibold" style={{ color: dark }}>Check your inbox</p>
                       <p className="text-xs mt-1" style={{ color: GRAY }}>
                         We sent a 6-digit code to{' '}
-                        <span style={{ color: '#A0AEFF' }}>{otpEmail}</span>
+                        <span style={{ color: isLight ? '#4338CA' : '#A0AEFF' }}>{otpEmail}</span>
                       </p>
                     </div>
 
@@ -636,7 +647,8 @@ export default function LoginPage() {
 
                     {error && (
                       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                        className="text-xs text-center px-2 py-2 rounded-xl font-medium text-red-300 bg-red-500/10">
+                        className="text-xs text-center px-2 py-2 rounded-xl font-medium"
+                        style={{ color: isLight ? '#B91C1C' : '#FCA5A5', background: 'rgba(239,68,68,0.1)' }}>
                         {error}
                       </motion.p>
                     )}
@@ -657,7 +669,7 @@ export default function LoginPage() {
                       ) : (
                         <button type="button" onClick={() => { setOtpSent(false); setError(''); }}
                           className="flex items-center gap-1.5 text-xs font-semibold"
-                          style={{ color: '#5B6AF5' }}>
+                          style={{ color: accent }}>
                           <RefreshCw size={12} /> Resend Code
                         </button>
                       )}
@@ -677,19 +689,19 @@ export default function LoginPage() {
         {/* OAuth divider + buttons */}
         <div className="flex items-center gap-3 my-4">
           <div className="flex-1 h-px" style={{ background: BORDER }} />
-          <span className="text-xs font-medium" style={{ color: '#C0C4D6' }}>or</span>
+          <span className="text-xs font-medium" style={{ color: isLight ? '#71717A' : '#C0C4D6' }}>or</span>
           <div className="flex-1 h-px" style={{ background: BORDER }} />
         </div>
 
         <div className="flex gap-3">
           <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('google')}
             className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: DARK }}>
+            style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: dark }}>
             <GoogleIcon /> Google
           </motion.button>
           <motion.button whileTap={{ scale: 0.97 }} onClick={() => openOAuth('apple')}
             className="flex-1 py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: DARK }}>
+            style={{ background: 'var(--surface-elev-09)', border: `1.5px solid ${BORDER}`, color: dark }}>
             <AppleIcon /> Apple
           </motion.button>
         </div>
@@ -710,9 +722,9 @@ export default function LoginPage() {
               className="w-full rounded-t-3xl px-6 pt-4 pb-safe"
               style={{ background: 'var(--surface-elev-09)', boxShadow: '0 -4px 32px rgba(0,0,0,0.5)' }}
               onClick={e => e.stopPropagation()}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: '#E5E7EB' }} />
+              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: isLight ? '#D4D4D8' : '#E5E7EB' }} />
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-heading text-xl font-bold" style={{ color: DARK }}>Reset Password</h2>
+                <h2 className="font-heading text-xl font-bold" style={{ color: dark }}>Reset Password</h2>
                 <button aria-label="Close" onClick={() => { setForgotOpen(false); setForgotError(""); setForgotSent(false); setForgotEmail(""); }}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
                   style={{ background: 'var(--ink-060)' }}>
@@ -722,9 +734,9 @@ export default function LoginPage() {
               {forgotSent ? (
                 <div className="text-center py-6">
                   <Mail size={44} className="mx-auto mb-3" style={{ color: '#818CF8' }} strokeWidth={1.4} />
-                  <p className="font-semibold text-base mb-1" style={{ color: DARK }}>Check your inbox</p>
+                  <p className="font-semibold text-base mb-1" style={{ color: dark }}>Check your inbox</p>
                   <p className="text-sm" style={{ color: GRAY }}>
-                    Reset link sent to <span className="font-semibold" style={{ color: '#5B6AF5' }}>{forgotEmail}</span>
+                    Reset link sent to <span className="font-semibold" style={{ color: accent }}>{forgotEmail}</span>
                   </p>
                   <button onClick={() => { setForgotOpen(false); setForgotError(""); setForgotSent(false); setForgotEmail(""); }}
                     className="mt-5 w-full py-3.5 rounded-2xl font-bold text-white text-sm"
@@ -734,14 +746,14 @@ export default function LoginPage() {
                 <>
                   <p className="text-sm mb-5" style={{ color: GRAY }}>Enter your email and we'll send a reset link.</p>
                   <div style={fieldWrap}>
-                    <Mail size={18} color="#9CA3AF" />
+                    <Mail size={18} color={iconMuted} />
                     <input type="email" placeholder="Email address" value={forgotEmail}
                       onChange={e => { setForgotEmail(e.target.value); setForgotError(''); }}
                       className={inputClass} style={inputStyle} autoFocus
                       aria-label="Email address" />
                   </div>
                   {forgotError && (
-                    <p className="mt-2 text-sm text-red-400 flex items-center gap-1.5">
+                    <p className="mt-2 text-sm flex items-center gap-1.5" style={{ color: isLight ? '#B91C1C' : '#F87171' }}>
                       <span>⚠</span>{forgotError}
                     </p>
                   )}
