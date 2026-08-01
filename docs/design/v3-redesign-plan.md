@@ -1024,6 +1024,52 @@ sales/procurement conversation coming up.
     in the running app — fixes rely on the session's established
     contrast math. This closes out item 34.
 
+35. **Final validation pass** — after closing item 34, re-swept every
+    file in this document for two bug patterns the per-item grep
+    searches had been under-catching:
+
+    (a) The per-item searches anchored on the hue class being the
+    *first* class in a `className="..."` string, missing the common
+    case of `className="w-4 h-4 text-indigo-400"` etc. Re-ran with an
+    unanchored search across all of `src/pages/` and found leftover
+    raw-Tailwind-hue instances (no light-theme override) in:
+    CoursePage (as part of its own fix), CurriculumDetailPage,
+    AttentionHeatmapPage, LearningStylePage, NcertDeepPage,
+    NovoChallengesPage, NovoInsightsPage, RoadmapPage, SchoolAdminPage
+    (2 confirmed dead-code, unfixed on purpose — `_TrendIcon` is never
+    called), SpacedRepetitionPage, StoryModePage, StudyRoomPage,
+    ParentPortalPage, SleepReviewPage, DailyPowerSessionPage,
+    StreakChallengePage, and PhotoSolverPage — all fixed with
+    isLight-branched inline styles, each committed individually.
+    `NovoReadsPage.tsx` was also flagged but is not listed anywhere in
+    this document (not part of the tracked page set) — left untouched.
+    `EvalDashboardPage.tsx` was flagged but confirmed a **false
+    positive**: it renders on a hardcoded `bg-zinc-950` with no
+    `useTheme`/adaptive tokens at all, so it never becomes light-themed
+    in the first place — the original "audited, no fix" note stands.
+
+    (b) A second, distinct pattern: `className="text-white"` (or
+    `fill-white`) sitting on a FIXED gradient background this session
+    established as failing for white text specifically — amber→red
+    (`#F59E0B`→`#EF4444`) and emerald→cyan (`#10B981`→`#06B6D4`) — which
+    the hue-class searches can't catch since `text-white` isn't a hue
+    class. Grepped every page for these two exact gradients and found
+    8 more files with the bug: AchievementsPage, HomePage,
+    GroupDetailPage (computed both its conditional gradient options),
+    LearningPage, NovoChallengesPage (a second badge, distinct from the
+    one already fixed), ProfilePage, SprintPage (also caught a case
+    where the adaptive `var(--ink-950)` token — correct for the
+    indigo→violet gradient established earlier — was wrongly reused for
+    amber→red, where dark theme's near-white ink-950 value fails), and
+    QuizPage (a second, previously-missed `scoreColor()` helper
+    distinct from the already-fixed `subjectColor()`). All fixed to a
+    universal literal `#0F172A` (theme-independent, since the gradient
+    itself doesn't change with theme) or isLight-branched where the
+    surrounding element is itself adaptive.
+
+    This closes the systematic sweep across every page tracked in this
+    document.
+
 ---
 
 ## Open decisions (need your call, not mine to silently pick)
