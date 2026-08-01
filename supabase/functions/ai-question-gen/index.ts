@@ -67,21 +67,37 @@ serve(withSentry('ai-question-gen', async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return jsonResp({ error: 'Unauthorized' }, 401);
+    // Eval harness bypass (see novo-eval-run / gemini-chat) — lets
+    // question-gen-eval-run exercise this function with a stable dummy user
+    // instead of a real session, disabled entirely unless EVAL_SECRET is set.
+    const EVAL_SECRET = Deno.env.get('EVAL_SECRET');
+    const isEvalMode = !!EVAL_SECRET
+      && req.headers.get('x-eval-mode') === 'true'
+      && req.headers.get('x-eval-secret') === EVAL_SECRET;
+
+    let user: { id: string };
+    if (isEvalMode) {
+      user = { id: '00000000-0000-0000-0000-000000000001' };
+    } else {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !authUser) return jsonResp({ error: 'Unauthorized' }, 401);
+      user = authUser;
+    }
 
     // ── Rate limit: 20 AI-gen calls/hour ─────────────────────────
-    const windowStart = new Date(Date.now() - 60 * 60_000).toISOString();
-    const { count: rlCount } = await serviceDb
-      .from('api_rate_limits')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('endpoint', 'ai-question-gen')
-      .gte('created_at', windowStart);
-    if ((rlCount ?? 0) >= 20) return jsonResp({ error: 'Rate limit exceeded. Try again in an hour.' }, 429);
-    serviceDb.from('api_rate_limits')
-      .insert({ user_id: user.id, endpoint: 'ai-question-gen' })
-      .then(() => {}).catch(() => {});
+    if (!isEvalMode) {
+      const windowStart = new Date(Date.now() - 60 * 60_000).toISOString();
+      const { count: rlCount } = await serviceDb
+        .from('api_rate_limits')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('endpoint', 'ai-question-gen')
+        .gte('created_at', windowStart);
+      if ((rlCount ?? 0) >= 20) return jsonResp({ error: 'Rate limit exceeded. Try again in an hour.' }, 429);
+      serviceDb.from('api_rate_limits')
+        .insert({ user_id: user.id, endpoint: 'ai-question-gen' })
+        .then(() => {}).catch(() => {});
+    }
 
     // ── Parse request ─────────────────────────────────────────────
     const body: RequestBody = await req.json();
@@ -246,8 +262,9 @@ Flags: use "ambiguous_options" if two options could both be argued correct, "cal
       return jsonResp({ error: `Failed to generate valid questions after ${MAX_ATTEMPTS} attempts: ${lastErr}` }, 500);
     }
 
-    // Persist to ai_questions table (best-effort)
-    if (safeQuestions.length > 0) {
+    // Persist to ai_questions table (best-effort) — skipped in eval mode so
+    // synthetic eval-harness runs never leak into the real public question bank.
+    if (safeQuestions.length > 0 && !isEvalMode) {
       serviceDb.from('ai_questions').insert(
         safeQuestions.map(q => ({
           subject:           q.subject || subject,
