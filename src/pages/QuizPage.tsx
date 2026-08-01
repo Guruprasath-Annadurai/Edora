@@ -54,11 +54,11 @@ function subjectColor(topic: string, isLight: boolean): { bg: string; text: stri
 }
 
 // ── Score colour helper ───────────────────────────────────────────────────────
-function scoreColor(score: number, total: number) {
+function scoreColor(score: number, total: number, isLight: boolean) {
   const pct = score / total;
-  if (pct >= 0.8) return { label: 'Excellent!', color: '#34D399', gradient: 'linear-gradient(135deg,#10B981,#059669)' };
-  if (pct >= 0.6) return { label: 'Good job!',  color: '#A0AEFF', gradient: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)' };
-  return           { label: 'Keep going!',       color: '#FBBF24', gradient: 'linear-gradient(135deg,#F59E0B,#EF4444)' };
+  if (pct >= 0.8) return { label: 'Excellent!', color: isLight ? '#047857' : '#34D399' };
+  if (pct >= 0.6) return { label: 'Good job!',  color: isLight ? '#4338CA' : '#A0AEFF' };
+  return           { label: 'Keep going!',       color: isLight ? '#92400E' : '#FBBF24' };
 }
 
 // Memoized option button — avoids re-rendering all 4 options on every tick
@@ -69,6 +69,8 @@ const QuizOptionButton = memo(function QuizOptionButton({
   option: string; index: number; isCorrect: boolean; isSelected: boolean; revealed: boolean;
   onSelect: (i: number) => void;
 }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   let bg = 'var(--v2-card)';
   let border = 'var(--v2-border)';
   let textColor = 'var(--v2-text-1)';
@@ -111,8 +113,8 @@ const QuizOptionButton = memo(function QuizOptionButton({
         <span className="flex-1 text-sm font-semibold leading-snug" style={{ color: textColor }}>
           {option}
         </span>
-        {revealed && isCorrect  && <CheckCircle size={18} className="shrink-0" style={{ color: '#34D399' }} />}
-        {revealed && isSelected && !isCorrect && <XCircle size={18} className="shrink-0" style={{ color: '#F87171' }} />}
+        {revealed && isCorrect  && <CheckCircle size={18} className="shrink-0" style={{ color: isLight ? '#047857' : '#34D399' }} />}
+        {revealed && isSelected && !isCorrect && <XCircle size={18} className="shrink-0" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />}
       </div>
     </motion.button>
   );
@@ -1016,7 +1018,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
 
               {/* Result icon */}
               {Math.round((score / questions.length) * 100) >= 70
-                ? <Trophy size={56} style={{ color: '#FBBF24' }} strokeWidth={1.4} />
+                ? <Trophy size={56} style={{ color: isLight ? '#92400E' : '#FBBF24' }} strokeWidth={1.4} />
                 : <Meh size={56} className="text-white/30" strokeWidth={1.4} />}
 
               {/* Score */}
@@ -1025,12 +1027,12 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                   initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 }}
                   className="font-heading text-5xl font-extrabold"
-                  style={{ color: scoreColor(score, questions.length).color }}>
+                  style={{ color: scoreColor(score, questions.length, isLight).color }}>
                   {score}/{questions.length}
                 </motion.h2>
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}
                   className="text-lg font-bold text-white mt-1">
-                  {scoreColor(score, questions.length).label}
+                  {scoreColor(score, questions.length, isLight).label}
                 </motion.p>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
                   className="flex items-center justify-center gap-2 mt-3 px-4 py-2 rounded-full mx-auto w-fit"

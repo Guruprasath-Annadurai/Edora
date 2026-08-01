@@ -151,7 +151,7 @@ export default function LearningPage() {
             background: 'linear-gradient(135deg,#10B981,#06B6D4)',
             boxShadow: '0 0 16px rgba(16,185,129,0.45)' }}
         >
-          <BookOpen size={20} className="text-white" />
+          <BookOpen size={20} style={{ color: '#0F172A' }} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-extrabold uppercase tracking-widest text-white/40">{t('learning.eyebrow')}</p>

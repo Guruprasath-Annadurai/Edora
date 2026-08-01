@@ -516,8 +516,8 @@ export default function NovoChallengesPage() {
                   transition={{ duration: 1.2, repeat: Infinity }}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-full"
                   style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)' }}>
-                  <Zap size={12} className="text-white" />
-                  <span className="text-white text-xs font-bold">{challenge.xp_multiplier}× XP</span>
+                  <Zap size={12} style={{ color: '#0F172A' }} />
+                  <span className="text-xs font-bold" style={{ color: '#0F172A' }}>{challenge.xp_multiplier}× XP</span>
                 </motion.div>
                 <span className="text-xs px-2.5 py-1 rounded-full text-muted-foreground"
                   style={{ background: 'var(--ink-060)', border: '1px solid var(--ink-100)' }}>

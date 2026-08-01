@@ -324,11 +324,12 @@ export default function ProfilePage() {
                       {initials}
                     </div>
                     <div
-                      className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold text-white"
+                      className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold"
                       style={{
                         background: 'linear-gradient(135deg,#F59E0B,#EF4444)',
                         border: '2px solid #1A1060',
                         boxShadow: '0 0 8px rgba(245,158,11,0.5)',
+                        color: '#0F172A',
                       }}
                     >
                       {level}

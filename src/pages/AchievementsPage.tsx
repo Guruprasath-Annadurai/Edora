@@ -88,7 +88,7 @@ export default function AchievementsPage() {
         </Link>
         <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
           style={{ background: 'linear-gradient(135deg,#F59E0B,#EF4444)', boxShadow: '0 0 16px rgba(245,158,11,0.4)' }}>
-          <AwardIcon size={20} className="text-white" />
+          <AwardIcon size={20} style={{ color: '#0F172A' }} />
         </div>
         <div className="flex-1">
           <h2 className="font-heading font-bold text-white text-sm">Achievements</h2>
@@ -110,7 +110,7 @@ export default function AchievementsPage() {
             }}>
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
               style={{ background: 'linear-gradient(135deg,#F59E0B,#EF4444)', boxShadow: '0 0 20px rgba(245,158,11,0.35)' }}>
-              <Trophy size={28} className="text-white" strokeWidth={1.75} />
+              <Trophy size={28} style={{ color: '#0F172A' }} strokeWidth={1.75} />
             </div>
             <div className="flex-1">
               <p className="font-heading font-bold text-white text-lg leading-none">

@@ -134,7 +134,7 @@ export default function SprintPage() {
                   boxShadow: '0 0 20px rgba(245,158,11,0.45)',
                 }}
               >
-                <Zap size={20} className="text-white fill-white" />
+                <Zap size={20} style={{ color: '#0F172A', fill: '#0F172A' }} />
               </div>
               <div>
                 <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/40">Focus Mode</p>
@@ -218,7 +218,7 @@ export default function SprintPage() {
                     className="flex flex-col items-center py-2.5 rounded-2xl text-[11px] font-bold transition-all active:scale-95 min-w-0"
                     style={duration === value ? {
                       background: 'linear-gradient(135deg,#F59E0B,#EF4444)',
-                      color: 'var(--ink-950)',
+                      color: '#0F172A',
                       boxShadow: '0 4px 16px rgba(245,158,11,0.35)',
                       border: '1px solid transparent',
                     } : {
@@ -256,15 +256,17 @@ export default function SprintPage() {
             <button
               onClick={startSprint}
               disabled={!subject}
-              className="w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-30"
+              className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-30"
               style={subject ? {
                 background: 'linear-gradient(135deg,#F59E0B,#EF4444)',
                 boxShadow: '0 6px 28px rgba(245,158,11,0.4)',
+                color: '#0F172A',
               } : {
                 background: 'var(--ink-060)',
+                color: isLight ? '#52525B' : '#ffffff',
               }}
             >
-              <Zap size={18} className="fill-white" />
+              <Zap size={18} style={{ fill: subject ? '#0F172A' : (isLight ? '#52525B' : '#ffffff') }} />
               Start Sprint
             </button>
           </motion.div>
@@ -369,7 +371,7 @@ export default function SprintPage() {
                 }}
               >
                 {paused
-                  ? <><Play size={16} className="fill-white" /> Resume</>
+                  ? <><Play size={16} style={{ fill: '#0F172A' }} /> Resume</>
                   : <><Pause size={16} /> Pause</>}
               </button>
 

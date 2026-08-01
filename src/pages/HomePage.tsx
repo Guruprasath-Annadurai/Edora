@@ -293,7 +293,7 @@ function Day7FirstResultModal({ stats, onClose }: { stats: Day7Stats; onClose: (
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 280, damping: 20, delay: 0.15 }}
           >
-            <Trophy size={36} className="text-white fill-white" />
+            <Trophy size={36} style={{ color: '#0F172A', fill: '#0F172A' }} />
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>

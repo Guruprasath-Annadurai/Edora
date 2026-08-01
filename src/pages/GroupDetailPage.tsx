@@ -145,8 +145,8 @@ function MembersTab({ members }: {
           initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
           className="rounded-2xl px-4 py-3 flex items-center gap-3"
           style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 font-bold text-white text-sm"
-            style={{ background: m.role === 'admin' ? 'linear-gradient(135deg, #F59E0B, #EF4444)' : 'linear-gradient(135deg, #94a3b8, #64748b)' }}>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 font-bold text-sm"
+            style={{ background: m.role === 'admin' ? 'linear-gradient(135deg, #F59E0B, #EF4444)' : 'linear-gradient(135deg, #94a3b8, #64748b)', color: '#0F172A' }}>
             {(m.full_name ?? 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1">
