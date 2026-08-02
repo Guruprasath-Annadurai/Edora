@@ -6,11 +6,19 @@ import { useState, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { supabase } from '@/lib/supabase';
+import { storage } from '@/lib/storage';
 
 // ── Redirect URI — custom scheme for native, web URL for browser ──────────────
 const CLASSROOM_REDIRECT_URI = Capacitor.isNativePlatform()
   ? 'com.edora.app://auth/classroom/callback'
   : `${window.location.origin}/auth/classroom/callback`;
+
+// This same OAuth connection (classroom_connections, already grants
+// gmail.send + drive.file alongside Classroom scopes) is reused by non-
+// teacher features too, e.g. the "Connect Gmail" export flow in Account
+// Settings — so the callback needs to return the user to wherever they
+// actually started from, not always /teacher.
+export const GOOGLE_CONNECT_RETURN_KEY = 'edora_google_connect_return';
 
 export interface ClassroomCourse {
   id:              string;
@@ -90,8 +98,11 @@ export function useTeacher() {
   }, []);
 
   // ── Initiate Google OAuth flow ─────────────────────────────────────────────
-  const connectClassroom = useCallback(async () => {
+  // returnPath: where ClassroomCallbackPage should navigate after a
+  // successful connect (defaults to /teacher for the teacher flow).
+  const connectClassroom = useCallback(async (returnPath?: string) => {
     setError(null);
+    if (returnPath) storage.setItem(GOOGLE_CONNECT_RETURN_KEY, returnPath);
     const { data, error: err } = await callAuth({
       action:       'init_oauth',
       redirect_uri: CLASSROOM_REDIRECT_URI,

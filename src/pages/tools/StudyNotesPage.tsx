@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Plus, Trash2, Loader2, X, WifiOff } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Loader2, X, WifiOff, FileType2, Mail, Check } from 'lucide-react';
 import { FileDownloadIcon } from '@/components/ui/icons';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { OfflineCache } from '@/lib/offlineCache';
 import { useTheme } from '@/contexts/ThemeContext';
+import { isExportEnabled, exportNoteAsWord } from '@/lib/exportDocs';
+import { useGmailConnector } from '@/hooks/useGmailConnector';
+import { track } from '@/lib/analytics';
 
 interface Note {
   id: string;
@@ -26,6 +29,32 @@ export default function StudyNotesPage() {
   const [viewing, setViewing]     = useState<Note | null>(null);
   const [deleting, setDeleting]   = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [emailedId, setEmailedId] = useState<string | null>(null);
+  const exportEnabled = isExportEnabled();
+  const gmail = useGmailConnector();
+
+  async function handleExportWord(note: Note) {
+    setExporting(true);
+    try {
+      await exportNoteAsWord({ title: note.title, content: note.content, subject: note.subject, created_at: note.created_at });
+      track('note_exported_word', { note_id: note.id });
+    } catch (e) {
+      console.error('[StudyNotes] export failed:', e);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleEmailNote(note: Note) {
+    const html = `<div class="card"><h2>${note.title}</h2><p>${note.content.replace(/\n/g, '<br>')}</p></div>`;
+    const result = await gmail.sendExport(`Edora Note: ${note.title}`, html);
+    if (result.ok) {
+      setEmailedId(note.id);
+      track('note_emailed_gmail', { note_id: note.id });
+      setTimeout(() => setEmailedId(null), 3000);
+    }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -116,6 +145,26 @@ export default function StudyNotesPage() {
                 <X size={18} className="text-white" />
               </button>
               <p className="flex-1 font-heading font-bold text-white text-sm truncate">{viewing.title}</p>
+              {gmail.connected && (
+                <button aria-label="Email this note via Gmail" onClick={() => handleEmailNote(viewing)} disabled={gmail.sending}
+                  className="p-2 rounded-xl"
+                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  {emailedId === viewing.id
+                    ? <Check size={15} style={{ color: isLight ? '#047857' : '#34D399' }} />
+                    : gmail.sending
+                    ? <Loader2 size={15} className="animate-spin" style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+                    : <Mail size={15} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />}
+                </button>
+              )}
+              {exportEnabled && (
+                <button aria-label="Export as Word document" onClick={() => handleExportWord(viewing)} disabled={exporting}
+                  className="p-2 rounded-xl"
+                  style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}>
+                  {exporting
+                    ? <Loader2 size={15} className="animate-spin" style={{ color: '#818CF8' }} />
+                    : <FileType2 size={15} style={{ color: '#818CF8' }} />}
+                </button>
+              )}
               <button onClick={() => deleteNote(viewing.id)} disabled={deleting === viewing.id}
                 className="p-2 rounded-xl"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, ChevronLeft, Save, Trash2, AlertTriangle, ExternalLink, Sparkles, Languages, BarChart2, Download, RefreshCw } from 'lucide-react';
+import { User, ChevronLeft, Save, Trash2, AlertTriangle, ExternalLink, Sparkles, Languages, BarChart2, Download, RefreshCw, FileType2, Mail, Link2Off, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +11,8 @@ import { LanguageSelector } from '@/components/LanguageSelector';
 import posthog from 'posthog-js';
 import { reindexAllUserContent, getUserIndexStatus } from '@/lib/userContentIndex';
 import { useTheme } from '@/contexts/ThemeContext';
+import { isExportEnabled, setExportEnabled } from '@/lib/exportDocs';
+import { useGmailConnector } from '@/hooks/useGmailConnector';
 
 const STUDY_LEVELS = [
   { value: 'school',   label: 'School (Class 6–12)' },
@@ -38,6 +40,23 @@ export default function AccountSettingsPage() {
   const [analyticsEnabled, setAnalyticsEnabled] = useState(
     () => localStorage.getItem('edora_analytics_opt_out') !== 'true'
   );
+  const [docExportEnabled, setDocExportEnabled] = useState(() => isExportEnabled());
+  const gmail = useGmailConnector();
+  const [connectingGmail, setConnectingGmail] = useState(false);
+
+  function toggleDocExport() {
+    const next = !docExportEnabled;
+    setDocExportEnabled(next);
+    setExportEnabled(next);
+  }
+
+  async function handleGmailConnect() {
+    setConnectingGmail(true);
+    await gmail.connect('/account');
+    // connectClassroom navigates away (native browser / redirect) on success —
+    // if it returns without doing so, something failed silently upstream.
+    setConnectingGmail(false);
+  }
 
   useEffect(() => {
     getUserIndexStatus().then(setIndexStatus).catch(() => {});
@@ -303,6 +322,76 @@ export default function AccountSettingsPage() {
               <Download size={15} />
               {exporting ? 'Preparing export…' : 'Export my data'}
             </button>
+          </div>
+        </motion.div>
+
+        {/* Document export — Word/Excel toggle */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.157 }}
+          className="rounded-3xl overflow-hidden"
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
+          <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileType2 size={15} className="text-primary" />
+              <p className="font-semibold text-white text-sm">Export to Word/Excel</p>
+            </div>
+            <button
+              type="button" role="switch" aria-checked={docExportEnabled}
+              aria-label={docExportEnabled ? 'Disable document export' : 'Enable document export'}
+              onClick={toggleDocExport}
+              className="relative w-12 h-7 rounded-full flex items-center px-1 transition-colors duration-200"
+              style={{
+                background: docExportEnabled ? 'rgba(91,106,245,0.7)' : 'rgba(255,255,255,0.12)',
+                justifyContent: docExportEnabled ? 'flex-end' : 'flex-start',
+              }}>
+              <motion.div layout transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+                className="w-5 h-5 rounded-full shadow-md" style={{ background: '#FFFFFF' }} />
+            </button>
+          </div>
+          <div className="px-4 pb-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Adds an export button on your Study Notes and progress reports to save them as
+              real .docx/.xlsx files you can share or open in Word/Excel. No extra permissions needed.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Gmail connector */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.158 }}
+          className="rounded-3xl overflow-hidden"
+          style={{ background: 'var(--hdr-b-750)', border: '1px solid var(--ink-070)' }}>
+          <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+            <Mail size={15} style={{ color: isLight ? '#B91C1C' : '#F87171' }} />
+            <p className="font-semibold text-white text-sm">Gmail Connector</p>
+          </div>
+          <div className="px-4 pb-4">
+            {gmail.connected === null ? (
+              <p className="text-xs text-muted-foreground">Checking connection…</p>
+            ) : gmail.connected ? (
+              <>
+                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                  Connected as <strong className="text-white/70">{gmail.googleEmail}</strong>. Email
+                  yourself notes or progress reports directly from Study Notes / reports pages.
+                </p>
+                <button onClick={() => gmail.disconnect()}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold active:opacity-70 transition-opacity"
+                  style={{ color: isLight ? '#B91C1C' : '#F87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                  <Link2Off size={15} /> Disconnect
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                  Connect your Gmail to email yourself exported notes and progress reports —
+                  no separate app needed.
+                </p>
+                <button onClick={handleGmailConnect} disabled={connectingGmail}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-primary active:opacity-70 disabled:opacity-50 transition-opacity"
+                  style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.25)' }}>
+                  {connectingGmail ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}
+                  {connectingGmail ? 'Connecting…' : 'Connect Gmail'}
+                </button>
+              </>
+            )}
           </div>
         </motion.div>
 

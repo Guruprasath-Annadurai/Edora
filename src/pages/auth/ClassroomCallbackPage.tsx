@@ -8,8 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
-import { useTeacher } from '@/hooks/useTeacher';
+import { useTeacher, GOOGLE_CONNECT_RETURN_KEY } from '@/hooks/useTeacher';
 import { useTheme } from '@/contexts/ThemeContext';
+import { storage } from '@/lib/storage';
 
 export default function ClassroomCallbackPage() {
   const navigate = useNavigate();
@@ -48,9 +49,13 @@ export default function ClassroomCallbackPage() {
       .then(googleEmail => {
         setEmail(googleEmail ?? '');
         setStatus('success');
-        setMessage('Google Classroom connected successfully!');
-        // Redirect to teacher dashboard after short delay
-        setTimeout(() => navigate('/teacher', { replace: true }), 2000);
+        setMessage('Google connected successfully!');
+        // Non-teacher flows (e.g. "Connect Gmail" in Account Settings) stash
+        // where to return to before starting the OAuth redirect — falls back
+        // to the teacher dashboard, the original behavior of this page.
+        const returnPath = storage.getItem(GOOGLE_CONNECT_RETURN_KEY) ?? '/teacher';
+        storage.removeItem(GOOGLE_CONNECT_RETURN_KEY);
+        setTimeout(() => navigate(returnPath, { replace: true }), 2000);
       })
       .catch(err => {
         setStatus('error');

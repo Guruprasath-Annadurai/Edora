@@ -410,6 +410,34 @@ serve(withSentry('google-gmail', async (req) => {
     return json({ ok: true, message_id: result.messageId });
   }
 
+  // ── send_export — generic "email me this note/report" for ANY user ───────
+  // Reuses the exact same classroom_connections OAuth grant (which already
+  // includes gmail.send) that teacher features use — the token store is
+  // keyed by user_id, not gated to a teacher role, so any user who has
+  // connected Google via the same flow can use this. Defaults to emailing
+  // the connected Google account itself (self-send) when no recipient is given.
+  if (action === 'send_export') {
+    const { subject, html, to_email } = body as { subject?: string; html?: string; to_email?: string };
+    if (!subject || !html) return json({ error: 'subject and html required' }, 400);
+
+    const auth = await getValidAccessToken(user.id, serviceDb);
+    if (!auth) return json({ error: 'Not connected to Google. Please connect first.' }, 400);
+
+    const recipient = to_email || auth.email;
+    const result = await sendEmail(auth.token, auth.email, recipient, subject, wrapInTemplate(html));
+    if (!result.ok) return json({ error: 'Failed to send email' }, 500);
+
+    await serviceDb.from('gmail_sends').insert({
+      teacher_id:       user.id,
+      recipient_email:  recipient,
+      subject,
+      send_type:        'user_export',
+      gmail_message_id: result.messageId,
+    });
+
+    return json({ ok: true, message_id: result.messageId, sent_to: recipient });
+  }
+
   // ── get_send_history ──────────────────────────────────────────────────────
   if (action === 'get_send_history') {
     const { assignment_id, limit = 50 } = body as { assignment_id?: string; limit?: number };

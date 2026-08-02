@@ -708,7 +708,7 @@ export default function TeacherDashboardPage() {
                   <Link2 size={36} style={{ color: isLight ? '#4338CA' : '#5B6AF5', margin: '0 auto 12px' }} />
                   <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink-950)', marginBottom: '6px' }}>Connect Google first</div>
                   <div style={{ fontSize: '13px', color: 'var(--ink-500)', marginBottom: '20px' }}>Google Calendar, Gmail, and Drive are available once you connect your Google account.</div>
-                  <button onClick={teacher.connectClassroom} style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: '#ffffff', border: 'none', borderRadius: '12px', padding: '12px 28px', fontWeight: 700, cursor: 'pointer' }}>
+                  <button onClick={() => teacher.connectClassroom()} style={{ background: 'linear-gradient(135deg,#5B6AF5,#8B5CF6)', color: '#ffffff', border: 'none', borderRadius: '12px', padding: '12px 28px', fontWeight: 700, cursor: 'pointer' }}>
                     Connect Google
                   </button>
                 </div>

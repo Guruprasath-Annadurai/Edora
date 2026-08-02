@@ -8,13 +8,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, FileText, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, Share2, Eye, X, RefreshCw, Clock,
+  AlertTriangle, Share2, Eye, X, RefreshCw, Clock, FileSpreadsheet, Loader2 as LoaderIcon, Mail, Check,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Share } from '@capacitor/share';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { isExportEnabled, exportReportAsExcel } from '@/lib/exportDocs';
+import { useGmailConnector } from '@/hooks/useGmailConnector';
+import { track } from '@/lib/analytics';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -198,12 +201,39 @@ function Skeleton({ className }: { className?: string }) {
 export default function TeacherExportPage() {
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [exportData, setExportData] = useState<TeacherExport | null>(null);
   const [generating, setGenerating] = useState(false);
   const [showModal,  setShowModal]  = useState(false);
   const [loading,    setLoading]    = useState(true);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const exportEnabled = isExportEnabled();
+  const gmail = useGmailConnector();
+
+  async function handleEmailReport() {
+    if (!exportData) return;
+    const result = await gmail.sendExport('Your Edora Progress Report', exportData.export_html);
+    if (result.ok) {
+      setEmailSent(true);
+      track('report_emailed_gmail', {});
+      setTimeout(() => setEmailSent(false), 3000);
+    }
+  }
+
+  async function handleExportExcel() {
+    if (!ed) return;
+    setExportingExcel(true);
+    try {
+      await exportReportAsExcel(ed, profile?.full_name ?? user?.email ?? 'Student');
+      track('report_exported_excel', {});
+    } catch (e) {
+      console.error('[TeacherExport] excel export failed:', e);
+    } finally {
+      setExportingExcel(false);
+    }
+  }
 
   // ── Load latest export ──────────────────────────────────────────────────────
   const loadExport = useCallback(async () => {
@@ -407,6 +437,24 @@ export default function TeacherExportPage() {
                 style={{ borderColor: '#5B6AF5', color: isLight ? '#4338CA' : '#8B9BFA', background: 'rgba(91,106,245,0.1)' }}>
                 <Eye size={15} /> View Full Report
               </button>
+              {exportEnabled && (
+                <button aria-label="Export as Excel" onClick={handleExportExcel} disabled={exportingExcel}
+                  className="py-3.5 px-4 rounded-2xl text-sm font-semibold border-2 flex items-center justify-center"
+                  style={{ borderColor: '#10B981', color: isLight ? '#047857' : '#34D399', background: 'rgba(16,185,129,0.1)' }}>
+                  {exportingExcel ? <LoaderIcon size={15} className="animate-spin" /> : <FileSpreadsheet size={15} />}
+                </button>
+              )}
+              {gmail.connected && (
+                <button aria-label="Email report via Gmail" onClick={handleEmailReport} disabled={gmail.sending}
+                  className="py-3.5 px-4 rounded-2xl text-sm font-semibold border-2 flex items-center justify-center"
+                  style={{ borderColor: '#EF4444', color: isLight ? '#B91C1C' : '#F87171', background: 'rgba(239,68,68,0.1)' }}>
+                  {emailSent
+                    ? <Check size={15} />
+                    : gmail.sending
+                    ? <LoaderIcon size={15} className="animate-spin" />
+                    : <Mail size={15} />}
+                </button>
+              )}
               <button
                 onClick={() => shareReport(exportData.export_html)}
                 className="flex-1 py-3.5 rounded-2xl text-white text-sm font-semibold flex items-center justify-center gap-2"
