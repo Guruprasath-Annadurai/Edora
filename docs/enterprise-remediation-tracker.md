@@ -103,9 +103,16 @@ Still **no role-permission matrix document exists**, and this was not a full man
 - **NOT audited:** the remaining ~39 of 41 authenticated-executable findings were sampled (by risky-sounding name), not exhaustively reviewed function-by-function. `has_role` was checked and is safe (simple boolean read, no mutation). The rest are unreviewed.
 - Still NOT STARTED: a role-permission matrix document, systematic IDOR testing beyond what the advisor pass surfaced, tampered-JWT testing, session-lifecycle testing, and cross-school/cross-user isolation testing as a dedicated exercise (some isolation guarantees are incidentally covered by the RLS policies reviewed above, but this wasn't the goal of this pass).
 
-## 10. Secrets and credential management — NOT STARTED (as a formal inventory)
+## 10. Secrets and credential management — PARTIAL (real inventory + leak scan, found and fixed a live issue)
 
-Individual secrets have been touched ad hoc this session (confirmed `GOOGLE_OAUTH_CLIENT_ID/SECRET`, Supabase service-role key usage patterns in edge functions, OAuth token encryption via `token-crypto.ts`). No formal secrets inventory, rotation policy, or leaked-secret Git-history scan has been performed.
+- **VERIFIED COMPLETE: a real secrets inventory now exists** — `docs/secrets-inventory.md`. Built from actual code references (every `Deno.env.get()` across `supabase/functions`, every `import.meta.env.VITE_*` across `src`), not written from memory or assumption: 25 real server-side secrets, ~10 client-side (all confirmed meant-to-be-public: anon key, OAuth client ID, RevenueCat's own public keys, Sentry DSN, PostHog key), and the 2 GitHub Actions secrets.
+- **VERIFIED COMPLETE: a real git-history leak scan was run**, not skipped for lack of tooling — installed `gitleaks` (wasn't available before) and scanned the full 263-commit history. 5 findings, each individually verified rather than trusted at face value:
+  - 1 own test fixture (harmless).
+  - 1 hardcoded JWT in a migration — decoded the payload directly rather than assuming; confirmed `role: anon` (the public key), not `service_role`. Not a real leak, though committing it directly instead of via `vault.decrypted_secrets` like newer cron migrations do is worse style — not fixed (cosmetic).
+  - **1 real, live, fixed finding**: a hardcoded literal (`'novo-eval-secret-2026'`) present in 3 places, one of which — `EvalDashboardPage.tsx` — is client-side React code that ships in the public JS bundle. `novo-eval-run`'s own authorization accepted this exact string as a valid auth path via an `x-eval-secret` header, and the `/eval` route has **zero role gating anywhere**, client or server. If the deployed `EVAL_SECRET` matched this literal (plausible — the string is identical across all 3 hardcoded copies), any visitor could extract it from the bundle and trigger real Groq/Gemini API-cost AI eval runs without being staff. Fixed with a genuine `has_role(auth.uid(), 'admin')` check against the caller's real session JWT, the client-shippable secret path removed entirely, and the 2 remaining server-to-server calls parameterized to read the real `EVAL_SECRET` env var instead of the literal. **Verified live**: confirmed `has_role` behavior via direct SQL for the real admin user vs. an arbitrary id, then invoked the deployed function with a valid-but-non-admin JWT and got back the new code's exact `401` response, not the platform's generic error — proving the old bypass no longer works.
+- Also fixed in passing: `.env.example` was missing the two RevenueCat client-key entries and had a dead `VITE_APP_VERSION` line (found earlier this session — `vite.config.ts`'s `define` block always overrides it).
+- **Residual, cannot be done from here**: if the live `EVAL_SECRET` was ever actually set to the leaked literal, it needs rotating — no tool available in this environment can set Supabase edge-function secrets.
+- **NOT done**: confirmation of what's actually configured live (no tool available to enumerate Supabase's real configured secret names — this inventory documents code references, not verified live state), a formal rotation policy/schedule with named ownership, and a recurring secret-scanning CI gate (the gitleaks run was a one-off manual pass, not wired into CI).
 
 ## 11. Edge-function audit — NOT STARTED (stale task, now explicitly surfaced)
 
@@ -123,9 +130,10 @@ Memory system exists (`novo_memories`, decay/consolidation logic, confirmed earl
 
 Privacy policy content was substantially rewritten this session for accuracy (DPDP language, real third-party disclosure, real OAuth scopes). Operational verification (does deletion actually remove data from every listed system — memories, analytics, exports, third-party processors) has not been tested end-to-end.
 
-## 15. Incident response — NOT STARTED
+## 15. Incident response — PARTIAL (first runbook, unrehearsed)
 
-No incident-response runbook exists anywhere in this repo.
+**VERIFIED COMPLETE (as a first version, not a mature process):** `docs/incident-response.md` now exists. Built to reference only real, already-built tooling from this session — `monitoring-check`'s hourly Slack alerts, `docs/backup-recovery.md`/`db-backup-restore` for data loss, `docs/rollback-procedure.md` for bad deploys, `docs/secrets-inventory.md` for credential rotation — rather than describing a fictional on-call/paging process. Explicitly states what does NOT exist: no on-call rotation, no PagerDuty/Opsgenie, no status page, no incident-commander role, no user-facing incident communication channel, no postmortem template or enforced process, and no playbook here has been rehearsed under real conditions. Uses this session's own RBAC-audit fixes (`increment_xp`, `record_battle_tie`) as the worked example for the "unauthorized access discovered" playbook.
+- **NOT STARTED:** an actual on-call/paging system, a status page, a tested/rehearsed drill of any playbook, legal/PR escalation contacts (would require naming real people, not fabricated), and verification of provider-outage fallback behavior (e.g. whether Gemini→Groq fallback or payment-check timeout behavior actually works as assumed — flagged as unverified in the runbook itself, not tested this pass).
 
 ## 16. CI/CD and release governance — PARTIAL (staged vulnerability enforcement only)
 
