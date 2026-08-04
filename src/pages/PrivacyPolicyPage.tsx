@@ -13,22 +13,22 @@ const SECTIONS = [
   {
     title: 'Information We Collect',
     icon: FileText,
-    content: `We collect information you provide when creating an account (name, email address, study level) and information generated through your use of EDORA (quiz results, chat history, learning progress, and session summaries). We also collect device information such as device type, operating system, and app version for performance optimization.`,
+    content: `Account info (name, email, study level) and content you create (notes, chat history, quiz results, scanned documents). Camera/microphone data only when you use Scanner or Voice Study/Quiz. A push notification token for reminders you enable. Device type, OS, and app version for performance. If you connect Google Classroom, Gmail, Calendar, or Drive, or sign in with Google/Microsoft, we receive the account email and the specific data those integrations need (e.g. course rosters for Classroom, send-only access for Gmail) — never your password.`,
   },
   {
     title: 'How We Use Information',
     icon: Target,
-    content: `Your information is used to personalize your learning experience, power Novo AI's memory and tutoring capabilities, track your progress and streaks, send study reminders (with your permission), and improve our services. We do not sell your personal data to third parties. AI session summaries are stored to help Novo remember your learning history and weak spots.`,
+    content: `To personalize your learning experience, power Novo AI's tutoring and memory, track progress and streaks, send reminders you've opted into, and generate AI content via Google Gemini, Groq, and — for a small set of narrative summaries — NVIDIA NIM. We do not sell your personal data. AI-generated content (quizzes, explanations, grading) is for educational support and may vary in accuracy.`,
   },
   {
     title: 'Data Protection',
     icon: Lock,
-    content: `All data is encrypted in transit (TLS 1.3) and at rest. We use Supabase for secure data storage with Row Level Security (RLS), ensuring only you can access your own data. Authentication is handled via Supabase Auth with support for OAuth (Google, Apple). We retain your data for as long as your account is active.`,
+    content: `All data is encrypted in transit (TLS) and at rest, stored on Supabase with Row Level Security so only you can access your own data. OAuth tokens (Google Classroom/Gmail/Calendar/Drive) are additionally encrypted before storage. Authentication supports email/password, Google, and Microsoft sign-in. We retain your data while your account is active.`,
   },
   {
     title: 'Your Rights',
     icon: Scale,
-    content: `You have the right to access, correct, or delete your personal data at any time from your Profile settings. You can request a full data export or account deletion by contacting us at privacy@edora.app. For users under 18, parental consent may be required. You may opt out of analytics tracking from Account Settings.`,
+    content: `Access, export, or delete your data anytime from Profile → Account Settings → Data Rights. If you're in India and under 18, the DPDP Act treats you as a Child and we require verifiable parental consent before processing your data — reviewable or withdrawable from the same Data Rights screen. For anything else, or DPDP grievances, contact support@edora.app (general) or dpo@edora.app (India DPO).`,
   },
 ];
 
@@ -129,7 +129,7 @@ export default function PrivacyPolicyPage() {
       <div className="flex-1 overflow-y-auto native-scroll px-5 pb-2">
         <div className="mb-4 text-center">
           <h2 className="font-heading text-xl font-bold mb-1" style={{ color: DARK }}>Your Privacy Matters</h2>
-          <p className="text-xs" style={{ color: GRAY }}>Last updated: June 2025 · Effective immediately</p>
+          <p className="text-xs" style={{ color: GRAY }}>Last updated: August 2, 2026 · Effective immediately</p>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -146,7 +146,9 @@ export default function PrivacyPolicyPage() {
         {/* Contact */}
         <p className="text-center text-xs mt-4 mb-2" style={{ color: GRAY }}>
           Questions? Contact us at{' '}
-          <span className="font-semibold" style={{ color: '#5B6AF5' }}>privacy@edora.app</span>
+          <span className="font-semibold" style={{ color: '#5B6AF5' }}>support@edora.app</span>
+          {' '}(India DPDP grievances:{' '}
+          <span className="font-semibold" style={{ color: '#5B6AF5' }}>dpo@edora.app</span>)
         </p>
       </div>
 

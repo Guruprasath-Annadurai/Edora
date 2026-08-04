@@ -187,9 +187,9 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
 
                 <div className="text-xs text-white/30 text-center">
                   By accepting, you agree to our{' '}
-                  <Link to="/privacy" className="underline text-white/50">Privacy Policy</Link>{' '}
+                  <Link to="/privacy-policy" className="underline text-white/50">Privacy Policy</Link>{' '}
                   and{' '}
-                  <Link to="/terms" className="underline text-white/50">Terms of Service</Link>.
+                  <Link to="/terms-of-service" className="underline text-white/50">Terms of Service</Link>.
                   This consent is versioned ({CONSENT_VERSION}) and can be reviewed at any time.
                 </div>
 
