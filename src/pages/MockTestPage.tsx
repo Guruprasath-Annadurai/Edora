@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {ChevronLeft, Clock, Trophy, CheckCircle, BarChart2, Mail} from 'lucide-react';
+import {ChevronLeft, Clock, Trophy, CheckCircle, BarChart2, Mail, Grid3x3, X} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,6 +33,7 @@ interface MockQuestion {
   marks_negative: number;
   question_type: 'mcq' | 'integer';
   correct_value: string | null; // for TITA/integer questions — the raw correct answer text
+  chapter: string; // finer-grained than subject — feeds topic_stats so postmortem/weak-topic tracking has real per-chapter data, not just per-subject
 }
 
 interface SubjectSection {
@@ -156,6 +157,7 @@ export default function MockTestPage() {
   } | null>(null);
   const timerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitRef   = useRef(false);
+  const [showPalette, setShowPalette] = useState(false);
 
   const config = EXAM_CONFIG[examType];
   const isPro  = (profile?.is_pro ?? false) || (user?.created_at ? isInFreeTrial(user.created_at) : false);
@@ -194,6 +196,25 @@ export default function MockTestPage() {
       percentile,
       subject_scores: subjectScores,
       completed_at: new Date().toISOString() }).select('id').single();
+
+    // Feed every answered question into topic_stats (struggle/win counts) —
+    // this table previously was only ever written from ChatPage's quiz-intent
+    // flow, so MockPostmortemPage's "batting card"/radar/weak-topic tracking
+    // showed nothing for mock test performance on ANY exam, CAT included.
+    // Chapter-level granularity (falls back to subject if a question has no
+    // chapter) gives finer weak-area tracking than subject alone.
+    const wrongIds = new Set(wrongAnswers.map(q => q.id));
+    const answeredQuestions = allQuestions.filter(q => finalAnswers[q.id] !== undefined);
+    for (const q of answeredQuestions) {
+      supabase.rpc('upsert_topic_stat', {
+        p_user_id: profile.id,
+        p_subject: q.subject,
+        p_topic:   q.chapter,
+        p_won:     !wrongIds.has(q.id),
+      }).then(({ error }) => {
+        if (error) console.error('[MockTest] upsert_topic_stat failed:', error.message);
+      });
+    }
 
     // Feed wrong answers into the spaced-repetition system — this is the
     // retention loop JEE/NEET quiz content never had wired either, and CAT/
@@ -299,7 +320,7 @@ export default function MockTestPage() {
       if (ids && ids.length === sec.count) {
         const { data } = await supabase
           .from('pyq_content')
-          .select('id,subject,question_text,solution_text,options,correct_option,question_type,marks')
+          .select('id,subject,chapter,question_text,solution_text,options,correct_option,question_type,marks')
           .in('id', ids);
         // Preserve the composer's chosen order rather than whatever order `.in()` returns.
         const bySubjectId = new Map((data ?? []).map(r => [r.id, r]));
@@ -309,7 +330,7 @@ export default function MockTestPage() {
       if (!rows || rows.length !== sec.count) {
         const { data } = await supabase
           .from('pyq_content')
-          .select('id,subject,question_text,solution_text,options,correct_option,question_type,marks')
+          .select('id,subject,chapter,question_text,solution_text,options,correct_option,question_type,marks')
           .eq('exam', EXAM_DB_MAP[examType])
           .eq('subject', sec.subject)
           .limit(sec.count);
@@ -330,7 +351,8 @@ export default function MockTestPage() {
           // TITA questions carry no negative marking, even in a negative-marked section.
           marks_negative:  isTita ? 0 : sec.marksNeg,
           question_type:   isTita ? 'integer' : 'mcq',
-          correct_value:   isTita ? row.correct_option : null };
+          correct_value:   isTita ? row.correct_option : null,
+          chapter:         row.chapter || row.subject };
       });
 
       generatedSections.push({ subject: sec.subject, color: subjectColors[sec.subject] ?? (isLight ? '#92400E' : '#FBBF24'), questions, durationMin: sec.durationMin });
@@ -403,14 +425,20 @@ export default function MockTestPage() {
           </div>
         </div>
         {phase === 'exam' && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-               style={{ background: timerWarning ? 'rgba(248,113,113,0.15)' : 'var(--color-surface)',
-                        border: `1px solid ${timerWarning ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-border)'}` }}>
-            <Clock size={14} color={timerWarning ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-text-secondary)'} />
-            <span className="text-sm font-mono font-bold"
-                  style={{ color: timerWarning ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-text)' }}>
-              {formatTime(displayTime)}{config.sectional ? ` · ${currentSection?.subject}` : ''}
-            </span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                 style={{ background: timerWarning ? 'rgba(248,113,113,0.15)' : 'var(--color-surface)',
+                          border: `1px solid ${timerWarning ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-border)'}` }}>
+              <Clock size={14} color={timerWarning ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-text-secondary)'} />
+              <span className="text-sm font-mono font-bold"
+                    style={{ color: timerWarning ? (isLight ? '#B91C1C' : '#F87171') : 'var(--color-text)' }}>
+                {formatTime(displayTime)}{config.sectional ? ` · ${currentSection?.subject}` : ''}
+              </span>
+            </div>
+            <button aria-label="Question palette" onClick={() => setShowPalette(true)}
+              className="p-2 rounded-xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <Grid3x3 size={16} style={{ color: 'var(--color-text-secondary)' }} />
+            </button>
           </div>
         )}
       </div>
@@ -725,6 +753,72 @@ export default function MockTestPage() {
                 </Button>
               </Link>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Question palette — jump to any question. Sectional exams (CAT) only
+          list the current section's questions, matching the section-lock rule
+          (section tabs above already enforce the same restriction). Non-
+          sectional exams already allow free movement across sections via the
+          tabs, so the palette lists every question. */}
+      <AnimatePresence>
+        {showPalette && phase === 'exam' && (
+          <motion.div className="fixed inset-0 z-50 flex items-end"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)' }}
+              onClick={() => setShowPalette(false)} />
+            <motion.div className="relative w-full rounded-t-3xl p-4 pb-safe max-h-[70vh] overflow-y-auto"
+              style={{ background: 'var(--color-surface-2, var(--color-surface))' }}
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="font-bold" style={{ color: 'var(--color-text)' }}>Question Palette</p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                    {config.sectional ? `${currentSection?.subject} · ` : ''}{answered}/{allQuestions.length} answered
+                  </p>
+                </div>
+                <button aria-label="Close" onClick={() => setShowPalette(false)}
+                  className="p-2 rounded-xl" style={{ background: 'var(--color-surface)' }}>
+                  <X size={18} style={{ color: 'var(--color-text-secondary)' }} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3.5 h-3.5 rounded-md" style={{ background: `${config.color}30`, border: `1.5px solid ${config.color}` }} />
+                  <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Answered</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3.5 h-3.5 rounded-md" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)' }} />
+                  <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Unanswered</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-6 gap-2">
+                {Array.from(
+                  { length: (config.sectional ? sectionEnd : allQuestions.length) - (config.sectional ? sectionStart : 0) },
+                  (_, k) => (config.sectional ? sectionStart : 0) + k
+                ).map(i => {
+                    const q = allQuestions[i];
+                    const isAnswered = answers[q.id] !== undefined;
+                    const isCurrent = i === currentIdx;
+                    return (
+                      <motion.button key={q.id} whileTap={{ scale: 0.92 }}
+                        onClick={() => { setCurrentIdx(i); setShowPalette(false); }}
+                        className="aspect-square rounded-xl flex items-center justify-center text-sm font-bold"
+                        style={{
+                          background: isAnswered ? `${config.color}30` : 'var(--color-surface)',
+                          border: `1.5px solid ${isCurrent ? config.color : (isAnswered ? config.color : 'var(--color-border)')}`,
+                          color: isAnswered ? (isLight ? config.colorLight : config.color) : 'var(--color-text-secondary)',
+                          boxShadow: isCurrent ? `0 0 0 2px ${config.color}40` : 'none' }}>
+                        {i + 1}
+                      </motion.button>
+                    );
+                  })}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

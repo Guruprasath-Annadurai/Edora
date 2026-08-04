@@ -197,8 +197,16 @@ Return a JSON coaching report:
     })();
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Radar chart: subject-wise win rates
-  const subjects = ['Physics', 'Chemistry', 'Maths', 'Biology'];
+  // Radar chart: subject-wise win rates. Derived from the user's actual
+  // topic_stats rows rather than a hardcoded JEE/NEET subject list — that
+  // hardcoding meant CAT students (QA/DILR/VARC) and UPSC students
+  // (Prelims_GS) always saw a meaningless flat 50% radar regardless of real
+  // performance, since none of their subjects matched Physics/Chemistry/
+  // Maths/Biology. Falls back to the JEE/NEET list only when there's no
+  // data yet, so first-time users still see a sensible empty state.
+  const subjects = topicStats.length > 0
+    ? Array.from(new Set(topicStats.map(t => t.subject))).slice(0, 6)
+    : ['Physics', 'Chemistry', 'Maths', 'Biology'];
   const radarValues = subjects.map(subj => {
     const rows = topicStats.filter(t => t.subject === subj);
     if (rows.length === 0) return 50;
