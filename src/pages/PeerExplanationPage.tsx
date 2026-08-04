@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -473,6 +474,14 @@ Rules:
             </motion.div>
           )}
           <p className="text-sm text-gray-300 italic">"{evalResult.encouragement}"</p>
+          <div className="flex justify-center">
+            <ReportButton
+              compact
+              contentText={`Score: ${evalResult.score}\nGaps: ${evalResult.gaps.join('; ')}\nKey insight: ${evalResult.concept_check}`}
+              source="peer_explanation"
+              details={`${selectedSubject} · ${activeTopic}`}
+            />
+          </div>
         </motion.div>
 
         {/* What you got right */}

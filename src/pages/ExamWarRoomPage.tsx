@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Countdown timer hook ──────────────────────────────────────────────────────
@@ -317,6 +318,14 @@ Focus on high-yield, last-minute-revisable concepts. No derivations.`);
                       </div>
                       <p className="text-white font-bold text-sm mb-1">{topic.topic}</p>
                       <p className="text-white/50 text-xs leading-relaxed">{topic.tip}</p>
+                      <div className="flex justify-end mt-2">
+                        <ReportButton
+                          compact
+                          contentText={`${topic.topic}: ${topic.tip}`}
+                          source="exam_war_room"
+                          details={`Subject: ${topic.subject}`}
+                        />
+                      </div>
                     </motion.div>
                   ))}
                 </div>

@@ -112,7 +112,7 @@ const LeaderboardRow = memo(function LeaderboardRow({ entry, index, color }: { e
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text)' }}>
           {entry.full_name} {entry.is_me && <span style={{ color }}>(you)</span>}
-          {entry.is_rival && <span className="text-[10px] font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--v2-error-text)' }}>rival</span>}
+          {entry.is_rival && <span className="text-xs font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--v2-error-text)' }}>rival</span>}
         </p>
         <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
           {entry.xp.toLocaleString()} XP {entry.school_name ? `· ${entry.school_name}` : ''}

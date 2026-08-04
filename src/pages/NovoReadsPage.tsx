@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { geminiJSON } from '@/lib/gemini';
 import { indexUserItem } from '@/lib/userContentIndex';
 import { getFeatureTheme } from '@/lib/featureTheme';
+import { ReportButton } from '@/components/ui/ReportButton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -307,6 +308,13 @@ function ParagraphCard({
           </p>
         </div>
         <p className="text-sm text-white/90 leading-relaxed">{para.annotation}</p>
+        <div className="flex justify-end mt-2">
+          <ReportButton
+            compact
+            contentText={`Paragraph: ${para.text}\n\nNovo's Take: ${para.annotation}`}
+            source="novo_reads"
+          />
+        </div>
       </div>
 
       {/* Key terms */}

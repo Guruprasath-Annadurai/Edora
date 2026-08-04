@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -374,6 +375,14 @@ Return a JSON coaching report:
             <div className="p-4 rounded-2xl text-center"
               style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}>
               <p className="text-sm font-bold italic" style={{ color: isLight ? '#92400E' : '#FCD34D' }}>"{coachNote.motivationLine}"</p>
+            </div>
+            <div className="flex justify-end">
+              <ReportButton
+                compact
+                contentText={`Verdict: ${coachNote.verdict}\nStrength: ${coachNote.topStrength}\nWeakness: ${coachNote.topWeakness}\nActions: ${coachNote.actionItems.join('; ')}`}
+                source="mock_postmortem"
+                details={`Exam: ${examName}`}
+              />
             </div>
           </motion.div>
         )}

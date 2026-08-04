@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { isInFreeTrial } from '@/lib/trial';
 import { useGeminiStream } from '@/lib/useGeminiStream';
 import { ProGate } from '@/components/ui/ProGate';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { track } from '@/lib/analytics';
 
@@ -354,13 +355,20 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
                     </motion.button>
                   ))}
                 </div>
-                {/* CBSE boards content pool is much smaller than JEE/NEET
-                    (4-6 questions per subject vs 100+) — same honest
+                {/* CBSE boards, UPSC, and CAT content pools are all much smaller
+                    than JEE/NEET (16-32 questions total vs 100+) — same honest
                     "starter set" framing already used in MockTestPage and
-                    UPSCMainsPage for beta-depth content. */}
+                    UPSCMainsPage for beta-depth content, now extended to the
+                    other two thin-content exams instead of only disclosing it
+                    for boards. */}
                 {(examType === 'CBSE_10' || examType === 'CBSE_12') && (
                   <p className="text-xs mt-2" style={{ color: 'var(--color-text-secondary)' }}>
                     Starter practice set — smaller question pool than JEE/NEET while we expand board coverage.
+                  </p>
+                )}
+                {(examType === 'UPSC' || examType === 'CAT') && (
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    Starter practice set — smaller question pool than JEE/NEET while we expand {examType === 'UPSC' ? 'UPSC' : 'CAT'} coverage.
                   </p>
                 )}
               </div>
@@ -604,7 +612,19 @@ Explain WHY this is correct, the underlying concept, and a memory trick. Under 1
                           {q.solution_text}
                         </p>
                       )
-                    ) : (
+                    ) : null}
+                    {effectivelyPro && !isStreaming && (
+                      <div className="flex justify-end">
+                        <ReportButton
+                          compact
+                          contentText={`Q: ${q.question_text}\nCorrect: ${q.options.find(o => o.correct)?.text}\nExplanation: ${streamingText || q.solution_text}`}
+                          source="pyq_bank"
+                          contentId={q.id}
+                          details={`${examConfig.label} · ${q.subject}`}
+                        />
+                      </div>
+                    )}
+                    {!effectivelyPro && (
                       <div className="space-y-2">
                         <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-500)' }}>
                           Full solution and Novo's explanation are Pro features.

@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -183,6 +184,17 @@ function QuestionCard({ q, translation, lang, onTranslate }: {
                 <p className="text-xs text-white/65 leading-relaxed">
                   {(showEn || !hasTranslation) ? q.explanation_en : explanation}
                 </p>
+                {hasTranslation && !showEn && (
+                  <div className="flex justify-end mt-1.5">
+                    <ReportButton
+                      compact
+                      contentText={`Question: ${questionText}\nOptions: ${options.join(', ')}\nExplanation: ${explanation}`}
+                      source="regional_language"
+                      contentId={q.id}
+                      details={`Language: ${lang.name}`}
+                    />
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

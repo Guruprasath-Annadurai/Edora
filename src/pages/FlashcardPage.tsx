@@ -15,6 +15,7 @@ import { indexUserItem } from '@/lib/userContentIndex';
 import { getFeatureTheme } from '@/lib/featureTheme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ReportButton } from '@/components/ui/ReportButton';
+import { markMissionTaskComplete } from '@/lib/dailyMission';
 
 type ReviewRating = 'again' | 'hard' | 'good' | 'easy';
 
@@ -135,6 +136,7 @@ export default function FlashcardPage() {
     undoTimerRef.current = setTimeout(() => setUndoStack([]), 5000);
     if (current + 1 >= cards.length) {
       track('flashcard_session_complete', { cards_reviewed: cards.length });
+      markMissionTaskComplete(profile.id, 'cards').catch(() => {});
       const unlocked = await loadUnlockedIds(profile.id);
       await checkFlashcardCountAchievements(profile.id, unlocked);
       setView('done'); return;

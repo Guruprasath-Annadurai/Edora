@@ -31,6 +31,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Toast } from '@capacitor/toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { QuizQuestion } from '@/types';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -1109,6 +1110,14 @@ export default function StudyRoomPage() {
                   className="rounded-2xl px-4 py-3 text-xs text-muted-foreground leading-relaxed"
                   style={{ background: 'var(--ink-045)', border: '1px solid var(--ink-060)' }}>
                   <span className="font-semibold text-white">Explanation: </span>{q.explanation}
+                  <div className="flex justify-end mt-1.5">
+                    <ReportButton
+                      compact
+                      contentText={`Q: ${q?.question}\nCorrect: ${q?.options[q.correct_answer]}\nExplanation: ${q?.explanation}`}
+                      source="study_room"
+                      details={`${roomSubject}${roomTopic ? ` · ${roomTopic}` : ''}`}
+                    />
+                  </div>
                 </motion.div>
               )}
 

@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -471,6 +472,14 @@ Return a JSON array — no markdown, no wrapper object — with this schema:
                   className="mt-3 p-3 rounded-xl overflow-hidden"
                   style={{ background: 'rgba(91,106,245,0.1)', border: '1px solid rgba(91,106,245,0.2)' }}>
                   <p className="text-xs text-white/70 leading-relaxed">{currentQ.explanation}</p>
+                  <div className="flex justify-end mt-2">
+                    <ReportButton
+                      compact
+                      contentText={`Q: ${currentQ.question}\nCorrect: ${currentQ.options[currentQ.correctIndex]}\nExplanation: ${currentQ.explanation}`}
+                      source="boss_fight"
+                      details={`Subject: ${subject}`}
+                    />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

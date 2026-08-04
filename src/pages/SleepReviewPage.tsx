@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Flashcard {
@@ -443,8 +444,14 @@ Keep each item under 8 words. No numbering. No markdown.`
       {/* Progress footer */}
       {!loading && !error && items.length > 0 && (
         <div className="pt-2">
-          <div className="flex justify-between text-xs text-white/40 mb-1.5">
+          <div className="flex items-center justify-between text-xs text-white/40 mb-1.5">
             <span>{doneCount}/{items.length} checked</span>
+            <ReportButton
+              compact
+              contentText={items.join('\n')}
+              source="sleep_review"
+              details={`Night-before checklist: ${examName}`}
+            />
             <span>{Math.round((doneCount / items.length) * 100)}% reviewed</span>
           </div>
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ink-080)' }}>

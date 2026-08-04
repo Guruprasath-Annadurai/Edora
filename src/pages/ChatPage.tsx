@@ -24,6 +24,7 @@ import { reportContent, type ReportType } from '@/lib/contentReport';
 import { getBestFallbackAnswer } from '@/lib/fallbackQA';
 import { inferOffline, isModelReady, initOfflineModel, onStatusChange as onModelStatusChange, onProgress as onModelProgress, type ModelStatus } from '@/lib/offlineModel';
 import { useGeminiStream } from '@/lib/useGeminiStream';
+import { markMissionTaskComplete } from '@/lib/dailyMission';
 import { Capacitor } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
@@ -596,6 +597,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
     setLoading(true);
     sessionMsgs.current = [...sessionMsgs.current, userMsg];
     persistMessage('user', content, personality);
+    if (profile) markMissionTaskComplete(profile.id, 'chat').catch(() => {});
 
     // Increment follow_up_count on the previous AI response (follow-up signal for flywheel)
     if (lastInteractionId.current && user) {

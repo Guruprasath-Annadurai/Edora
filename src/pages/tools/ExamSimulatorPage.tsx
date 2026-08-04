@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { track } from '@/lib/analytics';
 import type { QuizQuestion } from '@/types';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type Phase = 'setup' | 'loading' | 'exam' | 'result';
@@ -297,6 +298,15 @@ export default function ExamSimulatorPage() {
                     style={{ background: 'rgba(91,106,245,0.08)', border: '1px solid rgba(91,106,245,0.2)' }}>
                     <p className="text-xs text-primary font-semibold mb-1">Explanation</p>
                     <p className="text-sm text-white/80">{q.explanation}</p>
+                    <div className="flex justify-end mt-2">
+                      <ReportButton
+                        compact
+                        contentText={`Q: ${q.question}\nCorrect: ${q.options[q.correct_answer]}\nExplanation: ${q.explanation}`}
+                        source="exam_simulator"
+                        contentId={q.id}
+                        details={`Topic: ${topic}`}
+                      />
+                    </div>
                   </div>
                 </motion.div>
               )}

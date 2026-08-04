@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -232,6 +233,15 @@ function WeekBlock({ week, onToggle }: { week: PlanWeek; onToggle: (id: string) 
           {open ? <ChevronDown size={14} className="text-white/30" /> : <ChevronRight size={14} className="text-white/30" />}
         </div>
       </button>
+      {open && (
+        <div className="px-4 pt-1 flex justify-end" onClick={e => e.stopPropagation()}>
+          <ReportButton
+            compact
+            contentText={`${week.label}: ${week.chapters.map(c => `${c.subject} — ${c.chapter} (${c.hours}h, ${c.priority})`).join('; ')}`}
+            source="revision_planner"
+          />
+        </div>
+      )}
 
       <AnimatePresence>
         {open && (

@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface ConceptVideo {
@@ -206,6 +207,13 @@ Return ONLY JSON array: [{"concept":"...","title":"...","youtube_search":"...","
                   <p className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>
                     {rec.concept} · {rec.why_watch}
                   </p>
+                  <div className="mt-1">
+                    <ReportButton
+                      compact
+                      contentText={`${rec.title}\n${rec.concept}: ${rec.why_watch}`}
+                      source="concept_videos"
+                    />
+                  </div>
                 </div>
                 <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(rec.youtube_search + ' explained')}`}
                    target="_blank" rel="noopener noreferrer"

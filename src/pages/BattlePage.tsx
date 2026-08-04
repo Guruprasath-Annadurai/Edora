@@ -18,6 +18,7 @@ import { track } from '@/lib/analytics';
 import { geminiJSON } from '@/lib/gemini';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { ConnectionPill, type ConnStatus } from '@/components/ui/ConnectionPill';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -835,7 +836,15 @@ function QuestionScreen({
             animate={{ opacity: 1, y: 0 }}
             style={{ marginTop: 16, padding: '12px 16px', background: 'var(--color-surface)', borderRadius: 12, border: '1px solid var(--color-border)', fontSize: 13, color: 'var(--color-text-secondary)' }}
           >
-            {question.explanation}
+            <div>{question.explanation}</div>
+            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+              <ReportButton
+                compact
+                contentText={`Q: ${question.text}\nCorrect: ${question.options[question.correct]}\nExplanation: ${question.explanation}`}
+                source="battle"
+                contentId={question.id}
+              />
+            </div>
           </motion.div>
         )}
       </div>

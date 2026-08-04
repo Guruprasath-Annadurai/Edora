@@ -440,7 +440,7 @@ export default function MockTestPage() {
                             {cfg.label}
                           </p>
                           {FREE_BETA_EXAMS.includes(id) && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                            <span className="text-xs font-bold px-1.5 py-0.5 rounded-full"
                               style={{ background: 'rgba(52,211,153,0.15)', color: isLight ? '#047857' : '#34D399' }}>
                               FREE · BETA
                             </span>
@@ -452,7 +452,7 @@ export default function MockTestPage() {
                             : `${cfg.duration} min · ${cfg.totalMarks} marks · ${cfg.sections.map(s => s.subject).join(' + ')}`}
                         </p>
                         {(cfg.sectional || id === 'UPSC_Prelims') && (
-                          <p className="text-[11px] mt-1" style={{ color: isLight ? '#92400E' : '#F59E0B' }}>
+                          <p className="text-xs mt-1" style={{ color: isLight ? '#92400E' : '#F59E0B' }}>
                             Starter practice set ({cfg.sections.reduce((s, x) => s + x.count, 0)} original questions) — smaller pool than the full real exam, not verbatim past papers
                           </p>
                         )}
@@ -661,7 +661,7 @@ export default function MockTestPage() {
                   Top {(100 - result.percentile).toFixed(0)}% · {result.percentile.toFixed(1)} percentile
                 </span>
               </div>
-              <p className="text-[11px] mt-1.5" style={{ color: 'var(--color-text-secondary)' }}>
+              <p className="text-xs mt-1.5" style={{ color: 'var(--color-text-secondary)' }}>
                 vs. other Edora aspirants who've taken this mock — not an official {config.label} percentile
               </p>
             </div>

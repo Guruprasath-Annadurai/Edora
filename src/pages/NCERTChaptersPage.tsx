@@ -9,6 +9,7 @@ import { geminiCall, geminiJSON } from '@/lib/gemini';
 import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
 import { OfflineCache } from '@/lib/offlineCache';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type Phase = 'browse' | 'chapter' | 'quiz' | 'result';
@@ -539,7 +540,18 @@ Keep it under 100 words. Be warm and encouraging.`;
                   {loadingExp ? (
                     <p className="text-xs animate-pulse" style={{ color: 'var(--color-text-secondary)' }}>Thinking…</p>
                   ) : (
-                    <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text)' }}>{novoExp || q.explanation}</p>
+                    <>
+                      <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text)' }}>{novoExp || q.explanation}</p>
+                      <div className="flex justify-end mt-2">
+                        <ReportButton
+                          compact
+                          contentText={`Q: ${q.question}\nCorrect: ${q.options[q.correct_idx]}\nExplanation: ${novoExp || q.explanation}`}
+                          source="ncert_chapters"
+                          contentId={q.id}
+                          details={`Class ${classNum} ${subject} · ${selectedChapter?.chapter_title ?? ''}`}
+                        />
+                      </div>
+                    </>
                   )}
                 </motion.div>
               )}

@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, ChevronLeft, CheckCircle, XCircle, Zap, Star, Flame, AlertTriangle, Lightbulb, HelpCircle, Clock, Dices, Trophy, Meh, Loader2 } from 'lucide-react';
 import { PeerPercentile } from '@/components/quiz/PeerPercentile';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
-import { Toast } from '@capacitor/toast';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +14,8 @@ import { SyncQueue } from '@/lib/syncQueue';
 import { track } from '@/lib/analytics';
 import { loadUnlockedIds, checkAchievements } from '@/lib/achievements';
 import { scoreQuiz } from '@/lib/quizScoring';
+import { markMissionTaskComplete } from '@/lib/dailyMission';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { QuizQuestion } from '@/types';
 
@@ -148,7 +149,6 @@ export default function QuizPage() {
   // ── Deep explanation (Nemotron-backed cache, per question) ────────────────
   const [deepExplanations, setDeepExplanations] = useState<Record<number, string>>({});
   const [deepLoading, setDeepLoading] = useState<Record<number, boolean>>({});
-  const [reportedIdx, setReportedIdx] = useState<Record<number, boolean>>({});
 
   // ── Per-question countdown timer ──────────────────────────────────────────
   const [qTimeLeft, setQTimeLeft] = useState<number | null>(null);
@@ -470,28 +470,6 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
     }
   }
 
-  // Feeds the question_reports review queue (existing schema, previously
-  // never written to from anywhere in the app) so wrong/bad AI-generated
-  // questions can actually surface for review instead of just being a
-  // silent trust problem for whoever hits them.
-  async function reportQuestion() {
-    const q = questions[current];
-    if (!q || !profile || reportedIdx[current]) return;
-    setReportedIdx(prev => ({ ...prev, [current]: true }));
-    try {
-      await supabase.from('question_reports').insert({
-        user_id: profile.id,
-        question_text: q.question,
-        report_type: 'wrong_answer',
-        details: `Quiz topic: ${topic}. Marked correct: "${q.options[q.correct_answer]}"`,
-        status: 'pending',
-      });
-      Toast.show({ text: 'Thanks — we\'ll review this question.', duration: 'short' });
-    } catch {
-      setReportedIdx(prev => ({ ...prev, [current]: false }));
-    }
-  }
-
   function next() {
     if (selected === null) return;
     Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
@@ -524,6 +502,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
     });
 
     if (profile) {
+      markMissionTaskComplete(profile.id, 'quiz').catch(() => {});
       const completedAt = new Date().toISOString();
       const xpGain      = score * 10;
 
@@ -656,7 +635,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                     <Brain size={18} className="text-white" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">AI-Powered</p>
+                    <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground">AI-Powered</p>
                     <h1 className="font-heading text-2xl font-extrabold text-foreground leading-tight">Quiz</h1>
                   </div>
                 </div>
@@ -672,14 +651,14 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                   onClick={() => setTopic(topWeakness)}>
                   <HelpCircle size={16} className="shrink-0 mt-0.5" style={{ color: '#FBBF24' }} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-extrabold uppercase tracking-wider mb-0.5" style={{ color: '#FBBF24' }}>
+                    <p className="text-xs font-extrabold uppercase tracking-wider mb-0.5" style={{ color: '#FBBF24' }}>
                       Novo remembers
                     </p>
                     <p className="text-sm text-white leading-snug">
                       Last time you struggled with <span className="font-bold">{topWeakness}</span> — let's nail it today!
                     </p>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-1 rounded-lg shrink-0"
+                  <span className="text-xs font-bold px-2 py-1 rounded-lg shrink-0"
                     style={{ background: 'rgba(251,191,36,0.15)', color: '#FBBF24' }}>
                     Try it →
                   </span>
@@ -716,7 +695,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
 
               {/* Topic input */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ink-400)' }}>Topic</p>
+                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ink-400)' }}>Topic</p>
                 <input type="text" placeholder="e.g. Newton's Laws of Motion"
                   value={topic} onChange={e => setTopic(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && generateQuiz()}
@@ -734,7 +713,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
 
               {/* Question count */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ink-400)' }}>Questions</p>
+                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--ink-400)' }}>Questions</p>
                 <div className="flex gap-2">
                   {[5, 10, 15, 20].map(n => (
                     <button key={n} onClick={() => setCount(n)}
@@ -855,7 +834,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
 
               {/* Subject chip */}
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide"
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide"
                   style={{ background: chipStyle.bg, color: chipStyle.text, border: `1.5px solid ${chipStyle.border}` }}>
                   {topic}
                 </span>
@@ -867,7 +846,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                     else break;
                   }
                   return streak >= 2 ? (
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1"
+                    <span className="px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1"
                       style={{ background: 'rgba(251,191,36,0.15)', color: '#FBBF24', border: '1.5px solid rgba(251,191,36,0.3)' }}>
                       <Flame size={11} /> {streak} streak
                     </span>
@@ -877,7 +856,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
 
               {/* Question card */}
               <div className="liquid-glass specular rounded-3xl p-5" style={{ position: 'relative' }}>
-                <p className="text-[11px] font-extrabold uppercase tracking-widest mb-3"
+                <p className="text-xs font-extrabold uppercase tracking-widest mb-3"
                   style={{ color: chipStyle.text }}>
                   Question {current + 1}
                 </p>
@@ -939,7 +918,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                     {/* Confidence rating */}
                     {confidence[current] === undefined && (
                       <div className="rounded-2xl p-3" style={{ background: 'var(--ink-040)', border: '1px solid var(--ink-080)' }}>
-                        <p className="text-[11px] font-bold uppercase tracking-wider mb-2 text-center"
+                        <p className="text-xs font-bold uppercase tracking-wider mb-2 text-center"
                           style={{ color: 'var(--ink-400)' }}>
                           How confident were you?
                         </p>
@@ -962,7 +941,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                     <div className="lg-indigo rounded-2xl p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap size={13} style={{ color: '#5B6AF5' }} />
-                        <p className="text-[11px] font-extrabold uppercase tracking-wider" style={{ color: '#5B6AF5' }}>
+                        <p className="text-xs font-extrabold uppercase tracking-wider" style={{ color: '#5B6AF5' }}>
                           Explanation
                         </p>
                       </div>
@@ -970,7 +949,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
 
                       {deepExplanations[current] ? (
                         <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--ink-100)' }}>
-                          <p className="text-[11px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: '#8B5CF6' }}>
+                          <p className="text-xs font-extrabold uppercase tracking-wider mb-1.5" style={{ color: '#8B5CF6' }}>
                             Deeper explanation
                           </p>
                           <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-750)' }}>{deepExplanations[current]}</p>
@@ -985,12 +964,14 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                           }
                         </button>
                       )}
-                      <button onClick={reportQuestion} disabled={reportedIdx[current]}
-                        className="mt-3 flex items-center gap-1.5 text-xs font-bold disabled:opacity-60"
-                        style={{ color: reportedIdx[current] ? 'var(--ink-400)' : '#F87171' }}>
-                        <AlertTriangle size={12} />
-                        {reportedIdx[current] ? 'Reported — thanks!' : 'This looks wrong — report it'}
-                      </button>
+                      <div className="mt-3">
+                        <ReportButton
+                          contentText={`Q: ${q.question}\nCorrect: ${q.options[q.correct_answer]}\nExplanation: ${deepExplanations[current] || q.explanation}`}
+                          source="quiz"
+                          contentId={q.id}
+                          details={`Topic: ${topic}`}
+                        />
+                      </div>
                     </div>
                     <button onClick={next}
                       disabled={confidence[current] === undefined}
@@ -1052,7 +1033,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                 ].map(stat => (
                   <div key={stat.label} className="bento-cell rounded-2xl py-3 text-center">
                     <p className="font-heading text-2xl font-extrabold" style={{ color: stat.color }}>{stat.value}</p>
-                    <p className="text-[11px] font-semibold mt-0.5" style={{ color: 'var(--ink-400)' }}>{stat.label}</p>
+                    <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--ink-400)' }}>{stat.label}</p>
                   </div>
                 ))}
               </motion.div>
@@ -1106,7 +1087,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
                   <Lightbulb size={18} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider mb-0.5"
+                  <p className="text-xs font-extrabold uppercase tracking-wider mb-0.5"
                     style={{ color: '#A0AEFF' }}>Novo Explains</p>
                   <h3 className="font-heading text-base font-bold text-white">
                     Let's clear this up!

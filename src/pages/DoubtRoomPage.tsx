@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiCall } from '@/lib/gemini';
 import { getLangInstruction } from '@/lib/language';
 import { track } from '@/lib/analytics';
+import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Doubt {
@@ -181,7 +182,18 @@ Give a clear, concise explanation (3-5 sentences max). Use simple language. If i
                       <span className="text-sm" style={{ color: 'var(--ink-400)' }}>Thinking…</span>
                     </div>
                   ) : (
-                    <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-800)' }}>{d.answer}</p>
+                    <>
+                      <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-800)' }}>{d.answer}</p>
+                      <div className="flex justify-end mt-1.5">
+                        <ReportButton
+                          compact
+                          contentText={`Q: ${d.question}\nA: ${d.answer}`}
+                          source="doubt_room"
+                          contentId={d.id}
+                          details={d.subject ? `Subject: ${d.subject}` : undefined}
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
               </motion.div>
