@@ -34,6 +34,6 @@ export async function decryptToken(stored: string): Promise<string> {
   if (parts.length !== 2) throw new Error('Malformed encrypted token');
   const iv = b64dec(parts[0]);
   const ct = b64dec(parts[1]);
-  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv.buffer as ArrayBuffer }, key, ct.buffer as ArrayBuffer);
   return new TextDecoder().decode(pt);
 }

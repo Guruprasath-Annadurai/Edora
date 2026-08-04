@@ -71,7 +71,7 @@ export async function checkRateLimit(
     serviceClient
       .from('api_rate_limits')
       .insert({ user_id: userId, endpoint })
-      .then(() => {}).catch(() => {});
+      .then(() => {}, () => {}); // fire-and-forget; PromiseLike has no .catch, so use the 2-arg form
 
     return true;
   } catch (err) {

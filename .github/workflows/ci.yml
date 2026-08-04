@@ -47,6 +47,26 @@ jobs:
       - run: npm ci
       - run: npm run test
 
+  edge-function-tests:
+    name: Edge Function Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      # Pure-logic unit tests for edge function helpers (auth/scoring/rate-limit
+      # logic extracted into testable functions, same pattern as
+      # rcEntitlement.test.ts / memoryExtraction.test.ts). These existed in the
+      # repo before this job did but were never actually run by CI — this job
+      # closes that gap, not just adds new tests.
+      # --allow-env: token-crypto.test.ts sets/restores OAUTH_TOKEN_ENCRYPTION_KEY
+      #   as a test fixture (never touches real secrets).
+      # --allow-net: auth-guard.test.ts imports auth-guard.ts, which imports
+      #   supabase-js from esm.sh — needed for module resolution even though
+      #   these tests never make a real network call.
+      - run: deno test --allow-env --allow-net "supabase/functions/**/*.test.ts"
+
   build:
     name: Build
     runs-on: ubuntu-latest

@@ -1,7 +1,8 @@
 {
   "version": "5",
   "redirects": {
-    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.110.0"
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.110.0",
+    "https://esm.sh/iceberg-js@^0.8.1?target=denonext": "https://esm.sh/iceberg-js@0.8.1?target=denonext"
   },
   "remote": {
     "https://deno.land/std@0.168.0/async/abortable.ts": "80b2ac399f142cc528f95a037a7d0e653296352d95c681e284533765961de409",
@@ -58,7 +59,17 @@
     "https://deno.land/std@0.208.0/assert/unimplemented.ts": "d56fbeecb1f108331a380f72e3e010a1f161baa6956fd0f7cf3e095ae1a4c75a",
     "https://deno.land/std@0.208.0/assert/unreachable.ts": "4600dc0baf7d9c15a7f7d234f00c23bca8f3eba8b140286aaca7aa998cf9a536",
     "https://deno.land/std@0.208.0/fmt/colors.ts": "34b3f77432925eb72cf0bfb351616949746768620b8e5ead66da532f93d10ba2",
-    "https://esm.sh/@supabase/supabase-js@2.110.0": "b99c0ce7729f9de7797f836b93ab9ec94f1cfe079b4f937fa4144fe13525e979"
+    "https://esm.sh/@supabase/auth-js@2.110.0/denonext/auth-js.mjs": "9343a81cff9b86e6c51f173c9d6bd775791755648553520722a85ba59099f38f",
+    "https://esm.sh/@supabase/functions-js@2.110.0/denonext/functions-js.mjs": "e34b2f3b958ab4b0339bc0e58781bb264d5387162e1094fad63b35b8746c835d",
+    "https://esm.sh/@supabase/phoenix@0.4.4/denonext/phoenix.mjs": "2c4954292d10fd9137d66a1b7abd73bf24f9771a444c3d4e267b12e1e2b132c8",
+    "https://esm.sh/@supabase/postgrest-js@2.110.0/denonext/postgrest-js.mjs": "6ab3b6d6194d199b1319fd523142ccefc443be29e8280f1007c9917d83ba00e2",
+    "https://esm.sh/@supabase/realtime-js@2.110.0/denonext/realtime-js.mjs": "300a4129865ad69c45d79e89963e357d003847fb707a5c88cfebf63030db2f2b",
+    "https://esm.sh/@supabase/storage-js@2.110.0/denonext/storage-js.mjs": "1bf5f1363d7e019fb4e7ba41b3f00e4e338acec2379835591f8d4f5590e96a3a",
+    "https://esm.sh/@supabase/supabase-js@2.110.0": "b99c0ce7729f9de7797f836b93ab9ec94f1cfe079b4f937fa4144fe13525e979",
+    "https://esm.sh/@supabase/supabase-js@2.110.0/denonext/supabase-js.mjs": "eb573f7b15e0522ac34f4fa0a02011bc237dade5b71946aafb19d375ed8f278b",
+    "https://esm.sh/iceberg-js@0.8.1/denonext/iceberg-js.mjs": "d839d81a2e3966500ca2cdd0c1cb458e9608bacfc91f7bb67a69b2e878dcdb4f",
+    "https://esm.sh/iceberg-js@0.8.1?target=denonext": "58c849d7fe2bf4eca4a84eb501e83c161a7d8c34ca1bec15a962b3bec3062633",
+    "https://esm.sh/tslib@2.8.1/denonext/tslib.mjs": "c38da5dd6da6281964435002ce204cd586634fe3bdfb24a0ee116f48cf3292e9"
   },
   "workspace": {
     "packageJson": {
@@ -96,7 +107,8 @@
         "npm:@radix-ui/react-tabs@^1.1.3",
         "npm:@radix-ui/react-toast@^1.2.4",
         "npm:@revenuecat/purchases-capacitor@^13.1.7",
-        "npm:@sentry/react@^10.56.0",
+        "npm:@sentry/capacitor@4.2.0",
+        "npm:@sentry/react@10.60.0",
         "npm:@sentry/vite-plugin@^5.3.0",
         "npm:@supabase/supabase-js@^2.49.4",
         "npm:@tanstack/react-query@^5.62.7",
@@ -115,10 +127,12 @@
         "npm:canvas-confetti@^1.9.3",
         "npm:class-variance-authority@~0.7.1",
         "npm:clsx@^2.1.1",
+        "npm:docx@^9.7.1",
         "npm:dompurify@^3.4.11",
         "npm:eslint-plugin-react-hooks@^5.2.0",
         "npm:eslint-plugin-react-refresh@~0.4.26",
         "npm:eslint@^9.39.4",
+        "npm:exceljs@^4.4.0",
         "npm:framer-motion@^11.15.0",
         "npm:globals@^17.6.0",
         "npm:jsdom@^29.1.1",
