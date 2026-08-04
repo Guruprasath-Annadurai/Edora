@@ -2,9 +2,19 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import path from 'path';
+import { execSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
+
+// Commit SHA for the in-app diagnostics screen (src/pages/settings/DiagnosticsPage.tsx).
+// CI runners are always a clean checkout of a real commit, so GITHUB_SHA is
+// authoritative there. Locally, fall back to the actual checked-out commit
+// via git rather than hardcoding 'local' — a diagnostics screen that can't
+// tell you which commit is running defeats its own purpose.
+const buildSha = process.env.GITHUB_SHA
+  ?? (() => { try { return execSync('git rev-parse HEAD').toString().trim(); } catch { return 'unknown'; } })();
+const buildTime = new Date().toISOString();
 
 // Sentry release upload only runs when these are configured (CI secrets).
 // Local/dev builds and contributors without Sentry access build normally —
@@ -56,6 +66,8 @@ export default defineConfig(({ mode }) => ({
   // both used to correlate crashes/events with the actual shipped build.
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
+    'import.meta.env.VITE_BUILD_SHA': JSON.stringify(buildSha),
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(buildTime),
   },
   build: {
     outDir: 'dist',

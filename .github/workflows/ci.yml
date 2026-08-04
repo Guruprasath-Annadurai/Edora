@@ -62,7 +62,11 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_APP_VERSION: ${{ github.sha }}
+        # Commit SHA for the diagnostics screen comes from GITHUB_SHA, which
+        # Actions sets automatically on every runner — no env line needed.
+        # (The old `VITE_APP_VERSION: ${{ github.sha }}` here was dead: vite.config.ts's
+        # `define` block replaces that identifier with package.json's version
+        # unconditionally, so the env var was silently discarded at build time.)
 
   security-audit:
     name: Security Audit

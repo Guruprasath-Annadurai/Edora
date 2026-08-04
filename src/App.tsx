@@ -54,6 +54,7 @@ const StudyRemindersPage    = lazy(() => import('@/pages/settings/StudyReminders
 const AccountSettingsPage   = lazy(() => import('@/pages/settings/AccountSettingsPage'));
 const ParentDashboardPage   = lazy(() => import('@/pages/settings/ParentDashboardPage'));
 const DataRightsPage        = lazy(() => import('@/pages/settings/DataRightsPage'));
+const DiagnosticsPage       = lazy(() => import('@/pages/settings/DiagnosticsPage'));
 const AchievementsPage      = lazy(() => import('@/pages/AchievementsPage'));
 const TutoringSessionPage   = lazy(() => import('@/pages/TutoringSessionPage'));
 const ConceptMapPage        = lazy(() => import('@/pages/ConceptMapPage'));
@@ -477,6 +478,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
           <Route path="/account"      element={<RouteErrorBoundary label="account"><AccountSettingsPage /></RouteErrorBoundary>} />
           <Route path="/parent"       element={<RouteErrorBoundary label="parent"><ParentDashboardPage /></RouteErrorBoundary>} />
           <Route path="/data-rights"  element={<RouteErrorBoundary label="data-rights"><DataRightsPage /></RouteErrorBoundary>} />
+          <Route path="/diagnostics"  element={<RouteErrorBoundary label="diagnostics"><DiagnosticsPage /></RouteErrorBoundary>} />
           <Route path="/achievements" element={<RouteErrorBoundary label="achievements"><AchievementsPage /></RouteErrorBoundary>} />
           {/* Tier 6 — Independent AI Tutor Identity */}
           <Route path="/lesson-plan"    element={<RouteErrorBoundary label="lesson-plan"><LessonPlanPage /></RouteErrorBoundary>} />

@@ -10,6 +10,10 @@ interface ImportMetaEnv {
 
   // ── Observability ─────────────────────────────────────────────
   readonly VITE_APP_VERSION: string;
+  // Injected by vite.config.ts's `define` block, not a real env var — see
+  // src/pages/settings/DiagnosticsPage.tsx for where this is surfaced.
+  readonly VITE_BUILD_SHA: string;
+  readonly VITE_BUILD_TIME: string;
   readonly VITE_SENTRY_DSN?: string;
   readonly VITE_POSTHOG_KEY?: string;
   readonly VITE_POSTHOG_HOST?: string;

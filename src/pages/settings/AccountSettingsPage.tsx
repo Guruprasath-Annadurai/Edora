@@ -301,6 +301,12 @@ export default function AccountSettingsPage() {
             <span className="text-sm font-medium text-white/80">Terms of Service</span>
             <ExternalLink size={15} className="text-muted-foreground" />
           </button>
+          <Link to="/diagnostics"
+            className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"
+            style={{ borderTop: '1px solid var(--ink-070)' }}>
+            <span className="text-sm font-medium text-white/80">Diagnostics (build info)</span>
+            <ExternalLink size={15} className="text-muted-foreground" />
+          </Link>
         </motion.div>
 
         {/* Data export — DPDP Act 2023 right to portability */}
