@@ -1,6 +1,6 @@
 # Backup & Recovery
 
-Status: **stopgap in place, verified working**. Last verified 2026-08-04.
+Status: **stopgap backup + restore both in place, verified working end-to-end**. Last verified 2026-08-04.
 
 ## Current truth
 
@@ -61,6 +61,47 @@ just deployed and trusted:
   and a corresponding `backup-2026-08-04.json.gz` object verified present in
   `storage.objects`.
 
+## Restoring from a backup
+
+`supabase/functions/db-backup-restore` — the companion restore function.
+**Merge semantics only**: every write is an `upsert` keyed on each table's
+real primary key (resolved via `get_table_primary_keys()`). It never
+deletes or truncates anything. There is deliberately no "wipe and restore
+exactly" mode — a destructive restore needs a human deciding it in the
+moment, for the specific tables actually affected, not a script picking it
+by default.
+
+Call it via the same `x-internal-secret: <CRON_SECRET>` header
+`db-backup-export` uses (see `docs/backup-recovery.md` §"What was built" for
+the header pattern) — `POST /functions/v1/db-backup-restore` with body:
+
+```json
+{ "filename": "backup-2026-08-04.json.gz", "dry_run": true, "tables": ["profiles"] }
+```
+
+- `filename` — optional; defaults to the most recent backup in the bucket.
+- `dry_run` — **defaults to `true`.** Reports backup-row-count vs.
+  live-row-count per table with zero writes. Always run this first.
+- `tables` — optional filter; omit to restore every table in the backup.
+
+Tables that fail to upsert (most likely a foreign-key violation because a
+referenced row hasn't landed yet) are automatically retried in up to 5
+passes, after other tables have had a chance to write first — this avoids
+hand-maintaining a dependency graph for ~180 tables.
+
+### Verified, not assumed
+
+- **Dry run**, live-tested against the real `backup-2026-08-04.json.gz`:
+  returned `backup_rows` exactly matching `live_rows_before` for `profiles`
+  (37/37), `pyq_content` (555/555), and `tutor_chats` (84/84) — correct,
+  since nothing had changed since the backup was taken.
+- **Real write path**, live-tested (safe to run against unchanged data —
+  upsert is idempotent): restored `achievements` (3 rows) and
+  `streak_rewards` (6 rows) with `dry_run: false`. Response:
+  `{"totals":{"restored":2,"failed":0,"skipped_no_pk":0}}`. Confirmed via
+  direct `count(*)` afterward that row counts are unchanged (3 and 6) — no
+  duplication, no corruption.
+
 ## Recovery Point / Recovery Time Objective — stated honestly
 
 - **RPO: up to 24 hours.** The backup runs once daily. Worst case, a
@@ -68,15 +109,16 @@ just deployed and trusted:
   This is categorically worse than Supabase Pro's Point-in-Time Recovery
   (down to ~2 minutes RPO) or even Pro's own daily backups (same RPO ceiling,
   but with a tested one-click restore UI behind it).
-- **RTO: untested and manual.** There is no automated restore path. Recovery
-  means downloading the `.json.gz` object from the `db-backups` bucket,
-  decompressing it, and writing a script to re-insert rows per table — this
-  has not been built or rehearsed. Assume this takes hours of engineering
-  time under pressure, not minutes.
+- **RTO: has a real, tested path now, but still not rehearsed under
+  incident pressure.** The mechanics work (see above), but restoring 174
+  tables sequentially via PostgREST round-trips has not been timed at full
+  scale, and no one has run this end-to-end during a simulated incident.
+  Treat the first real use of this as a drill, not a proven-fast recovery.
 - **Does not cover:** Storage bucket objects (file uploads — only DB rows are
   captured), Auth users (`auth.users` is a separate schema not included in
   the public-table dump), or any schema/DDL state (a restore would need the
-  target database to already have the correct schema from migrations).
+  target database to already have the correct schema from migrations, since
+  this only restores row data, not table structure).
 
 ## The real fix
 
@@ -90,7 +132,8 @@ that decision is made, not a substitute for it.
 
 ## What's still missing
 
-- No restore script or rehearsal — the backup exists, restoring from it does not.
+- No rehearsal of a full-scale restore (all 174 tables) under simulated
+  incident pressure — only a dry-run and a small real restore have been tested.
 - No coverage of Storage bucket files or `auth.users`.
 - No alerting if a nightly backup run fails (it would currently fail silently
   unless someone checks `cron.job_run_details` or the `db-backups` bucket).
