@@ -48,7 +48,47 @@ covered:
   browser against the web build; Capacitor-specific native behavior
   (camera, push notifications, haptics, native auth flows) isn't reachable
   this way at all.
-- **Visual regression** — no screenshot-diffing configured.
+- **Visual regression** — narrow, see below. 2 pages covered (login sign-in/sign-up), no authenticated pages, no mobile viewport, no dark-mode variant.
+
+## Visual regression
+
+`e2e/visual.spec.ts` — 2 screenshot-comparison tests (login sign-in and
+sign-up modes), same client-side-only scope as `login.spec.ts`. Wired into
+the same `npm run test:e2e` / `e2e-tests` CI job (Playwright runs every spec
+in `testDir`, no separate job needed).
+
+**Platform constraint, handled deliberately, not glossed over**: Playwright
+screenshot comparison is sensitive to OS-level font rendering. This repo's
+CI runs on `ubuntu-latest`; local development here is macOS. A baseline
+generated locally would never match CI and would fail every PR on
+unrelated antialiasing differences, not real regressions. No Docker was
+available locally to generate Linux-matching baselines directly either.
+
+**How the baselines were actually generated**: a `workflow_dispatch`-only
+CI job, `.github/workflows/generate-visual-baselines.yml`, runs on
+`ubuntu-latest` (matching the real `e2e-tests` job) and uploads the
+resulting `.png` files as an artifact. To avoid ever landing a broken
+intermediate state on `main` — the E2E job would fail on every push
+between "spec file added" and "baseline committed" if done as two separate
+main-branch commits — the spec file was pushed to a throwaway branch
+first, the baseline workflow triggered against that branch (`gh workflow
+run generate-visual-baselines.yml --ref <branch>`), the resulting
+`login-signin-chromium-linux.png` / `login-signup-chromium-linux.png`
+downloaded (`gh run download`), and only then committed to `main` together
+with the spec file in one push.
+
+Verified locally (not just assumed): running `playwright test
+e2e/visual.spec.ts` on macOS correctly reports "no snapshot exists for
+chromium-darwin" rather than silently comparing against the Linux
+baseline — proving the platform-suffix mechanism actually works as
+intended, not just in theory. `.gitignore` excludes `*-darwin.png` /
+`*-win32.png` under `e2e/**/*-snapshots/` so a future contributor running
+`--update-snapshots` locally can't accidentally commit a baseline CI will
+never use.
+
+**To regenerate baselines after an intentional UI change**: `gh workflow
+run generate-visual-baselines.yml`, download the `visual-baselines`
+artifact, replace the `.png` files under `e2e/visual.spec.ts-snapshots/`.
 
 ## Real finding this surfaced: GitHub Actions had zero repository secrets
 

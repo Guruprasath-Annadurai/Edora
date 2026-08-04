@@ -32,3 +32,11 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Visual-regression baselines are Linux-only by design (see e2e/visual.spec.ts
+# and docs/e2e-testing.md) — generated exclusively via the
+# generate-visual-baselines.yml workflow on ubuntu-latest, matching CI.
+# Ignoring non-linux baselines so a local `--update-snapshots` run on macOS/
+# Windows can't accidentally commit a baseline CI will never use.
+e2e/**/*-snapshots/*-darwin.png
+e2e/**/*-snapshots/*-win32.png
