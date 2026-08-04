@@ -106,7 +106,12 @@ function NovoCenterButton() {
       style={{ minHeight: 44 }}
       aria-label={t('nav.novo')}
     >
-      {/* Layered ambient glow — depth effect */}
+      {/* Layered ambient glow — depth effect. Previously pulsed at full
+          intensity regardless of isActive, making the Novo button look
+          equally "selected" whether or not you were actually on /chat —
+          on-device testing found this made it genuinely hard to tell which
+          tab was active at a glance. Now only pulses when active; inactive
+          state is a static, muted glow so the active state reads clearly. */}
       <motion.div
         style={{
           position: 'absolute',
@@ -117,8 +122,12 @@ function NovoCenterButton() {
           pointerEvents: 'none',
           background: 'radial-gradient(circle, rgba(139,92,246,0.28) 0%, transparent 68%)',
         }}
-        animate={{ scale: [1, 1.14, 1], opacity: [0.5, 0.9, 0.5] }}
-        transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+        animate={isActive
+          ? { scale: [1, 1.14, 1], opacity: [0.5, 0.9, 0.5] }
+          : { scale: 1, opacity: 0.28 }}
+        transition={isActive
+          ? { repeat: Infinity, duration: 3, ease: 'easeInOut' }
+          : { duration: dur.fast }}
       />
       <motion.div
         style={{
@@ -131,8 +140,12 @@ function NovoCenterButton() {
           background: 'radial-gradient(circle, rgba(91,106,245,0.22) 0%, transparent 72%)',
           filter: 'blur(6px)',
         }}
-        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.8, 0.4] }}
-        transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut', delay: 0.4 }}
+        animate={isActive
+          ? { scale: [1, 1.2, 1], opacity: [0.4, 0.8, 0.4] }
+          : { scale: 1, opacity: 0.22 }}
+        transition={isActive
+          ? { repeat: Infinity, duration: 3, ease: 'easeInOut', delay: 0.4 }
+          : { duration: dur.fast }}
       />
 
       {/* Novo orb button — liquid glass with specular */}

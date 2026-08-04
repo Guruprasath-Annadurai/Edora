@@ -22,7 +22,13 @@ export function AppShell() {
   // Hidden on /chat: Novo's own composer already offers an equivalent
   // "quiz me on a topic" affordance there, and this FAB's fixed bottom-right
   // position visually collides with the chat input's send button.
-  const showQuickStartFAB = !location.pathname.startsWith('/chat');
+  // On-device testing found the FAB overlapping the "Save Changes" button on
+  // Account Settings — a floating "start a quiz" shortcut has no contextual
+  // relevance on settings/profile-editing screens anyway, so hide it there
+  // the same way it's already hidden on /chat.
+  const showQuickStartFAB = !location.pathname.startsWith('/chat')
+    && !location.pathname.startsWith('/account')
+    && !location.pathname.startsWith('/settings');
   const [sessionEndOpen,      setSessionEndOpen]      = useState(false);
   const [commandPaletteOpen,  setCommandPaletteOpen]  = useState(false);
 

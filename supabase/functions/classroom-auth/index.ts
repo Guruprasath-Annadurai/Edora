@@ -58,10 +58,6 @@ serve(withSentry('classroom-auth', async (req) => {
   const clientId     = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID') ?? '';
   const clientSecret = Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET') ?? '';
 
-  if (!clientId || !clientSecret) {
-    return json({ error: 'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set' }, 500);
-  }
-
   const userDb = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
   });
@@ -78,6 +74,16 @@ serve(withSentry('classroom-auth', async (req) => {
 
   // ── init_oauth — build Google OAuth URL ─────────────────────────────────
   if (action === 'init_oauth') {
+    // Only init_oauth/callback actually talk to Google's OAuth client — status/
+    // disconnect/courses/students don't need these secrets (courses/students go
+    // through getValidAccessToken, which reads its own copy). Gating ALL actions
+    // on this check meant `status` (called on every Account Settings page load)
+    // 500'd whenever these secrets were unset in this environment, even though
+    // "is the user connected" doesn't require a Google client at all.
+    if (!clientId || !clientSecret) {
+      return json({ error: 'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set' }, 500);
+    }
+
     const redirectUri = body.redirect_uri as string;
     if (!redirectUri) return json({ error: 'redirect_uri required' }, 400);
 
@@ -110,6 +116,10 @@ serve(withSentry('classroom-auth', async (req) => {
 
   // ── callback — exchange auth code for tokens ─────────────────────────────
   if (action === 'callback') {
+    if (!clientId || !clientSecret) {
+      return json({ error: 'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set' }, 500);
+    }
+
     const { code, redirect_uri, state } = body as {
       code: string; redirect_uri: string; state: string;
     };

@@ -13,8 +13,17 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1800,
-      launchAutoHide: true,
+      // launchAutoHide was true with a fixed 1800ms duration — the native
+      // splash (which has the real logo) hid on that fixed clock regardless
+      // of whether the app was actually ready. Cold start awaits network
+      // Google Fonts + initStorage() in main.tsx before React even renders;
+      // on a slow connection/emulator that routinely exceeds 1800ms, so the
+      // splash disappeared mid-boot and the WebView's dark background showed
+      // with nothing painted yet — the "blank black screen, no logo" bug.
+      // launchAutoHide: false keeps the splash (logo included) up until
+      // main.tsx's explicit SplashScreen.hide() call, which only fires after
+      // React has actually rendered.
+      launchAutoHide: false, // launchShowDuration is ignored when this is false
       launchFadeOutDuration: 350,
       backgroundColor: '#060918',
       androidScaleType: 'CENTER_CROP',

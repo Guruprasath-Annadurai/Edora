@@ -76,6 +76,22 @@ if (import.meta.env.PROD) {
 // ── PostHog ──────────────────────────────────────────────────────────────────
 initAnalytics();
 
+// Safety net: capacitor.config.ts sets launchAutoHide:false so the native
+// splash (with the real logo) stays up until bootstrap() explicitly hides it
+// — that fixed a bug where a fixed-duration auto-hide revealed a blank WebView
+// mid-boot. The tradeoff is that if bootstrap() ever throws before reaching
+// its own hide() call, the splash would now hang forever instead of clearing.
+// This timeout guarantees it always clears eventually even in that case.
+let splashHidden = false;
+function hideSplashOnce() {
+  if (splashHidden) return;
+  splashHidden = true;
+  SplashScreen.hide({ fadeOutDuration: 500 }).catch(() => {});
+}
+if (Capacitor.isNativePlatform()) {
+  setTimeout(hideSplashOnce, 8000);
+}
+
 async function bootstrap() {
   if (document.fonts) await document.fonts.ready;
   await initStorage(); // restore Capacitor Preferences → localStorage on native
@@ -88,9 +104,7 @@ async function bootstrap() {
 
   if (Capacitor.isNativePlatform()) {
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        SplashScreen.hide({ fadeOutDuration: 500 });
-      });
+      requestAnimationFrame(hideSplashOnce);
     });
   }
 

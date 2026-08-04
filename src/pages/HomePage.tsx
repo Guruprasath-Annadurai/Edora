@@ -518,10 +518,6 @@ function missionKey(uid: string) { return `edora_mission_${uid}_${new Date().toI
 function getMissionState(uid: string): Record<MissionTaskId, boolean> {
   try { return JSON.parse(localStorage.getItem(missionKey(uid)) ?? '{}'); } catch { return {} as Record<MissionTaskId, boolean>; }
 }
-function setMissionTask(uid: string, id: MissionTaskId, done: boolean) {
-  const s = getMissionState(uid);
-  localStorage.setItem(missionKey(uid), JSON.stringify({ ...s, [id]: done }));
-}
 
 function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: () => void }) {
   const navigate = useNavigate();
@@ -551,25 +547,14 @@ function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: (
     navigate(task.to);
   }
 
-  function markDoneOptimistic(id: MissionTaskId) {
-    const next = { ...done, [id]: true };
-    setDone(next);
-    setMissionTask(userId, id, true);
-    const allNow = MISSION_TASKS.every(t => next[t.id]);
-    if (allNow && !bonusFlash) {
+  // Fires once when the poll below (or the mount fetch) observes all three
+  // tasks newly complete — bonusFlash guards against re-firing on re-renders.
+  useEffect(() => {
+    if (allDone && !bonusFlash) {
       setBonusFlash(true);
       onAllDone();
-      supabase.from('daily_mission_completions')
-        .upsert({ user_id: userId, mission_date: new Date().toISOString().slice(0,10), quiz_done: true, cards_done: true, chat_done: true, bonus_xp_awarded: true, completed_at: new Date().toISOString() }, { onConflict: 'user_id,mission_date' })
-        .then();
-      supabase.rpc('increment_xp', { user_id: userId, amount: 50 }).then(undefined, () => {});
-    } else {
-      const col = id === 'quiz' ? 'quiz_done' : id === 'cards' ? 'cards_done' : 'chat_done';
-      supabase.from('daily_mission_completions')
-        .upsert({ user_id: userId, mission_date: new Date().toISOString().slice(0,10), [col]: true }, { onConflict: 'user_id,mission_date' })
-        .then();
     }
-  }
+  }, [allDone, bonusFlash, onAllDone]);
 
   return (
     <motion.div
@@ -649,20 +634,6 @@ function TodaysMissionCard({ userId, onAllDone }: { userId: string; onAllDone: (
         })}
       </div>
 
-      {!allDone && (
-        <div className="px-4 pb-4 flex gap-2">
-          {MISSION_TASKS.filter(t => !done[t.id]).map(task => (
-            <button
-              key={task.id}
-              onClick={(e) => { e.stopPropagation(); markDoneOptimistic(task.id); }}
-              className="text-xs font-semibold px-2.5 py-1 rounded-full active:scale-95 transition-transform"
-              style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)', color: 'var(--ink-500)' }}
-            >
-              Mark {task.id} done ✓
-            </button>
-          ))}
-        </div>
-      )}
     </motion.div>
   );
 }
@@ -1237,7 +1208,7 @@ export default function HomePage() {
   const top3 = actions.slice(0, 3);
 
   return (
-    <div className="h-full native-scroll pb-nav" style={{ background: 'transparent' }}>
+    <div className="h-full native-scroll pb-nav-fab" style={{ background: 'transparent' }}>
       <div className="px-4 pt-5 flex flex-col gap-3">
 
         {/* ── ZONE 1: STATUS BAR — header + streak/XP strip ───────── */}
