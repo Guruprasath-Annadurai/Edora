@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Globe, FileText, ScanLine, BookMarked, PenLine, Clock, FileScan, Brain, Map, AlertTriangle, GraduationCap, Layers, Sparkles, Network, Mic, PenTool, Camera, BookText, Youtube, Zap, Swords, Trophy, BookOpen, Flame, TrendingUp, Activity, BarChart2, FileOutput, Users, Radar, BookCopy, History, Play, TestTube2, Sword, Rss, BarChart, UserPlus, Handshake, PartyPopper } from 'lucide-react';
+import { Globe, FileText, ScanLine, BookMarked, PenLine, Clock, FileScan, Brain, Map, AlertTriangle, GraduationCap, Layers, Sparkles, Network, Mic, PenTool, Camera, BookText, Youtube, Zap, Swords, Trophy, BookOpen, Flame, TrendingUp, Activity, BarChart2, FileOutput, Users, Radar, BookCopy, History, Play, TestTube2, Sword, Rss, BarChart, UserPlus, Handshake, PartyPopper, ListChecks } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useT } from '@/hooks/useT';
 import type { UIStringKey } from '@/lib/i18n/uiStrings';
@@ -155,6 +155,7 @@ export default function ToolsPage() {
             { titleKey: 'tools.pyq_bank.title', descKey: 'tools.pyq_bank.desc', icon: History, to: '/pyq-bank', color: '#FB923C', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.25)' },
             { titleKey: 'tools.ai_quiz_bank.title', descKey: 'tools.ai_quiz_bank.desc', icon: Brain, to: '/ai-quiz', color: '#A78BFA', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)' },
             { titleKey: 'tools.upsc_mains.title', descKey: 'tools.upsc_mains.desc', icon: PenLine, to: '/upsc-mains', color: '#818CF8', bg: 'rgba(129,140,248,0.08)', border: 'rgba(129,140,248,0.25)' },
+            { titleKey: 'tools.cat_syllabus.title', descKey: 'tools.cat_syllabus.desc', icon: ListChecks, to: '/cat-syllabus', color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)' },
           ] as ToolCard[]).map(({ titleKey, descKey, icon: Icon, to, color, bg, border }, i) => (
             <motion.div key={to} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Link to={to}>

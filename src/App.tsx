@@ -96,6 +96,7 @@ const WeaknessRadarPage   = lazy(() => import('@/pages/WeaknessRadarPage'));
 const PYQBankPage         = lazy(() => import('@/pages/PYQBankPage'));
 const MockTestPage        = lazy(() => import('@/pages/MockTestPage'));
 const UPSCMainsPage       = lazy(() => import('@/pages/UPSCMainsPage'));
+const CATSyllabusPage     = lazy(() => import('@/pages/CATSyllabusPage'));
 const ConceptVideosPage   = lazy(() => import('@/pages/ConceptVideosPage'));
 const NCERTChaptersPage   = lazy(() => import('@/pages/NCERTChaptersPage'));
 const AIQuizBankPage      = lazy(() => import('@/pages/AIQuizBankPage'));
@@ -439,6 +440,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
           <Route path="/streaks"       element={<RouteErrorBoundary label="streaks"><StreakChallengePage /></RouteErrorBoundary>} />
           <Route path="/novo-insights" element={<RouteErrorBoundary label="novo-insights"><NovoInsightsPage /></RouteErrorBoundary>} />
           <Route path="/roadmap"      element={<RouteErrorBoundary label="roadmap"><RoadmapPage /></RouteErrorBoundary>} />
+          <Route path="/cat-syllabus" element={<RouteErrorBoundary label="cat-syllabus"><CATSyllabusPage /></RouteErrorBoundary>} />
           <Route path="/study-pack"    element={
             <RouteErrorBoundary label="study-pack">
               <Suspense fallback={

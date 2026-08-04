@@ -113,6 +113,7 @@ export type UIStringKey =
   | 'tools.pyq_bank.title' | 'tools.pyq_bank.desc'
   | 'tools.ai_quiz_bank.title' | 'tools.ai_quiz_bank.desc'
   | 'tools.upsc_mains.title' | 'tools.upsc_mains.desc'
+  | 'tools.cat_syllabus.title' | 'tools.cat_syllabus.desc'
   | 'tools.ncert_chapters.title' | 'tools.ncert_chapters.desc'
   | 'tools.concept_videos.title' | 'tools.concept_videos.desc'
   | 'tools.leaderboard.title' | 'tools.leaderboard.desc'
@@ -277,6 +278,7 @@ export const UI_STRINGS: { en: UIStringTable } & Record<Exclude<AppLanguage, 'en
     'tools.pyq_bank.title': 'PYQ Bank', 'tools.pyq_bank.desc': '10yr JEE·NEET·CBSE archive',
     'tools.ai_quiz_bank.title': 'AI Quiz Bank', 'tools.ai_quiz_bank.desc': 'Infinite adaptive questions',
     'tools.upsc_mains.title': 'Mains & Long-Answer', 'tools.upsc_mains.desc': 'UPSC Essay/GS · CBSE Boards · AI feedback',
+    'tools.cat_syllabus.title': 'CAT Syllabus', 'tools.cat_syllabus.desc': 'QA · DILR · VARC topic checklist',
     'tools.ncert_chapters.title': 'NCERT Chapters', 'tools.ncert_chapters.desc': 'Class 6–12 · 20 MCQs + flashcards',
     'tools.concept_videos.title': 'Concept Videos', 'tools.concept_videos.desc': '60-sec explainers for hard topics',
     'tools.leaderboard.title': 'Leaderboard', 'tools.leaderboard.desc': 'Global · State · City · School · Friends rankings',
@@ -437,6 +439,7 @@ export const UI_STRINGS: { en: UIStringTable } & Record<Exclude<AppLanguage, 'en
     'tools.pyq_bank.title': 'PYQ बैंक', 'tools.pyq_bank.desc': '10 साल का JEE·NEET·CBSE आर्काइव',
     'tools.ai_quiz_bank.title': 'AI क्विज़ बैंक', 'tools.ai_quiz_bank.desc': 'असीमित एडैप्टिव प्रश्न',
     'tools.upsc_mains.title': 'मेन्स और लॉन्ग-आंसर', 'tools.upsc_mains.desc': 'UPSC निबंध/GS · CBSE बोर्ड्स · AI फीडबैक',
+    'tools.cat_syllabus.title': 'CAT पाठ्यक्रम', 'tools.cat_syllabus.desc': 'QA · DILR · VARC विषय चेकलिस्ट',
     'tools.ncert_chapters.title': 'NCERT अध्याय', 'tools.ncert_chapters.desc': 'कक्षा 6–12 · 20 MCQ + फ्लैशकार्ड',
     'tools.concept_videos.title': 'कॉन्सेप्ट वीडियो', 'tools.concept_videos.desc': 'कठिन टॉपिक्स के लिए 60-सेकंड वीडियो',
     'tools.leaderboard.title': 'लीडरबोर्ड', 'tools.leaderboard.desc': 'ग्लोबल · राज्य · शहर · स्कूल · दोस्तों की रैंकिंग',
