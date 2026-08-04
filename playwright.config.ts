@@ -12,10 +12,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'list',
+  // 'list' alone produces no artifact on disk — a CI failure had nothing to
+  // upload beyond raw log text. Adding the 'html' reporter so a real,
+  // inspectable report (with screenshots/traces) exists for the "upload on
+  // failure" CI step to actually capture.
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
     baseURL: 'http://localhost:8100',
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
@@ -25,5 +30,10 @@ export default defineConfig({
     url: 'http://localhost:8100',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    // Surface the dev server's own boot output (e.g. a crash on startup) in
+    // CI logs instead of swallowing it — this would have made the missing-
+    // secrets failure below obvious immediately instead of needing a log dig.
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
 });

@@ -50,6 +50,43 @@ covered:
   this way at all.
 - **Visual regression** — no screenshot-diffing configured.
 
+## Real finding this surfaced: GitHub Actions had zero repository secrets
+
+The first CI run of the new `e2e-tests` job failed all 6 tests with
+"element(s) not found" — the login page never actually rendered. Checked
+`gh secret list` for this repo: **empty. Zero secrets configured, at all.**
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` — referenced by both this
+job and the pre-existing `build` job in `.github/workflows/ci.yml` — had
+never been set.
+
+This had been invisible until now because `vite build` (the `build` job)
+only bundles code; it doesn't execute it. An empty/undefined Supabase URL
+gets silently inlined into the JS bundle and the build step succeeds either
+way — `npm run build` passing has never been proof the resulting bundle
+actually works in a browser. The Supabase client (`createClient()` in
+`src/lib/supabase.ts`) only throws when a real browser actually loads and
+runs the code — which is exactly what this E2E job is the first thing in
+this repo's CI history to do.
+
+**Fixed**: set both secrets via `gh secret set`, using the project's real
+URL and *publishable* anon key (fetched via the Supabase MCP `get_project_url`
+/ `get_publishable_keys` tools — the anon key is meant to be public/embedded
+in client bundles, protected by RLS, not a sensitive credential; setting it
+as a GH secret is conventional plumbing, not a security-sensitive action).
+Re-ran the failed job after setting them: all 6 E2E tests passed.
+
+**Real-world impact, stated precisely — not overstated**: this did **not**
+mean the live, deployed app (edora-bb02e.web.app) was ever broken. Web/Android
+deploys are manual (see `docs/rollback-procedure.md` — no automated deploy
+pipeline exists), run by a human locally using their own `.env` with real
+secrets, entirely separate from this CI job. What it does mean: **the CI
+`build` job's "passing" status has been giving false confidence for the
+entire life of this pipeline** — it verified the code compiles, never that
+a build with the actual configured secrets produces a working app. This is
+exactly the class of gap E2E/real-runtime testing exists to catch, and
+exactly why it hadn't been caught before now: nothing before this job ever
+actually ran the app.
+
 ## Next decision this needs, honestly stated
 
 To get real golden-path coverage (login → home → do something → see the
