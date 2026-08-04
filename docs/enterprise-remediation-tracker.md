@@ -69,15 +69,19 @@ Three distinct advisories apply to the installed `6.30.4`:
 - **TRIAGED, no fix needed:** the `uuid`/`exceljs` moderate finding — see §5.1 above.
 - **STILL NOT STARTED:** no formal "data loss / subscription issue / academic error" support path beyond the general `support@edora.app` email already in the privacy policy; no failure alerting if the nightly backup cron silently stops succeeding.
 
-## 6. Testing foundation — NOT STARTED (numbers only, no new tests written)
+## 6. Testing foundation — IN PROGRESS (started; still far from the mandate's full scope)
 
 Current state (verified by direct count, not estimate):
-- Frontend: 9 test files, 64 tests (`npm run test` output), against 98 page components (`find src/pages -name "*.tsx" | wc -l`).
-- Edge functions: 2 test files (`_shared/memoryExtraction.test.ts`, `_shared/rcEntitlement.test.ts`) against 68 functions (`ls supabase/functions | wc -l`).
-- Zero E2E tooling of any kind in the repo (no Playwright, Cypress, Maestro, Appium, Detox config found).
-- Zero visual regression tooling found.
+- Frontend: 9 test files, 64 tests — unchanged this pass, still against 98 page components. Zero component/page-level tests exist; all 9 files test pure-logic `src/lib/*` functions.
+- Edge functions: **5 test files, 48 tests** (up from 2 files / 14 tests). Added `token-crypto.test.ts` (9), `rateLimit.test.ts` (11), `auth-guard.test.ts` (14) against `supabase/functions/_shared/`'s security-critical pure logic — token encryption, rate-limit fail-open/fail-closed behavior, JWT header validation, XSS-stripping sanitizers.
+- **VERIFIED COMPLETE: the existing edge-function tests are now actually run by CI.** They existed before this pass but were dead weight — `grep` across `.github/workflows/*.yml` found zero "deno" reference. Added an "Edge Function Tests" CI job. This took three attempts to get right (documented honestly, not glossed over): first pass worked locally but failed on the real CI runner with a missing-`@types/node` error that a fresh local repro (moved-aside `node_modules`, empty `DENO_DIR`) could not reproduce — the actual fix (`deno.json` at repo root with `"nodeModulesDir": "none"`) was only confirmed working by watching the real CI run, not by local repro succeeding. Commits `a7ebceb`, `5bd015c`, `0ba7bd0`.
+- Writing these tests against real type-checking (`deno test` type-checks by default) surfaced **two genuine, previously-invisible bugs** in `token-crypto.ts` and `auth-guard.ts` — both TS2322-class type errors that had sat unnoticed because nothing had ever run `deno check`/`deno test` on those files before. Both fixed; verified functionally identical at runtime via the passing round-trip tests (Supabase's deploy pipeline doesn't full-type-check, so the live `classroom-auth` function was never actually broken — this was invisible-until-now, not a live incident).
+- **Separate finding surfaced in passing:** `auth-guard.ts` has zero real importers among edge functions (only referenced in a comment elsewhere) — dead code, not wired to anything live. Not fixed/removed this pass (out of scope), just flagged.
+- Zero E2E tooling of any kind in the repo (no Playwright, Cypress, Maestro, Appium, Detox config found) — not started yet.
+- Zero visual regression tooling found — not started yet.
+- Zero frontend component/page-level tests — not started yet (98 page components, 0 covered beyond pure-logic lib functions).
 
-None of Layers 1-5, the 74 required E2E journeys, or visual regression testing (section 6.3) have been started. This is the single largest gap in the mandate by volume of unstarted work.
+None of Layers 1-5, the 74 required E2E journeys, or visual regression testing (section 6.3) have been started. This remains the single largest gap in the mandate by volume of unstarted work — this pass closed the "tests exist but don't run" gap and added meaningful edge-function coverage, which is real progress, but frontend component coverage, E2E, and visual regression are all still at zero.
 
 ## 7. Mobile build integrity — PARTIAL
 
