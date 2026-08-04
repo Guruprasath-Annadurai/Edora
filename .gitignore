@@ -26,3 +26,9 @@ android/*.keystore
 
 # Signed release build artifacts — not source, regenerated per release
 release-builds/
+
+# Playwright E2E output — regenerated per run
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
