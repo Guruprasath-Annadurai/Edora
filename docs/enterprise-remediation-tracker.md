@@ -35,9 +35,24 @@ Checked for a version-based fix regardless: `4.2.0` (currently installed) is the
 
 **Decision: accepted, no action needed, not a risk exception (the risk doesn't exist in the first place).** No owner/expiry assigned because this isn't a residual-risk exception under mandate rule 5.1.9 — it's a fully-closed non-finding. Documented here so the reasoning is auditable if a future package version changes this bundling behavior (worth a periodic sanity re-check, not a ticking exception).
 
-### `react-router` / `react-router-dom` — NOT YET TRIAGED
+### `react-router` / `react-router-dom` — TRIAGED, staying on 6.30.4 by deliberate decision (not an oversight)
 
-Moderate severity, two advisories: an open-redirect via backslash in `<Link>`/`useNavigate`, and an arbitrary-constructor-injection issue in `deserializeErrors()` during SSR hydration. This app is a client-rendered SPA (Vite, no SSR) — the second advisory is very likely inapplicable, but that has **not been confirmed** by actually reading how `react-router`'s hydration code path is or isn't reached in this codebase. The first (open redirect) needs checking against wherever this app does `navigate(userControlledValue)` — not yet audited. Flagged as **NOT STARTED**, distinct from the huggingface finding above, which is fully closed.
+Three distinct advisories apply to the installed `6.30.4`:
+1. **GHSA-wrjc-x8rr-h8h6** (moderate) — open redirect via backslash in `<Link>`/`useNavigate`, range `>=6.0.0 <7.18.0`.
+2. **GHSA-337j-9hxr-rhxg** (moderate, CVSS 6.1) — arbitrary constructor injection via `deserializeErrors()` during SSR hydration, range `>=6.4.0 <7.18.0`.
+3. **GHSA-jjmj-jmhj-qwj2** (moderate, CVSS 6.9) — open redirect leading to XSS, range `>=6.30.2 <=6.30.4` (the installed version is right at the edge of this range).
+
+**Attempted the upgrade rather than assuming it was safe or unsafe.** Bumped `react-router-dom` to `^7.18.2` (past all three ranges above) in an isolated, revertible change: `npm install` under Node 22, confirmed the resolved version was genuinely `7.18.2` via `npm ls`. This is where it got interesting — **re-running `npm audit` after the upgrade showed the vulnerability count unchanged (still 17), because a fourth, newer, HIGHER-severity advisory took its place:**
+
+4. **GHSA-qwww-vcr4-c8h2** (high) — "RSC Mode CSRF Bypass Allows Action Execution Before 400 Response," range `>=7.12.0 <8.3.0` — which covers `7.18.2` too. Checked whether a clean version exists at all: `npm view react-router-dom versions` confirms **no 8.x release exists yet** (`dist-tags.latest` is `7.18.2`). There is currently no published version of `react-router-dom` that sits outside all four advisories' ranges simultaneously.
+
+**Decision: reverted to `6.30.4`, verified via `git status`/`git diff` showing zero diff after `npm install` restored the exact previously-committed lockfile state.** Reasoning: upgrading would trade two moderate/one-narrow-moderate finding for one *higher-severity* finding, with zero net reduction in audit-reported risk, plus real unverified migration risk across this app's ~99 routes (v6→v7 is a major version with documented breaking changes) for no actual security gain. This is a deliberate, evidence-based decision to hold, not an unexamined "leave it broken."
+
+**Real-world exploitability of the advisories affecting the version actually installed (6.30.4):**
+- The SSR-hydration constructor-injection advisory (#2) requires React Router's SSR/data-loading hydration path. This app is confirmed Vite-built, client-rendered only (no `@react-router/dev`, no SSR framework config found in the repo) — very likely unreachable, though this rests on absence-of-SSR-tooling rather than a line-by-line trace of `deserializeErrors()`'s call sites, so it is not claimed as fully closed the way the huggingface finding above is.
+- The open-redirect advisories (#1, #3) require the app itself to pass attacker-influenced input into `<Link to={...}>` or `useNavigate(...)`'s target. Grepped the codebase for the pattern that would create this (`navigate()`/`Link` fed by `searchParams`, a `redirect`/`returnTo`/`next` query param, etc.) — **zero matches** across `src/`. This is strong evidence, not an exhaustive manual audit of all ~99 routes' navigation call sites, so it's marked **PARTIAL**, not fully closed.
+
+**Residual risk, honestly stated:** three moderate-severity advisories remain active against the installed version, with a real (if not yet found) possibility that some navigation call site does pass through user-influenced data. No owner or expiry date assigned to this exception yet — that gap is itself noted, matching the same honesty gap already flagged for the `tar` exception above.
 
 ## 5.2 Privacy-policy deployment fix — BLOCKED (human action required)
 
