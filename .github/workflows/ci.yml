@@ -63,3 +63,47 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_APP_VERSION: ${{ github.sha }}
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Blocking gate: fails the job if a CRITICAL vulnerability exists in a
+      # PRODUCTION dependency (--omit=dev). Scoped to production deps only,
+      # not the full tree, because a known critical `tar` vulnerability lives
+      # exclusively in dev tooling (@capacitor/assets's pinned, unpatchable
+      # @capacitor/cli@5.7.8 — see docs/enterprise-remediation-tracker.md §5.1)
+      # with no upstream fix available; that dev-only finding would otherwise
+      # block every PR indefinitely with no way to resolve it. As of this
+      # writing, production scope has 0 critical findings, so this gate is
+      # active immediately, not a no-op placeholder.
+      - name: Fail on critical vulnerabilities (production dependencies)
+        run: npm audit --omit=dev --audit-level=critical
+
+      # Non-blocking, staged per the remediation mandate: "start with fail on
+      # critical, report high/moderate." Runs the FULL audit (prod + dev, so
+      # the known dev-only critical stays visible) without failing the build,
+      # and uploads a machine-readable artifact so findings can be tracked
+      # over time instead of only living in scrollback.
+      - name: Full audit report (non-blocking)
+        if: always()
+        continue-on-error: true
+        run: npm audit --json > audit-report.json || true
+      - name: Full audit summary (non-blocking, human-readable)
+        if: always()
+        continue-on-error: true
+        run: npm audit || true
+      - name: Upload audit report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: audit-report.json
+          retention-days: 90
