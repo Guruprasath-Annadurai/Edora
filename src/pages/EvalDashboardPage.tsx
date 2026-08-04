@@ -139,12 +139,12 @@ export default function EvalDashboardPage() {
     setRunning(true);
     setError(null);
     try {
+      // novo-eval-run checks the caller's own session JWT server-side
+      // (has_role(uid, 'admin')) — no client-side secret needed or sent.
       const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke('novo-eval-run', {
         body:    category ? { category } : {},
-        headers: {
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-          'x-eval-secret': 'novo-eval-secret-2026' } });
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {} });
       if (res.error) throw new Error(res.error.message);
       await loadSummaries();
       if (res.data?.run_id) setSelectedRunId(res.data.run_id);

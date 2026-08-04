@@ -17,6 +17,8 @@ const CHAT_FUNCTION_URL  = `${SUPABASE_URL}/functions/v1/gemini-chat`;
 const MAX_CONCURRENCY    = 1;   // 1 at a time: Groq free tier is 6000 TPM, prompt alone ~4500 tokens
 const CHAT_TIMEOUT_MS    = 40_000;
 
+const EVAL_SECRET_INTERNAL = Deno.env.get('EVAL_SECRET') ?? '';
+
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
@@ -65,7 +67,7 @@ async function callNovo(c: EvalCase): Promise<{
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
         'x-eval-mode':   'true',
-        'x-eval-secret': 'novo-eval-secret-2026',
+        'x-eval-secret': EVAL_SECRET_INTERNAL,
       },
       body: JSON.stringify({
         prompt:  c.query,
@@ -83,7 +85,7 @@ async function callNovo(c: EvalCase): Promise<{
       // one retry
       const res2 = await fetch(CHAT_FUNCTION_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_ROLE_KEY}`, 'x-eval-mode': 'true', 'x-eval-secret': 'novo-eval-secret-2026' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_ROLE_KEY}`, 'x-eval-mode': 'true', 'x-eval-secret': EVAL_SECRET_INTERNAL },
         body: JSON.stringify({ prompt: c.query, subject: c.subject ?? undefined, stream: false, _eval_override: { user_id: '00000000-0000-0000-0000-000000000001' } }),
         signal: controller.signal,
       });
@@ -246,11 +248,10 @@ async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], limit: number)
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
-function jwtRole(authHeader: string | null): string | null {
+function jwtPayload(authHeader: string | null): { role?: string; sub?: string } | null {
   try {
     const token = authHeader?.replace('Bearer ', '') ?? '';
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload?.role ?? null;
+    return JSON.parse(atob(token.split('.')[1]));
   } catch { return null; }
 }
 
@@ -260,11 +261,26 @@ Deno.serve(async (req: Request) => {
   const secret = req.headers.get('x-internal-secret');
   const expectedSecret = Deno.env.get('CRON_SECRET');
   const authHeader = req.headers.get('Authorization');
-  const evalSecret = req.headers.get('x-eval-secret');
-  const EVAL_SECRET = Deno.env.get('EVAL_SECRET'); // disabled when env var unset
+  const payload = jwtPayload(authHeader);
+
+  // Security note: this used to also accept a hardcoded 'x-eval-secret'
+  // header value ('novo-eval-secret-2026') sent directly from
+  // EvalDashboardPage.tsx — client-side React code that ships in the public
+  // JS bundle. A "secret" embedded in shipped client code is readable by
+  // anyone who opens dev tools, defeating its own purpose; if the deployed
+  // EVAL_SECRET matched that literal, any visitor could trigger AI eval
+  // runs (real Groq/Gemini API cost) without being staff. Replaced with a
+  // real admin-role check against the caller's own session JWT, which the
+  // dashboard already sends.
+  let isAdmin = false;
+  if (payload?.role === 'authenticated' && payload.sub) {
+    const { data } = await db.rpc('has_role', { _user_id: payload.sub, _role: 'admin' });
+    isAdmin = data === true;
+  }
+
   const authorized = (expectedSecret && secret === expectedSecret)
-    || jwtRole(authHeader) === 'service_role'
-    || (!!EVAL_SECRET && evalSecret === EVAL_SECRET);
+    || payload?.role === 'service_role'
+    || isAdmin;
   if (!authorized) return new Response('Unauthorized', { status: 401 });
 
   const body = req.method === 'POST' ? await req.json().catch(() => ({})) as {
