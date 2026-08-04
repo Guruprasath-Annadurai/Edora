@@ -1,0 +1,37 @@
+name: Generate Visual Baselines
+
+# Manual-only tool for (re)generating Playwright's visual-regression
+# baseline screenshots. Must run on the same OS as the regular CI E2E job
+# (ubuntu-latest) — screenshot comparison is sensitive to font rendering,
+# and a baseline generated on a developer's macOS machine will not match
+# what CI actually renders. See e2e/visual.spec.ts and docs/e2e-testing.md.
+#
+# Usage: trigger via `gh workflow run generate-visual-baselines.yml`, then
+# download the "visual-baselines" artifact and commit its contents into
+# e2e/visual.spec.ts-snapshots/ — this workflow does not commit for you.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  generate:
+    name: Generate baselines (ubuntu-latest, matches CI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test e2e/visual.spec.ts --update-snapshots
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - name: Upload generated baselines
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: e2e/**/*-snapshots/**
+          retention-days: 7
