@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {ChevronLeft, Shield, Download, Trash2, Edit3,
-  CheckCircle2, Loader2, AlertTriangle, Mail, Lock} from 'lucide-react';
+  CheckCircle2, Loader2, AlertTriangle, Mail, Lock, BrainCircuit} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,7 +18,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 type ActionStatus = 'idle' | 'loading' | 'done' | 'error';
 
 export default function DataRightsPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, setProfile } = useAuth();
   const { theme }         = useTheme();
   const isLight            = theme === 'light';
   const navigate           = useNavigate();
@@ -27,6 +27,36 @@ export default function DataRightsPage() {
   const [deleteStatus,  setDeleteStatus]  = useState<ActionStatus>('idle');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteInput,   setDeleteInput]   = useState('');
+  const [memoryToggleBusy, setMemoryToggleBusy] = useState(false);
+  const [confirmClearMemory, setConfirmClearMemory] = useState(false);
+  const [clearMemoryStatus, setClearMemoryStatus] = useState<ActionStatus>('idle');
+
+  async function toggleMemoryOptOut() {
+    if (!user || !profile) return;
+    const next = !profile.memory_opt_out;
+    setMemoryToggleBusy(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ memory_opt_out: next })
+      .eq('id', user.id);
+    if (!error) {
+      setProfile({ ...profile, memory_opt_out: next });
+      track(next ? 'novo_memory_disabled' : 'novo_memory_enabled');
+    }
+    setMemoryToggleBusy(false);
+  }
+
+  async function clearAllMemories() {
+    if (!user) return;
+    setClearMemoryStatus('loading');
+    const { error } = await supabase.from('novo_memories').delete().eq('user_id', user.id);
+    setClearMemoryStatus(error ? 'error' : 'done');
+    if (!error) {
+      track('novo_memory_cleared_all');
+      await Toast.show({ text: 'All memories cleared.', duration: 'short' });
+    }
+    setConfirmClearMemory(false);
+  }
 
   const consentDate = profile?.dpdp_consent_at
     ? new Date(profile.dpdp_consent_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -201,6 +231,55 @@ export default function DataRightsPage() {
                 style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', color: isLight ? '#92400E' : '#FBBF24' }}>
                 <Mail size={14} /> Contact DPO: dpo@edora.app
               </a>
+            </RightCard>
+
+            {/* Novo Memory Controls — §13 disable + bulk-erase */}
+            <RightCard
+              icon={BrainCircuit}
+              title="Novo Memory Controls"
+              desc="Novo remembers things about you (learning patterns, goals, struggles) to personalise tutoring. You can turn this off, or clear everything it has learned. Individual memories can also be viewed, corrected, or deleted one at a time from Profile."
+              color="#5B6AF5">
+              <motion.button whileTap={{ scale: 0.97 }}
+                onClick={toggleMemoryOptOut}
+                disabled={memoryToggleBusy}
+                className="mt-3 w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+                style={{
+                  background: profile?.memory_opt_out ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)',
+                  border: `1px solid ${profile?.memory_opt_out ? 'rgba(52,211,153,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                  color: profile?.memory_opt_out ? (isLight ? '#047857' : '#34D399') : (isLight ? '#B91C1C' : '#F87171'),
+                }}>
+                {memoryToggleBusy && <Loader2 size={14} className="animate-spin" />}
+                {!memoryToggleBusy && (profile?.memory_opt_out ? 'Turn Memory Back On' : 'Turn Off Novo Memory')}
+              </motion.button>
+
+              {!confirmClearMemory ? (
+                <button
+                  onClick={() => setConfirmClearMemory(true)}
+                  className="mt-2 w-full py-2.5 rounded-xl text-xs font-semibold"
+                  style={{ color: 'var(--ink-400)' }}>
+                  Clear all memories now
+                </button>
+              ) : (
+                <div className="mt-2 flex flex-col gap-2">
+                  <p className="text-xs" style={{ color: isLight ? '#B91C1C' : 'rgba(252,165,165,0.8)' }}>
+                    This permanently deletes everything Novo has learned about you.
+                  </p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setConfirmClearMemory(false)}
+                      className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white/50"
+                      style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)' }}>
+                      Cancel
+                    </button>
+                    <button onClick={clearAllMemories}
+                      disabled={clearMemoryStatus === 'loading'}
+                      className="flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1"
+                      style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: isLight ? '#B91C1C' : '#F87171' }}>
+                      {clearMemoryStatus === 'loading' ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                      {clearMemoryStatus === 'loading' ? 'Clearing…' : clearMemoryStatus === 'done' ? 'Cleared' : 'Confirm Clear'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </RightCard>
 
           </div>

@@ -134,7 +134,14 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          # 21, not 17: capacitor-android's Gradle module needs JDK 21 even
+          # though app/build.gradle's sourceCompatibility targets 17 — see
+          # the comment in android/gradle.properties. The first CI run of
+          # this job failed on exactly this — a hardcoded org.gradle.java.home
+          # pointing at a developer's local macOS JDK path, which doesn't
+          # exist on this runner. That override is now removed; this
+          # setup-java step is the actual source of JAVA_HOME for the build.
+          java-version: "21"
       - uses: actions/cache@v4
         with:
           path: |

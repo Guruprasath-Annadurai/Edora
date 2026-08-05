@@ -448,6 +448,18 @@ serve(withSentry('novo-memory', async (req) => {
     const { messages, source = 'chat', subject } = body;
     if (!messages || !Array.isArray(messages) || messages.length < 2) return json({ memories_saved: 0 });
 
+    // §13 (docs/enterprise-remediation-tracker.md): honor the user's memory
+    // opt-out before spending an LLM call — same check as novo-memory-extract,
+    // this function's other write path into novo_memories.
+    const { data: profileRow } = await supabase
+      .from('profiles')
+      .select('memory_opt_out')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (profileRow?.memory_opt_out) {
+      return json({ memories_saved: 0, skipped: 'memory_opt_out' });
+    }
+
     const rl = await checkRateLimit(supabase, user.id, 'memory_save_from_session', 20, 60);
     if (!rl.allowed) return json({ memories_saved: 0, rate_limited: true });
 

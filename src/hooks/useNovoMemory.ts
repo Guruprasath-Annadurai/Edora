@@ -28,6 +28,7 @@ interface UseNovoMemoryReturn {
   setFilter: (f: MemoryFilter) => void;
   deleteMemory: (id: string) => Promise<void>;
   deleteAll: () => Promise<void>;
+  updateMemory: (id: string, content: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -81,6 +82,21 @@ export function useNovoMemory(): UseNovoMemoryReturn {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryClient, filter]);
 
+  // §13 (docs/enterprise-remediation-tracker.md): "correct" — users can edit
+  // a memory's content directly, not just delete it outright.
+  const updateMemory = useCallback(async (id: string, content: string) => {
+    const { error: updateErr } = await supabase
+      .from('novo_memories')
+      .update({ content })
+      .eq('id', id);
+    if (updateErr) throw new Error(updateErr.message);
+    queryClient.setQueryData<MemoryQueryResult>(queryKey, prev => prev && {
+      ...prev,
+      memories: prev.memories.map(m => (m.id === id ? { ...m, content } : m)),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient, filter]);
+
   const deleteAll = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -102,6 +118,7 @@ export function useNovoMemory(): UseNovoMemoryReturn {
     setFilter,
     deleteMemory,
     deleteAll,
+    updateMemory,
     refresh: async () => { await refetch(); },
   };
 }

@@ -150,6 +150,21 @@ serve(async (req: Request) => {
 
     const serviceDb = createClient(supabaseUrl, serviceKey);
 
+    // §13 (docs/enterprise-remediation-tracker.md): honor the user's memory
+    // opt-out before spending an LLM call — checked here, not just in the UI,
+    // so disabling memory actually stops new memories from being written.
+    const { data: profileRow } = await serviceDb
+      .from('profiles')
+      .select('memory_opt_out')
+      .eq('id', userId)
+      .maybeSingle();
+    if (profileRow?.memory_opt_out) {
+      return new Response(JSON.stringify({ extracted: 0, skipped: 'memory_opt_out' }), {
+        status: 200,
+        headers: { ...getCors(req), 'Content-Type': 'application/json' },
+      });
+    }
+
     const prompt = EXTRACT_PROMPT
       .replace('{USER_MSG}', userMessage.slice(0, 500))
       .replace('{ASSISTANT_MSG}', assistantResponse.slice(0, 800));

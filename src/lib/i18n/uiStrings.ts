@@ -159,6 +159,12 @@ export type UIStringKey =
   | 'profile.memory.show_less'
   | 'profile.memory.show_all'
   | 'profile.memory.delete_aria'
+  | 'profile.memory.edit_aria'
+  | 'profile.memory.save_aria'
+  | 'profile.memory.clear_all'
+  | 'profile.memory.clear_all_confirm'
+  | 'profile.memory.clear_all_yes'
+  | 'profile.memory.clear_all_cancel'
   | 'profile.menu.section.learning'
   | 'profile.menu.section.ai_insights'
   | 'profile.menu.section.community'
@@ -323,6 +329,12 @@ export const UI_STRINGS: { en: UIStringTable } & Record<Exclude<AppLanguage, 'en
     'profile.memory.show_less': 'Show less',
     'profile.memory.show_all': 'Show all',
     'profile.memory.delete_aria': 'Delete memory',
+    'profile.memory.edit_aria': 'Correct this memory',
+    'profile.memory.save_aria': 'Save correction',
+    'profile.memory.clear_all': 'Clear all memories',
+    'profile.memory.clear_all_confirm': 'Delete all memories?',
+    'profile.memory.clear_all_yes': 'Yes, delete',
+    'profile.memory.clear_all_cancel': 'Cancel',
     'profile.menu.section.learning': 'Learning',
     'profile.menu.section.ai_insights': 'AI & Insights',
     'profile.menu.section.community': 'Community',
@@ -484,6 +496,12 @@ export const UI_STRINGS: { en: UIStringTable } & Record<Exclude<AppLanguage, 'en
     'profile.memory.show_less': 'कम दिखाएं',
     'profile.memory.show_all': 'सभी दिखाएं',
     'profile.memory.delete_aria': 'मेमोरी हटाएं',
+    'profile.memory.edit_aria': 'इस मेमोरी को सुधारें',
+    'profile.memory.save_aria': 'सुधार सहेजें',
+    'profile.memory.clear_all': 'सभी मेमोरी हटाएं',
+    'profile.memory.clear_all_confirm': 'सभी मेमोरी हटाएं?',
+    'profile.memory.clear_all_yes': 'हां, हटाएं',
+    'profile.memory.clear_all_cancel': 'रद्द करें',
     'profile.menu.section.learning': 'लर्निंग',
     'profile.menu.section.ai_insights': 'AI और इनसाइट्स',
     'profile.menu.section.community': 'कम्युनिटी',

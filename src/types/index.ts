@@ -34,6 +34,8 @@ export interface Profile {
   // DPDP Act 2023 consent tracking
   dpdp_consent_at?: string | null;
   dpdp_consent_version?: string | null;
+  // Novo memory opt-out (§13 — disable control)
+  memory_opt_out?: boolean;
   // Referral program
   referral_code?: string | null;
 }

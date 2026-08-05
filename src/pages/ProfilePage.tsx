@@ -8,7 +8,7 @@ import {
 import {
   User, Flame, Star, Shield, Bell, LogOut, Snowflake,
   ChevronRight, Award, CalendarDays, MessageSquare, Users, TrendingUp,
-  Crown, FileText, Medal, Trophy, X, Gift,
+  Crown, FileText, Medal, Trophy, X, Gift, Pencil, Check, Trash2,
   Calculator, Atom, FlaskConical, Microscope, BookOpen, Landmark, BarChart3, Code2, Building2,
 } from 'lucide-react';
 import { TrophyIcon } from '@/components/ui/icons';
@@ -128,9 +128,23 @@ function RankBadge({ rank }: { rank: number }) {
 // ── Novo Memory Viewer (inline) ───────────────────────────────────────────────
 function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
   const t = useT();
-  const { memories, loading, deleteMemory, totalCount } = useNovoMemory();
+  const { memories, loading, deleteMemory, deleteAll, updateMemory, totalCount } = useNovoMemory();
   const [expanded, setExpanded] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
   const visible = expanded ? memories : memories.slice(0, 3);
+
+  function startEdit(id: string, content: string) {
+    setEditingId(id);
+    setEditValue(content);
+  }
+
+  async function saveEdit(id: string) {
+    const trimmed = editValue.trim();
+    if (trimmed) await updateMemory(id, trimmed).catch(() => {});
+    setEditingId(null);
+  }
 
   if (loading) return (
     <div style={{ borderRadius: 20, padding: 20, background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', height: 80 }}
@@ -185,8 +199,39 @@ function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
                   {MEMORY_TYPE_LABELS[m.memory_type]}
                   {m.subject && <span style={{ color: 'var(--ink-500)', fontWeight: 500 }}> · {m.subject}</span>}
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--ink-750)', lineHeight: 1.4 }}>{m.content}</p>
+                {editingId === m.id ? (
+                  <textarea
+                    autoFocus
+                    value={editValue}
+                    onChange={e => setEditValue(e.target.value)}
+                    rows={2}
+                    style={{
+                      width: '100%', fontSize: 12, lineHeight: 1.4, color: 'var(--ink-950)',
+                      background: 'var(--ink-020)', border: '1px solid rgba(124,58,237,0.35)',
+                      borderRadius: 8, padding: '6px 8px', resize: 'none',
+                    }}
+                  />
+                ) : (
+                  <p style={{ fontSize: 12, color: 'var(--ink-750)', lineHeight: 1.4 }}>{m.content}</p>
+                )}
               </div>
+              {editingId === m.id ? (
+                <button
+                  onClick={() => saveEdit(m.id)}
+                  style={{ color: '#34D399', padding: 4, flexShrink: 0, minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-label={t('profile.memory.save_aria')}
+                >
+                  <Check size={14} />
+                </button>
+              ) : (
+                <button
+                  onClick={() => startEdit(m.id, m.content)}
+                  style={{ color: 'var(--ink-250)', padding: 4, flexShrink: 0, minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-label={t('profile.memory.edit_aria')}
+                >
+                  <Pencil size={12} />
+                </button>
+              )}
               <button
                 onClick={() => deleteMemory(m.id).catch(() => {})}
                 style={{ color: 'var(--ink-250)', padding: 4, flexShrink: 0, minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -196,6 +241,38 @@ function NovoMemoryViewer({ userId: _userId }: { userId: string }) {
               </button>
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {memories.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+          {!confirmClearAll ? (
+            <button
+              onClick={() => setConfirmClearAll(true)}
+              style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-400)', display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}
+            >
+              <Trash2 size={12} />
+              {t('profile.memory.clear_all')}
+            </button>
+          ) : (
+            <>
+              <span style={{ fontSize: 11, color: 'var(--ink-400)' }}>
+                {t('profile.memory.clear_all_confirm')}
+              </span>
+              <button
+                onClick={() => { deleteAll().catch(() => {}); setConfirmClearAll(false); }}
+                style={{ fontSize: 12, fontWeight: 700, color: '#F87171', minHeight: 28 }}
+              >
+                {t('profile.memory.clear_all_yes')}
+              </button>
+              <button
+                onClick={() => setConfirmClearAll(false)}
+                style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-400)', minHeight: 28 }}
+              >
+                {t('profile.memory.clear_all_cancel')}
+              </button>
+            </>
+          )}
         </div>
       )}
 
