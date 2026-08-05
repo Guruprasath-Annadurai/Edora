@@ -9,7 +9,10 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
-async function geminiJSON<T>(prompt: string): Promise<T> {
+// Single attempt: throws on network failure, non-2xx, or unparseable JSON —
+// never silently falls through to an empty object, which previously let an
+// undefined `narrative` reach buildExportHTML() and crash on `.split()`.
+async function geminiJSONOnce<T>(prompt: string): Promise<T> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
@@ -21,10 +24,56 @@ async function geminiJSON<T>(prompt: string): Promise<T> {
       }),
     }
   );
+  if (!res.ok) throw new Error(`Gemini ${res.status}`);
   const d = await res.json();
-  const raw = d.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
+  const raw = d.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!raw) throw new Error('Empty Gemini response');
   const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-  return JSON.parse(match ? match[0] : raw) as T;
+  if (!match) throw new Error('No JSON in Gemini response');
+  return JSON.parse(match[0]) as T;
+}
+
+// Network-level retry with exponential backoff.
+async function geminiJSONWithRetry<T>(prompt: string, maxRetries = 2): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await geminiJSONOnce<T>(prompt);
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+interface TeacherNarrative { narrative: string; }
+
+function validateNarrative(n: unknown): string | null {
+  if (typeof n !== 'string' || n.trim().length < 50) {
+    return 'narrative missing or too short to be a real 3-paragraph report';
+  }
+  return null;
+}
+
+// Outer semantic layer: retries the whole generate+validate cycle if the
+// narrative comes back empty/too-short instead of ever inserting a broken report.
+async function generateNarrative(prompt: string): Promise<string> {
+  const MAX_ATTEMPTS = 3;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const candidate = await geminiJSONWithRetry<TeacherNarrative>(prompt);
+      const validationError = validateNarrative(candidate.narrative);
+      if (!validationError) return candidate.narrative;
+      lastErr = new Error(validationError);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`Failed to generate narrative after ${MAX_ATTEMPTS} attempts`);
 }
 
 function pct(n: number, total: number) {
@@ -270,8 +319,9 @@ serve(withSentry('teacher-export', async (req) => {
       .map(([sub, m]) => `${sub}: ${pct(m.mastered, m.total)}% mastered, weak in: ${m.weak_topics.slice(0,3).join(', ') || 'none'}`)
       .join('\n');
 
-    interface TeacherNarrative { narrative: string; }
-    const { narrative } = await geminiJSON<TeacherNarrative>(`
+    let narrative: string;
+    try {
+      narrative = await generateNarrative(`
 Write a concise teacher progress report for a student using an AI tutoring app.
 This report is FOR A TEACHER — use appropriate academic language.
 
@@ -296,6 +346,10 @@ Write 3 paragraphs for a teacher:
 Be precise and actionable. This is a professional document.
 
 Return JSON: {"narrative": "full 3-paragraph text"}`);
+    } catch (e) {
+      console.error('[teacher-export] narrative generation failed:', e);
+      return json({ error: 'Failed to generate the AI narrative for this report. Please try again.' }, 500);
+    }
 
     const generatedAt = new Date().toISOString();
     const export_html = buildExportHTML(

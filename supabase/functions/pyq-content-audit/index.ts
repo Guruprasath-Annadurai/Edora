@@ -24,9 +24,13 @@ interface ReviewResult {
   review_notes: string;
 }
 
-async function reviewRow(row: {
+type Row = {
   question_text: string; options: unknown; correct_option: string | null; solution_text: string | null;
-}): Promise<ReviewResult> {
+};
+
+// Single attempt: throws on network failure, non-2xx, unparseable JSON, or a
+// missing/invalid verdict — never silently defaults to "approved".
+async function reviewRowOnce(row: Row): Promise<ReviewResult> {
   const prompt = `You are a subject-matter expert doing second-review QA on a previous-year-question bank entry for an Indian exam-prep app.
 
 Question:
@@ -56,10 +60,45 @@ Respond with ONLY valid JSON, no markdown fences:
   if (!res.ok) throw new Error(`Groq ${res.status}`);
   const data = await res.json();
   const parsed = JSON.parse(data.choices[0].message.content);
-  return {
-    verdict: parsed.verdict === 'flagged' ? 'flagged' : 'approved',
-    review_notes: parsed.review_notes ?? 'No notes returned.',
-  };
+
+  if (parsed.verdict !== 'approved' && parsed.verdict !== 'flagged') {
+    throw new Error(`Invalid verdict in response: ${JSON.stringify(parsed.verdict)}`);
+  }
+  if (typeof parsed.review_notes !== 'string' || parsed.review_notes.trim().length === 0) {
+    throw new Error('Missing or empty review_notes in response');
+  }
+  return { verdict: parsed.verdict, review_notes: parsed.review_notes };
+}
+
+// Network-level retry with exponential backoff (fetch failure, non-2xx, bad JSON).
+async function reviewRowWithRetry(row: Row, maxRetries = 2): Promise<ReviewResult> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await reviewRowOnce(row);
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+// Outer semantic layer: re-runs the whole generate+validate cycle if the
+// model returns a structurally invalid response, instead of ever guessing.
+async function reviewRow(row: Row): Promise<ReviewResult> {
+  const MAX_ATTEMPTS = 3;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      return await reviewRowWithRetry(row);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`Failed to review row after ${MAX_ATTEMPTS} attempts`);
 }
 
 serve(withSentry('pyq-content-audit', async (req) => {

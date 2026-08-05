@@ -48,6 +48,69 @@ interface ExtractedMemory {
   importance: number;
 }
 
+const VALID_TYPES = new Set([
+  'learning_pattern', 'academic_goal', 'personal_fact',
+  'emotion', 'achievement', 'fact',
+]);
+
+// Single attempt: throws on network failure, non-2xx, or unparseable/non-array
+// JSON. An empty array `[]` is a valid "nothing worth remembering" result and
+// is NOT an error — only a genuinely broken response throws.
+async function extractMemoriesOnce(apiKey: string, prompt: string): Promise<ExtractedMemory[]> {
+  const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
+    }),
+  });
+  if (!geminiRes.ok) throw new Error(`Gemini ${geminiRes.status}`);
+
+  const geminiData = await geminiRes.json();
+  const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]';
+  const cleaned = rawText.replace(/```json|```/g, '').trim();
+  const memories = JSON.parse(cleaned);
+  if (!Array.isArray(memories)) throw new Error('Gemini response was not a JSON array');
+  return memories;
+}
+
+// Network-level retry with exponential backoff.
+async function extractMemoriesWithRetry(apiKey: string, prompt: string, maxRetries = 2): Promise<ExtractedMemory[]> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await extractMemoriesOnce(apiKey, prompt);
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+// Outer semantic layer: a non-empty array where every item fails the
+// memory_type/content shape check almost always means a garbled response
+// (not a genuine "nothing to remember", which the model returns as `[]`) —
+// re-run the whole generate cycle rather than silently dropping it.
+async function extractMemories(apiKey: string, prompt: string): Promise<ExtractedMemory[]> {
+  const MAX_ATTEMPTS = 3;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const candidate = await extractMemoriesWithRetry(apiKey, prompt);
+      const anyValid = candidate.length === 0 || candidate.some((m) => m.content && VALID_TYPES.has(m.memory_type));
+      if (anyValid) return candidate;
+      lastErr = new Error('All extracted items failed shape validation');
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`Failed to extract memories after ${MAX_ATTEMPTS} attempts`);
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCors(req) });
 
@@ -91,38 +154,16 @@ serve(async (req: Request) => {
       .replace('{USER_MSG}', userMessage.slice(0, 500))
       .replace('{ASSISTANT_MSG}', assistantResponse.slice(0, 800));
 
-    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
-      }),
-    });
-
-    if (!geminiRes.ok) {
+    let memories: ExtractedMemory[] = [];
+    try {
+      memories = await extractMemories(apiKey, prompt);
+    } catch (e) {
+      console.error('novo-memory-extract: extraction failed after retries:', e);
       return new Response(JSON.stringify({ extracted: 0, error: 'gemini_failed' }), {
         status: 200,
         headers: { ...getCors(req), 'Content-Type': 'application/json' },
       });
     }
-
-    const geminiData = await geminiRes.json();
-    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]';
-
-    let memories: ExtractedMemory[] = [];
-    try {
-      const cleaned = rawText.replace(/```json|```/g, '').trim();
-      memories = JSON.parse(cleaned);
-      if (!Array.isArray(memories)) memories = [];
-    } catch {
-      memories = [];
-    }
-
-    const VALID_TYPES = new Set([
-      'learning_pattern', 'academic_goal', 'personal_fact',
-      'emotion', 'achievement', 'fact',
-    ]);
 
     const toInsert = memories
       .filter((m) => m.content && VALID_TYPES.has(m.memory_type))

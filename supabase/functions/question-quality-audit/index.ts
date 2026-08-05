@@ -32,7 +32,30 @@ interface VerifyResult {
   corrected_question: { question_text: string; options: string[]; correct_index: number; explanation: string } | null;
 }
 
-async function verifyQuestion(questionText: string, details: string[]): Promise<VerifyResult> {
+const VALID_VERDICTS = new Set(['confirmed_bad', 'genuinely_hard', 'inconclusive']);
+
+function validateCorrectedQuestion(cq: unknown): string | null {
+  if (cq === null || cq === undefined) return null; // absent is valid
+  const c = cq as Partial<NonNullable<VerifyResult['corrected_question']>>;
+  if (typeof c.question_text !== 'string' || c.question_text.trim().length < 5) {
+    return 'corrected_question.question_text missing or too short';
+  }
+  if (!Array.isArray(c.options) || c.options.length !== 4 || c.options.some(o => typeof o !== 'string' || o.trim().length === 0)) {
+    return 'corrected_question.options must be exactly 4 non-empty strings';
+  }
+  if (typeof c.correct_index !== 'number' || !Number.isInteger(c.correct_index) || c.correct_index < 0 || c.correct_index > 3) {
+    return 'corrected_question.correct_index must be an integer 0-3';
+  }
+  if (typeof c.explanation !== 'string' || c.explanation.trim().length === 0) {
+    return 'corrected_question.explanation missing or empty';
+  }
+  return null;
+}
+
+// Single attempt: throws on network failure, non-2xx, unparseable JSON, an
+// out-of-enum verdict, or a structurally invalid corrected_question — never
+// silently defaults to "inconclusive" or writes a malformed correction.
+async function verifyQuestionOnce(questionText: string, details: string[]): Promise<VerifyResult> {
   const prompt = `You are a subject-matter expert reviewing a flagged exam-prep question for an Indian student app (JEE/NEET/CBSE).
 
 Question (as students saw it):
@@ -66,11 +89,52 @@ Respond with ONLY valid JSON, no markdown fences:
   if (!res.ok) throw new Error(`Groq ${res.status}`);
   const data = await res.json();
   const parsed = JSON.parse(data.choices[0].message.content);
+
+  if (!VALID_VERDICTS.has(parsed.verdict)) {
+    throw new Error(`Invalid verdict in response: ${JSON.stringify(parsed.verdict)}`);
+  }
+  if (typeof parsed.reasoning !== 'string' || parsed.reasoning.trim().length === 0) {
+    throw new Error('Missing or empty reasoning in response');
+  }
+  const correctionError = validateCorrectedQuestion(parsed.corrected_question);
+  if (correctionError) throw new Error(correctionError);
+
   return {
-    verdict: parsed.verdict ?? 'inconclusive',
-    reasoning: parsed.reasoning ?? 'No reasoning returned.',
+    verdict: parsed.verdict,
+    reasoning: parsed.reasoning,
     corrected_question: parsed.corrected_question ?? null,
   };
+}
+
+// Network-level retry with exponential backoff.
+async function verifyQuestionWithRetry(questionText: string, details: string[], maxRetries = 2): Promise<VerifyResult> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await verifyQuestionOnce(questionText, details);
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+// Outer semantic layer: re-runs the whole generate+validate cycle on a
+// structurally invalid response instead of ever guessing or defaulting.
+async function verifyQuestion(questionText: string, details: string[]): Promise<VerifyResult> {
+  const MAX_ATTEMPTS = 3;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      return await verifyQuestionWithRetry(questionText, details);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`Failed to verify question after ${MAX_ATTEMPTS} attempts`);
 }
 
 serve(withSentry('question-quality-audit', async (req) => {
