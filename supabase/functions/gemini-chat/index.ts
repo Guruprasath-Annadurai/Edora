@@ -380,32 +380,71 @@ async function executeToolCalls(
   }));
 }
 
-// Auto-generate prereq chain for topics not yet in knowledge_graph (LLM-powered)
-async function autoGeneratePrereqs(
-  serviceDb: ReturnType<typeof createClient>,
-  topic: string, subject: string, curriculum: string | null, apiKey: string,
-): Promise<string> {
-  try {
-    const prompt = `You are a curriculum expert for Indian education (CBSE/JEE/NEET/ICSE/State boards).
+type PrereqGen = { prereqs?: Array<{ topic: string; why: string; class_level?: string }>; difficulty?: number };
+
+// Basic structural check: prereqs must be an array of items shaped like
+// { topic: string, why: string } — a malformed/truncated Groq response
+// parses as JSON but can still fail this shape check.
+function validatePrereqGen(parsed: PrereqGen): boolean {
+  if (!Array.isArray(parsed.prereqs)) return false;
+  return parsed.prereqs.every(p =>
+    p && typeof p.topic === 'string' && p.topic.trim().length > 0 &&
+    typeof p.why === 'string' && p.why.trim().length > 0,
+  );
+}
+
+async function fetchPrereqGenOnce(topic: string, subject: string, curriculum: string | null, apiKey: string): Promise<PrereqGen> {
+  const prompt = `You are a curriculum expert for Indian education (CBSE/JEE/NEET/ICSE/State boards).
 List the prerequisite topics a student must understand BEFORE learning "${topic}" in ${subject}${curriculum ? ` (${curriculum})` : ''}.
 
 Respond ONLY as JSON: {"prereqs": [{"topic": "...", "why": "one sentence", "class_level": "11"}], "difficulty": 7}
 Max 5 prereqs, most important first. topic names must be concise (3-6 words).`;
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant', stream: false, max_tokens: 400, temperature: 0.2,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-    if (!res.ok) return `No prerequisite data found for "${topic}" in the knowledge graph.`;
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: 'llama-3.1-8b-instant', stream: false, max_tokens: 400, temperature: 0.2,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Groq ${res.status}`);
 
-    const j = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const raw = j.choices?.[0]?.message?.content ?? '';
-    const clean = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
-    const parsed = JSON.parse(clean) as { prereqs?: Array<{ topic: string; why: string; class_level?: string }>; difficulty?: number };
+  const j = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const raw = j.choices?.[0]?.message?.content ?? '';
+  const clean = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+  return JSON.parse(clean) as PrereqGen;
+}
+
+// Auto-generate prereq chain for topics not yet in knowledge_graph (LLM-powered).
+// Lightweight network-level retry (2 attempts, exponential backoff) plus a
+// basic structural validation pass, since the result is saved to
+// knowledge_graph and re-used by future lookups. The graceful degradation
+// message is the final fallback, only used once retries are exhausted.
+async function autoGeneratePrereqs(
+  serviceDb: ReturnType<typeof createClient>,
+  topic: string, subject: string, curriculum: string | null, apiKey: string,
+): Promise<string> {
+  const MAX_ATTEMPTS = 2;
+  let parsed: PrereqGen | null = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const candidate = await fetchPrereqGenOnce(topic, subject, curriculum, apiKey);
+      if (!validatePrereqGen(candidate)) throw new Error('Invalid prereq structure');
+      parsed = candidate;
+      break;
+    } catch {
+      if (attempt < MAX_ATTEMPTS - 1) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+
+  if (!parsed) {
+    return `No prerequisite data found for "${topic}". Ask Novo to explain the fundamentals step by step.`;
+  }
+
+  try {
     const prereqs = parsed.prereqs ?? [];
 
     // Save to knowledge_graph for future lookups
@@ -1008,31 +1047,45 @@ async function getRetrievalEmbedding(
 // Each variant emphasises a different semantic angle of the query.
 // Embedding each independently captures chunks any single phrasing would miss.
 // Only generated for multi_hop queries — bounded latency blast radius.
+async function generateQueryVariantsOnce(query: string, groqApiKey: string): Promise<string[]> {
+  const res = await fetch(GROQ_BASE_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
+    body:    JSON.stringify({
+      model:    GROQ_MODEL_FALLBACK,
+      messages: [
+        {
+          role:    'system',
+          content: 'Rephrase the student query 3 different ways for textbook retrieval. Each should emphasise a different angle: (1) concept name, (2) mechanism or process, (3) application or example. Return ONLY valid JSON: {"variants":["...","...","..."]}. No explanation.',
+        },
+        { role: 'user', content: query.slice(0, 500) },
+      ],
+      temperature: 0.3,
+      max_tokens:  180,
+    }),
+  });
+  if (!res.ok) throw new Error(`Groq ${res.status}`);
+  const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const raw = d.choices?.[0]?.message?.content?.trim() ?? '[]';
+  const parsed = JSON.parse(raw);
+  const arr = parsed.variants ?? (Array.isArray(parsed) ? parsed : Object.values(parsed));
+  return (arr as unknown[]).filter((v): v is string => typeof v === 'string' && v.length > 5).slice(0, 3);
+}
+
+// Lightweight network-level retry (2 attempts, backoff) — search reranking
+// input, low-stakes. Graceful [] degradation only kicks in after retries.
 async function generateQueryVariants(query: string, groqApiKey: string): Promise<string[]> {
-  try {
-    const res = await fetch(GROQ_BASE_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
-      body:    JSON.stringify({
-        model:    GROQ_MODEL_FALLBACK,
-        messages: [
-          {
-            role:    'system',
-            content: 'Rephrase the student query 3 different ways for textbook retrieval. Each should emphasise a different angle: (1) concept name, (2) mechanism or process, (3) application or example. Return ONLY valid JSON: {"variants":["...","...","..."]}. No explanation.',
-          },
-          { role: 'user', content: query.slice(0, 500) },
-        ],
-        temperature: 0.3,
-        max_tokens:  180,
-      }),
-    });
-    if (!res.ok) return [];
-    const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const raw = d.choices?.[0]?.message?.content?.trim() ?? '[]';
-    const parsed = JSON.parse(raw);
-    const arr = parsed.variants ?? (Array.isArray(parsed) ? parsed : Object.values(parsed));
-    return (arr as unknown[]).filter((v): v is string => typeof v === 'string' && v.length > 5).slice(0, 3);
-  } catch { return []; }
+  const MAX_ATTEMPTS = 2;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      return await generateQueryVariantsOnce(query, groqApiKey);
+    } catch {
+      if (attempt < MAX_ATTEMPTS - 1) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  return [];
 }
 
 // RRF merge across multiple result sets — Cormack et al., k=60.
@@ -1058,6 +1111,47 @@ function rrfMergeChunks(resultSets: RagChunk[][], k = 60): RagChunk[] {
 // Cross-Encoder Reranking — single batch Groq call re-scores top-12 chunks.
 // Far more accurate than bi-encoder similarity but too slow for full corpus.
 // Applied post-retrieval on multi_hop only: narrows top-12 → top-k.
+async function crossEncoderRerankOnce(
+  query:      string,
+  chunks:     RagChunk[],
+  topK:       number,
+  groqApiKey: string,
+): Promise<RagChunk[]> {
+  const chunkList = chunks.slice(0, 12).map((c, i) =>
+    `[${i + 1}] ${[c.chapter_title, c.section_title].filter(Boolean).join(' › ')}\n${c.content.slice(0, 320)}`
+  ).join('\n\n');
+
+  const res = await fetch(GROQ_BASE_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
+    body:    JSON.stringify({
+      model:    GROQ_MODEL_FALLBACK,
+      messages: [
+        {
+          role:    'system',
+          content: 'Relevance judge. Rate each chunk 0–10 for usefulness in answering the query. Return ONLY a JSON array of numbers in the same order as the chunks. No explanation.',
+        },
+        { role: 'user', content: `Query: "${query.slice(0, 300)}"\n\nChunks:\n${chunkList}` },
+      ],
+      temperature: 0,
+      max_tokens:  80,
+    }),
+  });
+  if (!res.ok) throw new Error(`Groq ${res.status}`);
+  const d      = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const raw    = d.choices?.[0]?.message?.content?.trim() ?? '[]';
+  const scores = JSON.parse(raw) as number[];
+  if (!Array.isArray(scores) || scores.length === 0) throw new Error('No scores returned');
+  return chunks
+    .slice(0, 12)
+    .map((c, i) => ({ ...c, rrf_score: typeof scores[i] === 'number' ? scores[i] : c.rrf_score }))
+    .sort((a, b) => b.rrf_score - a.rrf_score)
+    .slice(0, topK);
+}
+
+// Lightweight network-level retry (2 attempts, backoff) — search reranking,
+// low-stakes. Graceful degradation (original top-K order) only kicks in
+// after retries are exhausted.
 async function crossEncoderRerank(
   query:      string,
   chunks:     RagChunk[],
@@ -1065,38 +1159,17 @@ async function crossEncoderRerank(
   groqApiKey: string,
 ): Promise<RagChunk[]> {
   if (chunks.length <= topK) return chunks;
-  try {
-    const chunkList = chunks.slice(0, 12).map((c, i) =>
-      `[${i + 1}] ${[c.chapter_title, c.section_title].filter(Boolean).join(' › ')}\n${c.content.slice(0, 320)}`
-    ).join('\n\n');
-
-    const res = await fetch(GROQ_BASE_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
-      body:    JSON.stringify({
-        model:    GROQ_MODEL_FALLBACK,
-        messages: [
-          {
-            role:    'system',
-            content: 'Relevance judge. Rate each chunk 0–10 for usefulness in answering the query. Return ONLY a JSON array of numbers in the same order as the chunks. No explanation.',
-          },
-          { role: 'user', content: `Query: "${query.slice(0, 300)}"\n\nChunks:\n${chunkList}` },
-        ],
-        temperature: 0,
-        max_tokens:  80,
-      }),
-    });
-    if (!res.ok) return chunks.slice(0, topK);
-    const d      = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const raw    = d.choices?.[0]?.message?.content?.trim() ?? '[]';
-    const scores = JSON.parse(raw) as number[];
-    if (!Array.isArray(scores) || scores.length === 0) return chunks.slice(0, topK);
-    return chunks
-      .slice(0, 12)
-      .map((c, i) => ({ ...c, rrf_score: typeof scores[i] === 'number' ? scores[i] : c.rrf_score }))
-      .sort((a, b) => b.rrf_score - a.rrf_score)
-      .slice(0, topK);
-  } catch { return chunks.slice(0, topK); }
+  const MAX_ATTEMPTS = 2;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      return await crossEncoderRerankOnce(query, chunks, topK, groqApiKey);
+    } catch {
+      if (attempt < MAX_ATTEMPTS - 1) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  return chunks.slice(0, topK);
 }
 
 // ── Step-Back Prompting ───────────────────────────────────────────────────────
@@ -1111,32 +1184,46 @@ function hasSpecificNumerics(query: string): boolean {
   );
 }
 
+async function generateStepBackQueryOnce(query: string, groqApiKey: string): Promise<string | null> {
+  const res = await fetch(GROQ_BASE_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
+    body:    JSON.stringify({
+      model:       GROQ_MODEL_FALLBACK,
+      messages:    [
+        {
+          role:    'system',
+          content: 'You are a physics, chemistry, and math teacher. Given a specific problem with numbers, extract ONLY the underlying general concept(s) being tested — strip all numbers. Return a short phrase of 3–8 words. Examples:\n"block 2kg on 30° incline μ=0.3" → "inclined plane friction Newton laws"\n"resistors 4Ω 6Ω in parallel" → "parallel resistors equivalent resistance Kirchhoff"\n"ideal gas 300K 2atm volume" → "ideal gas law PVT relationship"\nReturn ONLY the abstract phrase. No numbers, no explanation.',
+        },
+        { role: 'user', content: query.slice(0, 400) },
+      ],
+      temperature: 0.1,
+      max_tokens:  50,
+    }),
+  });
+  if (!res.ok) throw new Error(`Groq ${res.status}`);
+  const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const abstract = d.choices?.[0]?.message?.content?.trim() ?? null;
+  // Reject if model returned numbers (failed to abstract)
+  if (!abstract || /\d/.test(abstract) || abstract.length > 80) throw new Error('Failed to abstract');
+  return abstract;
+}
+
+// Lightweight network-level retry (2 attempts, backoff) — low-stakes step-back
+// query generation. Graceful null degradation only kicks in after retries.
 async function generateStepBackQuery(query: string, groqApiKey: string): Promise<string | null> {
   if (!hasSpecificNumerics(query)) return null;
-  try {
-    const res = await fetch(GROQ_BASE_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
-      body:    JSON.stringify({
-        model:       GROQ_MODEL_FALLBACK,
-        messages:    [
-          {
-            role:    'system',
-            content: 'You are a physics, chemistry, and math teacher. Given a specific problem with numbers, extract ONLY the underlying general concept(s) being tested — strip all numbers. Return a short phrase of 3–8 words. Examples:\n"block 2kg on 30° incline μ=0.3" → "inclined plane friction Newton laws"\n"resistors 4Ω 6Ω in parallel" → "parallel resistors equivalent resistance Kirchhoff"\n"ideal gas 300K 2atm volume" → "ideal gas law PVT relationship"\nReturn ONLY the abstract phrase. No numbers, no explanation.',
-          },
-          { role: 'user', content: query.slice(0, 400) },
-        ],
-        temperature: 0.1,
-        max_tokens:  50,
-      }),
-    });
-    if (!res.ok) return null;
-    const d = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const abstract = d.choices?.[0]?.message?.content?.trim() ?? null;
-    // Reject if model returned numbers (failed to abstract)
-    if (!abstract || /\d/.test(abstract) || abstract.length > 80) return null;
-    return abstract;
-  } catch { return null; }
+  const MAX_ATTEMPTS = 2;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      return await generateStepBackQueryOnce(query, groqApiKey);
+    } catch {
+      if (attempt < MAX_ATTEMPTS - 1) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  return null;
 }
 
 // Combines step-back generation + embedding into one parallel-safe call.
@@ -1337,13 +1424,24 @@ Rules: Only extract specific, useful memories. Max 3. No trivial small talk.`;
       max_tokens:  512,
     };
 
-    const res = await fetch(GROQ_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify(body),
-    });
+    // Lightweight network-level retry (2 attempts, backoff) — this runs
+    // fire-and-forget in the background, so one transient Groq failure
+    // shouldn't silently drop the whole extraction for this turn.
+    const MAX_ATTEMPTS = 2;
+    let res: Response | null = null;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const candidate = await fetch(GROQ_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify(body),
+      });
+      if (candidate.ok) { res = candidate; break; }
+      if (attempt < MAX_ATTEMPTS - 1) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
+    }
 
-    if (!res.ok) return;
+    if (!res || !res.ok) return;
 
     const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
     const raw  = data?.choices?.[0]?.message?.content ?? '[]';

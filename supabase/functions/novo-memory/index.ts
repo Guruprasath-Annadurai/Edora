@@ -469,9 +469,7 @@ serve(withSentry('novo-memory', async (req) => {
       session_summary: SessionSummaryExtract;
     };
 
-    let extracted: ExtractionResult;
-    try {
-      extracted = await geminiJSONWithRetry<ExtractionResult>(`
+    const extractionPrompt = `
 You are analysing a student-tutor conversation. Return a JSON object with two keys:
 
 1. "memories": array of 1-5 learning memories (can be empty [])
@@ -484,8 +482,49 @@ For explanation_style: infer from the student's messages — did they ask for si
 
 Conversation:
 ${convo}
-`);
-    } catch {
+`;
+
+    // Validate the shape of an extraction before trusting it. A response can
+    // parse as valid JSON but still contain memories with missing content/type
+    // or an empty session summary — that used to be silently filtered/dropped
+    // rather than triggering a fresh extraction attempt.
+    const validateExtraction = (candidate: ExtractionResult | null): string | null => {
+      if (!candidate) return 'No extraction result';
+      if (!Array.isArray(candidate.memories)) return '"memories" must be an array';
+      for (let i = 0; i < candidate.memories.length; i++) {
+        const m = candidate.memories[i];
+        if (!m || typeof m.content !== 'string' || m.content.trim().length === 0) {
+          return `memories[${i}]: missing or empty "content"`;
+        }
+        if (!m.memory_type || !VALID_TYPES.has(m.memory_type)) {
+          return `memories[${i}]: invalid "memory_type" "${m?.memory_type}"`;
+        }
+      }
+      const ss = candidate.session_summary;
+      if (!ss || typeof ss.summary !== 'string' || ss.summary.trim().length === 0) {
+        return '"session_summary.summary" is missing or empty';
+      }
+      return null;
+    };
+
+    // Outer semantic-validate-and-regenerate loop: retry the WHOLE
+    // extract+validate cycle (not just the network call already retried
+    // inside geminiJSONWithRetry) when the parsed result is structurally bad.
+    const MAX_EXTRACT_ATTEMPTS = 3;
+    let extracted: ExtractionResult | null = null;
+    let lastExtractErr = '';
+    for (let attempt = 0; attempt < MAX_EXTRACT_ATTEMPTS; attempt++) {
+      try {
+        const candidate = await geminiJSONWithRetry<ExtractionResult>(extractionPrompt);
+        const validationErr = validateExtraction(candidate);
+        if (!validationErr) { extracted = candidate; break; }
+        lastExtractErr = validationErr;
+      } catch (e) {
+        lastExtractErr = e instanceof Error ? e.message : String(e);
+      }
+    }
+    if (!extracted) {
+      console.error(`[novo-memory] save_from_session extraction failed validation after ${MAX_EXTRACT_ATTEMPTS} attempts: ${lastExtractErr}`);
       return json({ memories_saved: 0 });
     }
 

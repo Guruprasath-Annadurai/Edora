@@ -29,7 +29,10 @@ async function geminiJSONOnce<T>(prompt: string): Promise<T> {
 }
 
 // Single-attempt generation previously meant one bad response killed
-// challenge creation / today's task outright with a non-2xx.
+// challenge creation / today's task outright with a non-2xx. The retry loop
+// also previously had no backoff between attempts — hammering Gemini
+// immediately after a transient/rate-limit failure. Exponential backoff
+// mirrors the pattern used in novo-certifications.
 async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, maxAttempts = 3): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -39,6 +42,9 @@ async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, max
       return result;
     } catch (e) {
       lastErr = e;
+      if (attempt < maxAttempts - 1) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
@@ -150,7 +156,12 @@ Return JSON:
   "daily_task": "Single clear daily task description (e.g. 'Differentiate one function and explain each step')",
   "subject": "${focusSubject || 'the subject you chose'}",
   "topic": "${focusTopic || 'the topic you chose'}"
-}`, v => !!v?.title && !!v?.daily_task);
+}`, v =>
+      !!v?.title && typeof v.title === 'string' &&
+      !!v?.description && typeof v.description === 'string' &&
+      !!v?.daily_task && typeof v.daily_task === 'string' &&
+      !!v?.subject && typeof v.subject === 'string' &&
+      !!v?.topic && typeof v.topic === 'string');
 
     const startDate = new Date();
     const endDate = new Date(startDate);

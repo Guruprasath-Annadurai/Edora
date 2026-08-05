@@ -300,6 +300,68 @@ Rules:
   return payload;
 }
 
+// ── Structural/semantic validator for the full insight payload ────────────────
+// A response can come back as valid JSON matching the Gemini response schema
+// but still be semantically broken (empty headline, wrong recovery_plan length,
+// a day missing tasks, etc). Catching that here lets the caller regenerate the
+// whole insight instead of silently patching individual fields with defaults.
+function validateInsight(payload: NovoInsightPayload | null): string | null {
+  if (!payload) return 'No payload returned';
+  if (!payload.headline || typeof payload.headline !== 'string' || payload.headline.trim().length === 0) {
+    return 'Missing or empty "headline"';
+  }
+  if (!Array.isArray(payload.weakest_subjects)) return '"weakest_subjects" must be an array';
+  if (!Array.isArray(payload.strongest_subjects)) return '"strongest_subjects" must be an array';
+  if (!payload.streak_insight || typeof payload.streak_insight !== 'string') {
+    return 'Missing or empty "streak_insight"';
+  }
+  if (!Array.isArray(payload.recovery_plan) || payload.recovery_plan.length !== 3) {
+    return `"recovery_plan" must have exactly 3 entries, got ${Array.isArray(payload.recovery_plan) ? payload.recovery_plan.length : 'non-array'}`;
+  }
+  for (let i = 0; i < payload.recovery_plan.length; i++) {
+    const day = payload.recovery_plan[i];
+    if (!day || typeof day.day !== 'string' || !day.day) return `recovery_plan[${i}]: missing "day"`;
+    if (typeof day.focus !== 'string' || !day.focus) return `recovery_plan[${i}]: missing "focus"`;
+    if (!Array.isArray(day.tasks) || day.tasks.length === 0) return `recovery_plan[${i}]: "tasks" must be a non-empty array`;
+  }
+  if (!payload.motivation || typeof payload.motivation !== 'string') {
+    return 'Missing or empty "motivation"';
+  }
+  return null;
+}
+
+/**
+ * Generate + validate the whole insight, retrying the full generate cycle
+ * (not just the network call) when the parsed result fails semantic
+ * validation. Falls back to hardcoded defaults only once every attempt has
+ * been exhausted, rather than patching a single bad generation immediately.
+ */
+async function generateInsight(dataSummary: string, apiKey: string): Promise<NovoInsightPayload> {
+  const MAX_ATTEMPTS = 3;
+  let lastErr = '';
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const candidate = await callGemini(dataSummary, apiKey);
+      const validationErr = validateInsight(candidate);
+      if (!validationErr) return candidate;
+      lastErr = validationErr;
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : String(e);
+    }
+  }
+  console.error(`[Novo] insight generation failed validation after ${MAX_ATTEMPTS} attempts, using defaults: ${lastErr}`);
+  return {
+    headline: 'Your weekly study summary',
+    weakest_subjects: [],
+    strongest_subjects: [],
+    streak_insight: 'Keep up the momentum this week!',
+    recovery_plan: ['Monday', 'Tuesday', 'Wednesday'].map(day => ({
+      day, focus: 'Mixed revision', tasks: ['Review your notes', 'Practice 5 problems'],
+    })),
+    motivation: 'Every study session moves you closer to your goals. Keep going!',
+  };
+}
+
 /** Send FCM push via Legacy HTTP API (multicast batch) */
 async function sendFcmBatch(
   tokens: string[],
@@ -478,15 +540,11 @@ serve(withSentry('novo-insights', async (req) => {
           profile, quizAgg, mistakes, sprintData, activeDays, xpThisWeek,
         );
 
-        // Call Gemini
-        const insight = await callGemini(dataSummary, geminiApiKey);
-
-        // Ensure recovery_plan has exactly 3 entries
-        const plan = insight.recovery_plan ?? [];
-        const days = ['Monday', 'Tuesday', 'Wednesday'];
-        const recoveryPlan = days.map((day, i) => plan[i] ?? {
-          day, focus: 'Mixed revision', tasks: ['Review your notes', 'Practice 5 problems'],
-        });
+        // Call Gemini — generateInsight retries the whole generate+validate
+        // cycle on semantic validation failure, only falling back to
+        // hardcoded defaults after all attempts are exhausted.
+        const insight = await generateInsight(dataSummary, geminiApiKey);
+        const recoveryPlan = insight.recovery_plan;
 
         // Upsert insight
         const { error: upsertErr } = await db

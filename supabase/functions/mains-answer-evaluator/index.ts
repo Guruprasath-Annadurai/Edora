@@ -42,6 +42,23 @@ interface Evaluation {
   suggestions: string[];
 }
 
+const VALID_BANDS: Evaluation['band'][] = ['needs_work', 'developing', 'good', 'excellent'];
+
+// Structural/semantic validation of a graded response — an invalid band or
+// missing covered_points/suggestions used to be silently papered over with
+// defaults ('developing' / []) instead of triggering a retry, which meant a
+// malformed grading response was indistinguishable from a genuine "developing,
+// nothing covered" evaluation.
+function isValidEvaluation(v: unknown): v is Evaluation {
+  const e = v as Partial<Evaluation> | null;
+  return !!e &&
+    VALID_BANDS.includes(e.band as Evaluation['band']) &&
+    Array.isArray(e.covered_points) &&
+    Array.isArray(e.missed_points) &&
+    typeof e.structure_feedback === 'string' && e.structure_feedback.trim().length > 0 &&
+    Array.isArray(e.suggestions);
+}
+
 async function gradeAnswer(q: MainsQuestion, answerText: string): Promise<Evaluation> {
   const prompt = `You are an experienced ${q.exam === 'UPSC' ? 'UPSC Mains' : `CBSE Class ${q.class_level} board`} examiner grading a student's written answer. Grading is holistic — give a coarse band, never a fake-precise numeric score.
 
@@ -70,7 +87,7 @@ Respond with ONLY valid JSON, no markdown fences:
   // already used in ai-question-gen for the same class of failure.
   const MAX_ATTEMPTS = 3;
   let lastErr = '';
-  let parsed: { band?: string; covered_points?: string[]; missed_points?: string[]; structure_feedback?: string; suggestions?: string[] } | null = null;
+  let parsed: Evaluation | null = null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS && !parsed; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
     try {
@@ -86,22 +103,18 @@ Respond with ONLY valid JSON, no markdown fences:
       });
       if (!res.ok) { lastErr = `Groq ${res.status}`; continue; }
       const data = await res.json();
-      parsed = JSON.parse(data.choices[0].message.content);
+      const candidate = JSON.parse(data.choices[0].message.content);
+      if (!isValidEvaluation(candidate)) {
+        lastErr = `Response failed validation: invalid band or missing covered_points/suggestions (got band="${candidate?.band}")`;
+        continue;
+      }
+      parsed = candidate;
     } catch (e) {
       lastErr = (e as Error).message ?? 'fetch failed';
     }
   }
   if (!parsed) throw new Error(`Grading failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
-  const bands: Evaluation['band'][] = ['needs_work', 'developing', 'good', 'excellent'];
-  const band: Evaluation['band'] = bands.includes(parsed.band as Evaluation['band'])
-    ? (parsed.band as Evaluation['band']) : 'developing';
-  return {
-    band,
-    covered_points: Array.isArray(parsed.covered_points) ? parsed.covered_points : [],
-    missed_points: Array.isArray(parsed.missed_points) ? parsed.missed_points : [],
-    structure_feedback: parsed.structure_feedback ?? '',
-    suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
-  };
+  return parsed;
 }
 
 serve(withSentry('mains-answer-evaluator', async (req) => {

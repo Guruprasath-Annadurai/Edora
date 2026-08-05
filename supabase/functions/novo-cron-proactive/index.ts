@@ -173,9 +173,16 @@ async function processUser(supabase: any, userId: string): Promise<{ generated: 
 
   type CheckinResult = { message: string; message_type: string; cta_label: string | null; cta_route: string | null };
 
-  let result: CheckinResult;
-  try {
-    result = await geminiJSONWithRetry<CheckinResult>(`
+  // Outer loop: a Gemini call can succeed at the network level but still
+  // return a semantically invalid check-in (bad message_type, too-short
+  // message). Previously that fell straight to the static fallback after a
+  // single attempt — now we re-run the whole generate+validate cycle up to
+  // MAX_ATTEMPTS times before giving up and using the fallback message.
+  const MAX_ATTEMPTS = 3;
+  let result: CheckinResult | null = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const candidate = await geminiJSONWithRetry<CheckinResult>(`
 You are Novo, a warm emotionally intelligent AI tutor checking in on ${firstName}.
 Today: ${todayStr}. Personality mode: ${profile?.novo_personality ?? 'teacher'}.
 Streak: ${profile?.streak_count ?? 0}. Sessions this week: ${sessions7}. XP: ${profile?.xp ?? 0}.
@@ -190,9 +197,15 @@ Message type: "${messageTypeHint}". Write ONE message (1-3 sentences, warm, spec
 Return JSON: { "message": "...", "message_type": "${messageTypeHint}", "cta_label": "...", "cta_route": "..." }
 CTA options: "Start Sprint"→"/sprint", "Chat with Novo"→"/chat", "View Lesson Plan"→"/lesson-plan", "Review Weak Topics"→"/weakness-radar", null
 `);
-    if (!VALID_MSG_TYPES.has(result.message_type)) result.message_type = 'welcome_back';
-    if (!result.message || result.message.trim().length < 10) throw new Error('empty');
-  } catch {
+      if (!VALID_MSG_TYPES.has(candidate.message_type)) candidate.message_type = 'welcome_back';
+      if (!candidate.message || candidate.message.trim().length < 10) throw new Error('empty');
+      result = candidate;
+      break;
+    } catch {
+      // fall through to next attempt (or fallback below if exhausted)
+    }
+  }
+  if (!result) {
     result = {
       message:      `Hey ${firstName}! Ready to keep the momentum going? A quick 15-min sprint today goes a long way. 🚀`,
       message_type: 'welcome_back',

@@ -27,7 +27,8 @@ async function geminiJSONOnce<T>(prompt: string): Promise<T> {
 }
 
 // Single-attempt generation previously meant one bad response killed weekly
-// tournament creation outright with a non-2xx.
+// tournament creation outright with a non-2xx. Also previously had no backoff
+// between attempts — added exponential backoff (matches novo-certifications).
 async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, maxAttempts = 3): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -37,9 +38,37 @@ async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, max
       return result;
     } catch (e) {
       lastErr = e;
+      if (attempt < maxAttempts - 1) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
+}
+
+// ── Per-question structural validator (mirrors novo-certifications) ───────────
+interface TournamentQuestionGen {
+  question:    string;
+  options:     string[];
+  correct_idx: number;
+  explanation: string;
+  points:      number;
+}
+interface TournamentGenShape {
+  name:      string;
+  questions: TournamentQuestionGen[];
+}
+function validateTournamentGen(v: Partial<TournamentGenShape> | null | undefined): boolean {
+  if (!v?.name || typeof v.name !== 'string') return false;
+  if (!Array.isArray(v.questions) || v.questions.length === 0) return false;
+  for (const q of v.questions as Partial<TournamentQuestionGen>[]) {
+    if (!q.question || typeof q.question !== 'string') return false;
+    if (!Array.isArray(q.options) || q.options.length !== 4) return false;
+    if (q.options.some(o => typeof o !== 'string' || o.trim().length === 0)) return false;
+    if (typeof q.correct_idx !== 'number' || q.correct_idx < 0 || q.correct_idx > 3) return false;
+    if (!q.explanation || typeof q.explanation !== 'string' || q.explanation.trim().length === 0) return false;
+  }
+  return true;
 }
 
 // ── Week boundaries (Mon–Sun) ─────────────────────────────────────────────────
@@ -146,7 +175,7 @@ Generate:
     }
   ]
 }
-Include exactly 10 questions, increasing difficulty.`, v => !!v?.name && Array.isArray(v?.questions) && v.questions.length > 0).catch(() => null);
+Include exactly 10 questions, increasing difficulty.`, validateTournamentGen).catch(() => null);
 
         if (!gen) continue;
 
@@ -389,7 +418,7 @@ Generate:
     }
     ... 10 questions total, increasing difficulty
   ]
-}`, v => !!v?.name && Array.isArray(v?.questions) && v.questions.length > 0);
+}`, validateTournamentGen);
 
       const { data: tournament } = await supabase
         .from('tournaments')

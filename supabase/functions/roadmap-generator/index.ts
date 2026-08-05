@@ -94,10 +94,10 @@ const ERR_EXAM_TOO_CLOSE    = 'EXAM_TOO_CLOSE';
 const ERR_MISSING_ROADMAP   = 'MISSING_ROADMAP_ID';
 const ERR_ROADMAP_NOT_FOUND = 'ROADMAP_NOT_FOUND';
 
-function softError(error: string, code: string, extra?: Record<string, unknown>) {
+function softError(corsHeaders: HeadersInit, error: string, code: string, extra?: Record<string, unknown>) {
   return new Response(
     JSON.stringify({ error, code, ...extra }),
-    { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } },
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 }
 
@@ -269,6 +269,63 @@ Respond with ONLY a single JSON object, no markdown fencing, matching exactly th
   } finally {
     clearTimeout(tid);
   }
+}
+
+// ── Per-day / per-week structural validator ───────────────────────────────────
+function validateDay(day: Partial<RoadmapDay>, ctx: string): string | null {
+  if (typeof day.day !== 'number') return `${ctx}: missing "day" number`;
+  if (!day.subject || typeof day.subject !== 'string') return `${ctx}: missing "subject"`;
+  if (!day.topic || typeof day.topic !== 'string') return `${ctx}: missing "topic"`;
+  if (!day.description || typeof day.description !== 'string') return `${ctx}: missing "description"`;
+  if (typeof day.duration_minutes !== 'number' || day.duration_minutes <= 0) {
+    return `${ctx}: "duration_minutes" must be a positive number`;
+  }
+  return null;
+}
+
+function validateWeeks(weeks: RoadmapWeek[] | undefined, expectedWeeks: number, daysPerWeek: number): string | null {
+  if (!Array.isArray(weeks) || weeks.length === 0) return '"weeks" must be a non-empty array';
+  if (weeks.length < expectedWeeks) return `expected at least ${expectedWeeks} weeks, got ${weeks.length}`;
+  for (let i = 0; i < weeks.length; i++) {
+    const w = weeks[i];
+    if (typeof w.week_number !== 'number') return `weeks[${i}]: missing "week_number"`;
+    if (!Array.isArray(w.days) || w.days.length === 0) return `weeks[${i}]: "days" must be a non-empty array`;
+    if (w.days.length < daysPerWeek) return `weeks[${i}]: expected ${daysPerWeek} days, got ${w.days.length}`;
+    for (let j = 0; j < w.days.length; j++) {
+      const err = validateDay(w.days[j], `weeks[${i}].days[${j}]`);
+      if (err) return err;
+    }
+  }
+  return null;
+}
+
+// Distinct semantic-validate-retry OUTER loop — separate from the
+// network-level retry inside callGemini/callGeminiOnce. callGeminiOnce's
+// `weeks.length === 0` check only catches the empty case and gets swept up
+// in that same network retry; this loop retries the WHOLE generate+validate
+// cycle when the parsed roadmap is structurally invalid (missing fields, too
+// few days/weeks), rather than letting normaliseWeeks() silently cap/drop
+// bad data and persist a broken plan.
+async function generateValidatedRoadmap(
+  system: string,
+  userPrompt: string,
+  apiKey: string,
+  expectedWeeks: number,
+  daysPerWeek: number,
+  maxAttempts = 3,
+): Promise<GeminiRoadmap> {
+  let lastErr = '';
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const candidate = await callGemini(system, userPrompt, apiKey);
+      const validationErr = validateWeeks(candidate.weeks, expectedWeeks, daysPerWeek);
+      if (!validationErr) return candidate;
+      lastErr = validationErr;
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : String(e);
+    }
+  }
+  throw new Error(`Roadmap generation failed semantic validation after ${maxAttempts} attempts: ${lastErr}`);
 }
 
 // ── Normalise Gemini weeks ────────────────────────────────────────────────────
@@ -447,7 +504,7 @@ serve(withSentry('roadmap-generator', async (req) => {
         exam_name, exam_date, planWeeks, daysPerWeek, totalDays, study_level, startDate,
       );
 
-      const roadmapData = await callGemini(system, userPrompt, geminiApiKey);
+      const roadmapData = await generateValidatedRoadmap(system, userPrompt, geminiApiKey, planWeeks, daysPerWeek);
 
       // Normalise: enforce sequential day numbers, cap to expected weeks/days
       const { weeks: normalisedWeeks, nextDay } = normaliseWeeks(
@@ -500,7 +557,7 @@ serve(withSentry('roadmap-generator', async (req) => {
 
       // Guard: roadmap_id must be present
       if (!roadmap_id) return softError(
-        'roadmap_id is required for recalibration', ERR_MISSING_ROADMAP,
+        CORS, 'roadmap_id is required for recalibration', ERR_MISSING_ROADMAP,
       );
 
       // Fetch roadmap — verify ownership via user_id
@@ -513,7 +570,7 @@ serve(withSentry('roadmap-generator', async (req) => {
         .maybeSingle();
 
       if (fetchErr || !roadmap) return softError(
-        'Roadmap not found or no longer active', ERR_ROADMAP_NOT_FOUND,
+        CORS, 'Roadmap not found or no longer active', ERR_ROADMAP_NOT_FOUND,
       );
 
       // ── Study-day-aware today index ────────────────────────────────────────
@@ -544,6 +601,7 @@ serve(withSentry('roadmap-generator', async (req) => {
 
       // Soft error: exam too close to regenerate meaningfully
       if (remainingWeeks <= 0) return softError(
+        CORS,
         'Your exam is too close to recalibrate — generate a fresh focused plan instead.',
         ERR_EXAM_TOO_CLOSE,
       );
@@ -588,10 +646,10 @@ serve(withSentry('roadmap-generator', async (req) => {
           });
         } catch (e) {
           console.error('Nemotron recalibration failed, falling back to Gemini:', e);
-          recalData = await callGemini(system, userPrompt, geminiApiKey);
+          recalData = await generateValidatedRoadmap(system, userPrompt, geminiApiKey, remainingWeeks, daysPerWeek);
         }
       } else {
-        recalData = await callGemini(system, userPrompt, geminiApiKey);
+        recalData = await generateValidatedRoadmap(system, userPrompt, geminiApiKey, remainingWeeks, daysPerWeek);
       }
 
       // Normalise regenerated weeks (sequential from startDay, capped to remainingWeeks)

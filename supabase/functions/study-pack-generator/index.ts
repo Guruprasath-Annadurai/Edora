@@ -21,6 +21,12 @@ const GEMINI_URL =
 const MAX_TEXT_CHARS = 12_000;
 const REQUEST_TIMEOUT_MS = 45_000;
 
+// Exact counts mandated by buildPrompt() below — kept as named constants so
+// the prompt and the validator can't silently drift apart.
+const FLASHCARD_COUNT = 10;
+const QUIZ_COUNT      = 5;
+const KEY_TERM_COUNT  = 10;
+
 // ── Response schema for Gemini JSON mode ─────────────────────────────────────
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
@@ -83,6 +89,48 @@ ${text}
 ---`;
 }
 
+type StudyPack = {
+  summary: string;
+  flashcards: Array<{ front: string; back: string }>;
+  quiz: Array<{ question: string; options: string[]; correct_answer: number; explanation: string }>;
+  key_terms: Array<{ term: string; definition: string }>;
+};
+
+// ── Structural validator ──────────────────────────────────────────────────
+// Checks exact per-section counts (as mandated by buildPrompt) and required
+// per-item fields, not just top-level array presence. Returns null if valid,
+// else a description of what's wrong (used for the retry's lastErr).
+function validateStudyPack(v: Partial<StudyPack> | null | undefined): string | null {
+  if (!v?.summary || typeof v.summary !== 'string') {
+    return 'Missing or invalid "summary"';
+  }
+  if (!Array.isArray(v.flashcards) || v.flashcards.length !== FLASHCARD_COUNT) {
+    return `Expected ${FLASHCARD_COUNT} flashcards, got ${Array.isArray(v.flashcards) ? v.flashcards.length : 'non-array'}`;
+  }
+  if (v.flashcards.some(f => !f?.front || !f?.back)) {
+    return 'Every flashcard must have non-empty "front" and "back"';
+  }
+  if (!Array.isArray(v.quiz) || v.quiz.length !== QUIZ_COUNT) {
+    return `Expected ${QUIZ_COUNT} quiz questions, got ${Array.isArray(v.quiz) ? v.quiz.length : 'non-array'}`;
+  }
+  for (const q of v.quiz) {
+    if (!q?.question || typeof q.question !== 'string') return 'Quiz question missing "question" text';
+    if (!Array.isArray(q.options) || q.options.length !== 4) return 'Quiz question must have exactly 4 "options"';
+    if (q.options.some(o => typeof o !== 'string' || !o.trim())) return 'Quiz options must be non-empty strings';
+    if (typeof q.correct_answer !== 'number' || q.correct_answer < 0 || q.correct_answer > 3) {
+      return 'Quiz "correct_answer" must be 0-3';
+    }
+    if (!q.explanation || typeof q.explanation !== 'string') return 'Quiz question missing "explanation"';
+  }
+  if (!Array.isArray(v.key_terms) || v.key_terms.length !== KEY_TERM_COUNT) {
+    return `Expected ${KEY_TERM_COUNT} key terms, got ${Array.isArray(v.key_terms) ? v.key_terms.length : 'non-array'}`;
+  }
+  if (v.key_terms.some(t => !t?.term || !t?.definition)) {
+    return 'Every key term must have non-empty "term" and "definition"';
+  }
+  return null;
+}
+
 serve(withSentry('study-pack-generator', async (req) => {
   const CORS = getCors(req);
   const json = (data: unknown, status = 200) =>
@@ -142,13 +190,6 @@ serve(withSentry('study-pack-generator', async (req) => {
       },
     };
 
-    type StudyPack = {
-      summary: string;
-      flashcards: Array<{ front: string; back: string }>;
-      quiz: Array<{ question: string; options: string[]; correct_answer: number; explanation: string }>;
-      key_terms: Array<{ term: string; definition: string }>;
-    };
-
     // This previously made exactly one attempt and validated only after —
     // any transient Gemini hiccup or structurally-invalid response failed
     // the whole upload with a 500. Retry the whole generate+validate cycle.
@@ -182,6 +223,9 @@ serve(withSentry('study-pack-generator', async (req) => {
       if (!geminiRes.ok) {
         const errBody = await geminiRes.json().catch(() => ({})) as { error?: { message?: string } };
         lastErr = errBody?.error?.message ?? `Gemini HTTP ${geminiRes.status}`;
+        if (attempt < MAX_ATTEMPTS - 1) {
+          await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+        }
         continue;
       }
 
@@ -193,13 +237,24 @@ serve(withSentry('study-pack-generator', async (req) => {
         const cleaned = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
         const candidate = JSON.parse(cleaned) as StudyPack;
 
-        if (!candidate.summary || !Array.isArray(candidate.flashcards) || !Array.isArray(candidate.quiz) || !Array.isArray(candidate.key_terms)) {
-          lastErr = 'Invalid study pack structure from Gemini';
+        // Structural validation: the prompt mandates EXACT counts (10 flashcards,
+        // 5 quiz questions, 10 key terms) and complete per-item fields — a response
+        // that parses as valid JSON can still short-change a section or omit a
+        // field, which used to slip through with only a top-level array-presence check.
+        const validationError = validateStudyPack(candidate);
+        if (validationError) {
+          lastErr = validationError;
+          if (attempt < MAX_ATTEMPTS - 1) {
+            await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+          }
           continue;
         }
         pack = candidate;
       } catch (e) {
         lastErr = e instanceof Error ? e.message : String(e);
+        if (attempt < MAX_ATTEMPTS - 1) {
+          await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+        }
       }
     }
 

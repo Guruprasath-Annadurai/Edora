@@ -52,6 +52,40 @@ async function callGemini(prompt: string, apiKey: string, maxRetries = 2): Promi
   throw lastErr;
 }
 
+// ── Structural validator for the generated plan's weeks ───────────────────────
+// Gemini can return valid JSON that still fails to be a usable plan (missing
+// chapters, wrong field types, a week dropped entirely). Checking that here
+// lets the caller regenerate the whole plan instead of persisting garbage.
+function validateWeeks(weeks: unknown, expectedChapterCount: number): string | null {
+  if (!Array.isArray(weeks) || weeks.length === 0) return '"weeks" must be a non-empty array';
+  let totalChapters = 0;
+  for (let i = 0; i < weeks.length; i++) {
+    const w = weeks[i] as Partial<{ week: number; chapters: unknown[] }>;
+    if (typeof w.week !== 'number') return `weeks[${i}]: missing "week" number`;
+    if (!Array.isArray(w.chapters) || w.chapters.length === 0) {
+      return `weeks[${i}]: "chapters" must be a non-empty array`;
+    }
+    for (let j = 0; j < w.chapters.length; j++) {
+      const ch = w.chapters[j] as Partial<{
+        id: string; subject: string; chapter: string; hours: number; priority: string; done: boolean;
+      }>;
+      if (!ch.id || typeof ch.id !== 'string') return `weeks[${i}].chapters[${j}]: missing "id"`;
+      if (!ch.subject || typeof ch.subject !== 'string') return `weeks[${i}].chapters[${j}]: missing "subject"`;
+      if (!ch.chapter || typeof ch.chapter !== 'string') return `weeks[${i}].chapters[${j}]: missing "chapter"`;
+      if (typeof ch.hours !== 'number' || ch.hours <= 0) return `weeks[${i}].chapters[${j}]: "hours" must be a positive number`;
+      if (!ch.priority || !['high', 'medium', 'low'].includes(ch.priority)) {
+        return `weeks[${i}].chapters[${j}]: invalid "priority" "${ch.priority}"`;
+      }
+      if (typeof ch.done !== 'boolean') return `weeks[${i}].chapters[${j}]: "done" must be a boolean`;
+      totalChapters++;
+    }
+  }
+  if (totalChapters !== expectedChapterCount) {
+    return `expected all ${expectedChapterCount} chapters distributed across weeks, got ${totalChapters}`;
+  }
+  return null;
+}
+
 serve(withSentry('revision-planner', async (req) => {
   const CORS = getCors(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -127,7 +161,28 @@ Return ONLY JSON:
   ]
 }`;
 
-      const result = await callGemini(prompt, geminiKey) as { daily_hours: number; weeks: unknown[] };
+      // Outer semantic-validate-retry loop: a response can be valid JSON via
+      // callGemini's network-level retry but still be a structurally broken
+      // plan (dropped chapters, missing fields). Retry the whole generate
+      // cycle in that case rather than persisting an unusable plan.
+      const MAX_PLAN_ATTEMPTS = 3;
+      let result: { daily_hours: number; weeks: unknown[] } | null = null;
+      let lastPlanErr = '';
+      for (let attempt = 0; attempt < MAX_PLAN_ATTEMPTS; attempt++) {
+        try {
+          const candidate = await callGemini(prompt, geminiKey) as { daily_hours: number; weeks: unknown[] };
+          const validationErr = validateWeeks(candidate.weeks, allChapters.length);
+          if (!validationErr) { result = candidate; break; }
+          lastPlanErr = validationErr;
+        } catch (e) {
+          lastPlanErr = e instanceof Error ? e.message : String(e);
+        }
+      }
+      if (!result) {
+        return new Response(JSON.stringify({
+          error: `Failed to generate a valid revision plan after ${MAX_PLAN_ATTEMPTS} attempts: ${lastPlanErr}`,
+        }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+      }
 
       const plan = {
         id: crypto.randomUUID(),

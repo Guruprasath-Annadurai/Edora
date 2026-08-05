@@ -250,10 +250,20 @@ serve(withSentry('novo-proactive', async (req) => {
       cta_route: string | null;
     };
 
-    // Try Gemini with retry; safe fallback if all attempts fail
-    let result: CheckinResult;
+    // Outer loop: a Gemini call can succeed at the network level but still
+    // return a semantically invalid check-in (bad message_type, too-short
+    // message). Re-run the whole generate+validate cycle up to MAX_ATTEMPTS
+    // times before giving up and using the safe fallback message below.
+    const VALID_TYPES = new Set([
+      'diagnostic', 'exam_reminder', 'streak_check', 'milestone',
+      'lesson_nudge', 'memory_callback', 'welcome_back', 'goal_check',
+      'encouragement', 'comeback', 'revision_mode',
+    ]);
+    const MAX_ATTEMPTS = 3;
+    let result: CheckinResult | null = null;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
-      result = await geminiJSONWithRetry<CheckinResult>(`
+      const candidate = await geminiJSONWithRetry<CheckinResult>(`
 You are Novo, a warm, emotionally intelligent AI tutor checking in on your student ${firstName}.
 Today is ${todayStr}.
 
@@ -317,15 +327,16 @@ Return JSON:
 `);
 
       // Validate message type
-      const VALID_TYPES = new Set([
-        'diagnostic', 'exam_reminder', 'streak_check', 'milestone',
-        'lesson_nudge', 'memory_callback', 'welcome_back', 'goal_check',
-        'encouragement', 'comeback', 'revision_mode',
-      ]);
-      if (!VALID_TYPES.has(result.message_type)) result.message_type = 'welcome_back';
-      if (!result.message || result.message.trim().length < 10) throw new Error('Empty message');
+      if (!VALID_TYPES.has(candidate.message_type)) candidate.message_type = 'welcome_back';
+      if (!candidate.message || candidate.message.trim().length < 10) throw new Error('Empty message');
 
+      result = candidate;
+      break;
     } catch {
+      // fall through to next attempt (or fallback below if exhausted)
+    }
+    }
+    if (!result) {
       // Safe fallback — always deliver something useful
       result = {
         message:      `Hey ${firstName}! Ready to keep that momentum going? Let's get a quick study session in today! 🚀`,

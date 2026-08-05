@@ -46,6 +46,24 @@ interface GeneratedQuestion {
   flags?: string[];             // internal: 'ambiguous_options' | 'multiple_correct' | 'calculation_error_risk'
 }
 
+// Structural validation for a single generated question — checks every
+// required field is present and well-formed, not just the couple of fields
+// the previous inline filter happened to check.
+function isValidQuestion(q: Partial<GeneratedQuestion>): boolean {
+  return (
+    typeof q.subject === 'string' && q.subject.trim().length > 0 &&
+    typeof q.chapter === 'string' && q.chapter.trim().length > 0 &&
+    typeof q.concept === 'string' && q.concept.trim().length > 0 &&
+    typeof q.question === 'string' && q.question.trim().length > 0 &&
+    Array.isArray(q.options) && q.options.length === 4 &&
+    q.options.every(o => typeof o === 'string' && o.trim().length > 0) &&
+    typeof q.correct_idx === 'number' && Number.isInteger(q.correct_idx) &&
+    q.correct_idx >= 0 && q.correct_idx <= 3 &&
+    typeof q.explanation === 'string' && q.explanation.trim().length > 0 &&
+    typeof q.difficulty === 'string' && q.difficulty.trim().length > 0
+  );
+}
+
 serve(withSentry('ai-question-gen', async (req) => {
   const CORS = getCors(req);
   const jsonResp = (data: unknown, status = 200) =>
@@ -195,6 +213,9 @@ Flags: use "ambiguous_options" if two options could both be argued correct, "cal
     const MAX_ATTEMPTS = 3;
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS && safeQuestions.length === 0; attempt++) {
+      if (attempt > 0) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt - 1)));
+      }
       const groqResp = await fetch(GROQ_API_URL, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
@@ -233,11 +254,7 @@ Flags: use "ambiguous_options" if two options could both be argued correct, "cal
       }
 
       // ── Safety validation ──────────────────────────────────────────
-      questions = questions.filter(q =>
-        q.question && Array.isArray(q.options) && q.options.length === 4 &&
-        typeof q.correct_idx === 'number' && q.correct_idx >= 0 && q.correct_idx <= 3 &&
-        q.explanation && q.options.every((o: string) => typeof o === 'string' && o.trim().length > 0)
-      );
+      questions = questions.filter(isValidQuestion);
 
       // Normalise confidence and auto-flag low-confidence questions
       questions = questions.map(q => {

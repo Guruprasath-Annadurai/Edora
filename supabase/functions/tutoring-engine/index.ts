@@ -384,17 +384,20 @@ concepts: 3-5 key concepts in logical teaching order. Each builds on the previou
 intro_message: greet the student by first name placeholder {name}, outline what they will learn today. Be encouraging.
 ${modeInstruction}`;
 
+  // This structural check used to run only after a single callGeminiJSON
+  // attempt, so a bad response failed straight out to the student instead of
+  // triggering another generation attempt. Passing it as validateFn wires it
+  // into callGeminiJSON's own retry loop, so a structurally-invalid response
+  // now regenerates (with backoff) before giving up.
+  const validateStructure = (v: SessionStructure) =>
+    !!v && Array.isArray(v.objectives) && Array.isArray(v.concepts) &&
+    !!v.intro_message && !!v.first_teaching;
+
   let structure: SessionStructure;
   try {
-    structure = await callGeminiJSON<SessionStructure>(drillSysP, [], startPrompt);
+    structure = await callGeminiJSON<SessionStructure>(drillSysP, [], startPrompt, validateStructure);
   } catch (e) {
-    return softError('AI service unavailable — please try again', 'AI_ERROR', cors);
-  }
-
-  // Validate
-  if (!Array.isArray(structure.objectives) || !Array.isArray(structure.concepts) ||
-      !structure.intro_message || !structure.first_teaching) {
-    return softError('AI returned unexpected format — please retry', 'AI_FORMAT_ERROR', cors);
+    return softError('AI returned unexpected format after multiple attempts — please retry', 'AI_FORMAT_ERROR', cors);
   }
 
   const concepts = structure.concepts.slice(0, 6).map(c => ({
@@ -603,18 +606,19 @@ Rules:
 - all options must be plausible (no obviously wrong distractors)
 - question must be answerable from what was just taught`;
 
+  // Same fix as handleStart: this structural check used to run only after a
+  // single callGeminiJSON attempt (one-shot failure straight to the
+  // student). Wiring it into validateFn lets callGeminiJSON's existing
+  // retry loop regenerate the checkpoint on a bad response.
+  const validateCheckpoint = (v: CheckpointQ) =>
+    !!v && !!v.question && Array.isArray(v.options) && v.options.length === 4 &&
+    typeof v.correct_idx === 'number' && v.correct_idx >= 0 && v.correct_idx <= 3;
+
   let checkpoint: CheckpointQ;
   try {
-    checkpoint = await callGeminiJSON<CheckpointQ>(sysP, [], checkpointPrompt);
+    checkpoint = await callGeminiJSON<CheckpointQ>(sysP, [], checkpointPrompt, validateCheckpoint);
   } catch (_e) {
-    return softError('AI service unavailable — please try again', 'AI_ERROR', cors);
-  }
-
-  // Validate
-  if (!checkpoint.question || !Array.isArray(checkpoint.options) ||
-      checkpoint.options.length !== 4 ||
-      typeof checkpoint.correct_idx !== 'number') {
-    return softError('AI returned malformed checkpoint — please retry', 'AI_FORMAT_ERROR', cors);
+    return softError('AI returned malformed checkpoint after multiple attempts — please retry', 'AI_FORMAT_ERROR', cors);
   }
 
   // Store full checkpoint (with correct_idx) in DB — correct_idx is NEVER sent to client

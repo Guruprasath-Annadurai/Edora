@@ -224,9 +224,34 @@ Rules:
     const concepts_covered = session.concepts_covered as string[];
     if (isCheckpoint) {
       interface ConceptExtract { concept: string; }
-      const extract = await geminiJSON<ConceptExtract>(`
+      const conceptPrompt = `
 From this educational story exchange, what single specific concept from "${session.topic}" was just demonstrated or tested?
-Return JSON: {"concept": "specific concept name (5 words max)"}`).catch(() => null);
+Return JSON: {"concept": "specific concept name (5 words max)"}`;
+
+      // Validate the extracted concept before trusting it — a response can
+      // parse as JSON but still have an empty/missing "concept" field. That
+      // used to be silently swallowed via .catch(() => null) on the very
+      // first hiccup; now the whole extract+validate cycle gets a couple of
+      // retries before falling back to null.
+      const validateConcept = (c: ConceptExtract | null): string | null => {
+        if (!c) return 'No extraction result';
+        if (!c.concept || typeof c.concept !== 'string' || c.concept.trim().length === 0) {
+          return 'Missing or empty "concept"';
+        }
+        return null;
+      };
+
+      const MAX_CONCEPT_ATTEMPTS = 3;
+      let extract: ConceptExtract | null = null;
+      for (let attempt = 0; attempt < MAX_CONCEPT_ATTEMPTS; attempt++) {
+        try {
+          const candidate = await geminiJSON<ConceptExtract>(conceptPrompt);
+          if (!validateConcept(candidate)) { extract = candidate; break; }
+        } catch {
+          // transient/parse failure — fall through and try again
+        }
+      }
+
       if (extract?.concept && !concepts_covered.includes(extract.concept)) {
         concepts_covered.push(extract.concept);
       }

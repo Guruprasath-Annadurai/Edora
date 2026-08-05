@@ -130,17 +130,25 @@ async function callGeminiVisionJSONOnce<T>(
 // malformed/truncated JSON threw straight out of JSON.parse with nothing
 // catching it, surfacing as an uncaught 500 for every scan/OCR action below.
 // Retry the whole generate+parse cycle, same pattern as src/lib/gemini.ts.
+// validateFn adds a semantic check on top of "did it parse" — a response can
+// be syntactically valid JSON but still be missing/empty required fields
+// (e.g. Gemini truncates and returns {}), which used to be handed straight
+// to the client. When validateFn fails, the whole generate+parse cycle is
+// retried rather than just re-parsing the same malformed output.
 async function callGeminiVisionJSON<T>(
   imageBase64:  string,
   mimeType:     string,
   textPrompt:   string,
   systemPrompt: string,
   maxAttempts = 3,
+  validateFn?: (v: T) => boolean,
 ): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      return await callGeminiVisionJSONOnce<T>(imageBase64, mimeType, textPrompt, systemPrompt);
+      const result = await callGeminiVisionJSONOnce<T>(imageBase64, mimeType, textPrompt, systemPrompt);
+      if (validateFn && !validateFn(result)) throw new Error('Gemini Vision response failed validation');
+      return result;
     } catch (e) {
       lastErr = e;
     }
@@ -236,7 +244,13 @@ Solve the problem shown in this image. Return ONLY valid JSON:
   "common_mistakes": ["Mistake students commonly make 1", "Mistake 2"]
 }`;
 
-    const result = await callGeminiVisionJSON<SolveResult>(image_base64, mime_type, text, system);
+    const validateSolveResult = (v: SolveResult) =>
+      typeof v?.problem_statement === 'string' && v.problem_statement.trim().length > 0 &&
+      Array.isArray(v?.steps) && v.steps.length > 0 &&
+      v.steps.every(s => typeof s?.text === 'string' && s.text.trim().length > 0) &&
+      typeof v?.final_answer === 'string' && v.final_answer.trim().length > 0;
+
+    const result = await callGeminiVisionJSON<SolveResult>(image_base64, mime_type, text, system, 3, validateSolveResult);
     return jsonRes({ result, action });
   }
 
@@ -270,7 +284,14 @@ Analyse this whiteboard drawing or working. Return ONLY valid JSON:
   "next_steps": "What the student should do next"
 }`;
 
-    const result = await callGeminiVisionJSON<DrawingAnalysis>(image_base64, mime_type, text, system);
+    const validateDrawingAnalysis = (v: DrawingAnalysis) =>
+      typeof v?.content_type === 'string' && v.content_type.trim().length > 0 &&
+      typeof v?.description === 'string' && v.description.trim().length > 0 &&
+      typeof v?.errors_found === 'boolean' &&
+      Array.isArray(v?.errors) &&
+      typeof v?.explanation === 'string' && v.explanation.trim().length > 0;
+
+    const result = await callGeminiVisionJSON<DrawingAnalysis>(image_base64, mime_type, text, system, 3, validateDrawingAnalysis);
     return jsonRes({ result, action });
   }
 
@@ -317,7 +338,13 @@ Return ONLY valid JSON:
   "tags": ["tag1", "tag2"]
 }`;
 
-    const result = await callGeminiVisionJSON<FlashcardResult>(image_base64, mime_type, text, system);
+    const validateFlashcardResult = (v: FlashcardResult) =>
+      typeof v?.front === 'string' && v.front.trim().length > 0 &&
+      typeof v?.back === 'string' && v.back.trim().length > 0 &&
+      typeof v?.subject === 'string' && v.subject.trim().length > 0 &&
+      typeof v?.topic === 'string' && v.topic.trim().length > 0;
+
+    const result = await callGeminiVisionJSON<FlashcardResult>(image_base64, mime_type, text, system, 3, validateFlashcardResult);
     return jsonRes({ result, action });
   }
 
@@ -361,7 +388,14 @@ Evaluate this handwritten solution image. Return ONLY valid JSON:
   "encouragement": "1 sentence personalised encouragement based on what they attempted"
 }`;
 
-    const result = await callGeminiVisionJSON<HandwritingEval>(image_base64, mime_type, text, system);
+    const validateHandwritingEval = (v: HandwritingEval) =>
+      typeof v?.question_detected === 'string' && v.question_detected.trim().length > 0 &&
+      typeof v?.is_correct === 'boolean' &&
+      typeof v?.score === 'number' && v.score >= 0 && v.score <= 100 &&
+      typeof v?.final_verdict === 'string' && v.final_verdict.trim().length > 0 &&
+      typeof v?.full_solution === 'string' && v.full_solution.trim().length > 0;
+
+    const result = await callGeminiVisionJSON<HandwritingEval>(image_base64, mime_type, text, system, 3, validateHandwritingEval);
     return jsonRes({ result, action });
   }
 
@@ -413,7 +447,20 @@ Rules:
 - If no formulas detected, return formulas as empty array []
 - Do NOT hallucinate formulas that aren't in the image`;
 
-    const result = await callGeminiVisionJSON<FormulaScanResult>(image_base64, mime_type, text, system);
+    // formulas is allowed to be empty (per prompt: "If no formulas detected,
+    // return formulas as empty array []") — only non-empty entries must have
+    // their required sub-fields populated.
+    const validateFormulaScanResult = (v: FormulaScanResult) =>
+      Array.isArray(v?.formulas) &&
+      v.formulas.every(f =>
+        typeof f?.formula === 'string' && f.formula.trim().length > 0 &&
+        typeof f?.name === 'string' && f.name.trim().length > 0 &&
+        typeof f?.explanation === 'string' && f.explanation.trim().length > 0
+      ) &&
+      typeof v?.summary === 'string' && v.summary.trim().length > 0 &&
+      typeof v?.topic === 'string' && v.topic.trim().length > 0;
+
+    const result = await callGeminiVisionJSON<FormulaScanResult>(image_base64, mime_type, text, system, 3, validateFormulaScanResult);
     return jsonRes({ result, action });
   }
 

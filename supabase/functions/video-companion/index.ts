@@ -202,16 +202,44 @@ Rules:
   if (!res.ok) throw new Error(`Gemini analysis failed: ${res.status}`);
   const data = await res.json();
   const raw  = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
-  const parsed = JSON.parse(raw) as VideoAnalysis;
-  if (!parsed.summary || !Array.isArray(parsed.key_concepts) || !Array.isArray(parsed.flashcards)) {
-    throw new Error('Invalid video analysis structure from Gemini');
+  // Parsing only here — structural/semantic validation now lives in the
+  // outer analyseWithGemini retry loop (validateVideoAnalysis below), so a
+  // structurally-invalid response triggers a fresh generation attempt
+  // instead of a one-shot throw with no retry of the generate step.
+  return JSON.parse(raw) as VideoAnalysis;
+}
+
+// ── Structural + semantic validator ────────────────────────────────────────
+// Checks per-item field completeness plus the prompt's stated count ranges
+// (5-10 key_concepts, 8-12 flashcards) — a response can be valid JSON with
+// all top-level keys present yet still short-change a section or omit a
+// per-item field.
+function validateVideoAnalysis(v: Partial<VideoAnalysis> | null | undefined): string | null {
+  if (!v?.summary || typeof v.summary !== 'string') {
+    return 'Missing or invalid "summary"';
   }
-  return parsed;
+  if (!Array.isArray(v.key_concepts) || v.key_concepts.length < 5 || v.key_concepts.length > 10) {
+    return `"key_concepts" must have 5-10 items, got ${Array.isArray(v.key_concepts) ? v.key_concepts.length : 'non-array'}`;
+  }
+  if (v.key_concepts.some(c => !c?.concept || !c?.explanation)) {
+    return 'Every key_concepts item must have "concept" and "explanation"';
+  }
+  if (!Array.isArray(v.flashcards) || v.flashcards.length < 8 || v.flashcards.length > 12) {
+    return `"flashcards" must have 8-12 items, got ${Array.isArray(v.flashcards) ? v.flashcards.length : 'non-array'}`;
+  }
+  if (v.flashcards.some(f => !f?.front || !f?.back)) {
+    return 'Every flashcards item must have "front" and "back"';
+  }
+  return null;
 }
 
 // analyseWithGeminiOnce previously ran with zero retry — any transient error
 // or malformed JSON failed the whole video analysis with a non-2xx, right
-// after the (slower) transcript fetch had already succeeded.
+// after the (slower) transcript fetch had already succeeded. Also had no
+// backoff between attempts and folded validation inside the single-call
+// function; validation now lives here as a distinct outer semantic layer
+// that re-runs the whole generate+parse cycle on failure, with exponential
+// backoff between attempts (matches novo-certifications).
 async function analyseWithGemini(
   transcript: string,
   meta:       VideoMeta,
@@ -221,9 +249,15 @@ async function analyseWithGemini(
   let lastErr: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      return await analyseWithGeminiOnce(transcript, meta, hasCaptions);
+      const result = await analyseWithGeminiOnce(transcript, meta, hasCaptions);
+      const validationError = validateVideoAnalysis(result);
+      if (validationError) throw new Error(`Invalid video analysis structure: ${validationError}`);
+      return result;
     } catch (e) {
       lastErr = e;
+      if (attempt < maxAttempts - 1) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error('Failed to analyse video after multiple attempts');

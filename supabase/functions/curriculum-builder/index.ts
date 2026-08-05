@@ -64,6 +64,9 @@ async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, max
       return result;
     } catch (e) {
       lastErr = e;
+      if (attempt < maxAttempts - 1) {
+        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+      }
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini');
