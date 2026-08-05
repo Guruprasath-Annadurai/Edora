@@ -54,12 +54,14 @@ Three distinct advisories apply to the installed `6.30.4`:
 
 **Residual risk, honestly stated:** three moderate-severity advisories remain active against the installed version, with a real (if not yet found) possibility that some navigation call site does pass through user-influenced data. No owner or expiry date assigned to this exception yet — that gap is itself noted, matching the same honesty gap already flagged for the `tar` exception above.
 
-## 5.2 Privacy-policy deployment fix — BLOCKED (human action required)
+## 5.2 Privacy-policy deployment fix — VERIFIED COMPLETE (via a different deploy target, not by fixing the broken one)
 
-- **Confirmed via `gh run list --workflow="Deploy Privacy Policy"`:** last 3 runs are all failures, dating to at least July 18 — predates this session.
-- **Root cause confirmed via `gh run view --log-failed`:** `Error: You defined "--token", but it's missing a value` — the `VERCEL_TOKEN` GitHub Actions secret is unset or expired.
-- **BLOCKED:** generating/rotating a Vercel deploy token and adding it as a GitHub secret requires a human with access to both accounts. I cannot do this.
-- **NOT STARTED:** failure alerting for this workflow, a synthetic reachability/staleness check for the deployed policy URL, displaying a policy version/last-updated indicator, adding this to a release-readiness checklist (no such checklist exists yet — see 16).
+- **Root cause was confirmed, not fixed the originally-planned way:** the standalone `edora-privacy-policy` Vercel project's deploy token was unset/expired (`Error: You defined "--token", but it's missing a value`), and rotating it requires human access to both GitHub and Vercel accounts that this session doesn't have.
+- **Resolution: retired the broken pipeline instead of waiting on it.** The privacy policy content (`public/privacy-policy.html`, verified current and accurate before moving) is now hosted at `https://edora.study/privacy` on the `edora-website` repo, which auto-deploys on every push via a working git-connected Vercel project — no token dependency, no separate stale pipeline.
+- Removed `.github/workflows/deploy-privacy-policy.yml` and `public/privacy-policy.html` from this repo (dead weight now — nothing references the file, and keeping two copies of legal text around risks them drifting out of sync).
+- Updated the in-app "View Privacy Policy" links in `ProfilePage.tsx`, `ProSubscriptionPage.tsx`, and `settings/AccountSettingsPage.tsx` to point at `https://edora.study/privacy` instead of the old `edora-app.vercel.app/privacy-policy` SPA route.
+- **STILL NEEDS A HUMAN ACTION:** Google Play's Data Safety form links to whatever URL was previously registered there (likely the old, now-defunct `edora-privacy-policy` Vercel project's URL). Someone with Play Console access needs to update that field to `https://edora.study/privacy` — this cannot be done from this repo/session.
+- **NOT STARTED:** failure alerting for the website's own deploy pipeline, a synthetic reachability/staleness check for the policy URL, displaying a policy version/last-updated indicator, adding this to a release-readiness checklist (no such checklist exists yet — see 16).
 
 ## 5.3 Protect current users — PARTIAL
 

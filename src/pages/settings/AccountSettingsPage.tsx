@@ -263,7 +263,7 @@ export default function AccountSettingsPage() {
             </p>
           </div>
           <button
-            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
+            onClick={() => Browser.open({ url: 'https://edora.study/privacy', presentationStyle: 'popover' })}
             className="w-full flex items-center justify-between px-4 py-3 active:bg-white/5 transition-colors"
             style={{ borderTop: '1px solid var(--ink-070)' }}>
             <span className="text-sm font-medium text-white/80">Privacy Policy</span>

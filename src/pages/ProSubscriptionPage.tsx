@@ -625,7 +625,7 @@ export default function ProSubscriptionPage() {
             Terms
           </button>{' '}and{' '}
           <button
-            onClick={() => Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' })}
+            onClick={() => Browser.open({ url: 'https://edora.study/privacy', presentationStyle: 'popover' })}
             className="underline" style={{ color: 'rgba(168,85,247,0.7)' }}>
             Privacy Policy
           </button>.

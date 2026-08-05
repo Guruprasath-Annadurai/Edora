@@ -629,7 +629,7 @@ export default function ProfilePage() {
             style={{ background: 'var(--ink-045)', border: '1px solid var(--ink-050)' }}
           >
             <button
-              onClick={() => { Haptics.impact({ style: ImpactStyle.Light }).catch(() => {}); Browser.open({ url: 'https://edora-app.vercel.app/privacy-policy', presentationStyle: 'popover' }); }}
+              onClick={() => { Haptics.impact({ style: ImpactStyle.Light }).catch(() => {}); Browser.open({ url: 'https://edora.study/privacy', presentationStyle: 'popover' }); }}
               className="flex items-center gap-3.5 px-4 w-full text-left active:scale-98 transition-all"
               style={{ minHeight: 56 }}
             >
