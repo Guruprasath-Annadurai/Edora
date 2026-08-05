@@ -23,6 +23,7 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { validateStructure, type SessionStructure, validateCheckpoint, type CheckpointQ } from './validate.ts';
 // ── CORS ─────────────────────────────────────────────────────────────────────
 
 // ── AI provider chain ─────────────────────────────────────────────────────────
@@ -355,13 +356,6 @@ async function handleStart(body: Record<string, unknown>, userId: string, cors: 
     : sysP;
 
   // ── Generate session structure ────────────────────────────────
-  interface SessionStructure {
-    objectives:      string[];
-    concepts:        Array<{ title: string }>;
-    intro_message:   string;
-    first_teaching:  string;
-  }
-
   const modeInstruction = mode === 'socratic'
     ? 'first_teaching: your first Socratic question to probe prior knowledge (1-2 sentences, ends with a "?")'
     : mode === 'drill'
@@ -383,15 +377,6 @@ objectives: 3-5 clear, measurable learning goals.
 concepts: 3-5 key concepts in logical teaching order. Each builds on the previous.
 intro_message: greet the student by first name placeholder {name}, outline what they will learn today. Be encouraging.
 ${modeInstruction}`;
-
-  // This structural check used to run only after a single callGeminiJSON
-  // attempt, so a bad response failed straight out to the student instead of
-  // triggering another generation attempt. Passing it as validateFn wires it
-  // into callGeminiJSON's own retry loop, so a structurally-invalid response
-  // now regenerates (with backoff) before giving up.
-  const validateStructure = (v: SessionStructure) =>
-    !!v && Array.isArray(v.objectives) && Array.isArray(v.concepts) &&
-    !!v.intro_message && !!v.first_teaching;
 
   let structure: SessionStructure;
   try {
@@ -580,13 +565,6 @@ async function handleRequestCheckpoint(body: Record<string, unknown>, userId: st
   // Generate checkpoint question
   const sysP = buildSystemPrompt(session.mode, session.subject, session.study_level);
 
-  interface CheckpointQ {
-    question:    string;
-    options:     string[];
-    correct_idx: number;
-    explanation: string;
-  }
-
   const checkpointPrompt = `Generate a checkpoint multiple-choice question to test understanding of: "${currentConcept.title}" in ${session.subject}.
 
 Cognitive level: ${diffLabel} (Bloom's taxonomy level ${difficulty}/5)
@@ -605,14 +583,6 @@ Rules:
 - correct_idx is 0-indexed
 - all options must be plausible (no obviously wrong distractors)
 - question must be answerable from what was just taught`;
-
-  // Same fix as handleStart: this structural check used to run only after a
-  // single callGeminiJSON attempt (one-shot failure straight to the
-  // student). Wiring it into validateFn lets callGeminiJSON's existing
-  // retry loop regenerate the checkpoint on a bad response.
-  const validateCheckpoint = (v: CheckpointQ) =>
-    !!v && !!v.question && Array.isArray(v.options) && v.options.length === 4 &&
-    typeof v.correct_idx === 'number' && v.correct_idx >= 0 && v.correct_idx <= 3;
 
   let checkpoint: CheckpointQ;
   try {

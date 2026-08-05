@@ -17,6 +17,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import {
+  validateSolveResult,       type SolveResult,
+  validateDrawingAnalysis,   type DrawingAnalysis,
+  validateFlashcardResult,   type FlashcardResult,
+  validateHandwritingEval,   type HandwritingEval,
+  validateFormulaScanResult, type FormulaScanResult,
+} from './validate.ts';
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!;
 const ANON_KEY       = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -217,15 +224,6 @@ Be concise (max 6 sentences), use plain language, no markdown headers.`;
 
   // ── solve_problem ─────────────────────────────────────────────────────────
   if (action === 'solve_problem') {
-    interface SolveResult {
-      problem_statement: string;
-      subject_detected:  string;
-      steps: Array<{ step_num: number; text: string; explanation: string }>;
-      final_answer:    string;
-      concept_summary: string;
-      common_mistakes: string[];
-    }
-
     const system = `You are Novo, an expert tutor specialising in academic problem solving.
 The student has photographed a problem they need help with.
 Extract the problem from the image and solve it step-by-step with clear explanations.`;
@@ -244,28 +242,12 @@ Solve the problem shown in this image. Return ONLY valid JSON:
   "common_mistakes": ["Mistake students commonly make 1", "Mistake 2"]
 }`;
 
-    const validateSolveResult = (v: SolveResult) =>
-      typeof v?.problem_statement === 'string' && v.problem_statement.trim().length > 0 &&
-      Array.isArray(v?.steps) && v.steps.length > 0 &&
-      v.steps.every(s => typeof s?.text === 'string' && s.text.trim().length > 0) &&
-      typeof v?.final_answer === 'string' && v.final_answer.trim().length > 0;
-
     const result = await callGeminiVisionJSON<SolveResult>(image_base64, mime_type, text, system, 3, validateSolveResult);
     return jsonRes({ result, action });
   }
 
   // ── analyze_drawing (Whiteboard) ──────────────────────────────────────────
   if (action === 'analyze_drawing') {
-    interface DrawingAnalysis {
-      content_type:  string;
-      description:   string;
-      errors_found:  boolean;
-      errors: Array<{ location: string; error: string; correction: string }>;
-      correct_parts: string;
-      explanation:   string;
-      next_steps:    string;
-    }
-
     const system = `You are Novo, an expert AI tutor reviewing a student's whiteboard/handwritten work.
 Be encouraging but precise. If you spot errors, explain them clearly with the correct approach.
 If the work is correct, affirm it and suggest what to tackle next.`;
@@ -283,13 +265,6 @@ Analyse this whiteboard drawing or working. Return ONLY valid JSON:
   "explanation": "Clear explanation of the key concept being practised",
   "next_steps": "What the student should do next"
 }`;
-
-    const validateDrawingAnalysis = (v: DrawingAnalysis) =>
-      typeof v?.content_type === 'string' && v.content_type.trim().length > 0 &&
-      typeof v?.description === 'string' && v.description.trim().length > 0 &&
-      typeof v?.errors_found === 'boolean' &&
-      Array.isArray(v?.errors) &&
-      typeof v?.explanation === 'string' && v.explanation.trim().length > 0;
 
     const result = await callGeminiVisionJSON<DrawingAnalysis>(image_base64, mime_type, text, system, 3, validateDrawingAnalysis);
     return jsonRes({ result, action });
@@ -315,14 +290,6 @@ EXPLANATION:
 
   // ── ocr_flashcard (Scan to Flashcard mode) ────────────────────────────────
   if (action === 'ocr_flashcard') {
-    interface FlashcardResult {
-      front:   string;
-      back:    string;
-      subject: string;
-      topic:   string;
-      tags:    string[];
-    }
-
     const system = `You are Novo, an expert AI tutor. The student has photographed a page from their textbook or notes.
 Extract the key concept and produce a high-quality flashcard. Be concise and clear.
 Front = the question/term. Back = the answer/definition/explanation.`;
@@ -338,12 +305,6 @@ Return ONLY valid JSON:
   "tags": ["tag1", "tag2"]
 }`;
 
-    const validateFlashcardResult = (v: FlashcardResult) =>
-      typeof v?.front === 'string' && v.front.trim().length > 0 &&
-      typeof v?.back === 'string' && v.back.trim().length > 0 &&
-      typeof v?.subject === 'string' && v.subject.trim().length > 0 &&
-      typeof v?.topic === 'string' && v.topic.trim().length > 0;
-
     const result = await callGeminiVisionJSON<FlashcardResult>(image_base64, mime_type, text, system, 3, validateFlashcardResult);
     return jsonRes({ result, action });
   }
@@ -352,18 +313,6 @@ Return ONLY valid JSON:
   // Step-by-step evaluation of a student's handwritten solution.
   // Returns: what they got right, where they went wrong, corrected working.
   if (action === 'evaluate_handwriting') {
-    interface HandwritingEval {
-      question_detected:  string;
-      student_answer:     string;
-      is_correct:         boolean;
-      score:              number; // 0-100
-      correct_steps:      string[];
-      errors:             Array<{ step: string; mistake: string; correction: string }>;
-      final_verdict:      string;
-      full_solution:      string;
-      encouragement:      string;
-    }
-
     const system = `You are Novo, an expert JEE/NEET tutor evaluating a student's handwritten solution.
 Be precise about errors. Give credit for correct steps even if final answer is wrong.
 Always show the complete correct solution so the student can compare.`;
@@ -388,13 +337,6 @@ Evaluate this handwritten solution image. Return ONLY valid JSON:
   "encouragement": "1 sentence personalised encouragement based on what they attempted"
 }`;
 
-    const validateHandwritingEval = (v: HandwritingEval) =>
-      typeof v?.question_detected === 'string' && v.question_detected.trim().length > 0 &&
-      typeof v?.is_correct === 'boolean' &&
-      typeof v?.score === 'number' && v.score >= 0 && v.score <= 100 &&
-      typeof v?.final_verdict === 'string' && v.final_verdict.trim().length > 0 &&
-      typeof v?.full_solution === 'string' && v.full_solution.trim().length > 0;
-
     const result = await callGeminiVisionJSON<HandwritingEval>(image_base64, mime_type, text, system, 3, validateHandwritingEval);
     return jsonRes({ result, action });
   }
@@ -403,20 +345,6 @@ Evaluate this handwritten solution image. Return ONLY valid JSON:
   // Detects all formulas/equations in image, returns structured data for
   // the Formula AR Overlay feature (AR-style overlay cards).
   if (action === 'formula_scan') {
-    interface FormulaEntry {
-      formula:     string;
-      name:        string;
-      subject:     string;
-      explanation: string;
-      variables:   Array<{ symbol: string; meaning: string }>;
-      application: string;
-    }
-    interface FormulaScanResult {
-      formulas: FormulaEntry[];
-      summary:  string;
-      topic:    string;
-    }
-
     const system = `You are Novo, an expert JEE/NEET tutor. The student has photographed their study material.
 Identify every mathematical formula, scientific equation, and notation visible.
 For each formula give a clear explanation suitable for a competitive exam student.`;
@@ -446,19 +374,6 @@ Rules:
 - subject must be one of: Physics, Chemistry, Mathematics, Biology, General
 - If no formulas detected, return formulas as empty array []
 - Do NOT hallucinate formulas that aren't in the image`;
-
-    // formulas is allowed to be empty (per prompt: "If no formulas detected,
-    // return formulas as empty array []") — only non-empty entries must have
-    // their required sub-fields populated.
-    const validateFormulaScanResult = (v: FormulaScanResult) =>
-      Array.isArray(v?.formulas) &&
-      v.formulas.every(f =>
-        typeof f?.formula === 'string' && f.formula.trim().length > 0 &&
-        typeof f?.name === 'string' && f.name.trim().length > 0 &&
-        typeof f?.explanation === 'string' && f.explanation.trim().length > 0
-      ) &&
-      typeof v?.summary === 'string' && v.summary.trim().length > 0 &&
-      typeof v?.topic === 'string' && v.topic.trim().length > 0;
 
     const result = await callGeminiVisionJSON<FormulaScanResult>(image_base64, mime_type, text, system, 3, validateFormulaScanResult);
     return jsonRes({ result, action });

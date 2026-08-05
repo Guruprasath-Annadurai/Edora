@@ -9,6 +9,7 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { validateConcept, type ConceptExtract } from './validate.ts';
 async function gemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   // A single transient network blip previously failed the whole story turn
@@ -223,23 +224,9 @@ Rules:
     // Extract any concepts covered (simple check)
     const concepts_covered = session.concepts_covered as string[];
     if (isCheckpoint) {
-      interface ConceptExtract { concept: string; }
       const conceptPrompt = `
 From this educational story exchange, what single specific concept from "${session.topic}" was just demonstrated or tested?
 Return JSON: {"concept": "specific concept name (5 words max)"}`;
-
-      // Validate the extracted concept before trusting it — a response can
-      // parse as JSON but still have an empty/missing "concept" field. That
-      // used to be silently swallowed via .catch(() => null) on the very
-      // first hiccup; now the whole extract+validate cycle gets a couple of
-      // retries before falling back to null.
-      const validateConcept = (c: ConceptExtract | null): string | null => {
-        if (!c) return 'No extraction result';
-        if (!c.concept || typeof c.concept !== 'string' || c.concept.trim().length === 0) {
-          return 'Missing or empty "concept"';
-        }
-        return null;
-      };
 
       const MAX_CONCEPT_ATTEMPTS = 3;
       let extract: ConceptExtract | null = null;

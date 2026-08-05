@@ -17,6 +17,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { VALID_TYPES, validateExtraction, type MemoryExtract, type ExtractionResult } from './validate.ts';
 // ── Explanation style descriptions for system-prompt injection ────────────────
 const STYLE_DESCRIPTIONS: Record<string, string> = {
   simple:    'Use simple language, everyday analogies, and avoid jargon. Break every concept into the smallest possible steps. Assume no prior knowledge.',
@@ -209,7 +210,6 @@ function buildMemoryBlock(
 }
 
 const MAX_MEMORIES = 100;
-const VALID_TYPES = new Set(['struggle', 'strength', 'preference', 'milestone', 'pattern', 'exam_context']);
 
 serve(withSentry('novo-memory', async (req) => {
   const CORS = getCors(req);
@@ -468,19 +468,6 @@ serve(withSentry('novo-memory', async (req) => {
       .map((m: { role: string; content: string }) => `${m.role.toUpperCase()}: ${m.content}`)
       .join('\n');
 
-    type MemoryExtract = {
-      memory_type: string; content: string; subject: string | null;
-      topic: string | null; importance: number;
-    };
-    type SessionSummaryExtract = {
-      summary: string; struggles: string[]; wins: string[];
-      explanation_style: string | null;
-    };
-    type ExtractionResult = {
-      memories: MemoryExtract[];
-      session_summary: SessionSummaryExtract;
-    };
-
     const extractionPrompt = `
 You are analysing a student-tutor conversation. Return a JSON object with two keys:
 
@@ -495,29 +482,6 @@ For explanation_style: infer from the student's messages — did they ask for si
 Conversation:
 ${convo}
 `;
-
-    // Validate the shape of an extraction before trusting it. A response can
-    // parse as valid JSON but still contain memories with missing content/type
-    // or an empty session summary — that used to be silently filtered/dropped
-    // rather than triggering a fresh extraction attempt.
-    const validateExtraction = (candidate: ExtractionResult | null): string | null => {
-      if (!candidate) return 'No extraction result';
-      if (!Array.isArray(candidate.memories)) return '"memories" must be an array';
-      for (let i = 0; i < candidate.memories.length; i++) {
-        const m = candidate.memories[i];
-        if (!m || typeof m.content !== 'string' || m.content.trim().length === 0) {
-          return `memories[${i}]: missing or empty "content"`;
-        }
-        if (!m.memory_type || !VALID_TYPES.has(m.memory_type)) {
-          return `memories[${i}]: invalid "memory_type" "${m?.memory_type}"`;
-        }
-      }
-      const ss = candidate.session_summary;
-      if (!ss || typeof ss.summary !== 'string' || ss.summary.trim().length === 0) {
-        return '"session_summary.summary" is missing or empty';
-      }
-      return null;
-    };
 
     // Outer semantic-validate-and-regenerate loop: retry the WHOLE
     // extract+validate cycle (not just the network call already retried
