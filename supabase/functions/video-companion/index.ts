@@ -18,6 +18,7 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { validateVideoAnalysis, type VideoAnalysis } from './validate.ts';
 const SUPABASE_URL    = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON_KEY        = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -150,14 +151,6 @@ function formatDuration(seconds: number): string {
 }
 
 // ── Gemini analysis ───────────────────────────────────────────────────────────
-interface VideoAnalysis {
-  summary:       string;
-  key_concepts:  Array<{ concept: string; explanation: string }>;
-  flashcards:    Array<{ front: string; back: string }>;
-  topic_tags:    string[];
-  difficulty:    'beginner' | 'intermediate' | 'advanced';
-}
-
 async function analyseWithGeminiOnce(
   transcript: string,
   meta:       VideoMeta,
@@ -207,30 +200,6 @@ Rules:
   // structurally-invalid response triggers a fresh generation attempt
   // instead of a one-shot throw with no retry of the generate step.
   return JSON.parse(raw) as VideoAnalysis;
-}
-
-// ── Structural + semantic validator ────────────────────────────────────────
-// Checks per-item field completeness plus the prompt's stated count ranges
-// (5-10 key_concepts, 8-12 flashcards) — a response can be valid JSON with
-// all top-level keys present yet still short-change a section or omit a
-// per-item field.
-function validateVideoAnalysis(v: Partial<VideoAnalysis> | null | undefined): string | null {
-  if (!v?.summary || typeof v.summary !== 'string') {
-    return 'Missing or invalid "summary"';
-  }
-  if (!Array.isArray(v.key_concepts) || v.key_concepts.length < 5 || v.key_concepts.length > 10) {
-    return `"key_concepts" must have 5-10 items, got ${Array.isArray(v.key_concepts) ? v.key_concepts.length : 'non-array'}`;
-  }
-  if (v.key_concepts.some(c => !c?.concept || !c?.explanation)) {
-    return 'Every key_concepts item must have "concept" and "explanation"';
-  }
-  if (!Array.isArray(v.flashcards) || v.flashcards.length < 8 || v.flashcards.length > 12) {
-    return `"flashcards" must have 8-12 items, got ${Array.isArray(v.flashcards) ? v.flashcards.length : 'non-array'}`;
-  }
-  if (v.flashcards.some(f => !f?.front || !f?.back)) {
-    return 'Every flashcards item must have "front" and "back"';
-  }
-  return null;
 }
 
 // analyseWithGeminiOnce previously ran with zero retry — any transient error

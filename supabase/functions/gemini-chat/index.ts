@@ -14,6 +14,7 @@ import { getCors }      from '../_shared/cors.ts';
 import { withSentry }   from '../_shared/sentry.ts';
 import { normalizeMemories } from '../_shared/memoryExtraction.ts';
 import { checkRateLimit as sharedCheckRateLimit, checkGlobalLLMBudget } from '../_shared/rateLimit.ts';
+import { validatePrereqGen, type PrereqGen } from './validate.ts';
 
 // ── Models ────────────────────────────────────────────────────────────────────
 // Primary:  llama-3.3-70b-versatile  (best quality, 6000 TPM free)
@@ -378,19 +379,6 @@ async function executeToolCalls(
     } catch { result = 'execution_error'; }
     return { id: tc.id, result };
   }));
-}
-
-type PrereqGen = { prereqs?: Array<{ topic: string; why: string; class_level?: string }>; difficulty?: number };
-
-// Basic structural check: prereqs must be an array of items shaped like
-// { topic: string, why: string } — a malformed/truncated Groq response
-// parses as JSON but can still fail this shape check.
-function validatePrereqGen(parsed: PrereqGen): boolean {
-  if (!Array.isArray(parsed.prereqs)) return false;
-  return parsed.prereqs.every(p =>
-    p && typeof p.topic === 'string' && p.topic.trim().length > 0 &&
-    typeof p.why === 'string' && p.why.trim().length > 0,
-  );
 }
 
 async function fetchPrereqGenOnce(topic: string, subject: string, curriculum: string | null, apiKey: string): Promise<PrereqGen> {
