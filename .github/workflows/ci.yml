@@ -112,6 +112,45 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         # Commit SHA for the diagnostics screen comes from GITHUB_SHA, which
         # Actions sets automatically on every runner — no env line needed.
+
+  # §7 (docs/enterprise-remediation-tracker.md): this exact class of bug — a
+  # stale/broken native build slipping through because nothing but a manual
+  # `./gradlew assembleDebug` ever caught it — already happened once. This job
+  # is the standing guardrail: builds the real Android debug APK on every
+  # push/PR so a native build break is a failed CI check, not a surprise
+  # during a release. Debug build only (no signing secrets needed/available
+  # in CI); it exercises the same Capacitor sync + Gradle compile path a
+  # release build goes through, which is what actually breaks in practice.
+  android-build:
+    name: Android Build
+    runs-on: ubuntu-latest
+    needs: [type-check, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+      - run: npm ci
+      - run: npm run build:mobile
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - run: npx cap sync android
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
         # (The old `VITE_APP_VERSION: ${{ github.sha }}` here was dead: vite.config.ts's
         # `define` block replaces that identifier with package.json's version
         # unconditionally, so the env var was silently discarded at build time.)
