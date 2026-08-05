@@ -15,6 +15,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { isValidEvaluation, type Evaluation } from './validate.ts';
 
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY')!;
 const GROQ_MODEL   = 'llama-3.3-70b-versatile';
@@ -32,31 +33,6 @@ interface MainsQuestion {
   model_answer: string;
   key_points: string[];
   difficulty: string;
-}
-
-interface Evaluation {
-  band: 'needs_work' | 'developing' | 'good' | 'excellent';
-  covered_points: string[];
-  missed_points: string[];
-  structure_feedback: string;
-  suggestions: string[];
-}
-
-const VALID_BANDS: Evaluation['band'][] = ['needs_work', 'developing', 'good', 'excellent'];
-
-// Structural/semantic validation of a graded response — an invalid band or
-// missing covered_points/suggestions used to be silently papered over with
-// defaults ('developing' / []) instead of triggering a retry, which meant a
-// malformed grading response was indistinguishable from a genuine "developing,
-// nothing covered" evaluation.
-function isValidEvaluation(v: unknown): v is Evaluation {
-  const e = v as Partial<Evaluation> | null;
-  return !!e &&
-    VALID_BANDS.includes(e.band as Evaluation['band']) &&
-    Array.isArray(e.covered_points) &&
-    Array.isArray(e.missed_points) &&
-    typeof e.structure_feedback === 'string' && e.structure_feedback.trim().length > 0 &&
-    Array.isArray(e.suggestions);
 }
 
 async function gradeAnswer(q: MainsQuestion, answerText: string): Promise<Evaluation> {

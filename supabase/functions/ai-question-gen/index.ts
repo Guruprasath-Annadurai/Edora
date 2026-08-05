@@ -9,6 +9,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { isValidQuestion, type GeneratedQuestion } from './validate.ts';
 const GROQ_MODEL    = 'llama-3.3-70b-versatile';
 const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -30,39 +31,6 @@ interface RequestBody {
   class_num?: number;
 }
 
-interface GeneratedQuestion {
-  subject: string;
-  chapter: string;
-  concept: string;
-  question: string;
-  options: string[];
-  correct_idx: number;
-  explanation: string;
-  difficulty: string;
-  // AI safety fields — added by verification pass
-  confidence?: number;         // 0–1: how confident the model is in the answer
-  verify_in_textbook?: boolean; // true → student should double-check against NCERT
-  ncert_reference?: string;     // e.g. "Class 12 Physics, Chapter 3 — Current Electricity"
-  flags?: string[];             // internal: 'ambiguous_options' | 'multiple_correct' | 'calculation_error_risk'
-}
-
-// Structural validation for a single generated question — checks every
-// required field is present and well-formed, not just the couple of fields
-// the previous inline filter happened to check.
-function isValidQuestion(q: Partial<GeneratedQuestion>): boolean {
-  return (
-    typeof q.subject === 'string' && q.subject.trim().length > 0 &&
-    typeof q.chapter === 'string' && q.chapter.trim().length > 0 &&
-    typeof q.concept === 'string' && q.concept.trim().length > 0 &&
-    typeof q.question === 'string' && q.question.trim().length > 0 &&
-    Array.isArray(q.options) && q.options.length === 4 &&
-    q.options.every(o => typeof o === 'string' && o.trim().length > 0) &&
-    typeof q.correct_idx === 'number' && Number.isInteger(q.correct_idx) &&
-    q.correct_idx >= 0 && q.correct_idx <= 3 &&
-    typeof q.explanation === 'string' && q.explanation.trim().length > 0 &&
-    typeof q.difficulty === 'string' && q.difficulty.trim().length > 0
-  );
-}
 
 serve(withSentry('ai-question-gen', async (req) => {
   const CORS = getCors(req);

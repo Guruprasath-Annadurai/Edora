@@ -9,6 +9,7 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { validateTournamentGen, type TournamentGenShape } from './validate.ts';
 async function geminiJSONOnce<T>(prompt: string): Promise<T> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
@@ -47,30 +48,6 @@ async function geminiJSON<T>(prompt: string, validateFn?: (v: T) => boolean, max
 }
 
 // ── Per-question structural validator (mirrors novo-certifications) ───────────
-interface TournamentQuestionGen {
-  question:    string;
-  options:     string[];
-  correct_idx: number;
-  explanation: string;
-  points:      number;
-}
-interface TournamentGenShape {
-  name:      string;
-  questions: TournamentQuestionGen[];
-}
-function validateTournamentGen(v: Partial<TournamentGenShape> | null | undefined): boolean {
-  if (!v?.name || typeof v.name !== 'string') return false;
-  if (!Array.isArray(v.questions) || v.questions.length === 0) return false;
-  for (const q of v.questions as Partial<TournamentQuestionGen>[]) {
-    if (!q.question || typeof q.question !== 'string') return false;
-    if (!Array.isArray(q.options) || q.options.length !== 4) return false;
-    if (q.options.some(o => typeof o !== 'string' || o.trim().length === 0)) return false;
-    if (typeof q.correct_idx !== 'number' || q.correct_idx < 0 || q.correct_idx > 3) return false;
-    if (!q.explanation || typeof q.explanation !== 'string' || q.explanation.trim().length === 0) return false;
-  }
-  return true;
-}
-
 // ── Week boundaries (Mon–Sun) ─────────────────────────────────────────────────
 function getWeekBounds(date = new Date()): { start: string; end: string } {
   const d = new Date(date);

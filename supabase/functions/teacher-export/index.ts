@@ -9,6 +9,7 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { validateNarrative, type TeacherNarrative } from './validate.ts';
 // Single attempt: throws on network failure, non-2xx, or unparseable JSON —
 // never silently falls through to an empty object, which previously let an
 // undefined `narrative` reach buildExportHTML() and crash on `.split()`.
@@ -47,15 +48,6 @@ async function geminiJSONWithRetry<T>(prompt: string, maxRetries = 2): Promise<T
     }
   }
   throw lastErr;
-}
-
-interface TeacherNarrative { narrative: string; }
-
-function validateNarrative(n: unknown): string | null {
-  if (typeof n !== 'string' || n.trim().length < 50) {
-    return 'narrative missing or too short to be a real 3-paragraph report';
-  }
-  return null;
 }
 
 // Outer semantic layer: retries the whole generate+validate cycle if the
