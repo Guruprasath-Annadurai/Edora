@@ -46,48 +46,47 @@ CREATE INDEX IF NOT EXISTS idx_proactive_messages_user_created
 
 -- ── 4. pg_cron schedule for novo-cron-proactive ───────────────────────────────
 -- Runs every 8 hours: 06:00, 14:00, 22:00 UTC (11:30, 19:30, 03:30 IST)
--- Requires pg_cron extension. Enable in Supabase dashboard → Extensions.
-
--- Extension guard: only register if pg_cron is available.
+-- pg_cron is already activated by 20260616000000_activate_cron_schedules.sql,
+-- which runs before this file, so no extension guard is needed here --
+-- matching the plain, unguarded style already proven to work elsewhere in
+-- this codebase (e.g. 20260702105415_schedule_monitoring_check_cron.sql).
+--
+-- Originally this was wrapped in a DO $$ ... $$ block with an extension-
+-- existence guard, and its job-body string reused the SAME $$ tag as that
+-- outer block. Two real, standalone bugs found via supabase db diff's
+-- Docker shadow-database replay (Gate 2/4.1.0), neither surfaced until
+-- this migration set's first genuine from-scratch execution: (1) Postgres
+-- doesn't nest identically-tagged dollar-quoted strings, so the inner $$
+-- silently ended the outer DO block early; (2) giving the inner string a
+-- distinct tag instead ($cron_body$) avoided that specific collision but
+-- broke the Supabase CLI's migration statement-splitter, which appears to
+-- track dollar-quote state via literal "$$" occurrences rather than
+-- arbitrary matching tags -- so the untagged interior of the DO block lost
+-- quote-tracking and got split mid-statement. Removing the DO wrapper
+-- entirely (unnecessary once the extension guard is dropped) sidesteps
+-- both problems at once.
 DO $$
 BEGIN
-  IF EXISTS (
-    SELECT 1 FROM pg_extension WHERE extname = 'pg_cron'
-  ) THEN
-    -- Remove old schedule if exists (idempotent). PERFORM cannot take a
-    -- trailing WHERE clause -- the original form here was invalid syntax
-    -- that never surfaced until the first real from-scratch replay of this
-    -- migration set (supabase db diff, Gate 2/4.1.0). Using an explicit
-    -- IF EXISTS guard instead, matching the working pattern already used
-    -- elsewhere in this codebase (e.g. 20260613_rename_nova_to_novo.sql).
-    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'novo-proactive-cron') THEN
-      PERFORM cron.unschedule('novo-proactive-cron');
-    END IF;
-
-    -- The job-body string below must NOT reuse the outer DO block's $$
-    -- tag -- Postgres doesn't nest identically-tagged dollar-quoted
-    -- strings, so the original bare $$ ... $$ here silently terminated
-    -- the outer DO block early, leaving its own SELECT statement orphaned
-    -- at the top level. Same discovery mechanism as the other syntax bugs
-    -- fixed this Gate: never surfaced until this migration set's first
-    -- real from-scratch replay (supabase db diff, Gate 2/4.1.0).
-    PERFORM cron.schedule(
-      'novo-proactive-cron',
-      '0 6,14,22 * * *',
-      $cron_body$
-        SELECT net.http_post(
-          url    := current_setting('app.supabase_url') || '/functions/v1/novo-cron-proactive',
-          body   := '{"limit":5}'::jsonb,
-          headers := jsonb_build_object(
-            'Content-Type',  'application/json',
-            'Authorization', 'Bearer ' || current_setting('app.service_role_key'),
-            'x-cron-secret', current_setting('app.cron_secret', true)
-          )
-        );
-      $cron_body$
-    );
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'novo-proactive-cron') THEN
+    PERFORM cron.unschedule('novo-proactive-cron');
   END IF;
 END $$;
+
+SELECT cron.schedule(
+  'novo-proactive-cron',
+  '0 6,14,22 * * *',
+  $$
+    SELECT net.http_post(
+      url    := current_setting('app.supabase_url') || '/functions/v1/novo-cron-proactive',
+      body   := '{"limit":5}'::jsonb,
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer ' || current_setting('app.service_role_key'),
+        'x-cron-secret', current_setting('app.cron_secret', true)
+      )
+    );
+  $$
+);
 
 -- ── 5. Personality-aware welcome injection: add novo_personality index ─────────
 
