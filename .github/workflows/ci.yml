@@ -162,6 +162,57 @@ jobs:
         # `define` block replaces that identifier with package.json's version
         # unconditionally, so the env var was silently discarded at build time.)
 
+  # Phase 3.3 (enterprise release-governance program): the debug build above
+  # has never once verified that a *release*-configured build — R8
+  # minification, resource shrinking, all active in android/app/build.gradle's
+  # `release` buildType — actually compiles. That's a real, previously-
+  # uncovered gap: minification is a common source of "works in debug, breaks
+  # in release" bugs (reflection, missing proguard rules) that only surface
+  # under this exact configuration. Verified locally before adding this job
+  # (JDK 21, keystore.properties temporarily absent to replicate CI's
+  # environment): `assembleRelease` succeeds cleanly, unsigned, in ~42s.
+  # CI never has keystore.properties (correctly gitignored, never committed),
+  # so android/app/build.gradle's own `if (keystorePropsFile.exists())` guard
+  # means this job builds unsigned by construction — no signing secrets are
+  # needed or exposed here. This produces an unsigned APK purely to prove the
+  # release configuration compiles; it is not a distributable artifact and is
+  # not uploaded anywhere.
+  android-release-build:
+    name: Android Release Build (unsigned)
+    runs-on: ubuntu-latest
+    needs: [type-check, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Hardcoded to match this branch's other jobs, which still predate
+          # Phase 3.2's `.nvmrc` (that work lives on the separate
+          # enterprise/phase-3-ci-baseline branch and hasn't merged yet).
+          # Switch this to `node-version-file: '.nvmrc'` once that branch
+          # merges, for consistency with the rest of this file.
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+      - run: npm ci
+      - run: npm run build:mobile
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - run: npx cap sync android
+      - name: Build release APK (unsigned — verifies R8/minification, not a release artifact)
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest

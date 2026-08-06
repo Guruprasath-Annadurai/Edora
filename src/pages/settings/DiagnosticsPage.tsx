@@ -15,12 +15,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type DeviceInfo = { platform: string; osVersion: string; model: string } | null;
+// AppInfo.build is Android's versionCode / iOS's CFBundleVersion (see
+// @capacitor/app's own type definition) — the one mandate-required field
+// that has no equivalent in import.meta.env, since it's a native-only value
+// baked into the platform build, not the web bundle.
+type NativeAppInfo = { build: string } | null;
 
 export default function DiagnosticsPage() {
   const { user } = useAuth();
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [device, setDevice] = useState<DeviceInfo>(null);
+  const [nativeApp, setNativeApp] = useState<NativeAppInfo>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -28,6 +34,11 @@ export default function DiagnosticsPage() {
     import('@capacitor/device').then(({ Device }) => {
       Device.getInfo()
         .then(info => setDevice({ platform: info.platform, osVersion: info.osVersion, model: info.model }))
+        .catch(() => {});
+    }).catch(() => {});
+    import('@capacitor/app').then(({ App }) => {
+      App.getInfo()
+        .then(info => setNativeApp({ build: info.build }))
         .catch(() => {});
     }).catch(() => {});
   }, []);
@@ -44,6 +55,14 @@ export default function DiagnosticsPage() {
     { label: 'Build time', value: buildTime },
     { label: 'Environment', value: import.meta.env.MODE },
     { label: 'Platform', value: Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'web' },
+    ...(nativeApp ? [
+      // Label says "Android" specifically (not generic "Native build number")
+      // because this field is only ever rendered when nativeApp is populated,
+      // which only happens on Capacitor.isNativePlatform() — and today that's
+      // Android-only in practice (no iOS release pipeline exists yet, per
+      // RISK-016). Revisit this label if/when an iOS build ships.
+      { label: 'Android version code', value: nativeApp.build },
+    ] : []),
     ...(device ? [
       { label: 'OS version', value: device.osVersion },
       { label: 'Device model', value: device.model },
