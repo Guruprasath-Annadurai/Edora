@@ -131,3 +131,25 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS city_name   TEXT,
   ADD COLUMN IF NOT EXISTS school_name TEXT,
   ADD COLUMN IF NOT EXISTS school_id   UUID;
+
+-- public.novo_memories, base table moved earlier from
+-- 20260619_tier6_independent_tutor.sql (its original creation point).
+-- 20260617000000_novo_brain_v3.sql does an unconditional
+-- `ALTER TABLE public.novo_memories ADD COLUMN last_used_at ...` 2 days
+-- before this table otherwise exists. Only the base table is recreated
+-- here; indexes, RLS, and policies are left to the original file, which
+-- still runs normally once the table already exists. Found via the same
+-- supabase db diff Docker replay.
+CREATE TABLE IF NOT EXISTS public.novo_memories (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  memory_type  TEXT        NOT NULL
+    CHECK (memory_type IN ('struggle','strength','preference','milestone','pattern','exam_context')),
+  content      TEXT        NOT NULL,
+  subject      TEXT,
+  topic        TEXT,
+  importance   INTEGER     NOT NULL DEFAULT 5 CHECK (importance BETWEEN 1 AND 10),
+  source       TEXT        CHECK (source IN ('chat','sprint','quiz','tutoring','debate','system')),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at   TIMESTAMPTZ           -- NULL = never expires
+);
