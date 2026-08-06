@@ -79,10 +79,26 @@ CREATE POLICY "users_read_own_audit_log" ON public.security_audit_log
   FOR SELECT USING (auth.uid() = user_id);
 
 -- ── 5. RLS hardening — ensure critical tables have policies ──────────────────
--- Double-check quiz answers are user-scoped
+-- Double-check quiz answers are user-scoped.
+--
+-- public.quiz_user_answers does not and never has existed -- confirmed
+-- against production (project mlkzabspcwfockbmkmzl), not just locally.
+-- Per-question answers are stored as a JSONB column on quiz_sessions
+-- instead (see 20260606_quiz_user_answers.sql, whose misleading filename
+-- suggests a table but only adds quiz_sessions.user_answers). This block
+-- was evidently written against an earlier design that was never built
+-- this way, or was superseded before ever running -- either way it always
+-- failed had it been replayed from an empty database, which is exactly
+-- how this was found (`supabase db diff`, Gate 2/4.1.0). Guarded on the
+-- table's actual existence so this becomes a genuine no-op today (matching
+-- reality) while still self-activating if a table by this name is ever
+-- introduced later.
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'quiz_user_answers'
+  ) AND NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'quiz_user_answers' AND policyname = 'users_own_quiz_answers'
   ) THEN
     ALTER TABLE public.quiz_user_answers ENABLE ROW LEVEL SECURITY;
