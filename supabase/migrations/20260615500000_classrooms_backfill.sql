@@ -177,3 +177,12 @@ CREATE TABLE IF NOT EXISTS public.novo_proactive_messages (
   read_at       TIMESTAMPTZ,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- public.profiles.novo_personality, moved earlier from
+-- 20260619_tier6_independent_tutor.sql (its original creation point, same
+-- file as novo_memories/novo_proactive_messages above).
+-- 20260617000001_phase1_emotional_checkin.sql creates an index on this
+-- column 2 days early. Found via the same supabase db diff Docker replay.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS novo_personality TEXT NOT NULL DEFAULT 'teacher'
+    CHECK (novo_personality IN ('teacher','friend','coach','examiner','mentor'));
