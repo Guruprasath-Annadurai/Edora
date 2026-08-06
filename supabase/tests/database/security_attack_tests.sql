@@ -14,7 +14,7 @@
 -- pg_prove in a real test database, the harness handles the transaction.
 
 begin;
-select plan(9);
+select plan(11);
 
 -- ── Setup: synthetic users, never real accounts ────────────────────────────
 insert into auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, aud, role)
@@ -91,6 +91,32 @@ select throws_like(
   $$ select public.record_battle_result('eeeeeeee-0000-0000-0000-000000000001'::uuid, 'aaaaaaaa-0000-0000-0000-000000000001'::uuid, 'aaaaaaaa-0000-0000-0000-000000000003'::uuid) $$,
   '%do not match%',
   'record_battle_result: winner/loser must match the real battle participants — cannot fabricate a third party'
+);
+
+-- ── Storage-object access isolation ────────────────────────────────────────
+-- A private-bucket object (study-pdfs) is stored under a folder path keyed
+-- by the owning user's id. Confirms a different authenticated user cannot
+-- see another user's private file via storage.objects RLS.
+insert into storage.objects (bucket_id, name, owner)
+values ('study-pdfs', 'aaaaaaaa-0000-0000-0000-000000000001/mynotes.pdf', 'aaaaaaaa-0000-0000-0000-000000000001');
+
+select set_config('request.jwt.claims', json_build_object('sub','aaaaaaaa-0000-0000-0000-000000000002','role','authenticated')::text, true);
+set local role authenticated;
+select is(
+  (select count(*)::int from storage.objects where bucket_id='study-pdfs' and name = 'aaaaaaaa-0000-0000-0000-000000000001/mynotes.pdf'),
+  0,
+  'storage.objects: a different user cannot see another user''s private study-pdfs file'
+);
+reset role;
+
+-- ── Role escalation attempt ────────────────────────────────────────────────
+-- A plain 'user'-role account (no admin/moderator app_role) attempts to
+-- insert directly into verified_question_bank, which is admin/moderator-gated.
+select set_config('request.jwt.claims', json_build_object('sub','aaaaaaaa-0000-0000-0000-000000000002','role','authenticated')::text, true);
+select throws_ok(
+  $$ set local role authenticated; insert into public.verified_question_bank (question_text, subject) values ('forged question', 'Physics') $$,
+  '42501',
+  'verified_question_bank: a plain user (no admin/moderator role) cannot insert directly into the moderated question bank'
 );
 
 select * from finish();
