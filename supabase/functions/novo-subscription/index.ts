@@ -22,7 +22,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 
 
-import { withSentry } from '../_shared/sentry.ts';
+import { withSentry, captureException } from '../_shared/sentry.ts';
 import { pickActiveEntitlement } from '../_shared/rcEntitlement.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { logAdminAction } from '../_shared/auditLog.ts';
@@ -206,6 +206,16 @@ serve(withSentry('novo-subscription', async (req) => {
           if (insertErr) {
             // Log for ops — the next get_status call will self-heal via the activation_pending check
             console.error('[webhook] CRITICAL: subscription insert failed for paying user', userId, insertErr.message);
+            // Phase 9 (observability bootstrap): this failure mode previously had
+            // zero alerting — console.error alone never reaches edge_function_errors
+            // or Slack, since it isn't a thrown exception (deliberately, so Razorpay
+            // doesn't retry-storm on a DB constraint error retrying won't fix — see
+            // the 200 response below, unchanged). captureException mirrors this into
+            // the same table/Slack path as any other error, without throwing.
+            await captureException(new Error(`Subscription insert failed for paying user ${userId}: ${insertErr.message}`), {
+              functionName: 'novo-subscription',
+              extra: { orderId, paymentId, userId, plan },
+            });
             // Still return 200: Razorpay has confirmed payment, retrying won't help a DB constraint error.
             // get_status self-heals profile mismatches; support can query pending_payment rows.
             return json({ received: true, event: eventType, note: 'subscription insert failed — manual review needed' });
@@ -221,6 +231,13 @@ serve(withSentry('novo-subscription', async (req) => {
         if (profileErr) {
           // Subscription row is committed; get_status will detect the mismatch and self-heal on next open.
           console.error('[webhook] CRITICAL: profile update failed for paying user', userId, profileErr.message);
+          // Phase 9: same reasoning as the insertErr branch above — mirror into
+          // edge_function_errors/Slack without throwing (self-heal path is real
+          // and unchanged; this only adds visibility that it's needed).
+          await captureException(new Error(`Profile update failed for paying user ${userId} after successful payment: ${profileErr.message}`), {
+            functionName: 'novo-subscription',
+            extra: { orderId, paymentId, userId, plan },
+          });
           // Return 200 — sub record exists; self-healing in get_status will fix the profile gap.
           return json({ received: true, event: eventType, note: 'profile update failed — self-heal pending' });
         }
