@@ -107,17 +107,24 @@ DO $$ BEGIN
 END $$;
 
 -- ── 6. Input length constraints — DB-level defence against oversize payloads ──
+-- ALTER TABLE ... ADD CONSTRAINT has no IF NOT EXISTS clause in Postgres
+-- (unlike CREATE TABLE/INDEX) -- the original form here was invalid syntax
+-- that never surfaced until the first real from-scratch replay of this
+-- migration set (`supabase db diff`, Gate 2/4.1.0). Using DROP CONSTRAINT
+-- IF EXISTS + ADD CONSTRAINT instead, the same idempotency pattern this
+-- codebase already uses for policies (DROP POLICY IF EXISTS + CREATE POLICY).
 DO $$ BEGIN
   -- Add CHECK constraints on freetext columns if tables exist
   IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'flashcards' AND schemaname = 'public') THEN
-    ALTER TABLE flashcards
-      ADD CONSTRAINT IF NOT EXISTS flashcards_front_len CHECK (length(front) <= 2000),
-      ADD CONSTRAINT IF NOT EXISTS flashcards_back_len  CHECK (length(back)  <= 4000);
+    ALTER TABLE flashcards DROP CONSTRAINT IF EXISTS flashcards_front_len;
+    ALTER TABLE flashcards ADD CONSTRAINT flashcards_front_len CHECK (length(front) <= 2000);
+    ALTER TABLE flashcards DROP CONSTRAINT IF EXISTS flashcards_back_len;
+    ALTER TABLE flashcards ADD CONSTRAINT flashcards_back_len CHECK (length(back) <= 4000);
   END IF;
 
   IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'novo_memories' AND schemaname = 'public') THEN
-    ALTER TABLE novo_memories
-      ADD CONSTRAINT IF NOT EXISTS novo_memories_content_len CHECK (length(content) <= 5000);
+    ALTER TABLE novo_memories DROP CONSTRAINT IF EXISTS novo_memories_content_len;
+    ALTER TABLE novo_memories ADD CONSTRAINT novo_memories_content_len CHECK (length(content) <= 5000);
   END IF;
 END $$;
 
