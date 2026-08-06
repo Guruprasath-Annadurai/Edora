@@ -5,7 +5,8 @@
 - **Gate:** 2 — Safe Staging Environment
 - **Branch:** `enterprise/4.2-staging-environment`
 - **Starting commit:** `b4d9658` (Gate 1's merge into `release/4.1.0-integration`)
-- **Status:** PARTIALLY COMPLETE — one real human-action blocker, named explicitly below, not worked around.
+- **Status:** PARTIALLY COMPLETE — paused deliberately after uncovering a bigger, higher-priority finding (RISK-033) than Gate 2's own scope; not a stall, a judgment call to stop and report rather than keep patching around a systemic issue table-by-table.
+- **Update (same Gate, after initial write-up):** the DB password blocker was resolved by you and the bootstrap was actually run — 3 more real bugs were found and 2 were fixed in the process. See "What actually happened on retry" below.
 
 ## Verified starting state
 
@@ -59,9 +60,23 @@ None — this Gate is infrastructure provisioning, not application code.
 | `list_migrations` (production) | 139 applied migrations on production's ledger vs. 176 local files — the same local-vs-applied drift already documented in RISK-029, unaffected by this Gate |
 | `get_project_url` / `get_publishable_keys` (staging) | Confirmed staging's URL and anon key, used in `.env.staging.example` |
 
+## What actually happened on retry
+
+After you provided the staging DB password and ran `scripts/bootstrap-staging-db.sh`, three real, distinct bugs surfaced in sequence — each one genuinely new information, not repeats:
+
+1. **Migration version collisions.** 38 local migration files across 9 groups shared an identical date-only version prefix (e.g. 7 files all named `20260617_*.sql`). Supabase's CLI derives each migration's tracked "version" from the leading digits and requires uniqueness. Fixed by disambiguating all 38 filenames with a uniform, equal-length suffix.
+
+2. **A rename bug I introduced while fixing #1.** My first attempt at the fix only renamed 29 of the 38 files (keeping the first file in each group unchanged), which seemed reasonable but broke under plain lexicographic filename sort: ASCII digits (`0`–`9`) sort *before* underscore (`_`), so `20260615000001_tier2...` sorted *before* `20260615_enterprise...` — the opposite of intended order. Caught via `supabase migration list --linked` showing the mismatch directly against remote. Fixed by renaming *all* 38 members of each colliding group uniformly, not just 29.
+
+3. **Missing table definitions — the real finding.** After both of the above were fixed and the schema reset, the push got much further, then failed with `relation "public.study_circles" does not exist`. Investigation traced this to something well beyond a naming issue: `public.classrooms`, `public.classroom_members`, and (found while checking whether there were others) `public.mains_answer_submissions` all exist on **production** with real data, but are **never created by any local migration file** — only referenced by later files' foreign keys. They were evidently created directly against production at some point and never saved as a migration. Filed as **RISK-033** (new, High severity) — this is materially worse than RISK-029's already-known filename drift, since it means the local migration history literally cannot rebuild production's schema from scratch, undermining Phase 2's backup/restore (RPO/RTO) claims.
+
+I fixed 2 of the 3 missing-table cases with a new backfill migration (`20260615500000_classrooms_backfill.sql`), reconstructed from production's actual live schema (columns, constraints, indexes, RLS policies — verified via `information_schema`/`pg_constraint`/`pg_policies`, not guessed). The third (`mains_answer_submissions`) has a deeper problem — its own foreign key depends on `mains_questions`, a table not created locally until 2026-08-01, while `mains_answer_submissions` is already referenced starting 2026-07-08 — a real cross-file ordering defect, not just one missing table. Rather than keep discovering and hand-patching gaps one at a time via further trial-and-error pushes, I stopped and recommended (and you agreed) generating a full `supabase db diff` baseline against production as the correct fix — that is real, separate work, not completed in this Gate.
+
+**Staging is not yet fully bootstrapped as of this report.** The next bootstrap attempt should get further than before (both real fixes are merged), but will very likely still fail on `mains_answer_submissions` or something adjacent, until the full schema-diff baseline exists.
+
 ## Results
 
-No application-level testing occurred this Gate — there is no populated staging database yet to test against.
+No application-level testing occurred this Gate — there is no fully populated staging database yet to test against.
 
 ## Android runtime evidence
 
@@ -89,14 +104,16 @@ Trivial: `edora-staging` can be deleted from the Supabase dashboard at any time 
 
 ## Residual risks
 
-- Staging currently has an empty schema — anyone who runs the bootstrap script gets the *local migration files'* state, which (per RISK-029, already filed) doesn't necessarily match production's actual applied-migration ledger 1:1 (139 applied vs. 176 local files). Staging will therefore reflect "what's in git," not necessarily "byte-identical to production" — an acceptable, disclosed gap for a staging environment whose purpose is testing future changes, not mirroring production history.
-- Edge Functions have not been deployed to staging yet — deferred to a follow-up commit once the schema exists (deploying functions against an empty schema would be premature; several functions assume tables/RPCs exist).
-- Edge Function secrets (Gemini/ElevenLabs API keys, etc.) are not configured on staging — deploying functions there will also need `supabase secrets set` run against staging with either fresh (preferably) or copied API keys, another decision for you rather than something to assume.
+- **RISK-033 (new, High)**: local migrations cannot rebuild production's schema from scratch. 2 of ≥3 known missing tables fixed this Gate; `mains_answer_submissions`/`mains_questions` ordering left open, recommended fix is a full `supabase db diff` baseline (separate work, not started).
+- There may be more missing tables/ordering bugs beyond the 3 found — the search so far was reactive (triggered by each push failure) plus one proactive grep pass (FK-referenced-but-never-created tables), not an exhaustive schema diff. Should be treated as "at least 3 known," not "exactly 3."
+- Edge Functions have not been deployed to staging — blocked on the schema actually finishing, in turn blocked on RISK-033.
+- Edge Function secrets (Gemini/ElevenLabs API keys, etc.) are not configured on staging — a separate decision for you (fresh keys vs. copied) once deployment is unblocked.
 
 ## Human-action blockers
 
-1. **Staging DB password** (blocks schema bootstrap) — see steps above.
-2. Everything downstream of that (Edge Function deployment, secrets, actual staging testing) is blocked transitively until #1 is done.
+1. **RISK-033's full fix** (a reviewed `supabase db diff` baseline against production) — real, separate work, not a quick unblock.
+2. Everything downstream (finishing the staging bootstrap, Edge Function deployment, secrets, actual staging testing) is blocked transitively until #1 is done.
+3. The staging DB password blocker from the original write-up is resolved (you provided it, bootstrap ran) — no longer a blocker, kept here only for the historical record.
 
 ## Honest ratings (0–10)
 
@@ -114,7 +131,7 @@ Trivial: `edora-staging` can be deleted from the Supabase dashboard at any time 
 
 ## Single next priority
 
-Run `scripts/bootstrap-staging-db.sh` with the staging DB password, then I can verify the schema landed correctly and move on to deploying Edge Functions to staging — still within Gate 2, not yet Gate 3.
+Generate and carefully review a `supabase db diff` baseline against production (RISK-033) — this now blocks finishing Gate 2, and matters independently of staging for Phase 2's backup/restore credibility. Once that lands, re-run the staging bootstrap (should complete cleanly) and resume Edge Function deployment.
 
 ---
 
