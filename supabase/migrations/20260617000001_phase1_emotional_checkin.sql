@@ -54,11 +54,15 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM pg_extension WHERE extname = 'pg_cron'
   ) THEN
-    -- Remove old schedule if exists (idempotent)
-    PERFORM cron.unschedule('novo-proactive-cron')
-      WHERE EXISTS (
-        SELECT 1 FROM cron.job WHERE jobname = 'novo-proactive-cron'
-      );
+    -- Remove old schedule if exists (idempotent). PERFORM cannot take a
+    -- trailing WHERE clause -- the original form here was invalid syntax
+    -- that never surfaced until the first real from-scratch replay of this
+    -- migration set (`supabase db diff`, Gate 2/4.1.0). Using an explicit
+    -- IF EXISTS guard instead, matching the working pattern already used
+    -- elsewhere in this codebase (e.g. 20260613_rename_nova_to_novo.sql).
+    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'novo-proactive-cron') THEN
+      PERFORM cron.unschedule('novo-proactive-cron');
+    END IF;
 
     PERFORM cron.schedule(
       'novo-proactive-cron',
