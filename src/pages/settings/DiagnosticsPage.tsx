@@ -21,12 +21,28 @@ type DeviceInfo = { platform: string; osVersion: string; model: string } | null;
 // baked into the platform build, not the web bundle.
 type NativeAppInfo = { build: string } | null;
 
+// Written by vite.config.ts's writeBuildInfo() plugin AFTER Rollup emits the
+// bundle (see that file's own comment for why: bundleHash can't be known
+// until every asset exists, so it can't be baked into the JS bundle it
+// describes — this is fetched at runtime instead). localMigrationHead and
+// edgeFunctionManifest are deliberately named/labeled below as local
+// build-time state, not verified-deployed state — see RISK-029.
+interface BuildInfo {
+  bundleHash: string;
+  localMigrationHead: string | null;
+  edgeFunctionManifest: { functionCount: number | null; sourceHash: string | null };
+  releaseChannel: string;
+  dirtyWorktree: boolean | null;
+  ciRunId: string | null;
+}
+
 export default function DiagnosticsPage() {
   const { user } = useAuth();
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [device, setDevice] = useState<DeviceInfo>(null);
   const [nativeApp, setNativeApp] = useState<NativeAppInfo>(null);
+  const [buildInfo, setBuildInfo] = useState<BuildInfo | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -43,6 +59,19 @@ export default function DiagnosticsPage() {
     }).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    // Absolute path, not relative: this page is reached via a client-side
+    // route (/diagnostics), so a relative fetch would resolve against that
+    // route's path rather than the actual asset root and 404. Works both on
+    // web (base '/') and inside Capacitor's WebView, which serves the bundle
+    // from a virtual origin (capacitor.config.ts's androidScheme/hostname)
+    // where an absolute path still correctly hits the bundle root.
+    fetch('/build-info.json')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => { if (data) setBuildInfo(data); })
+      .catch(() => {}); // dev server / local builds may not have this file yet — fine, just omit the fields
+  }, []);
+
   const buildSha = import.meta.env.VITE_BUILD_SHA ?? 'unknown';
   const shortSha = buildSha.length > 12 ? buildSha.slice(0, 12) : buildSha;
   const buildTime = import.meta.env.VITE_BUILD_TIME
@@ -55,6 +84,23 @@ export default function DiagnosticsPage() {
     { label: 'Build time', value: buildTime },
     { label: 'Environment', value: import.meta.env.MODE },
     { label: 'Platform', value: Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'web' },
+    ...(buildInfo ? [
+      { label: 'Release channel', value: buildInfo.releaseChannel },
+      { label: 'Bundle hash', value: buildInfo.bundleHash },
+      // Labeled explicitly as "local, build-time" per RISK-029's already-filed
+      // finding that local migration filenames don't reliably match what's
+      // actually applied to the live database — this field must never read as
+      // "verified deployed migration version," because it isn't one.
+      { label: 'Migration head (local, build-time)', value: buildInfo.localMigrationHead ?? 'unknown' },
+      // Same honesty constraint as above: this is the local Edge Function
+      // *source* tree's fingerprint, not a live deployment-revision check —
+      // proving the latter would require shipping backend-management
+      // credentials in this client bundle, which this project never does.
+      { label: 'Edge Functions (source)', value: buildInfo.edgeFunctionManifest.functionCount != null
+        ? `${buildInfo.edgeFunctionManifest.functionCount} fns, ${buildInfo.edgeFunctionManifest.sourceHash}`
+        : 'unknown' },
+      ...(buildInfo.dirtyWorktree ? [{ label: 'Built from', value: 'uncommitted changes' }] : []),
+    ] : []),
     ...(nativeApp ? [
       // Label says "Android" specifically (not generic "Native build number")
       // because this field is only ever rendered when nativeApp is populated,

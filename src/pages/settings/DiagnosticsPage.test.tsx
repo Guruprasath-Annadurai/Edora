@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import DiagnosticsPage from './DiagnosticsPage';
@@ -78,5 +78,69 @@ describe('DiagnosticsPage', () => {
     vi.doUnmock('@capacitor/app');
     vi.doUnmock('@capacitor/device');
     vi.doUnmock('@capacitor/toast');
+  });
+
+  // Gate 1 (4.1.0 build provenance): dist/build-info.json is written by
+  // vite.config.ts's writeBuildInfo() plugin AFTER the production build
+  // completes (see that file for why) -- it does not exist during `npm run
+  // dev` or in this test's jsdom environment, so DiagnosticsPage fetches it
+  // at runtime rather than importing it, and must degrade gracefully when
+  // the fetch 404s or fails outright (both real, expected states, not edge
+  // cases to special-case away).
+  describe('build-info.json fetch', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('renders bundle hash and migration-head fields when build-info.json is present', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          bundleHash: 'dc127f914957841a',
+          localMigrationHead: '20260813_cat_syllabus_progress.sql',
+          edgeFunctionManifest: { functionCount: 69, sourceHash: '07ca8e786db4' },
+          releaseChannel: 'alpha',
+          dirtyWorktree: false,
+          ciRunId: null,
+        }),
+      }));
+
+      renderDiagnostics();
+
+      await waitFor(() => {
+        expect(screen.getByText('Bundle hash')).toBeInTheDocument();
+      }, { timeout: 3000 });
+      expect(screen.getByText('dc127f914957841a')).toBeInTheDocument();
+      expect(screen.getByText('Migration head (local, build-time)')).toBeInTheDocument();
+      expect(screen.getByText('20260813_cat_syllabus_progress.sql')).toBeInTheDocument();
+      expect(screen.getByText('Edge Functions (source)')).toBeInTheDocument();
+      expect(screen.getByText('69 fns, 07ca8e786db4')).toBeInTheDocument();
+      // dirtyWorktree: false in the mock above -- "Built from" only renders when true
+      expect(screen.queryByText('Built from')).not.toBeInTheDocument();
+    });
+
+    it('degrades gracefully — omits build-info fields, still renders core fields — when the fetch fails', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')));
+
+      renderDiagnostics();
+
+      // Give the failed fetch's .catch(() => {}) a tick to resolve before asserting absence.
+      await waitFor(() => {
+        expect(screen.getByText('App version')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Bundle hash')).not.toBeInTheDocument();
+      expect(screen.queryByText('Migration head (local, build-time)')).not.toBeInTheDocument();
+    });
+
+    it('degrades gracefully when build-info.json 404s (dev server / local build without a production build yet)', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: () => Promise.reject(new Error('should not be called')) }));
+
+      renderDiagnostics();
+
+      await waitFor(() => {
+        expect(screen.getByText('App version')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Bundle hash')).not.toBeInTheDocument();
+    });
   });
 });
