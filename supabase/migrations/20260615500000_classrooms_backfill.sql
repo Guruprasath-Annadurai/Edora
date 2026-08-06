@@ -78,3 +78,41 @@ CREATE TABLE IF NOT EXISTS public.study_circles (
   max_members  INTEGER     NOT NULL DEFAULT 8,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- public.study_circle_members, moved earlier for the same reason as
+-- study_circles above: 20260616000001_network_effects.sql's circle_messages
+-- table needs a RLS policy referencing this table before
+-- 20260617000005_realtime_features.sql (its original creation point) runs.
+-- Found via `supabase db diff` replaying every local migration into a real
+-- Docker shadow database, not guessed.
+CREATE TABLE IF NOT EXISTS public.study_circle_members (
+  circle_id   UUID NOT NULL REFERENCES public.study_circles(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  joined_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (circle_id, user_id)
+);
+
+-- public.achievement_feed, base table moved earlier from
+-- 20260703_social_competitive.sql (its original, much later creation
+-- point). 20260616000001_network_effects.sql does
+-- `ALTER TABLE public.achievement_feed ADD COLUMN ...` (adding a
+-- "card_generated" flag) 17 days before the table it's altering is
+-- otherwise ever created -- also found via the real `supabase db diff`
+-- Docker shadow-database replay, not guessed. Only the base table is
+-- recreated here (indexes/RLS/publication left to the original file,
+-- which still runs normally afterward since the table already exists).
+CREATE TABLE IF NOT EXISTS public.achievement_feed (
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  event_type     TEXT        NOT NULL CHECK (event_type IN (
+    'chapter_completed','quiz_aced','streak_milestone','level_up',
+    'battle_won','circle_joined','mock_test','pyq_session','achievement_unlocked'
+  )),
+  title          TEXT        NOT NULL,
+  subtitle       TEXT,
+  emoji          TEXT        NOT NULL DEFAULT '🎉',
+  metadata       JSONB,
+  is_public      BOOLEAN     NOT NULL DEFAULT true,
+  reaction_count INTEGER     NOT NULL DEFAULT 0,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
