@@ -124,7 +124,9 @@ Summarized from the commands table above. **Zero build or test failures found to
 
 ## Mock-exam review
 
-**Unverified live — but this is the single highest-priority gap to close given the mandate's own repeated emphasis on exam integrity.** This session's earlier Phase 9 work already found a structurally significant related fact worth restating here: `mock_test_attempts` only receives a database row on successful completion, with no "started" row — meaning a crash mid-exam currently leaves no trace anywhere (filed as RISK-030... correction, RISK-030 in this branch's numbering refers to the `pyq_content.is_reviewed` finding from tonight's Phase 12 work; the mock-attempt gap was filed as **RISK-030 on the separate `enterprise/phase-9-observability-bootstrap` branch**, which has not merged — **this is itself a live example of the cross-branch risk-ID collision this audit should flag**: two different unmerged branches have each independently used "RISK-030" for a different finding. This needs reconciliation before any branch merges, not resolved here).
+**Unverified live — but this is the single highest-priority gap to close given the mandate's own repeated emphasis on exam integrity.** This session's earlier Phase 9 work already found a structurally significant related fact worth restating here: `mock_test_attempts` only receives a database row on successful completion, with no "started" row — meaning a crash mid-exam currently leaves no trace anywhere (filed as **RISK-030 on `enterprise/phase-9-observability-bootstrap`**, unmerged).
+
+**Update (Gate 0 reconciliation, same session):** while writing this section, a real cross-branch risk-ID collision was found — this branch (`enterprise/phase-12-content-governance`) had independently filed its own, different finding (the `pyq_content.is_reviewed` gap) as `RISK-030` too. **Resolved during Gate 0**: this branch's finding was renumbered to `RISK-030` → `RISK-032` (next free ID after Phase 9's own highest, `RISK-031`) in a dedicated commit, before any merge. `RISK-030` now unambiguously refers only to the mock-attempt gap; the content-review gap is `RISK-032`. See `docs/enterprise/4.1.0/BRANCH_RECONCILIATION_REPORT.md` for the full reconciliation record.
 
 ## Payment review
 
@@ -144,7 +146,7 @@ Summarized from the commands table above. **Zero build or test failures found to
 
 ## Data-integrity review
 
-Real, disclosed facts from tonight's Phase 12 work specifically: `pyq_content`'s content-quality columns (`is_active`, `is_reviewed`, `flagged_for_review`) were found to be unenforced anywhere in the app or (until tonight) in RLS. Fixed `is_active` enforcement (verified zero live impact: 555/555 rows still visible after the change). Found and deliberately did NOT fix `is_reviewed` non-enforcement, since 233/555 rows (100% of CAT/BOARDS/UPSC content) are unreviewed and flipping that filter on would zero out three live exam categories instantly — escalated as a founder decision (RISK-030 on this branch), not resolved unilaterally.
+Real, disclosed facts from tonight's Phase 12 work specifically: `pyq_content`'s content-quality columns (`is_active`, `is_reviewed`, `flagged_for_review`) were found to be unenforced anywhere in the app or (until tonight) in RLS. Fixed `is_active` enforcement (verified zero live impact: 555/555 rows still visible after the change). Found and deliberately did NOT fix `is_reviewed` non-enforcement, since 233/555 rows (100% of CAT/BOARDS/UPSC content) are unreviewed and flipping that filter on would zero out three live exam categories instantly — escalated as a founder decision (**RISK-032**, renumbered from `RISK-030` during Gate 0 reconciliation to resolve a cross-branch ID collision — see "Mock-exam review" above), not resolved unilaterally.
 
 ## Performance review
 
@@ -166,7 +168,7 @@ Real facts from this session's earlier Phase 2 work (on `main`, already merged):
 |---|---|---|---|---|---|---|---|
 | P0-1 | No live-login/multi-role verification exists for 4.1.0 candidate | Critical | All | This document's own "Accounts and roles tested" section | No test credentials provisioned, no Android device-testing tool available | Provision test accounts per the table above; acquire or build Android device/emulator testing capability | **BLOCKING — cannot be resolved without human action** |
 | P0-2 | Repository is not actually on any 4.1.0 version | Critical | Release process itself | `package.json`, `build.gradle`, compiled APK's own `aapt dump badging` output all confirm `4.0.0`/`52` | No version bump has occurred; all remediation work sits on unmerged branches | Merge intended Phase 3/9/12/14 work to `main`, then bump to `4.1.0-alpha.x` deliberately, matching the mandate's own version-progression rule | Not started |
-| P0-3 | Cross-branch risk-ID collision (`RISK-030` means two different things on two unmerged branches) | High (process integrity, not a live app bug) | Anyone relying on the risk register after a merge | Directly discovered while writing this document's "Mock-exam review" section | Branch-per-phase workflow created independent risk registers that will collide on merge | Reconcile risk IDs across `enterprise/phase-9-observability-bootstrap` and `enterprise/phase-12-content-governance` before either merges | Not started |
+| P0-3 | Cross-branch risk-ID collision (`RISK-030` meant two different things on two unmerged branches) | High (process integrity, not a live app bug) | Anyone relying on the risk register after a merge | Directly discovered while writing this document's "Mock-exam review" section | Branch-per-phase workflow created independent risk registers that collided on merge | Reconcile risk IDs across `enterprise/phase-9-observability-bootstrap` and `enterprise/phase-12-content-governance` before either merges | **VERIFIED COMPLETE — resolved during Gate 0.** This branch's finding renumbered `RISK-030` → `RISK-032` in a dedicated commit; see `docs/enterprise/4.1.0/BRANCH_RECONCILIATION_REPORT.md` |
 | P0-4 | `pyq_content.is_reviewed` unenforced for 100% of CAT/BOARDS/UPSC content | High | Students preparing for those 3 exams | Live query tonight: 233/555 rows, cleanly split by exam | Content inserted via ad hoc SQL was never run through a real review process; the review flag exists but nothing gates on it | Founder decision required: commission a real review pass, bulk-accept as reviewed, or knowingly accept the risk | Escalated, not resolved (by design — see Phase 12 report) |
 
 ## P1 — Required before broad rollout
@@ -199,7 +201,7 @@ Given the scope of what's actually blocking (P0-1 and P0-2 above), the realistic
 
 1. **Human action first, not engineering**: provide test account credentials (or explicit sign-off to create them against production) and clarify how Android device/emulator testing should happen in this environment (a physical device connected via ADB is the most likely path given no emulator-control tool exists here).
 2. Once credentials exist: re-run this audit's Sections 5–14 for real, producing the live-verified version of this document.
-3. In parallel, reconcile the `RISK-030` ID collision (P0-3) — a 10-minute fix, no blockers.
+3. ~~In parallel, reconcile the `RISK-030` ID collision (P0-3)~~ — **done during Gate 0** (see P0-3).
 4. Separately, bring a founder decision on `pyq_content.is_reviewed` (P0-4).
 5. Only after the above: decide on merging the unmerged Phase 3/9/12/14 branches to `main` and executing a real `4.1.0-alpha.1` version bump.
 
@@ -257,7 +259,7 @@ Unchanged from every prior assessment this session, now reconfirmed rather than 
 2. **Android device/emulator access** — either a physical device connected for ADB-based testing, or confirmation that a different testing environment (with emulator control) should be used instead.
 3. **`pyq_content.is_reviewed` decision** (P0-4) — a real product/content decision, not an engineering one.
 4. **Whether/when to merge** the unmerged Phase 3/9/12/14 branches and bump to a real `4.1.0-alpha.1`.
-5. **RISK-030 ID collision reconciliation** across the two unmerged branches — small, but needs doing before either merges.
+5. ~~**RISK-030 ID collision reconciliation** across the two unmerged branches~~ — **done during Gate 0.**
 
 ## Unknown or unverified areas
 
