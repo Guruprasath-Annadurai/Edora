@@ -44,7 +44,13 @@ CREATE INDEX IF NOT EXISTS rl_user_endpoint_time_idx
   ON public.api_rate_limits (user_id, endpoint, created_at DESC);
 
 ALTER TABLE public.api_rate_limits ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "service_role_only_rate_limits" ON public.api_rate_limits
+-- CREATE POLICY has no IF NOT EXISTS clause in Postgres (unlike CREATE
+-- TABLE/INDEX) -- the original form here was invalid syntax that never
+-- surfaced until the first real from-scratch replay of this migration set
+-- (via `supabase db diff`, Gate 2/4.1.0). Using this codebase's existing
+-- DROP POLICY IF EXISTS + CREATE POLICY idempotency pattern instead.
+DROP POLICY IF EXISTS "service_role_only_rate_limits" ON public.api_rate_limits;
+CREATE POLICY "service_role_only_rate_limits" ON public.api_rate_limits
   USING (false);  -- app users cannot read/write; only service role
 
 -- Auto-clean entries older than 2 hours to keep table small
