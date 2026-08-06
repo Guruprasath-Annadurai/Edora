@@ -208,9 +208,94 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - run: npx cap sync android
+      # Gate 1 (4.1.0 build provenance): prove Capacitor actually copied the
+      # CURRENT bundle, not a stale cached one — the exact class of bug this
+      # job's own header comment already names as having happened once
+      # before. Verified locally before writing this step: cap sync does
+      # correctly copy dist/build-info.json into the Android assets folder,
+      # and its bundleHash matches dist/'s byte-for-byte.
+      - name: Verify Capacitor synced the current bundle (not stale assets)
+        run: |
+          DIST_HASH=$(jq -r .bundleHash dist/build-info.json)
+          ANDROID_HASH=$(jq -r .bundleHash android/app/src/main/assets/public/build-info.json)
+          echo "dist/ bundleHash:    $DIST_HASH"
+          echo "android/ bundleHash: $ANDROID_HASH"
+          if [ "$DIST_HASH" != "$ANDROID_HASH" ]; then
+            echo "::error::Android assets contain a different bundle than dist/ — cap sync did not run, or ran against stale output."
+            exit 1
+          fi
       - name: Build release APK (unsigned — verifies R8/minification, not a release artifact)
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
+      # Gate 1: inspect the actual compiled artifact rather than trusting the
+      # build succeeded means everything inside it is correct. Verified
+      # locally first (this exact sequence) before writing it here.
+      - name: Inspect release APK — provenance and forbidden-content checks
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release-unsigned.apk
+          EXTRACT_DIR=$(mktemp -d)
+          # -o (overwrite silently): without it, unzip prompts interactively
+          # on any duplicate entry name (observed locally — Android release
+          # APKs can contain colliding shortened resource filenames, a
+          # benign packaging quirk unrelated to what this step actually
+          # checks) and a non-interactive CI runner would hang forever
+          # waiting for a keypress that never comes. Caught by actually
+          # running this script locally before writing it here, not assumed.
+          unzip -q -o "$APK" -d "$EXTRACT_DIR"
+
+          # 1. APK's own binary metadata matches repo version/commit.
+          BADGING=$(aapt dump badging "$APK" 2>/dev/null || $ANDROID_HOME/build-tools/*/aapt dump badging "$APK")
+          echo "$BADGING" | head -1
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          echo "$BADGING" | grep -q "versionName='$PKG_VERSION'" || { echo "::error::APK versionName does not match package.json ($PKG_VERSION)"; exit 1; }
+
+          # 2. Embedded build-info.json inside the APK matches the commit CI is actually building.
+          APK_BUILD_INFO="$EXTRACT_DIR/assets/public/build-info.json"
+          if [ ! -f "$APK_BUILD_INFO" ]; then echo "::error::build-info.json missing from shipped APK assets"; exit 1; fi
+          APK_SHA=$(jq -r .gitCommitSha "$APK_BUILD_INFO")
+          if [ -n "$GITHUB_SHA" ] && [ "$APK_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error::APK's embedded commit SHA ($APK_SHA) does not match GITHUB_SHA ($GITHUB_SHA)"; exit 1
+          fi
+
+          # 3. No .env files or source maps shipped in the client bundle.
+          FOUND_ENV=$(find "$EXTRACT_DIR/assets/public" -iname ".env*" 2>/dev/null)
+          FOUND_MAPS=$(find "$EXTRACT_DIR/assets/public" -iname "*.map" 2>/dev/null)
+          if [ -n "$FOUND_ENV" ]; then echo "::error::.env file(s) shipped in APK: $FOUND_ENV"; exit 1; fi
+          if [ -n "$FOUND_MAPS" ]; then echo "::error::source map(s) shipped in APK: $FOUND_MAPS"; exit 1; fi
+
+          # 4. Real Supabase project URL is correctly baked in (proves prod
+          #    config was injected, not silently missing/blank).
+          #    NOTE: a blind grep for "localhost" was deliberately NOT used
+          #    here — verified by hand that "localhost" legitimately appears
+          #    in this bundle inside third-party SDK code (PostHog and
+          #    Supabase-js both explicitly EXCLUDE localhost from their own
+          #    cookie/persistence logic; one further occurrence is an
+          #    unrelated Node URL-polyfill error-message string). A blind
+          #    string match would false-positive on those every single run.
+          if ! grep -rq "mlkzabspcwfockbmkmzl.supabase.co" "$EXTRACT_DIR/assets/public/assets/"*.js; then
+            echo "::error::Production Supabase project URL not found in shipped bundle — VITE_SUPABASE_URL may be missing or misconfigured."; exit 1
+          fi
+
+          echo "All Gate 1 APK provenance checks passed."
+          rm -rf "$EXTRACT_DIR"
+      # Gate 1 exit criterion: "release artifact is retained with checksums."
+      # This job's APK is unsigned and not distributable (see the job's own
+      # header comment), so this retains it purely as build-provenance
+      # evidence for this specific CI run, not as a release candidate to ship.
+      - name: Compute checksums
+        run: |
+          cd android/app/build/outputs/apk/release
+          sha256sum app-release-unsigned.apk > app-release-unsigned.apk.sha256
+          cat app-release-unsigned.apk.sha256
+      - name: Upload release APK + checksum + build-info (provenance evidence, not a distributable artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-build-provenance
+          path: |
+            android/app/build/outputs/apk/release/app-release-unsigned.apk
+            android/app/build/outputs/apk/release/app-release-unsigned.apk.sha256
+            dist/build-info.json
+          retention-days: 90
 
   security-audit:
     name: Security Audit
