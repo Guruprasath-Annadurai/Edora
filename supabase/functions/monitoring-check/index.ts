@@ -11,6 +11,9 @@
 //      captured exception, regardless of whether SENTRY_DSN is configured)
 //   4. DB connection pressure — current_connections vs max_connections via
 //      get_connection_stats(); alerts above 80% utilisation
+//   5. Backup job health (Phase 2.2) — missing, stale (>30h old), or
+//      unexpectedly small (<10KB, real backups run ~400KB) db-backup-export
+//      output in the db-backups storage bucket
 //
 // Severity: 🔴 CRITICAL alerts also prefix the Slack message with <!channel>.
 // 🟡 WARNING alerts post normally. This is NOT a substitute for real on-call
@@ -134,6 +137,37 @@ serve(withSentry('monitoring-check', async (req) => {
         severity: pct >= 95 ? 'critical' : 'warning',
         text: `*DB connection pressure:* ${current}/${max} connections used (${pct.toFixed(0)}%)`,
       });
+    }
+  }
+
+  // ── 5. Backup job health (Phase 2.2) ───────────────────────────────────────
+  // db-backup-export runs daily at 03:00 UTC. This has no alerting of its own
+  // — a failed or silently-empty run previously had no way to surface short of
+  // someone manually checking cron.job_run_details or the db-backups bucket
+  // (see docs/backup-recovery.md's "What's still missing", now partially
+  // closed by this check).
+  const { data: backupObjects } = await db.storage.from('db-backups').list('', {
+    limit: 5,
+    sortBy: { column: 'updated_at', order: 'desc' },
+  });
+  const latestBackup = backupObjects?.[0];
+  if (!latestBackup) {
+    alerts.push({ severity: 'critical', text: '*No database backup found at all* in the `db-backups` bucket — the daily export cron may never have run successfully.' });
+  } else {
+    const updatedAt = latestBackup.updated_at ? new Date(latestBackup.updated_at).getTime() : 0;
+    const ageHours = (Date.now() - updatedAt) / (1000 * 60 * 60);
+    const sizeBytes = (latestBackup.metadata as { size?: number } | null)?.size ?? 0;
+    if (ageHours > 30) {
+      // 24h cadence + 6h grace before treating a missed run as an incident,
+      // not a false alarm on ordinary cron-scheduling jitter.
+      alerts.push({ severity: 'critical', text: `*Backup is stale:* newest file \`${latestBackup.name}\` is ${Math.round(ageHours)}h old (expected a new one every 24h)` });
+    }
+    if (sizeBytes > 0 && sizeBytes < 10_000) {
+      // Real backups run ~400KB (174 tables, ~3500 rows as of Phase 2). A
+      // near-empty file the right filename but wrong size is a silent-failure
+      // pattern npm/cron jobs are notorious for — worth flagging even though
+      // the HTTP call itself returned 200.
+      alerts.push({ severity: 'critical', text: `*Backup unexpectedly small:* \`${latestBackup.name}\` is only ${sizeBytes} bytes (recent backups run ~400KB) — likely a partial or failed export that still reported success` });
     }
   }
 
