@@ -205,3 +205,21 @@ jobs:
           name: npm-audit-report
           path: audit-report.json
           retention-days: 90
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Phase 1.5 of the enterprise remediation program: the pre-mandate
+      # gitleaks scan that found a real leaked secret (see
+      # docs/secrets-inventory.md) was a one-off manual run, not a recurring
+      # check. This makes it recurring — every push/PR is scanned for newly
+      # introduced secrets. Blocking by design: a new committed secret should
+      # never merge silently.
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
