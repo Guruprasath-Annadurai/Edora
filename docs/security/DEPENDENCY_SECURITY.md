@@ -68,14 +68,23 @@ Every exception below uses the mandate's exact required fields: package, version
 | Review date | Re-confirmed this phase (2026-08-06) — advisory count for the installed version has narrowed from 3 to 2 since the last check, worth monitoring but not itself actionable |
 | Expiry date | **Quarterly** — re-check whether a `react-router-dom` release exists that clears every currently-known advisory simultaneously (the blocker pre-mandate was that no such version existed; that could change with a future release) |
 
+## Deno/Edge Function dependency review (added in the Phase 1 depth-closing pass)
+
+Deno imports are pinned by URL per-file, not a single lockfile, so `npm audit`-style tooling doesn't apply — there is no `deno audit`-equivalent command available in this environment. Did a direct grep-based version-consistency sweep instead:
+
+| Finding | Detail |
+|---|---|
+| `deno.land/std` version drift | **40 files** pin `@0.168.0`, **8 files** pin `@0.177.0`, and this session's own test files use `@0.208.0`. Only the `http/server.ts` module is imported from the `0.168.0` pin — a small, stable module (just the `serve()` HTTP wrapper), not a large attack surface. |
+| Known vulnerabilities in `deno.land/std@0.168.0/http/server.ts` | **None found** — no CVE database lookup is available in this environment to confirm this with the same rigor as `npm audit`, so this is stated as "none found via manual awareness," not "confirmed clean via a scan." This is a real, named limitation, not a claim of certainty. |
+| **Assessment** | This is a **version-consistency/staleness finding, not a demonstrated vulnerability.** Standardizing all Edge Functions on the newest pinned `std` version (`0.208.0`, already proven to work since this session's own test files use it) would be good hygiene and is a reasonable follow-up, but there is no evidence of an actual security issue in the older pin today. |
+
 ## What Phase 1.6 does NOT yet cover
 
-- A Deno/edge-function dependency review with the same rigor (this phase focused on `npm audit`, matching where the mandate's own example findings — `react-router`, `tar` — actually live; Deno imports are pinned by URL per-file rather than a single lockfile, so a systematic sweep would need a different method — not attempted this phase).
-- GitHub Dependabot alerts cross-reference (not accessed this phase — would need `gh api` against the repo's security-advisories endpoint).
-- Android/Gradle dependency review.
+- GitHub Dependabot alerts cross-reference (would need a `gh api` call against the repo's security-advisories endpoint; not made this phase since a related `gh`-command batch was declined earlier in this session and no clarification was given on which parts specifically were the concern — erring toward not guessing rather than assuming this specific read-only check is fine).
+- Android/Gradle dependency review (dependency versions were captured in Phase 0's baseline, but not individually checked against known CVEs).
 - License review.
 
-**Status: Phase 1.6 — PARTIALLY COMPLETE.** Every existing pre-mandate exception now has the mandate's exact required fields, re-verified fresh (not just reformatted from memory) via a real `npm audit` run this phase. Deno/Gradle/license review and GitHub Dependabot cross-reference remain outstanding.
+**Status: Phase 1.6 — PARTIALLY COMPLETE.** Every existing pre-mandate exception now has the mandate's exact required fields, re-verified fresh via a real `npm audit` run this phase, plus a new Deno version-consistency sweep (no demonstrated vulnerability found, but tooling to fully confirm that doesn't exist in this environment). GitHub Dependabot cross-reference, Gradle/Android CVE review, and license review remain outstanding.
 
 **Reviewer:** Guruprasath Annadurai (self-reviewed — no independent reviewer exists yet).
 **Date:** 2026-08-06.
