@@ -153,3 +153,27 @@ CREATE TABLE IF NOT EXISTS public.novo_memories (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at   TIMESTAMPTZ           -- NULL = never expires
 );
+
+-- public.novo_proactive_messages, base table moved earlier from
+-- 20260619_tier6_independent_tutor.sql (its original creation point, same
+-- file as novo_memories above). 20260617000001_phase1_emotional_checkin.sql
+-- creates an index on it 2 days early. Checked the file's other 4 tables
+-- (lesson_plans, lesson_plan_tasks, novo_certifications,
+-- certification_assessments) -- none are referenced anywhere before this
+-- same file, so only this one needed moving. Found via the same
+-- supabase db diff Docker replay.
+CREATE TABLE IF NOT EXISTS public.novo_proactive_messages (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  message       TEXT        NOT NULL,
+  message_type  TEXT        NOT NULL
+    CHECK (message_type IN (
+      'diagnostic','exam_reminder','streak_check','milestone',
+      'lesson_nudge','memory_callback','welcome_back','goal_check'
+    )),
+  cta_label     TEXT,
+  cta_route     TEXT,
+  context_data  JSONB,
+  read_at       TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
