@@ -63,9 +63,15 @@ describe('DiagnosticsPage', () => {
       </MemoryRouter>,
     );
 
+    // Default waitFor timeout (1000ms) was observed to flake under full-suite
+    // load (~1 in 6 runs) -- the component chains two dynamic import()s
+    // (@capacitor/device, @capacitor/app) before setNativeApp fires, and CPU
+    // contention across 12 concurrent test files occasionally pushes that
+    // past 1s even though it's near-instant in isolation. Explicit timeout,
+    // not a retry loop -- the assertion itself was never wrong.
     await waitFor(() => {
       expect(screen.getByText('Android version code')).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
     expect(screen.getByText('52')).toBeInTheDocument();
 
     vi.doUnmock('@capacitor/core');
