@@ -64,10 +64,17 @@ BEGIN
       PERFORM cron.unschedule('novo-proactive-cron');
     END IF;
 
+    -- The job-body string below must NOT reuse the outer DO block's `$$`
+    -- tag -- Postgres doesn't nest identically-tagged dollar-quoted
+    -- strings, so the original bare `$$ ... $$` here silently terminated
+    -- the outer DO block early, leaving its own SELECT statement orphaned
+    -- at the top level. Same discovery mechanism as the other syntax bugs
+    -- fixed this Gate: never surfaced until this migration set's first
+    -- real from-scratch replay (`supabase db diff`, Gate 2/4.1.0).
     PERFORM cron.schedule(
       'novo-proactive-cron',
       '0 6,14,22 * * *',
-      $$
+      $cron_body$
         SELECT net.http_post(
           url    := current_setting('app.supabase_url') || '/functions/v1/novo-cron-proactive',
           body   := '{"limit":5}'::jsonb,
@@ -77,7 +84,7 @@ BEGIN
             'x-cron-secret', current_setting('app.cron_secret', true)
           )
         );
-      $$
+      $cron_body$
     );
   END IF;
 END $$;
