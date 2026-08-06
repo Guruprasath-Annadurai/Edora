@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
       - run: npm run type-check
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
       - run: npm run test
@@ -74,7 +74,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
       - run: npm run build
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: npm
       - uses: actions/setup-java@v4
         with:
@@ -141,6 +141,10 @@ jobs:
           # pointing at a developer's local macOS JDK path, which doesn't
           # exist on this runner. That override is now removed; this
           # setup-java step is the actual source of JAVA_HOME for the build.
+          # Kept in sync manually with the repo-root .java-version file (Phase
+          # 3.2) rather than read from it: actions/setup-java has no
+          # equivalent of setup-node's node-version-file input. If you bump
+          # one, bump the other in the same PR.
           java-version: "21"
       - uses: actions/cache@v4
         with:
@@ -169,7 +173,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
 

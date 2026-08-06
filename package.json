@@ -3,6 +3,10 @@
   "private": true,
   "version": "4.0.0",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "packageManager": "npm@11.12.1",
   "scripts": {
     "dev": "vite --port 8100",
     "build": "tsc -b && vite build && cp -r public/.well-known dist/",
