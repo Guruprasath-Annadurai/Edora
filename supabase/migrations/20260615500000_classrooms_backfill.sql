@@ -116,3 +116,18 @@ CREATE TABLE IF NOT EXISTS public.achievement_feed (
   reaction_count INTEGER     NOT NULL DEFAULT 0,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- public.profiles.school_name/school_id (+ state_name/city_name, added in
+-- the same original ALTER TABLE batch) moved earlier from
+-- 20260703_social_competitive.sql. Unlike the plpgsql function bodies
+-- elsewhere in this migration set (whose column/table references aren't
+-- checked until first invocation), 20260616000001_network_effects.sql's
+-- get_school_leaderboard() is LANGUAGE sql, which Postgres validates
+-- eagerly at CREATE FUNCTION time -- so this forward-reference fails
+-- immediately, unlike the plpgsql cases already fixed above. Found via
+-- the same supabase db diff Docker replay.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS state_name  TEXT,
+  ADD COLUMN IF NOT EXISTS city_name   TEXT,
+  ADD COLUMN IF NOT EXISTS school_name TEXT,
+  ADD COLUMN IF NOT EXISTS school_id   UUID;
