@@ -57,20 +57,20 @@ BEGIN
     -- Remove old schedule if exists (idempotent). PERFORM cannot take a
     -- trailing WHERE clause -- the original form here was invalid syntax
     -- that never surfaced until the first real from-scratch replay of this
-    -- migration set (`supabase db diff`, Gate 2/4.1.0). Using an explicit
+    -- migration set (supabase db diff, Gate 2/4.1.0). Using an explicit
     -- IF EXISTS guard instead, matching the working pattern already used
     -- elsewhere in this codebase (e.g. 20260613_rename_nova_to_novo.sql).
     IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'novo-proactive-cron') THEN
       PERFORM cron.unschedule('novo-proactive-cron');
     END IF;
 
-    -- The job-body string below must NOT reuse the outer DO block's `$$`
+    -- The job-body string below must NOT reuse the outer DO block's $$
     -- tag -- Postgres doesn't nest identically-tagged dollar-quoted
-    -- strings, so the original bare `$$ ... $$` here silently terminated
+    -- strings, so the original bare $$ ... $$ here silently terminated
     -- the outer DO block early, leaving its own SELECT statement orphaned
     -- at the top level. Same discovery mechanism as the other syntax bugs
     -- fixed this Gate: never surfaced until this migration set's first
-    -- real from-scratch replay (`supabase db diff`, Gate 2/4.1.0).
+    -- real from-scratch replay (supabase db diff, Gate 2/4.1.0).
     PERFORM cron.schedule(
       'novo-proactive-cron',
       '0 6,14,22 * * *',
