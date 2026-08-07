@@ -37,7 +37,7 @@ memory:
 | 8 (AI academic quality) | PARTIALLY COMPLETE | (pre-existing status, not re-audited this pass) |
 | 9 (Observability) | PARTIALLY COMPLETE | (pre-existing status, not re-audited this pass) |
 | 10 (Payments/entitlement) | PARTIALLY COMPLETE | No automated reconciliation cron; the mandate's specified duplicate-webhook automated test doesn't exist |
-| 11 (Load/scale testing) | PARTIALLY COMPLETE | Only a 20-VU smoke test has been run — **the actual safe concurrent-user ceiling for 10,000 users is unknown** |
+| 11 (Load/scale testing) | PARTIALLY COMPLETE | Extended to a 60-VU, 90s-sustained test (clean results) — but the load test itself is no longer the blocker: **production is confirmed on Supabase's Free plan with a 60-connection ceiling, the same hard limit as staging.** No amount of further load testing proves 10,000-user readiness on a plan that structurally cannot support it |
 | 12 (Content governance) | PARTIALLY COMPLETE | (pre-existing status, not re-audited this pass) |
 | 13 (Mobile UI/IA) | PARTIALLY COMPLETE | (pre-existing status, not re-audited this pass) |
 | 14 (Governance/support) | PARTIALLY COMPLETE | (pre-existing status, not re-audited this pass) |
@@ -113,10 +113,19 @@ until a forward-fix ships.
 - [ ] All PARTIALLY COMPLETE dependency phases above have a documented,
       accepted reason for shipping anyway (an explicit founder risk
       acceptance, not silence) — or are moved to VERIFIED COMPLETE first.
-- [ ] Phase 11's actual mandate-scale load test (100/500/1,000/3,000
-      staged) has been run against a suitable environment — not the
-      20-VU smoke test this pass produced — and the results support the
-      target user count.
+- [ ] Production's Supabase plan has been upgraded from Free tier —
+      confirmed via `get_organization`/`get_connection_stats()` that
+      production's real `max_connections` is 60, identical to staging's
+      free-tier ceiling. This is a structural blocker independent of any
+      load-test result; running the mandate's 100/500/1,000/3,000 staged
+      profile against the *current* plan would only prove the plan's own
+      ceiling, not application readiness. See
+      `docs/enterprise/LOAD_TESTING_REPORT.md`'s "The finding that matters
+      more than any of the numbers above" section.
+- [ ] Once a suitable plan/connection budget exists, Phase 11's actual
+      mandate-scale load test (100/500/1,000/3,000 staged) has been run
+      against it — not the 20/60-VU smoke tests this pass produced — and
+      the results support the target user count.
 - [ ] Phase 7's AI gateway kill switch covers at least the highest-
       traffic AI surfaces (`gemini-chat` at minimum), not just
       `ai-question-gen`.

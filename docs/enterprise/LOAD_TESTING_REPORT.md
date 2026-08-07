@@ -119,13 +119,86 @@ actual capacity on its own (different) tier.
   concurrently (the actual 10,000-user rollout scenario) has different
   characteristics this didn't exercise.
 
+## Extended pass (2026-08-08, production-hardening)
+
+Pushed further than the original 20-VU smoke test: `EXTENDED_STAGES` in
+`k6-baseline.js` ramps to 60 VUs and holds there for 90 seconds (a soak
+window, not just a spike), still well short of the mandate's literal
+100-VU first stage, but a real multiple of the earlier run.
+
+### Results (60 VUs peak, 90s hold, ~3min total, edora-staging)
+
+| Metric | Value |
+|---|---|
+| Total requests | 6,733 |
+| Success rate | **100.00%** (0 failures) |
+| p95 latency | **175.36ms** (down from 194.68ms at 20 VUs — no degradation) |
+| avg latency | 166.79ms |
+| max latency | 517ms |
+| Sustained throughput | ~37.3 req/s |
+| DB connections before → after | 12 → 17 (of 60 max) — 28% utilization at peak, self-resolved |
+
+No errors, no threshold breaches, and — critically — **connection usage
+scaled sub-linearly with VU count**: going from 20→60 VUs (3x) only moved
+connection usage from 13→17 (roughly +30%), because PostgREST pools
+Postgres connections rather than mapping 1 VU to 1 connection. This is a
+real, useful signal: the read path has meaningfully more headroom on this
+project than a naive "VUs ≈ connections" assumption would suggest.
+
+**Edge function under concurrency (new data point, previously untested)**:
+8 concurrent invocations of `gemini-vision` (analyze_image), all completed
+successfully at the HTTP layer (500s expected — staging has no valid
+Gemini key, confirmed separately), latency 2.9–3.5s per call (higher than
+the earlier single-call ~1s, consistent with concurrent gateway
+config/cost-ceiling reads plus real network round-trips to Google, not a
+failure). All 8 requests — plus the 1 from earlier verification — were
+correctly logged to `ai_gateway_requests` with no lost writes or lock
+contention (`SELECT count(*) ... = 9`, all `status: error`). This is the
+first concurrency data point the AI gateway has ever had.
+
+## The finding that matters more than any of the numbers above
+
+**Production's Supabase organization is on the Free plan** — confirmed via
+`get_organization`, not assumed. This was already named in RISK-002 ("no
+point-in-time recovery") but never connected explicitly to the load-testing
+question: **`get_connection_stats()` on *production* (`mlkzabspcwfockbmkmzl`)
+returns `max_connections: 60` — the exact same ceiling as free-tier
+`edora-staging`.** This is not a staging-only artifact being worked around;
+it is production's actual, current, real limit. No amount of application-
+level efficiency changes this — it's a hard platform ceiling tied to the
+billing plan, only liftable by upgrading.
+
+What this means concretely for the 10,000-user goal: even if every read
+this pass measured stayed this fast at far higher concurrency (unverified
+above 60 VUs), **60 total Postgres connections is not enough headroom to
+safely serve 10,000 concurrent users** on any reasonable connection-per-
+request budget once you account for edge functions (each maintains its own
+`serviceDb` connection), cron jobs (`monitoring-check`, `db-backup-export`),
+the AI gateway's own reads, and normal PostgREST pool overhead — all
+sharing the same 60-connection budget production has today.
+
 ## Verdict
 
-RISK-011 remains **NOT STARTED → PARTIALLY COMPLETE**, not resolved.
-What changed this phase: real tooling now exists (ready to run the
-mandate's actual scale the moment an environment decision is made), and
-one real, honest data point exists (a small-scale read-path baseline)
-where zero existed before. The core question the mandate asks — "what is
-the safe concurrent-user ceiling for the 10,000-user goal" — is still
-genuinely unanswered, and answering it is now blocked on an
-infrastructure/budget decision, not on missing tooling or missing intent.
+RISK-011 remains **PARTIALLY COMPLETE**, not resolved — but the honest
+picture is now clearer, and the real blocker isn't "we haven't tested
+enough," it's structural: **the current Supabase plan cannot support the
+mandate's own literal test stages (500–3,000 concurrent), let alone a
+10,000-user production rollout, regardless of what further load testing on
+this plan would show.** Two real data points now exist (20 VU and 60 VU
+read-path baselines, both clean) plus a first concurrency data point for
+an edge function, all in favor of the read path being fast and stable at
+the scales tested. But the actual answer to "what is the safe
+concurrent-user ceiling for 10,000 users" is: **not knowable on the
+current infrastructure tier, independent of code quality.** The next real
+step for RISK-011 is not more k6 runs — it is upgrading the Supabase plan
+(cost decision) or reducing per-request connection overhead app-wide
+(architecture decision), neither of which this pass has standing to do
+unilaterally.
+
+**Recommendation for the founder**: before any Stage A rollout (per
+`docs/enterprise/CONTROLLED_ROLLOUT_PLAN.md`), get a real number on what
+Supabase Pro's connection ceiling would be (typically 200+ direct, more
+via PgBouncer pooling) and budget for it — Free tier's 60-connection cap
+is very unlikely to be adequate at even modest real concurrent usage
+(a few hundred simultaneously active students), well before reaching
+10,000 total users.
