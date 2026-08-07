@@ -17,6 +17,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { callAI }     from '../_shared/aiGateway.ts';
 import {
   validateSolveResult,       type SolveResult,
   validateDrawingAnalysis,   type DrawingAnalysis,
@@ -36,14 +37,50 @@ const GEMINI_BASE  = `https://generativelanguage.googleapis.com/v1beta/models/${
 // limit here is hit. Retrying with backoff smooths over those transient
 // rate-limit windows without touching the model or prompts — same answers,
 // just resilient to momentary contention at higher concurrent user counts.
-async function fetchGeminiWithRetry(body: unknown, maxRetries = 2): Promise<Response> {
+//
+// Phase 7 (RISK-006, AI gateway): routed through callAI() so every vision
+// call is subject to the kill switch and daily cost ceiling like
+// ai-question-gen already is. A gateway block (kill switch/cost ceiling) is
+// a deliberate, stable decision — not retried, since retrying can't succeed
+// differently and would just waste the student's wait; only genuine
+// provider-side 429/503 responses are retried, same as before.
+async function fetchGeminiWithRetry(
+  // deno-lint-ignore no-explicit-any
+  serviceDb: any,
+  userId: string,
+  body: unknown,
+  maxRetries = 2,
+): Promise<Response> {
   let lastRes: Response | undefined;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const res = await fetch(`${GEMINI_BASE}?key=${GEMINI_API_KEY}`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body),
+    const gatewayResult = await callAI(serviceDb, {
+      functionName: 'gemini-vision',
+      provider: 'gemini',
+      model: VISION_MODEL,
+      userId,
+      url: `${GEMINI_BASE}?key=${GEMINI_API_KEY}`,
+      init: {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      },
+      extractUsage: (json) => ({
+        promptTokens: json?.usageMetadata?.promptTokenCount,
+        completionTokens: json?.usageMetadata?.candidatesTokenCount,
+      }),
     });
+
+    if (gatewayResult.blockedReason) {
+      // Kill switch or cost ceiling: surface a stable, descriptive failure
+      // instead of a bare non-ok Response the callers below can't interpret.
+      throw new Error(gatewayResult.errorMessage ?? 'AI gateway blocked this request');
+    }
+
+    if (!gatewayResult.response) {
+      throw new Error(gatewayResult.errorMessage ?? 'Gemini Vision request failed');
+    }
+
+    const res = gatewayResult.response;
     if (res.ok || (res.status !== 429 && res.status !== 503)) return res;
     lastRes = res;
     if (attempt < maxRetries) {
@@ -55,7 +92,8 @@ async function fetchGeminiWithRetry(body: unknown, maxRetries = 2): Promise<Resp
 
 // ── Per-user rate limit: 20 vision calls / hour ───────────────────────────────
 async function checkRateLimit(
-  serviceDb: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  serviceDb: any,
   userId: string,
 ): Promise<{ allowed: boolean }> {
   const windowStart = new Date(Date.now() - 60 * 60_000).toISOString();
@@ -75,6 +113,9 @@ async function checkRateLimit(
 
 // ── Call Gemini with image + optional text ────────────────────────────────────
 async function callGeminiVision(
+  // deno-lint-ignore no-explicit-any
+  serviceDb:    any,
+  userId:       string,
   imageBase64:  string,
   mimeType:     string,
   textPrompt:   string,
@@ -92,7 +133,7 @@ async function callGeminiVision(
     generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
   };
 
-  const res = await fetchGeminiWithRetry(body);
+  const res = await fetchGeminiWithRetry(serviceDb, userId, body);
 
   if (!res.ok) {
     const err = await res.text();
@@ -104,6 +145,9 @@ async function callGeminiVision(
 
 // ── JSON variant ──────────────────────────────────────────────────────────────
 async function callGeminiVisionJSONOnce<T>(
+  // deno-lint-ignore no-explicit-any
+  serviceDb:    any,
+  userId:       string,
   imageBase64:  string,
   mimeType:     string,
   textPrompt:   string,
@@ -125,7 +169,7 @@ async function callGeminiVisionJSONOnce<T>(
     },
   };
 
-  const res = await fetchGeminiWithRetry(body);
+  const res = await fetchGeminiWithRetry(serviceDb, userId, body);
 
   if (!res.ok) throw new Error(`Gemini Vision JSON error ${res.status}`);
   const data = await res.json();
@@ -143,6 +187,9 @@ async function callGeminiVisionJSONOnce<T>(
 // to the client. When validateFn fails, the whole generate+parse cycle is
 // retried rather than just re-parsing the same malformed output.
 async function callGeminiVisionJSON<T>(
+  // deno-lint-ignore no-explicit-any
+  serviceDb:    any,
+  userId:       string,
   imageBase64:  string,
   mimeType:     string,
   textPrompt:   string,
@@ -153,7 +200,7 @@ async function callGeminiVisionJSON<T>(
   let lastErr: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const result = await callGeminiVisionJSONOnce<T>(imageBase64, mimeType, textPrompt, systemPrompt);
+      const result = await callGeminiVisionJSONOnce<T>(serviceDb, userId, imageBase64, mimeType, textPrompt, systemPrompt);
       if (validateFn && !validateFn(result)) throw new Error('Gemini Vision response failed validation');
       return result;
     } catch (e) {
@@ -218,7 +265,7 @@ Analyse it clearly and helpfully. If it contains academic content, explain it.
 Be concise (max 6 sentences), use plain language, no markdown headers.`;
 
     const text     = prompt || 'What do you see in this image? Explain it in educational terms.';
-    const response = await callGeminiVision(image_base64, mime_type, text, system);
+    const response = await callGeminiVision(serviceDb, user.id, image_base64, mime_type, text, system);
     return jsonRes({ response, action });
   }
 
@@ -242,7 +289,7 @@ Solve the problem shown in this image. Return ONLY valid JSON:
   "common_mistakes": ["Mistake students commonly make 1", "Mistake 2"]
 }`;
 
-    const result = await callGeminiVisionJSON<SolveResult>(image_base64, mime_type, text, system, 3, validateSolveResult);
+    const result = await callGeminiVisionJSON<SolveResult>(serviceDb, user.id, image_base64, mime_type, text, system, 3, validateSolveResult);
     return jsonRes({ result, action });
   }
 
@@ -266,7 +313,7 @@ Analyse this whiteboard drawing or working. Return ONLY valid JSON:
   "next_steps": "What the student should do next"
 }`;
 
-    const result = await callGeminiVisionJSON<DrawingAnalysis>(image_base64, mime_type, text, system, 3, validateDrawingAnalysis);
+    const result = await callGeminiVisionJSON<DrawingAnalysis>(serviceDb, user.id, image_base64, mime_type, text, system, 3, validateDrawingAnalysis);
     return jsonRes({ result, action });
   }
 
@@ -284,7 +331,7 @@ EXTRACTED TEXT:
 EXPLANATION:
 [your explanation]`;
 
-    const response = await callGeminiVision(image_base64, mime_type, text, system);
+    const response = await callGeminiVision(serviceDb, user.id, image_base64, mime_type, text, system);
     return jsonRes({ response, action });
   }
 
@@ -305,7 +352,7 @@ Return ONLY valid JSON:
   "tags": ["tag1", "tag2"]
 }`;
 
-    const result = await callGeminiVisionJSON<FlashcardResult>(image_base64, mime_type, text, system, 3, validateFlashcardResult);
+    const result = await callGeminiVisionJSON<FlashcardResult>(serviceDb, user.id, image_base64, mime_type, text, system, 3, validateFlashcardResult);
     return jsonRes({ result, action });
   }
 
@@ -337,7 +384,7 @@ Evaluate this handwritten solution image. Return ONLY valid JSON:
   "encouragement": "1 sentence personalised encouragement based on what they attempted"
 }`;
 
-    const result = await callGeminiVisionJSON<HandwritingEval>(image_base64, mime_type, text, system, 3, validateHandwritingEval);
+    const result = await callGeminiVisionJSON<HandwritingEval>(serviceDb, user.id, image_base64, mime_type, text, system, 3, validateHandwritingEval);
     return jsonRes({ result, action });
   }
 
@@ -375,7 +422,7 @@ Rules:
 - If no formulas detected, return formulas as empty array []
 - Do NOT hallucinate formulas that aren't in the image`;
 
-    const result = await callGeminiVisionJSON<FormulaScanResult>(image_base64, mime_type, text, system, 3, validateFormulaScanResult);
+    const result = await callGeminiVisionJSON<FormulaScanResult>(serviceDb, user.id, image_base64, mime_type, text, system, 3, validateFormulaScanResult);
     return jsonRes({ result, action });
   }
 
