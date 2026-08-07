@@ -10,9 +10,20 @@ import { ProGate } from '@/components/ui/ProGate';
 import { track } from '@/lib/analytics';
 import { scoreMockExam } from '@/lib/mockScoring';
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  saveMockExamSnapshot, loadMockExamSnapshot, clearMockExamSnapshot,
+  type MockExamSnapshot,
+} from '@/lib/mockExamRecovery';
 
 type ExamType = 'JEE_Main' | 'JEE_Advanced' | 'NEET' | 'CAT' | 'UPSC_Prelims';
 type Phase = 'setup' | 'loading' | 'exam' | 'submitting' | 'result';
+
+// Bump whenever EXAM_CONFIG's sections/marking/duration change for any exam
+// type — stamped onto every attempt (mock_test_attempts.config_version) so a
+// historical score can always be traced to the exact rules it was computed
+// under, even after this config later changes. See migration
+// 20260814_mock_exam_integrity.sql.
+const EXAM_CONFIG_VERSION = '2026-08-14.1';
 
 // Maps display exam type → pyq_content.exam column value
 const EXAM_DB_MAP: Record<ExamType, string> = {
@@ -42,6 +53,8 @@ interface SubjectSection {
   questions: MockQuestion[];
   durationMin?: number; // per-section timer, only used when the exam is sectional (CAT)
 }
+
+type Snapshot = MockExamSnapshot<SubjectSection, MockQuestion>;
 
 const EXAM_CONFIG: Record<ExamType, {
   label: string; color: string; colorLight: string; duration: number; totalMarks: number; sectional?: boolean;
@@ -158,6 +171,60 @@ export default function MockTestPage() {
   const timerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitRef   = useRef(false);
   const [showPalette, setShowPalette] = useState(false);
+  const [attemptKey, setAttemptKey] = useState<string | null>(null);
+  const [resumable, setResumable]   = useState<Snapshot | null>(null);
+
+  // Check once, on mount, for a crash/interruption-recoverable attempt.
+  // Only offered while still on the setup screen — if the user has already
+  // started a fresh exam this session, don't yank them out of it.
+  useEffect(() => {
+    if (!profile) return;
+    const snap = loadMockExamSnapshot<SubjectSection, MockQuestion>(profile.id);
+    // A snapshot from a different exam-config revision can't be safely
+    // resumed — the marking scheme/section layout it was built under may no
+    // longer match EXAM_CONFIG, so scoring it would be silently wrong.
+    if (snap && snap.configVersion !== EXAM_CONFIG_VERSION) {
+      clearMockExamSnapshot(profile.id);
+      return;
+    }
+    setResumable(snap);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
+
+  function resumeExam() {
+    if (!resumable) return;
+    setExamType(resumable.examType as ExamType);
+    setSections(resumable.sections);
+    setAllQuestions(resumable.allQuestions);
+    setAnswers(resumable.answers);
+    setCurrentIdx(resumable.currentIdx);
+    setSectionIdx(resumable.sectionIdx);
+    setTimeLeft(resumable.timeLeft);
+    setSectionTimeLeft(resumable.sectionTimeLeft);
+    setAttemptKey(resumable.attemptKey);
+    submitRef.current = false;
+    setResumable(null);
+    setPhase('exam');
+    track('mock_test_resumed', { exam_type: resumable.examType });
+  }
+
+  function discardResumable() {
+    if (profile) clearMockExamSnapshot(profile.id);
+    setResumable(null);
+  }
+
+  // Persist a recovery snapshot on every meaningful state change while an
+  // exam is actually in progress — cheap localStorage write, not a network
+  // call, so it can't itself be the thing that fails mid-crash.
+  useEffect(() => {
+    if (phase !== 'exam' || !profile || !attemptKey) return;
+    const snapshot: Snapshot = {
+      attemptKey, examType, configVersion: EXAM_CONFIG_VERSION,
+      sections, allQuestions, answers, currentIdx, sectionIdx,
+      timeLeft, sectionTimeLeft, savedAt: new Date().toISOString(),
+    };
+    saveMockExamSnapshot(profile.id, snapshot);
+  }, [phase, profile, attemptKey, examType, sections, allQuestions, answers, currentIdx, sectionIdx, timeLeft, sectionTimeLeft]);
 
   const config = EXAM_CONFIG[examType];
   const isPro  = (profile?.is_pro ?? false) || (user?.created_at ? isInFreeTrial(user.created_at) : false);
@@ -186,7 +253,19 @@ export default function MockTestPage() {
       p_score: totalScore, p_exam_type: examType });
     const percentile = percentileData ?? 50;
 
-    const { data: attempt } = await supabase.from('mock_test_attempts').insert({
+    // Idempotent submit: attemptKey was minted once when the exam started
+    // (or restored on resume), not here — so a retried/duplicated submit
+    // (network retry, a resumed-after-crash session finishing twice, a
+    // stray double-invoke) reuses the SAME key. The DB's unique index on
+    // attempt_key (migration 20260814_mock_exam_integrity.sql) rejects the
+    // second insert outright; rather than surface that as an error, fetch
+    // the row the first submit already created and use it — the caller
+    // gets a correct result either way, and no duplicate attempt/percentile
+    // skew is possible.
+    const effectiveAttemptKey = attemptKey ?? crypto.randomUUID();
+    let attempt: { id: string; score: number; max_score: number; percentile: number; subject_scores: Record<string, { correct: number; score: number; total: number }> } | null = null;
+
+    const insertResult = await supabase.from('mock_test_attempts').insert({
       user_id: profile.id,
       exam_type: examType,
       questions: allQuestions,
@@ -195,7 +274,25 @@ export default function MockTestPage() {
       max_score: maxScore,
       percentile,
       subject_scores: subjectScores,
-      completed_at: new Date().toISOString() }).select('id').single();
+      attempt_key: effectiveAttemptKey,
+      config_version: EXAM_CONFIG_VERSION,
+      completed_at: new Date().toISOString() })
+      .select('id, score, max_score, percentile, subject_scores')
+      .single();
+
+    if (insertResult.error?.code === '23505') {
+      const existing = await supabase.from('mock_test_attempts')
+        .select('id, score, max_score, percentile, subject_scores')
+        .eq('attempt_key', effectiveAttemptKey)
+        .single();
+      attempt = existing.data;
+    } else {
+      attempt = insertResult.data;
+    }
+
+    // Exam is now durably recorded (or was already, on a retried submit) —
+    // the interruption-recovery snapshot's job is done.
+    clearMockExamSnapshot(profile.id);
 
     // Feed every answered question into topic_stats (struggle/win counts) —
     // this table previously was only ever written from ChatPage's quiz-intent
@@ -203,8 +300,16 @@ export default function MockTestPage() {
     // showed nothing for mock test performance on ANY exam, CAT included.
     // Chapter-level granularity (falls back to subject if a question has no
     // chapter) gives finer weak-area tracking than subject alone.
+    //
+    // Gated on `!insertResult.error` — on an idempotent retry (the insert
+    // hit the unique attempt_key and we fell back to the already-recorded
+    // row above), these stat/spaced-repetition side effects already ran on
+    // the FIRST successful submit. Re-running them here would double-count
+    // topic_stats and create duplicate sr_cards, even though the main
+    // attempt row itself was correctly deduped.
     const wrongIds = new Set(wrongAnswers.map(q => q.id));
     const answeredQuestions = allQuestions.filter(q => finalAnswers[q.id] !== undefined);
+    if (!insertResult.error) {
     for (const q of answeredQuestions) {
       supabase.rpc('upsert_topic_stat', {
         p_user_id: profile.id,
@@ -234,11 +339,12 @@ export default function MockTestPage() {
         if (error) console.error('[MockTest] failed to create sr_cards from wrong answers:', error.message);
       });
     }
+    }
 
     setResult({ score: totalScore, maxScore, percentile, subjectScores, attemptId: attempt?.id });
     setPhase('result');
     track('mock_test_completed', { exam_type: examType, score: totalScore, percentile });
-  }, [profile, sections, allQuestions, examType]);
+  }, [profile, sections, allQuestions, examType, attemptKey]);
 
   // Advance to the next section when the current section's time runs out
   // (sectional exams only) — locks the current section and jumps the
@@ -284,6 +390,11 @@ export default function MockTestPage() {
     if (!profile) return;
     if (requiresPro) { setShowPaywallSheet(true); return; }
     submitRef.current = false;
+    // Minted here, at exam start — not at submit time — so a crash/reload
+    // mid-exam and subsequent resume (resumeExam()) reuses this SAME key,
+    // making the eventual submit idempotent against retries or a duplicate
+    // resumed-and-finished-twice submission. See mockExamRecovery.ts.
+    setAttemptKey(crypto.randomUUID());
     setPhase('loading');
 
     const subjectColors: Record<string, string> = isLight
@@ -450,6 +561,28 @@ export default function MockTestPage() {
             open={showPaywallSheet} onClose={() => setShowPaywallSheet(false)}>
           <motion.div key="setup" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             className="px-4 py-5 space-y-6">
+            {resumable && (
+              <div className="p-4 rounded-2xl flex items-start gap-3"
+                style={{ background: 'rgba(96,165,250,0.1)', border: '1.5px solid rgba(96,165,250,0.35)' }}>
+                <Clock size={20} color={isLight ? '#1D4ED8' : '#60A5FA'} className="shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
+                    Unfinished {EXAM_CONFIG[resumable.examType as ExamType]?.label ?? resumable.examType} attempt found
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                    {Object.keys(resumable.answers).length}/{resumable.allQuestions.length} answered — resume where you left off or discard it.
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <Button size="sm" onClick={resumeExam} className="h-9 px-4 rounded-xl font-bold">Resume</Button>
+                    <button onClick={discardResumable}
+                      className="h-9 px-4 rounded-xl text-xs font-semibold"
+                      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                      Discard
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <p className="text-xs font-semibold mb-3 uppercase tracking-wider"
                  style={{ color: 'var(--color-text-secondary)' }}>Choose Exam</p>
@@ -741,7 +874,7 @@ export default function MockTestPage() {
             )}
 
             <div className="space-y-3">
-              <Button onClick={() => { setPhase('setup'); setSections([]); setAllQuestions([]); setResult(null); submitRef.current = false; }}
+              <Button onClick={() => { setPhase('setup'); setSections([]); setAllQuestions([]); setResult(null); setAttemptKey(null); submitRef.current = false; }}
                 className="w-full h-12 rounded-2xl font-bold"
                 style={{ background: config.color, color: 'var(--color-on-accent)' }}>
                 Take Another Mock
