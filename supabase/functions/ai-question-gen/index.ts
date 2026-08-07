@@ -9,6 +9,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
+import { callAI }     from '../_shared/aiGateway.ts';
 import { isValidQuestion, type GeneratedQuestion } from './validate.ts';
 const GROQ_MODEL    = 'llama-3.3-70b-versatile';
 const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
@@ -184,27 +185,48 @@ Flags: use "ambiguous_options" if two options could both be argued correct, "cal
       if (attempt > 0) {
         await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt - 1)));
       }
-      const groqResp = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature: 0.4,
-          max_tokens: 4096,
+      const gatewayResult = await callAI(serviceDb, {
+        functionName: 'ai-question-gen',
+        provider: 'groq',
+        model: GROQ_MODEL,
+        userId: user.id,
+        url: GROQ_API_URL,
+        init: {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.4,
+            max_tokens: 4096,
+          }),
+        },
+        extractUsage: (json) => ({
+          promptTokens: json?.usage?.prompt_tokens,
+          completionTokens: json?.usage?.completion_tokens,
         }),
       });
 
-      if (!groqResp.ok) {
-        lastErr = `Groq HTTP ${groqResp.status}: ${await groqResp.text()}`;
+      // A gateway block (kill switch or daily cost ceiling) is a deliberate,
+      // stable decision — retrying the same request 2 more times wastes the
+      // student's wait and can't succeed differently, so stop immediately
+      // rather than burning the remaining attempts.
+      if (gatewayResult.blockedReason) {
+        lastErr = gatewayResult.errorMessage ?? 'AI gateway blocked this request';
+        console.error('[ai-question-gen] gateway blocked:', lastErr);
+        break;
+      }
+
+      if (!gatewayResult.ok || !gatewayResult.response) {
+        lastErr = gatewayResult.errorMessage ?? 'Groq request failed';
         console.error('[ai-question-gen] Groq error:', lastErr);
         continue;
       }
 
-      const groqData = await groqResp.json();
+      const groqData = await gatewayResult.response.json();
       const rawText = groqData.choices?.[0]?.message?.content ?? '';
 
       const jsonMatch = rawText.match(/\[[\s\S]*\]/);
