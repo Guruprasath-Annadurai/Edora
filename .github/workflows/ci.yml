@@ -95,6 +95,42 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
+  # Phase 4 (enterprise remediation mandate): authenticated E2E coverage
+  # against edora-staging — a real, isolated Supabase project (never
+  # production) bootstrapped from all 178 migrations, with a disposable
+  # seeded test account (see e2e/authenticated/auth.setup.ts). Unlike
+  # e2e-tests above, these specs log in for real and exercise authenticated
+  # writes (e.g. account-settings.spec.ts's profile-edit round-trip).
+  #
+  # Gated on the staging secrets actually being configured so this job
+  # no-ops (not fails) until a maintainer adds them to the repo's Action
+  # secrets — see docs/e2e-testing.md for the exact secret names and where
+  # to find the values (Supabase dashboard → edora-staging → Settings → API).
+  e2e-authenticated-tests:
+    name: E2E Tests (Authenticated, Staging)
+    runs-on: ubuntu-latest
+    if: ${{ secrets.VITE_STAGING_SUPABASE_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:staging
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_STAGING_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_STAGING_SUPABASE_ANON_KEY }}
+          CI: true
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-staging
+          path: playwright-report-staging/
+          retention-days: 14
+
   build:
     name: Build
     runs-on: ubuntu-latest
