@@ -28,6 +28,15 @@ CREATE INDEX IF NOT EXISTS ncert_embedding_c_idx
   WITH (lists = 100)
   WHERE embedding_c IS NOT NULL;
 
+-- Adding p_embedding_q/p_embedding_c as new trailing params makes this a
+-- distinct overload rather than a true replace (different arg count) --
+-- drop the old 14-arg signature first so only the multi-vector version
+-- remains callable (avoids ambiguous-call errors for named-arg callers).
+DROP FUNCTION IF EXISTS public.search_corpus_unified(
+  vector, text, uuid, uuid, text, integer, integer, text[], uuid[],
+  boolean, boolean, boolean, integer, integer
+);
+
 -- ── 3. Updated search_corpus_unified — multi-vector OR retrieval ──────────────
 -- When p_embedding_q / p_embedding_c are supplied, the NCERT vector scan uses
 -- LEAST(distance_a, distance_q, distance_c) so any matching vector wins the slot.
@@ -65,7 +74,7 @@ RETURNS TABLE (
   final_score    FLOAT8
 )
 LANGUAGE plpgsql STABLE SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_safe_query TEXT := NULLIF(btrim(p_query_text), '');
