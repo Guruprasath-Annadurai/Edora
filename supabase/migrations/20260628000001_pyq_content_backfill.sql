@@ -8,8 +8,21 @@
 -- that already ran it. A genuinely new, not-yet-applied version is
 -- required instead.
 --
+-- Version chosen as 20260628000001 (shifting the 4 pyq_extended_seed/
+-- pyq_seed_data files that follow up by one slot each) rather than
+-- something like 20260627999999: every calendar-day slot from 20260615
+-- through 20260627 already has a bare-version (8-digit, no time suffix)
+-- file applied to the staging project, and any digit-extension of an
+-- already-applied bare version collides with it under plain lexicographic
+-- filename sort (ASCII digits sort before underscore) -- the exact same
+-- bug class already fixed once this Gate for a different set of files.
+-- 20260628000000 (production_hardening) is also already applied, but as a
+-- 14-digit version with no bare sibling, so slotting in right after it
+-- (making room by renumbering the not-yet-applied files after it) is safe.
+--
 -- public.pyq_content is created in 20260804_corpus_layer6.sql, but
--- 20260628000001_pyq_extended_seed_part1.sql (and 3 sibling seed files)
+-- 20260628000001_pyq_extended_seed_part1.sql (now renumbered to
+-- 20260628000002, immediately after this file) and 3 sibling seed files
 -- already INSERT into it starting over a month earlier -- at least 19
 -- files in between reference this table, consistent with it being a
 -- central, heavily-used table (see RISK-032). pgvector (needed for the
@@ -18,8 +31,7 @@
 -- (minus the ivfflat embedding index, left to the original file since it
 -- benefits from existing data); later files' own incremental ALTERs
 -- (CAT/UPSC exam values, class_level, review-pipeline columns) are
--- untouched and still run normally once the table exists. Dated to sort
--- immediately before the seed files that need it.
+-- untouched and still run normally once the table exists.
 
 CREATE TABLE IF NOT EXISTS public.pyq_content (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
