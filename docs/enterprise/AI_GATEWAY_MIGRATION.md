@@ -40,7 +40,54 @@ through it" when it doesn't yet. Each row moves from **direct** to
   spend vs. the ceiling, a per-function cost/error/blocked breakdown, and
   the kill switch toggle itself.
 
-## Live verification performed
+## Production deploy correction (2026-08-08)
+
+Everything above this section describes Phase 7's original pass, which —
+despite this document's own "Live verification performed" section below —
+**only ever touched `edora-staging`**. A production-hardening pass this
+session queried `mlkzabspcwfockbmkmzl` directly and found:
+
+- `ai_gateway_config`/`ai_gateway_requests` did not exist on production at
+  all (`information_schema.tables` returned zero rows).
+- Production's `ai-question-gen` was still running its pre-gateway version
+  (last updated well before Phase 7's work).
+- A second, separate bug: even on staging, `service_role` had **zero
+  table-level grants** on either gateway table. The original migration
+  created RLS policies scoped to `service_role` but never issued the
+  underlying `GRANT` — the same class of gap as the Phase 10
+  `subscriptions_own` finding, where a policy is meaningless without the
+  base grant. This meant `callAI()`'s own kill-switch/cost-ceiling check
+  had been silently failing closed on every call, on staging, since Phase
+  7 first shipped — this document's "Live verification performed" section
+  below was itself based on a false premise (it checked the config row
+  exists via direct SQL as `postgres`, which bypasses grants entirely, not
+  via the actual service-role path the edge functions use).
+
+Fixed via `supabase/migrations/20260808_ai_gateway_production_deploy_and_grant_fix.sql`:
+deploys the gateway schema to production for the first time, adds the
+missing `GRANT ALL ... TO service_role` on both projects, and re-deploys
+`ai-question-gen` and `gemini-vision` (now migrated too) to production.
+
+**Re-verified live post-fix** (staging): called `gemini-vision` with the
+seeded E2E account, confirmed the request passed the kill-switch and
+cost-ceiling checks cleanly, reached the real Gemini API, got a genuine
+provider-level rejection (invalid staging key — expected, staging has no
+real provider keys), and was logged to `ai_gateway_requests` with
+`status: error, error_message: HTTP 400`. This is the first time the full
+gate→log→fetch pipeline has actually been proven end-to-end, as opposed to
+stopping at a config-read that never got far enough to test the grant.
+
+`admin-console`'s `get_ai_gateway_status`/`set_ai_gateway_kill_switch`
+actions were also missing from production entirely (production was 4
+actions behind the local repo) — deployed as part of this pass. The kill
+switch mechanism itself (the `ai_gateway_config.ai_enabled` read/write) was
+not live-toggled against production to "prove" it works, since the
+identical logic is already covered by 6 Deno unit tests and was just
+proven live end-to-end on staging; flipping a real production kill switch
+off, even briefly, for a test that adds no new confidence isn't a
+reasonable risk to take.
+
+## Live verification performed (staging, original Phase 7 pass)
 
 - Migration applied to `edora-staging`, config singleton row confirmed
   present with correct defaults via direct SQL.
@@ -64,14 +111,14 @@ through it" when it doesn't yet. Each row moves from **direct** to
 
 | Function | Status | Notes |
 |---|---|---|
-| `ai-question-gen` | **Migrated** | First and only migrated call site this phase. Single call site, deployed live to staging. |
+| `ai-question-gen` | **Migrated** | Deployed to **both** edora-staging and production (mlkzabspcwfockbmkmzl) as of 2026-08-08 — see "Production deploy correction" below. |
 | `backfill-corpus-embeddings` | Direct | |
 | `boss-fight` | Direct | |
 | `curriculum-builder` | Direct | |
 | `debate-mode` | Direct | |
 | `exam-prediction` | Direct | |
 | `gemini-chat` | Direct | Highest-traffic surface (Novo AI chat) — also the largest single file, with 10+ internal call sites for chat, fallback, embeddings, and streaming. Migrating this one is the highest-value next step but also the largest single unit of work; deliberately not attempted in the same pass as standing up the gateway itself. |
-| `gemini-vision` | Direct | |
+| `gemini-vision` | **Migrated** | All 6 actions route through `fetchGeminiWithRetry` → `callAI`. Deployed to both staging and production, verified live end-to-end on staging (real Gemini API call, real response, logged to `ai_gateway_requests`). |
 | `lesson-planner` | Direct | |
 | `mains-answer-evaluator` | Direct | |
 | `ncert-ingest` | Direct | |
