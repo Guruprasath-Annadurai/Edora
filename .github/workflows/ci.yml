@@ -109,22 +109,36 @@ jobs:
   e2e-authenticated-tests:
     name: E2E Tests (Authenticated, Staging)
     runs-on: ubuntu-latest
-    if: ${{ secrets.VITE_STAGING_SUPABASE_URL != '' }}
+    # The `secrets` context isn't allowed directly inside ANY `if:`
+    # expression (job- or step-level) — actionlint caught this: the first
+    # version of this job used secrets in a job-level `if:` and broke the
+    # entire workflow file (every job failed to even schedule, not just
+    # this one). The fix GitHub actually supports: secrets ARE allowed in
+    # `env:`, so mirror the secret into a job-level env var here and gate
+    # every step on THAT instead — same "no-op until configured" behavior,
+    # without touching a disallowed context in `if:`.
+    env:
+      STAGING_SUPABASE_URL: ${{ secrets.VITE_STAGING_SUPABASE_URL }}
     steps:
       - uses: actions/checkout@v4
+        if: ${{ env.STAGING_SUPABASE_URL != '' }}
       - uses: actions/setup-node@v4
+        if: ${{ env.STAGING_SUPABASE_URL != '' }}
         with:
           node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
+        if: ${{ env.STAGING_SUPABASE_URL != '' }}
       - run: npx playwright install --with-deps chromium
+        if: ${{ env.STAGING_SUPABASE_URL != '' }}
       - run: npm run test:e2e:staging
+        if: ${{ env.STAGING_SUPABASE_URL != '' }}
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_STAGING_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_STAGING_SUPABASE_ANON_KEY }}
           CI: true
       - name: Upload Playwright report on failure
-        if: failure()
+        if: ${{ failure() && env.STAGING_SUPABASE_URL != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-staging
