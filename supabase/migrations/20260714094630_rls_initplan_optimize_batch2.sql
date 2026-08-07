@@ -1,10 +1,17 @@
-drop policy if exists "Users create gifts" on public."freeze_gifts";
-create policy "Users create gifts" on public."freeze_gifts" as permissive for INSERT to public
-  WITH CHECK (((select auth.uid()) = from_user_id));
-
-drop policy if exists "Users see their own gifts" on public."freeze_gifts";
-create policy "Users see their own gifts" on public."freeze_gifts" as permissive for SELECT to public
-  USING ((((select auth.uid()) = from_user_id) OR ((select auth.uid()) = to_user_id)));
+-- freeze_gifts doesn't exist yet at this point in migration history --
+-- created later by 20260718_battle_elo_mission.sql, which establishes
+-- this exact pair of policies itself. Guarded as a no-op here (unlike
+-- DROP POLICY, CREATE POLICY has no IF EXISTS-equivalent guard against a
+-- missing table).
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'freeze_gifts') then
+    execute 'drop policy if exists "Users create gifts" on public."freeze_gifts"';
+    execute $q$create policy "Users create gifts" on public."freeze_gifts" as permissive for INSERT to public WITH CHECK (((select auth.uid()) = from_user_id))$q$;
+    execute 'drop policy if exists "Users see their own gifts" on public."freeze_gifts"';
+    execute $q$create policy "Users see their own gifts" on public."freeze_gifts" as permissive for SELECT to public USING ((((select auth.uid()) = from_user_id) OR ((select auth.uid()) = to_user_id)))$q$;
+  end if;
+end $$;
 
 drop policy if exists "inst_mem_own" on public."institution_members";
 create policy "inst_mem_own" on public."institution_members" as permissive for SELECT to public
@@ -27,9 +34,17 @@ drop policy if exists "users_own_learning_style" on public."learning_style_profi
 create policy "users_own_learning_style" on public."learning_style_profiles" as permissive for ALL to public
   USING (((select auth.uid()) = user_id));
 
-drop policy if exists "Users own their progress" on public."lesson_progress";
-create policy "Users own their progress" on public."lesson_progress" as permissive for ALL to public
-  USING (((select auth.uid()) = user_id));
+-- lesson_progress doesn't exist yet at this point in migration history --
+-- it's created later by 20260721_lesson_progress.sql, which establishes
+-- its own RLS policies directly (this optimize-pass reference predates
+-- the table). Guarded so this is a no-op instead of a hard error.
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'lesson_progress') then
+    execute 'drop policy if exists "Users own their progress" on public."lesson_progress"';
+    execute $q$create policy "Users own their progress" on public."lesson_progress" as permissive for ALL to public USING (((select auth.uid()) = user_id))$q$;
+  end if;
+end $$;
 
 drop policy if exists "live_events_service_delete" on public."live_events";
 create policy "live_events_service_delete" on public."live_events" as permissive for DELETE to public
