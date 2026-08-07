@@ -146,13 +146,28 @@ ALTER TABLE public.mains_band_overrides ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "mains_band_overrides_service_only" ON public.mains_band_overrides;
 CREATE POLICY "mains_band_overrides_service_only" ON public.mains_band_overrides FOR ALL TO service_role USING (true);
 
-CREATE OR REPLACE VIEW public.mains_band_stats AS
-SELECT
-  (SELECT COUNT(*) FROM public.mains_band_overrides)  AS total_overrides,
-  (SELECT COUNT(*) FROM public.mains_submissions)      AS total_submissions,
-  CASE WHEN (SELECT COUNT(*) FROM public.mains_submissions) > 0
-    THEN ROUND(
-      (SELECT COUNT(*) FROM public.mains_band_overrides)::NUMERIC * 100.0
-      / (SELECT COUNT(*) FROM public.mains_submissions), 1)
-    ELSE NULL
-  END AS override_rate_pct;
+-- mains_band_stats already exists (created 20260708174800, richer 6-column
+-- view over the real mains_answer_submissions/mains_band_overrides system --
+-- see RISK register re: the pre-existing mains-answer-evaluator feature).
+-- This file's mains_submissions/mains_questions/mains_band_overrides tables
+-- are a separate, still-unused "schema only" placeholder (per this file's
+-- own header comment) that duplicate already-existing table names via
+-- IF NOT EXISTS (safe no-op) but would otherwise clobber the working view
+-- with a narrower 3-column definition, which Postgres also rejects outright
+-- since CREATE OR REPLACE VIEW cannot drop columns. Skipped entirely so the
+-- real, already-populated view is left untouched.
+do $$
+begin
+  if not exists (select 1 from information_schema.views where table_schema = 'public' and table_name = 'mains_band_stats') then
+    execute $q$create view public.mains_band_stats as
+      select
+        (select count(*) from public.mains_band_overrides)  as total_overrides,
+        (select count(*) from public.mains_submissions)      as total_submissions,
+        case when (select count(*) from public.mains_submissions) > 0
+          then round(
+            (select count(*) from public.mains_band_overrides)::numeric * 100.0
+            / (select count(*) from public.mains_submissions), 1)
+          else null
+        end as override_rate_pct$q$;
+  end if;
+end $$;
