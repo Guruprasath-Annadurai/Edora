@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext, createContext, type ReactNode } from 'react';
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { Profile } from '@/types';
@@ -35,7 +35,34 @@ const RETRY_DELAYS_MS = [400, 800, 1600];
 const TOKEN_REFRESH_INTERVAL_MS = 4 * 60 * 1000;  // 4 min
 const TOKEN_REFRESH_THRESHOLD_MS = 10 * 60 * 1000; // refresh if < 10 min left
 
+// `useAuth()` used to be a plain hook: every one of its ~90 call sites across
+// the app ran its OWN independent copy of this state machine — its own
+// getSession() call, its own onAuthStateChange subscription, its own
+// fetchProfile(). Nothing was actually shared. That meant e.g. AuthGuard's
+// "profile is ready" could resolve on ITS copy while a page component
+// mounted moments later (AccountSettingsPage, the /login route, etc.) was
+// still sitting on ITS OWN copy's initial profile:null, because that
+// instance's fetch hadn't resolved yet — every consumer raced independently.
+// Root-caused via the authenticated E2E suite: AccountSettingsPage's
+// "Save Changes" silently no-opped (profile was null in its closure) even
+// though the page visibly showed the user's real data, sourced from a
+// DIFFERENT useAuth() instance's state. Fixed by hoisting the state machine
+// into a single Context Provider (mounted once in App.tsx) so every
+// consumer reads the SAME resolved state instead of racing its own copy.
+const AuthContext = createContext<ReturnType<typeof useAuthState> | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const auth = useAuthState();
+  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+}
+
 export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth() must be used within <AuthProvider>');
+  return ctx;
+}
+
+function useAuthState() {
   const [state, setState] = useState<AuthState>({
     user: null, session: null, profile: null,
     loading: true, profileLoading: false,
@@ -120,7 +147,33 @@ export function useAuth() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Dedupe concurrent fetchProfile calls for the same user. On every page
+  // load, supabase.auth.getSession().then(...) below AND onAuthStateChange's
+  // INITIAL_SESSION event (which supabase-js fires on subscribe, independent
+  // of getSession()) both trigger a fetchProfile for the same userId within
+  // the same tick. Without this guard, two concurrent requests race, and
+  // whichever resolves *last* wins the setState — if that one hits a
+  // transient PGRST116 (e.g. a cold connection under CI load), it silently
+  // nulls out a profile the other, correct, response had just set. Found via
+  // the account-settings E2E round-trip test: a hard page.reload() reliably
+  // reproduced a blank profile despite the DB row being fully populated.
+  const profileFetchInFlightRef = useRef<{ userId: string; promise: Promise<Profile | null> } | null>(null);
+
   async function fetchProfile(userId: string, attempt = 0): Promise<Profile | null> {
+    if (attempt === 0 && profileFetchInFlightRef.current?.userId === userId) {
+      return profileFetchInFlightRef.current.promise;
+    }
+    const promise = fetchProfileImpl(userId, attempt);
+    if (attempt === 0) {
+      profileFetchInFlightRef.current = { userId, promise };
+      void promise.finally(() => {
+        if (profileFetchInFlightRef.current?.promise === promise) profileFetchInFlightRef.current = null;
+      });
+    }
+    return promise;
+  }
+
+  async function fetchProfileImpl(userId: string, attempt: number): Promise<Profile | null> {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -168,7 +221,15 @@ export function useAuth() {
   async function signOut() {
     const userId = state.user?.id;
     try {
-      await supabase.auth.signOut();
+      // scope: 'local' — supabase-js defaults to 'global', which revokes the
+      // refresh token for EVERY session the user has (all devices/tabs), not
+      // just this one. Surfaced by the authenticated E2E suite: signing out
+      // one throwaway test session silently killed every other test's
+      // already-authenticated session mid-run. A real user tapping "Sign
+      // Out" on their phone would have the same surprise: it would also log
+      // them out of their web session elsewhere. Consumer apps expect
+      // "sign out" to end only the current session.
+      await supabase.auth.signOut({ scope: 'local' });
     } catch (err) {
       // Sign-out failed (network error) — still clear local state so the user
       // isn't stuck on a shared device. The session will expire server-side.
