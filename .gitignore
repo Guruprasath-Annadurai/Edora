@@ -17,6 +17,7 @@ ios/App/App/GoogleService-Info.plist
 android/keystore.properties
 android/*.jks
 android/*.keystore
+android/*.pem
 
 # TS incremental build cache — machine-specific, regenerated on build
 *.tsbuildinfo
