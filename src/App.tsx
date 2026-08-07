@@ -321,7 +321,7 @@ function SessionExpiredModal() {
 }
 
 function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((path: string) => void) | null } }) {
-  const { user, profile } = useAuth();
+  const { user, profile, profileLoading } = useAuth();
   const navigate = useNavigate();
 
   // Preload home data eagerly on auth so the HomePage paints without a second network trip
@@ -366,7 +366,15 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
         </div>
       }>
       <Routes>
-        <Route path="/login"          element={user ? <Navigate to={profile ? '/home' : '/onboarding'} replace /> : <LoginPage />} />
+        <Route path="/login"          element={
+          user
+            ? (profileLoading
+                ? <div className="flex items-center justify-center h-full min-h-[40vh]">
+                    <div className="w-8 h-8 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin" />
+                  </div>
+                : <Navigate to={profile ? '/home' : '/onboarding'} replace />)
+            : <LoginPage />
+        } />
         <Route path="/onboarding"     element={!user ? <Navigate to="/login" replace /> : <OnboardingPage />} />
         <Route path="/privacy-policy"   element={<PrivacyPolicyPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
