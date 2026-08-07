@@ -14,6 +14,20 @@ CREATE TABLE IF NOT EXISTS public.concept_aliases (
 
 CREATE INDEX IF NOT EXISTS concept_aliases_concept_idx ON public.concept_aliases (concept);
 
+-- 20260807_knowledge_graph.sql listed these 4 concepts only as "unlocks"
+-- targets on their parent nodes (prism, complex_numbers, redox_reactions,
+-- electrochemistry) but never created rows for them -- a real gap in that
+-- seed data, surfaced here because concept_aliases.concept has a hard FK
+-- to concept_graph.concept and this file's aliases reference all 4 by name.
+-- Backfilled as minimal leaf nodes (requires = the parent that unlocks
+-- them, no further unlocks of their own).
+INSERT INTO public.concept_graph (concept, requires, unlocks) VALUES
+  ('dispersion_of_light',   ARRAY['prism'],            '{}'),
+  ('de_moivre_theorem',     ARRAY['complex_numbers'],  '{}'),
+  ('balancing_redox',       ARRAY['redox_reactions'],  '{}'),
+  ('faraday_laws_electro',  ARRAY['electrochemistry'], '{}')
+ON CONFLICT (concept) DO NOTHING;
+
 -- ── 2. Seed — 250+ aliases covering JEE/NEET corpus ─────────────────────────
 INSERT INTO public.concept_aliases (alias, concept) VALUES
 -- ── Physics: Mechanics ───────────────────────────────────────────────────────
@@ -321,7 +335,12 @@ INSERT INTO public.concept_aliases (alias, concept) VALUES
   ('organic chemistry basics',    'organic_basics'),
   ('reaction mechanisms',         'organic_basics'),
   ('inductive effect',            'inductive_effect'),
-  ('resonance',                   'organic_basics'),
+  -- 'resonance' alone is already claimed by lc_circuits (electrical
+  -- resonance) above -- alias is a PRIMARY KEY, so the same word can't map
+  -- to two different concepts. Organic resonance (electron delocalisation)
+  -- gets the more specific phrase actual students/NCERT text use.
+  ('resonance structures',        'organic_basics'),
+  ('resonance effect',            'organic_basics'),
   ('isomerism',                   'isomerism'),
   ('structural isomerism',        'isomerism'),
   ('stereoisomerism',             'isomerism'),
