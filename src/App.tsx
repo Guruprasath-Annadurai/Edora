@@ -14,7 +14,7 @@ import { ErrorBoundary, RouteErrorBoundary } from '@/components/ErrorBoundary';
 import { AppShell } from '@/components/layout/AppShell';
 import { ConnectionGuard } from '@/components/guards/ConnectionGuard';
 import { TeacherBroadcastBanner } from '@/components/realtime/TeacherBroadcastBanner';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, AuthProvider } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import DPDPConsentModal from '@/components/consent/DPDPConsentModal';
 import { PermissionRationale } from '@/components/ui/PermissionRationale';
@@ -321,7 +321,7 @@ function SessionExpiredModal() {
 }
 
 function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((path: string) => void) | null } }) {
-  const { user, profile } = useAuth();
+  const { user, profile, profileLoading } = useAuth();
   const navigate = useNavigate();
 
   // Preload home data eagerly on auth so the HomePage paints without a second network trip
@@ -366,7 +366,15 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
         </div>
       }>
       <Routes>
-        <Route path="/login"          element={user ? <Navigate to={profile ? '/home' : '/onboarding'} replace /> : <LoginPage />} />
+        <Route path="/login"          element={
+          user
+            ? (profileLoading
+                ? <div className="flex items-center justify-center h-full min-h-[40vh]">
+                    <div className="w-8 h-8 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin" />
+                  </div>
+                : <Navigate to={profile ? '/home' : '/onboarding'} replace />)
+            : <LoginPage />
+        } />
         <Route path="/onboarding"     element={!user ? <Navigate to="/login" replace /> : <OnboardingPage />} />
         <Route path="/privacy-policy"   element={<PrivacyPolicyPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
@@ -550,7 +558,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
   );
 }
 
-export default function App() {
+function AppInner() {
   const deepLinkNavigateRef = useOAuthDeepLink();
   usePerformanceTier();
   const { profile } = useAuth();
@@ -563,18 +571,26 @@ export default function App() {
   }, []);
 
   return (
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider isPro={profile?.is_pro ?? false}>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <ConnectionGuard>
+              <AppRoutes deepLinkNavigateRef={deepLinkNavigateRef} />
+            </ConnectionGuard>
+          </BrowserRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </MotionConfig>
+  );
+}
+
+export default function App() {
+  return (
     <ErrorBoundary>
-      <MotionConfig reducedMotion="user">
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider isPro={profile?.is_pro ?? false}>
-            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <ConnectionGuard>
-                <AppRoutes deepLinkNavigateRef={deepLinkNavigateRef} />
-              </ConnectionGuard>
-            </BrowserRouter>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </MotionConfig>
+      <AuthProvider>
+        <AppInner />
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

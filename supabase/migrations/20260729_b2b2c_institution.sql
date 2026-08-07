@@ -243,8 +243,9 @@ LEFT JOIN (
   SELECT
     user_id,
     COUNT(*) AS total_sessions,
-    ROUND(AVG(score_pct))::INTEGER AS correct_pct
+    ROUND(AVG(CASE WHEN questions_count > 0 THEN (score::NUMERIC / questions_count) * 100 END))::INTEGER AS correct_pct
   FROM public.quiz_sessions
+  WHERE questions_count > 0
   GROUP BY user_id
 ) ts ON ts.user_id = im.user_id
 WHERE im.role = 'student';

@@ -5,9 +5,11 @@
 -- ALL's own-check also permitted self-insert alongside the existing service_role-only
 -- INSERT policy; preserve that by merging own into the INSERT policy. UPDATE has no
 -- other policy, so add an explicit own-only UPDATE to replace what ALL provided.
-drop policy "users_own_memories" on "novo_memories";
+drop policy if exists "users_own_memories" on "novo_memories";
+drop policy if exists "novo_memories_update" on "novo_memories";
 create policy "novo_memories_update" on "novo_memories" for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
-drop policy "novo_memories_service_insert" on "novo_memories";
+drop policy if exists "novo_memories_service_insert" on "novo_memories";
+drop policy if exists "novo_memories_insert" on "novo_memories";
 create policy "novo_memories_insert" on "novo_memories" for insert with check (
   ((select auth.uid()) = user_id) or (auth.role() = 'service_role')
 );

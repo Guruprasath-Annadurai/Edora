@@ -56,7 +56,12 @@ AS $$
 $$;
 
 -- ── 4. set_rag_cache — updated signature; adds p_embedding (DEFAULT NULL) ────
--- Existing callers with 7 positional args continue to work unchanged.
+-- Adding a new trailing parameter changes the arg count, so CREATE OR
+-- REPLACE would create a second overload (7-arg + 8-arg) rather than truly
+-- replacing it, making bare-name calls/grants ambiguous -- drop the old
+-- 7-arg signature first (same fix as enterprise/433's search_corpus_unified).
+DROP FUNCTION IF EXISTS public.set_rag_cache(text, text, text, uuid[], text, text, integer);
+
 CREATE OR REPLACE FUNCTION public.set_rag_cache(
   p_key         TEXT,
   p_query       TEXT,

@@ -59,13 +59,21 @@ drop policy if exists "cmp_service_write" on public."composed_mock_papers";
 create policy "cmp_service_write" on public."composed_mock_papers" as permissive for INSERT to public
   WITH CHECK (((select auth.role()) = 'service_role'::text));
 
-drop policy if exists "concept_aliases_read" on public."concept_aliases";
-create policy "concept_aliases_read" on public."concept_aliases" as permissive for SELECT to public
-  USING (((select auth.role()) = 'authenticated'::text));
-
-drop policy if exists "concept_graph_read" on public."concept_graph";
-create policy "concept_graph_read" on public."concept_graph" as permissive for SELECT to public
-  USING (((select auth.role()) = 'authenticated'::text));
+-- concept_aliases and concept_graph don't exist yet at this point in
+-- migration history -- created later by 20260807_knowledge_graph.sql and
+-- 20260808000000_concept_aliases_iap.sql, which grant their own SELECT
+-- access directly. Guarded as no-ops here.
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'concept_aliases') then
+    execute 'drop policy if exists "concept_aliases_read" on public."concept_aliases"';
+    execute $q$create policy "concept_aliases_read" on public."concept_aliases" as permissive for SELECT to public USING (((select auth.role()) = 'authenticated'::text))$q$;
+  end if;
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'concept_graph') then
+    execute 'drop policy if exists "concept_graph_read" on public."concept_graph"';
+    execute $q$create policy "concept_graph_read" on public."concept_graph" as permissive for SELECT to public USING (((select auth.role()) = 'authenticated'::text))$q$;
+  end if;
+end $$;
 
 drop policy if exists "concept_reels_service_delete" on public."concept_reels";
 create policy "concept_reels_service_delete" on public."concept_reels" as permissive for DELETE to public
@@ -92,9 +100,16 @@ drop policy if exists "Authenticated users read challenge metadata" on public."d
 create policy "Authenticated users read challenge metadata" on public."daily_challenges" as permissive for SELECT to public
   USING (((select auth.role()) = 'authenticated'::text));
 
-drop policy if exists "Users access own mission completions" on public."daily_mission_completions";
-create policy "Users access own mission completions" on public."daily_mission_completions" as permissive for ALL to public
-  USING (((select auth.uid()) = user_id));
+-- daily_mission_completions doesn't exist yet at this point in migration
+-- history -- created later by 20260718_battle_elo_mission.sql, which
+-- establishes this exact policy itself. Guarded as a no-op here.
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'daily_mission_completions') then
+    execute 'drop policy if exists "Users access own mission completions" on public."daily_mission_completions"';
+    execute $q$create policy "Users access own mission completions" on public."daily_mission_completions" as permissive for ALL to public USING (((select auth.uid()) = user_id))$q$;
+  end if;
+end $$;
 
 drop policy if exists "doubt_answers_insert_auth" on public."doubt_room_answers";
 create policy "doubt_answers_insert_auth" on public."doubt_room_answers" as permissive for INSERT to public
