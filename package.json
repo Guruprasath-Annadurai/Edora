@@ -18,6 +18,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
+    "dev:staging": "vite --mode staging --port 8101",
+    "test:e2e:staging": "playwright test --config=playwright.staging.config.ts",
     "ios": "npm run build:mobile && npx cap sync ios && npx cap open ios",
     "android": "npm run build:mobile && npx cap sync android && npx cap open android",
     "cap:sync": "npx cap sync",
