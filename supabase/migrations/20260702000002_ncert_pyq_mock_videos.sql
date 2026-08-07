@@ -174,7 +174,14 @@ CREATE TABLE IF NOT EXISTS public.mock_test_attempts (
   parent_email_sent BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE INDEX IF NOT EXISTS mta_user_exam_idx ON public.mock_test_attempts (user_id, exam_type, created_at DESC);
+-- Was `created_at DESC`, but this table (defined immediately above) has no
+-- such column -- only started_at/completed_at. A genuine typo, found via
+-- the real supabase db push error against staging; no later migration ever
+-- adds created_at (confirmed by grepping the full migration set, including
+-- 20260708053322_create_mock_test_attempts_and_percentile.sql's own
+-- indexes, which correctly use completed_at for the same purpose).
+-- started_at is the closest equivalent for "most recent attempts first".
+CREATE INDEX IF NOT EXISTS mta_user_exam_idx ON public.mock_test_attempts (user_id, exam_type, started_at DESC);
 
 ALTER TABLE public.mock_test_attempts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "mta_own" ON public.mock_test_attempts;
