@@ -14,7 +14,7 @@ import { ErrorBoundary, RouteErrorBoundary } from '@/components/ErrorBoundary';
 import { AppShell } from '@/components/layout/AppShell';
 import { ConnectionGuard } from '@/components/guards/ConnectionGuard';
 import { TeacherBroadcastBanner } from '@/components/realtime/TeacherBroadcastBanner';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, AuthProvider } from '@/hooks/useAuth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import DPDPConsentModal from '@/components/consent/DPDPConsentModal';
 import { PermissionRationale } from '@/components/ui/PermissionRationale';
@@ -558,7 +558,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
   );
 }
 
-export default function App() {
+function AppInner() {
   const deepLinkNavigateRef = useOAuthDeepLink();
   usePerformanceTier();
   const { profile } = useAuth();
@@ -571,18 +571,26 @@ export default function App() {
   }, []);
 
   return (
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider isPro={profile?.is_pro ?? false}>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <ConnectionGuard>
+              <AppRoutes deepLinkNavigateRef={deepLinkNavigateRef} />
+            </ConnectionGuard>
+          </BrowserRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </MotionConfig>
+  );
+}
+
+export default function App() {
+  return (
     <ErrorBoundary>
-      <MotionConfig reducedMotion="user">
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider isPro={profile?.is_pro ?? false}>
-            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <ConnectionGuard>
-                <AppRoutes deepLinkNavigateRef={deepLinkNavigateRef} />
-              </ConnectionGuard>
-            </BrowserRouter>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </MotionConfig>
+      <AuthProvider>
+        <AppInner />
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
