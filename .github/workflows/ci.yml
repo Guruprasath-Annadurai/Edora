@@ -294,7 +294,14 @@ jobs:
           unzip -q -o "$APK" -d "$EXTRACT_DIR"
 
           # 1. APK's own binary metadata matches repo version/commit.
-          BADGING=$(aapt dump badging "$APK" 2>/dev/null || $ANDROID_HOME/build-tools/*/aapt dump badging "$APK")
+          # NOTE: the unquoted-glob form ($ANDROID_HOME/build-tools/*/aapt) is
+          # broken when more than one build-tools version is installed on the
+          # runner (observed live in CI: it expands to multiple paths, so the
+          # shell runs the first as the command and the second as its literal
+          # argument, producing "Unknown command '.../aapt'"). Pick exactly
+          # one binary deterministically instead.
+          AAPT_BIN=$(command -v aapt || find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt | sort -V | tail -1)
+          BADGING=$("$AAPT_BIN" dump badging "$APK")
           echo "$BADGING" | head -1
           PKG_VERSION=$(node -p "require('./package.json').version")
           echo "$BADGING" | grep -q "versionName='$PKG_VERSION'" || { echo "::error::APK versionName does not match package.json ($PKG_VERSION)"; exit 1; }

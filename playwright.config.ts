@@ -8,6 +8,13 @@ import { defineConfig, devices } from '@playwright/test';
 // here can write to production data or count against production rate limits.
 export default defineConfig({
   testDir: './e2e',
+  // e2e/authenticated/** requires a staging Supabase login (storageState from
+  // auth.setup.ts) and runs only via playwright.staging.config.ts / npm run
+  // test:e2e:staging. Without this exclusion, this config's own testDir glob
+  // picks those specs up too and runs them against an unauthenticated local
+  // dev server, where every one of them fails/times out waiting for
+  // authenticated UI that never renders (confirmed live in CI run 31204012174).
+  testIgnore: ['**/authenticated/**'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
