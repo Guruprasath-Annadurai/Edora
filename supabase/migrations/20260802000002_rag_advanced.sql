@@ -60,7 +60,7 @@ RETURNS TABLE (
   rrf_score     FLOAT8
 )
 LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   WITH
   -- Dense retrieval: top-20 by cosine similarity
