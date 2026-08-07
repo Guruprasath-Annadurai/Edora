@@ -67,8 +67,9 @@ export const MANDATE_STAGES = [
   { duration: '1m', target: 0 },
 ];
 
-// What was ACTUALLY run this phase — a small, safe smoke scale against the
-// free-tier edora-staging project. Real numbers, honestly scoped.
+// What was run in the ORIGINAL Phase 11 pass — a small, safe smoke scale
+// against the free-tier edora-staging project. Kept for reference; the
+// EXTENDED_STAGES profile below is what production-hardening pass #2 ran.
 const SAFE_SMOKE_STAGES = [
   { duration: '15s', target: 5 },
   { duration: '30s', target: 20 },
@@ -76,8 +77,27 @@ const SAFE_SMOKE_STAGES = [
   { duration: '15s', target: 0 },
 ];
 
+// Extended safe run (2026-08-08 production-hardening pass): pushes further
+// than the original 20-VU smoke test and holds at peak for longer (a soak
+// window, not just a spike) — still deliberately well short of the
+// mandate's literal 100-VU first stage. PostgREST pools Postgres
+// connections rather than mapping 1 VU : 1 connection, so VU count and DB
+// connection count are NOT the same number; this profile was chosen by
+// checking get_connection_stats() (max_connections: 60, baseline ~12)
+// before running and treating a large multiple of VUs over the connection
+// ceiling as the actual safety bound, not the VU count itself.
+const EXTENDED_STAGES = [
+  { duration: '20s', target: 10 },
+  { duration: '20s', target: 30 },
+  { duration: '30s', target: 60 },
+  { duration: '90s', target: 60 },
+  { duration: '20s', target: 0 },
+];
+
+const STAGE_PROFILE = __ENV.STAGE_PROFILE === 'extended' ? EXTENDED_STAGES : SAFE_SMOKE_STAGES;
+
 export const options = {
-  stages: SAFE_SMOKE_STAGES,
+  stages: STAGE_PROFILE,
   thresholds: {
     http_req_duration: ['p(95)<1500'],  // p95 under 1.5s
     http_req_failed:   ['rate<0.05'],   // <5% error rate
