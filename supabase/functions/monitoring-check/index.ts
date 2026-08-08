@@ -24,6 +24,11 @@
 //      the gap that let pyq-content-audit-nightly fail silently every night
 //      for an unknown period — it reports to cron_health, but nothing ever
 //      read that table.
+//   7. Stuck mock exam attempts (RISK-030) — mock_test_attempt_starts rows
+//      older than 6h (matching mockExamRecovery.ts's resume TTL) with no
+//      matching completed attempt_key in mock_test_attempts. Previously
+//      this failure mode left zero trace anywhere; this is the first signal
+//      of how often it actually happens, not just that it might.
 //
 // Severity: 🔴 CRITICAL alerts also prefix the Slack message with <!channel>.
 // 🟡 WARNING alerts post normally. This is NOT a substitute for real on-call
@@ -191,6 +196,35 @@ serve(withSentry('monitoring-check', async (req) => {
       alerts.push({ severity: 'critical', text: `*Cron job failing:* \`${row.jobname}\` last run reported status \`error\`${row.last_summary ? ` — ${JSON.stringify(row.last_summary)}` : ''}` });
     } else if (row.last_status === 'inconclusive') {
       alerts.push({ severity: 'warning', text: `*Cron job reported inconclusive:* \`${row.jobname}\` (last run: ${row.last_run_at ?? 'unknown'})${row.last_summary ? ` — ${JSON.stringify(row.last_summary)}` : ''} — check whether this is a one-off provider blip or a structural issue (e.g. a missing API key)` });
+    }
+  }
+
+  // ── 7. Stuck mock exam attempts (RISK-030) ─────────────────────────────────
+  // No FK/join exposed between these two tables via PostgREST, so diff the
+  // attempt_key sets in-process. Bounded to a 30-day lookback so this never
+  // grows unbounded — attempts older than that are just historical noise for
+  // this specific alert, not a new finding worth re-surfacing forever.
+  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: starts } = await db
+    .from('mock_test_attempt_starts')
+    .select('attempt_key, exam_type, started_at')
+    .lt('started_at', sixHoursAgo)
+    .gte('started_at', thirtyDaysAgo);
+
+  if (starts && starts.length > 0) {
+    const { data: completed } = await db
+      .from('mock_test_attempts')
+      .select('attempt_key')
+      .not('attempt_key', 'is', null)
+      .gte('created_at', thirtyDaysAgo);
+    const completedKeys = new Set((completed ?? []).map((r: { attempt_key: string }) => r.attempt_key));
+    const stuck = starts.filter((s: { attempt_key: string }) => !completedKeys.has(s.attempt_key));
+    if (stuck.length > 0) {
+      alerts.push({
+        severity: 'warning',
+        text: `*Stuck mock exam attempts:* ${stuck.length} started >6h ago with no matching completed attempt in the last 30 days (e.g. \`${stuck[0].exam_type}\` started ${stuck[0].started_at}) — likely crashes/abandonment, first time this has been visible`,
+      });
     }
   }
 
