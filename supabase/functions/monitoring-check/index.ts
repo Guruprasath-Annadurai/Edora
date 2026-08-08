@@ -14,6 +14,16 @@
 //   5. Backup job health (Phase 2.2) — missing, stale (>30h old), or
 //      unexpectedly small (<10KB, real backups run ~400KB) db-backup-export
 //      output in the db-backups storage bucket
+//   6. Cron job health (RISK-032 follow-up) — any row in cron_health with
+//      last_status = 'error' or 'inconclusive'. cron_health only stores each
+//      job's single latest run (no history), so a transient one-off provider
+//      blip and a job that's been broken for weeks look identical from this
+//      table alone — alerting on every non-success run is the honest choice
+//      given that limitation, not a refinement to "only alert after N
+//      failures" that the data can't actually support yet. This is exactly
+//      the gap that let pyq-content-audit-nightly fail silently every night
+//      for an unknown period — it reports to cron_health, but nothing ever
+//      read that table.
 //
 // Severity: 🔴 CRITICAL alerts also prefix the Slack message with <!channel>.
 // 🟡 WARNING alerts post normally. This is NOT a substitute for real on-call
@@ -168,6 +178,19 @@ serve(withSentry('monitoring-check', async (req) => {
       // pattern npm/cron jobs are notorious for — worth flagging even though
       // the HTTP call itself returned 200.
       alerts.push({ severity: 'critical', text: `*Backup unexpectedly small:* \`${latestBackup.name}\` is only ${sizeBytes} bytes (recent backups run ~400KB) — likely a partial or failed export that still reported success` });
+    }
+  }
+
+  // ── 6. Cron job health (RISK-032 follow-up) ────────────────────────────────
+  const { data: cronRows } = await db
+    .from('cron_health')
+    .select('jobname, last_run_at, last_status, last_summary');
+
+  for (const row of (cronRows ?? []) as { jobname: string; last_run_at: string | null; last_status: string | null; last_summary: Record<string, unknown> | null }[]) {
+    if (row.last_status === 'error') {
+      alerts.push({ severity: 'critical', text: `*Cron job failing:* \`${row.jobname}\` last run reported status \`error\`${row.last_summary ? ` — ${JSON.stringify(row.last_summary)}` : ''}` });
+    } else if (row.last_status === 'inconclusive') {
+      alerts.push({ severity: 'warning', text: `*Cron job reported inconclusive:* \`${row.jobname}\` (last run: ${row.last_run_at ?? 'unknown'})${row.last_summary ? ` — ${JSON.stringify(row.last_summary)}` : ''} — check whether this is a one-off provider blip or a structural issue (e.g. a missing API key)` });
     }
   }
 
