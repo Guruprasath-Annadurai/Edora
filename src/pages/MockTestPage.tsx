@@ -394,8 +394,23 @@ export default function MockTestPage() {
     // mid-exam and subsequent resume (resumeExam()) reuses this SAME key,
     // making the eventual submit idempotent against retries or a duplicate
     // resumed-and-finished-twice submission. See mockExamRecovery.ts.
-    setAttemptKey(crypto.randomUUID());
+    const newAttemptKey = crypto.randomUUID();
+    setAttemptKey(newAttemptKey);
     setPhase('loading');
+
+    // RISK-030: mock_test_attempts only ever gets a row on successful
+    // completion — a crash/kill mid-exam previously left zero trace
+    // anywhere, server-side. This is that trace: an insert-only row the
+    // moment the attempt starts, before any answers exist. Best-effort and
+    // fire-and-forget — must never block or fail the exam start itself.
+    supabase.from('mock_test_attempt_starts').insert({
+      attempt_key: newAttemptKey,
+      user_id: profile.id,
+      exam_type: examType,
+      config_version: EXAM_CONFIG_VERSION,
+    }).then(({ error }) => {
+      if (error) console.error('[MockTest] failed to record attempt start:', error.message);
+    });
 
     const subjectColors: Record<string, string> = isLight
       ? { Physics: '#1D4ED8', Chemistry: '#047857', Maths: '#6D28D9', Biology: '#166534',
