@@ -14,7 +14,7 @@
 -- pg_prove in a real test database, the harness handles the transaction.
 
 begin;
-select plan(11);
+select plan(14);
 
 -- ── Setup: synthetic users, never real accounts ────────────────────────────
 insert into auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, aud, role)
@@ -117,6 +117,40 @@ select throws_ok(
   $$ set local role authenticated; insert into public.verified_question_bank (question_text, subject) values ('forged question', 'Physics') $$,
   '42501',
   'verified_question_bank: a plain user (no admin/moderator role) cannot insert directly into the moderated question bank'
+);
+
+-- ── Role self-escalation: institution_members (found live 2026-08-08) ─────
+-- Real, directly-exploitable vulnerability found while extending this file:
+-- the inst_mem_insert policy's with_check was (auth.uid() = user_id) OR
+-- is_institution_admin(...) — it never checked the VALUE of the `role`
+-- column being inserted. The app's own join_institution() RPC always
+-- hardcodes role='student' for self-joins, so the UI never exercised this,
+-- but the underlying table grant + RLS let any authenticated client bypass
+-- the app entirely and POST directly to /rest/v1/institution_members with
+-- {"role":"admin"} to instantly become an institution admin. Confirmed live
+-- against production via a rolled-back transaction before fixing (see
+-- supabase/migrations/20260808_fix_institution_members_role_self_escalation.sql),
+-- then confirmed the fix blocks it with no regression on the legitimate
+-- student self-join path. This is that fix, locked in as a regression test.
+insert into public.institutions (id, name, city, state, board, join_code, join_link_token, admin_user_id)
+values ('ffffffff-0000-0000-0000-000000000001', 'ZZZ Attack Institution', 'Test City', 'TS', 'CBSE', 'ZZZATKPG', 'zzzatkpgtoken', 'aaaaaaaa-0000-0000-0000-000000000001');
+
+select set_config('request.jwt.claims', json_build_object('sub','aaaaaaaa-0000-0000-0000-000000000002','role','authenticated')::text, true);
+select throws_ok(
+  $$ insert into public.institution_members (institution_id, user_id, role) values ('ffffffff-0000-0000-0000-000000000001'::uuid, 'aaaaaaaa-0000-0000-0000-000000000002'::uuid, 'admin') $$,
+  '42501',
+  'institution_members: a non-admin self-insert claiming role=admin is rejected'
+);
+
+select set_config('request.jwt.claims', json_build_object('sub','aaaaaaaa-0000-0000-0000-000000000002','role','authenticated')::text, true);
+select lives_ok(
+  $$ insert into public.institution_members (institution_id, user_id, role) values ('ffffffff-0000-0000-0000-000000000001'::uuid, 'aaaaaaaa-0000-0000-0000-000000000002'::uuid, 'student') $$,
+  'institution_members: no regression -- a self-insert with role=student (the real join_institution() path) still succeeds'
+);
+select is(
+  (select role from public.institution_members where institution_id = 'ffffffff-0000-0000-0000-000000000001'::uuid and user_id = 'aaaaaaaa-0000-0000-0000-000000000002'::uuid),
+  'student',
+  'institution_members: the row that landed is role=student, not admin'
 );
 
 select * from finish();

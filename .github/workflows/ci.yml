@@ -67,6 +67,40 @@ jobs:
       #   these tests never make a real network call.
       - run: deno test --allow-env --allow-net "supabase/functions/**/*.test.ts"
 
+  security-attack-tests:
+    name: Security Attack Tests (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # RISK-005: supabase/tests/database/security_attack_tests.sql has
+      # existed since Phase 1.4 but was never actually run through a real
+      # pgTAP harness in CI — only individually verified via raw SQL against
+      # production during authoring, and a composite run through this
+      # session's own SQL-execution tooling showed unreliable results
+      # (documented in docs/security/ATTACK_TESTS.md as a tooling gap, not
+      # an app defect). This job is the real fix: Supabase's own CLI spins
+      # up the full local stack (Postgres + auth/storage schemas + pgTAP
+      # pre-installed) via Docker, applies every local migration, then runs
+      # the actual pg_prove-backed test harness — the same tooling
+      # `supabase test db` uses locally.
+      #
+      # NOTE: written using Supabase's documented CI pattern
+      # (supabase/setup-cli + `supabase start` + `supabase test db`) but not
+      # verified end-to-end in this session — local Docker was unresponsive
+      # (`docker info` timed out) at the time this was written, so this could
+      # not be dry-run first. Stated honestly rather than claimed working
+      # without having seen it pass.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase stack
+        run: supabase start
+      - name: Run pgTAP attack tests
+        run: supabase test db
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop
+
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
