@@ -77,10 +77,18 @@ values ('dddddddd-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-0000000
 -- the old assertion's shape match would be a real security regression to
 -- satisfy a stale test, not a fix. Updated to assert the actual (stronger)
 -- security posture: anon cannot even attempt the read.
+--
+-- throws_ok's 3-arg form binds arg 3 as the expected exact error MESSAGE
+-- (not a free-text description) -- confirmed live via a failing CI run
+-- whose own diagnostic output showed "wanted: 42501: <our description
+-- text>" being compared against the real caught message. The 4-arg form
+-- (sql, errcode, exact_message, description) is required to get a custom
+-- description without an exact-message match.
 set local role anon;
 select throws_ok(
   $$ select count(*)::int from public.live_room_messages where id = 'dddddddd-0000-0000-0000-000000000001' $$,
   '42501',
+  'permission denied for table live_room_messages',
   'live_room_messages: an unauthenticated (anon) caller has no grant to even attempt reading message content'
 );
 reset role;
@@ -122,10 +130,16 @@ reset role;
 -- ── Role escalation attempt ────────────────────────────────────────────────
 -- A plain 'user'-role account (no admin/moderator app_role) attempts to
 -- insert directly into verified_question_bank, which is admin/moderator-gated.
+-- Same throws_ok 4-arg fix as the live_room_messages test above (arg 3 is
+-- the exact expected message, not a description) -- found live 2026-08-18
+-- via the same failing CI run; this assertion predates this session but
+-- was never actually exercised end to end until the migration chain
+-- finally applied cleanly in CI, so it never surfaced.
 select set_config('request.jwt.claims', json_build_object('sub','aaaaaaaa-0000-0000-0000-000000000002','role','authenticated')::text, true);
 select throws_ok(
   $$ set local role authenticated; insert into public.verified_question_bank (question_text, subject) values ('forged question', 'Physics') $$,
   '42501',
+  'permission denied for table verified_question_bank',
   'verified_question_bank: a plain user (no admin/moderator role) cannot insert directly into the moderated question bank'
 );
 
@@ -145,10 +159,24 @@ select throws_ok(
 insert into public.institutions (id, name, city, state, board, join_code, join_link_token, admin_user_id)
 values ('ffffffff-0000-0000-0000-000000000001', 'ZZZ Attack Institution', 'Test City', 'TS', 'CBSE', 'ZZZATKPG', 'zzzatkpgtoken', 'aaaaaaaa-0000-0000-0000-000000000001');
 
+-- Same throws_ok 4-arg fix. Also: this assertion genuinely failed live in
+-- CI (not just the arg-shape bug) -- traced to a stray, never-applied-to-
+-- production migration file (supabase/migrations/20260729_b2b2c_institution.sql,
+-- a duplicate of 20260702175408_b2b2c_institution_layer.sql) that recreated
+-- the original, pre-fix "inst_mem_self_join" policy (WITH CHECK (auth.uid()
+-- = user_id), no role check) alongside this fix's "inst_mem_insert" policy.
+-- RLS policies are OR'd, so the vulnerable policy silently re-opened the
+-- exact self-escalation hole 20260808010001/20260814131551 closed, but only
+-- in a fresh replay (CI/staging) -- confirmed via a live pg_policy query
+-- that production itself only ever had the correct 4 policies and never
+-- applied that stray file. Deleted the stray file rather than patching
+-- around it, since its content was pure duplicate cruft never used in
+-- production.
 select set_config('request.jwt.claims', json_build_object('sub','aaaaaaaa-0000-0000-0000-000000000002','role','authenticated')::text, true);
 select throws_ok(
   $$ insert into public.institution_members (institution_id, user_id, role) values ('ffffffff-0000-0000-0000-000000000001'::uuid, 'aaaaaaaa-0000-0000-0000-000000000002'::uuid, 'admin') $$,
   '42501',
+  'new row violates row-level security policy for table "institution_members"',
   'institution_members: a non-admin self-insert claiming role=admin is rejected'
 );
 
