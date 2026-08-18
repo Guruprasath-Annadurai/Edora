@@ -19,8 +19,13 @@ SELECT plan(6);
 INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-000000000001', 'grading-test@example.com');
 
+-- auth.users insert above fires the handle_new_user trigger (001_initial_
+-- schema.sql), which already creates a matching profiles row -- ON CONFLICT
+-- so this test doesn't depend on that trigger's exact default values, or
+-- collide with them, whichever the case in a given environment.
 INSERT INTO public.profiles (id, email, full_name) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'grading-test@example.com', 'Grading Test');
+  ('00000000-0000-0000-0000-000000000001', 'grading-test@example.com', 'Grading Test')
+ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, full_name = EXCLUDED.full_name;
 
 -- correct_answer index: 0=A, 1=B, 2=C, 3=D (position in the options array)
 INSERT INTO public.pyq_content (id, exam, subject, question_text, options, correct_option) VALUES

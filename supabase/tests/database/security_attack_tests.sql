@@ -67,11 +67,21 @@ values ('cccccccc-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-0000000
 insert into public.live_room_messages (id, room_id, user_id, sender_name, message_type, content)
 values ('dddddddd-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Attacker', 'chat', 'secret message');
 
+-- Reality found live 2026-08-18: anon has no table-level GRANT on
+-- live_room_messages at all (confirmed via a real pgTAP run against a
+-- fresh migration replay) -- the query fails with a flat permission-denied
+-- before RLS is ever evaluated, not a graceful "0 rows via RLS" result
+-- this assertion originally expected. Confirmed via full-repo grep that no
+-- anon-facing client code queries this table directly (it's realtime-
+-- subscription/authenticated-only) -- granting anon SELECT purely to make
+-- the old assertion's shape match would be a real security regression to
+-- satisfy a stale test, not a fix. Updated to assert the actual (stronger)
+-- security posture: anon cannot even attempt the read.
 set local role anon;
-select is(
-  (select count(*)::int from public.live_room_messages where id = 'dddddddd-0000-0000-0000-000000000001'),
-  0,
-  'live_room_messages: an unauthenticated (anon) caller cannot read message content'
+select throws_ok(
+  $$ select count(*)::int from public.live_room_messages where id = 'dddddddd-0000-0000-0000-000000000001' $$,
+  '42501',
+  'live_room_messages: an unauthenticated (anon) caller has no grant to even attempt reading message content'
 );
 reset role;
 
