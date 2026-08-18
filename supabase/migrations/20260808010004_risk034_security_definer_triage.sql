@@ -78,7 +78,14 @@ $function$;
 --    AI-generated academic answers served to other students who later hit the
 --    same cache key. Closing the gap the prior migration's own reasoning
 --    (incorrectly) assumed was already closed.
-revoke execute on function public.set_rag_cache(text, text, text, uuid[], text, text, integer) from authenticated;
+-- Signature updated 2026-08-18: 20260806_tier3_rag.sql (applied to
+-- production the same day, after being found never-applied) added a
+-- trailing p_embedding param and now also revokes authenticated/anon/
+-- PUBLIC itself at creation time -- this statement is redundant against
+-- a fresh replay but kept (idempotent REVOKE) so this migration's own
+-- history stays accurate and it doesn't error against the signature
+-- that now actually exists.
+revoke execute on function public.set_rag_cache(text, text, text, uuid[], text, text, integer, vector) from authenticated;
 revoke execute on function public.get_rag_cache(text) from authenticated;
 
 -- 3. has_role(_user_id, _role): confirmed via grep + pg_policies that this is
