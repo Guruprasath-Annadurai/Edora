@@ -14,9 +14,9 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { validateStudyPack, type StudyPack, FLASHCARD_COUNT, QUIZ_COUNT, KEY_TERM_COUNT } from './validate.ts';
-// gemini-1.5-flash with JSON mode for guaranteed structured output
+// gemini-flash-latest with JSON mode for guaranteed structured output
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
 // Max chars we send to Gemini — keeps latency predictable
 const MAX_TEXT_CHARS = 12_000;

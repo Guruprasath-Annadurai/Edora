@@ -4,7 +4,7 @@ import { getCors } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 
 const GEMINI_API_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
 const EXTRACT_PROMPT = `You are a memory extraction system. Given a conversation turn, extract 0-3 important facts about the student worth remembering for future personalization.
 

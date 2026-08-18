@@ -13,7 +13,7 @@ const GEMINI_API_KEY    = Deno.env.get('GEMINI_API_KEY')!;
 const GROQ_API_KEY      = Deno.env.get('GROQ_API_KEY')!;
 const GROQ_BASE_URL     = 'https://api.groq.com/openai/v1/chat/completions';
 const EMBED_URL         = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent';
-const GROQ_MODEL        = 'llama-3.1-8b-instant'; // lightweight — summary tasks only
+const GROQ_MODEL        = 'openai/gpt-oss-20b'; // lightweight — summary tasks only. llama-3.1-8b-instant decommissioned by Groq (confirmed 2026-08-18)
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const MAX_USERS_PER_RUN  = 50;   // process at most N users per nightly run

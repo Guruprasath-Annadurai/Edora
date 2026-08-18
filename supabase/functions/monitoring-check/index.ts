@@ -29,6 +29,16 @@
 //      matching completed attempt_key in mock_test_attempts. Previously
 //      this failure mode left zero trace anywhere; this is the first signal
 //      of how often it actually happens, not just that it might.
+//   8. AI model availability — direct result of a real incident (2026-08-16):
+//      3 separate Groq/Gemini model IDs had been silently decommissioned by
+//      their providers (deepseek-r1-distill-llama-70b, gemini-1.5-flash,
+//      gemini-2.0-flash) and were hard-failing on every call across ~30
+//      functions, for an unknown period, with nothing catching it — found by
+//      accident while debugging an unrelated eval tool, not by any alert.
+//      Makes one minimal (1-token) real completion call per model this app
+//      depends on and alerts if a provider reports it gone, so the next
+//      occurrence of this exact failure mode is caught by monitoring instead
+//      of by chance.
 //
 // Severity: 🔴 CRITICAL alerts also prefix the Slack message with <!channel>.
 // 🟡 WARNING alerts post normally. This is NOT a substitute for real on-call
@@ -228,6 +238,61 @@ serve(withSentry('monitoring-check', async (req) => {
     }
   }
 
+  // ── 8. AI model availability watchdog ────────────────────────────────────
+  // Keep these model IDs in sync with the real ones in gemini-chat/index.ts
+  // and pyq-content-audit/index.ts — this check can't import them across a
+  // separate function deployment, so drift here is a real risk to watch for.
+  const groqKey = Deno.env.get('GROQ_API_KEY');
+  const geminiKey = Deno.env.get('GEMINI_API_KEY');
+
+  async function deadModelReason(provider: 'groq' | 'gemini', model: string): Promise<string | null> {
+    try {
+      if (provider === 'groq') {
+        if (!groqKey) return null; // missing-secret is a different concern, not this check's job
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+          body: JSON.stringify({ model, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 }),
+        });
+        if (res.status === 400 || res.status === 404) {
+          const body = await res.text().catch(() => '');
+          if (/decommission|not.?found|does not exist|invalid model/i.test(body)) return body.slice(0, 200);
+        }
+        return null;
+      } else {
+        if (!geminiKey) return null;
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 1 } }),
+          },
+        );
+        if (res.status === 404) return (await res.text().catch(() => '')).slice(0, 200);
+        return null;
+      }
+    } catch {
+      return null; // network/timeout errors aren't this check's concern — only "model is gone" is
+    }
+  }
+
+  const modelsToWatch: Array<{ provider: 'groq' | 'gemini'; model: string; usedBy: string }> = [
+    { provider: 'groq', model: 'openai/gpt-oss-120b', usedBy: 'gemini-chat + 8 other functions (primary/judge/quality models)' },
+    { provider: 'groq', model: 'openai/gpt-oss-20b', usedBy: 'gemini-chat + tutoring-engine + novo-memory-consolidate (fast-path fallback)' },
+    { provider: 'gemini', model: 'gemini-flash-latest', usedBy: 'gemini-chat + pyq-content-audit + 28 other functions (Gemini fallback)' },
+  ];
+
+  for (const m of modelsToWatch) {
+    const reason = await deadModelReason(m.provider, m.model);
+    if (reason) {
+      alerts.push({
+        severity: 'critical',
+        text: `*AI model unavailable:* ${m.provider} model \`${m.model}\` (used by ${m.usedBy}) appears decommissioned/not-found: ${reason}`,
+      });
+    }
+  }
+
   if (alerts.length > 0 && webhookUrl) {
     await postToSlack(webhookUrl, alerts);
   }
@@ -237,5 +302,6 @@ serve(withSentry('monitoring-check', async (req) => {
     alerts_fired: alerts.length,
     critical: alerts.filter(a => a.severity === 'critical').length,
     checked_at: new Date().toISOString(),
+    alerts: alerts.map(a => ({ severity: a.severity, text: a.text })),
   });
 }));

@@ -31,7 +31,7 @@ import { withSentry } from '../_shared/sentry.ts';
 import { validateWeeks, type RoadmapWeek, type GeminiRoadmap } from './validate.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
 const REQUEST_TIMEOUT_MS = 60_000;
 const MAX_PLAN_WEEKS     = 16;   // cap to avoid token overflow
@@ -575,7 +575,7 @@ serve(withSentry('roadmap-generator', async (req) => {
       );
 
       let recalData: GeminiRoadmap;
-      let recalModel = 'gemini-1.5-flash';
+      let recalModel = 'gemini-flash-latest';
       if (body.use_nemotron) {
         try {
           const { data: cards } = await db

@@ -13,7 +13,7 @@ import { getCors } from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { validateWeeks } from './validate.ts';
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-flash-latest';
 
 async function callGeminiOnce(prompt: string, apiKey: string): Promise<unknown> {
   const res = await fetch(

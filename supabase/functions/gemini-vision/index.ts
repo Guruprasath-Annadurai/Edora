@@ -30,7 +30,7 @@ const ANON_KEY       = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
 
-const VISION_MODEL = 'gemini-1.5-flash';
+const VISION_MODEL = 'gemini-flash-latest';
 const GEMINI_BASE  = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent`;
 
 // Gemini's free tier returns 429 under burst load well before any per-user

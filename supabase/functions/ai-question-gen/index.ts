@@ -11,7 +11,7 @@ import { getCors }      from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
 import { callAI }     from '../_shared/aiGateway.ts';
 import { isValidQuestion, type GeneratedQuestion } from './validate.ts';
-const GROQ_MODEL    = 'llama-3.3-70b-versatile';
+const GROQ_MODEL    = 'openai/gpt-oss-120b'; // llama-3.3-70b-versatile decommissioned by Groq (confirmed 2026-08-18)
 const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
 
 const LANG_INSTRUCTIONS: Record<string, string> = {

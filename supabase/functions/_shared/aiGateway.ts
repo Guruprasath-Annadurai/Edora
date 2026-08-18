@@ -52,11 +52,23 @@ export interface CallAIResult {
 // when a provider's pricing changes; being slightly stale doesn't compromise
 // the kill switch (that check doesn't depend on cost estimates at all).
 const COST_PER_1M_TOKENS_USD: Record<string, { input: number; output: number }> = {
+  // llama-3.3-70b-versatile, llama-3.1-8b-instant, gemini-2.0-flash, and
+  // gemini-1.5-flash were all confirmed decommissioned by their providers
+  // (2026-08-16/18) — kept here only so aiGateway.test.ts's existing cost
+  // assertions (written against these keys) keep passing; no live call site
+  // uses these model strings anymore as of 2026-08-18.
   'llama-3.3-70b-versatile': { input: 0.59, output: 0.79 },
   'llama-3.1-8b-instant':    { input: 0.05, output: 0.08 },
   'gemini-2.0-flash':        { input: 0.10, output: 0.40 },
   'gemini-1.5-flash':        { input: 0.075, output: 0.30 },
   'gemini-embedding-001':    { input: 0.0, output: 0.0 }, // embeddings — no completion cost
+  // Current models (2026-08-18). Pricing is an estimate carried over from
+  // the similarly-sized llama-3.3-70b/3.1-8b entries above, not fetched from
+  // Groq's live pricing page — good enough to keep the cost ceiling
+  // meaningful, but flagged here as needing a real-pricing check.
+  'openai/gpt-oss-120b':     { input: 0.59, output: 0.79 },
+  'openai/gpt-oss-20b':      { input: 0.05, output: 0.08 },
+  'gemini-flash-latest':     { input: 0.10, output: 0.40 },
 };
 
 function estimateCostUsd(model: string, promptTokens?: number, completionTokens?: number): number | null {

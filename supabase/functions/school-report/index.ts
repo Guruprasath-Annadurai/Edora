@@ -443,7 +443,7 @@ Be warm, specific, and end with one actionable tip. Max 60 words.`;
         if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
         try {
           const r = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

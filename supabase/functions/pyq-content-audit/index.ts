@@ -38,7 +38,7 @@ function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 async function gemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
   );
@@ -74,7 +74,7 @@ async function reasonAboutContent(prompt: string): Promise<{ text: string; model
     console.error('Nemotron content audit failed, falling back to Gemini:', e);
     try {
       const text = await gemini(prompt);
-      if (text.trim()) return { text, model: 'gemini-1.5-flash' };
+      if (text.trim()) return { text, model: 'gemini-flash-latest' };
       return null;
     } catch (e2) {
       console.error('Gemini content audit also failed:', e2);

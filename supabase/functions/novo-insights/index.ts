@@ -26,7 +26,7 @@ import { getCors } from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
 import { validateInsight, type NovoInsightPayload } from './validate.ts';
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 const FCM_LEGACY_URL = 'https://fcm.googleapis.com/fcm/send';
 
 // Maximum users processed per invocation (guards against timeouts on large user bases)

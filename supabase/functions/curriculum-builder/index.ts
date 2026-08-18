@@ -35,7 +35,7 @@ function err(_msg: string, _code = 400): Response { throw new Error('unreachable
 // ── Gemini JSON helper ────────────────────────────────────────────────────────
 async function geminiJSONOnce<T>(prompt: string): Promise<T> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
