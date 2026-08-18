@@ -63,7 +63,7 @@ session queried `mlkzabspcwfockbmkmzl` directly and found:
   exists via direct SQL as `postgres`, which bypasses grants entirely, not
   via the actual service-role path the edge functions use).
 
-Fixed via `supabase/migrations/20260808010000_ai_gateway_production_deploy_and_grant_fix.sql`:
+Fixed via `supabase/migrations/20260816000000_ai_gateway_production_deploy_and_grant_fix.sql`:
 deploys the gateway schema to production for the first time, adds the
 missing `GRANT ALL ... TO service_role` on both projects, and re-deploys
 `ai-question-gen` and `gemini-vision` (now migrated too) to production.
