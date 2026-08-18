@@ -129,7 +129,7 @@ select throws_ok(
 -- the app entirely and POST directly to /rest/v1/institution_members with
 -- {"role":"admin"} to instantly become an institution admin. Confirmed live
 -- against production via a rolled-back transaction before fixing (see
--- supabase/migrations/20260808_fix_institution_members_role_self_escalation.sql),
+-- supabase/migrations/20260808010001_fix_institution_members_role_self_escalation.sql),
 -- then confirmed the fix blocks it with no regression on the legitimate
 -- student self-join path. This is that fix, locked in as a regression test.
 insert into public.institutions (id, name, city, state, board, join_code, join_link_token, admin_user_id)

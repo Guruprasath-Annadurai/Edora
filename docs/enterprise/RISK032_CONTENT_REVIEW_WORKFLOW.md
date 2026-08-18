@@ -124,7 +124,7 @@ the audit tooling itself works.
    in production, missing from git).
 3. `supabase/functions/monitoring-check/index.ts` — added cron_health
    check (#6), deployed to production.
-4. `supabase/migrations/20260808_risk032_pyq_content_flags_production_deploy.sql`
+4. `supabase/migrations/20260808010003_risk032_pyq_content_flags_production_deploy.sql`
    — applied `pyq_content.reviewed` + `pyq_content_flags` (from
    `20260801000000_admin_qa_pipelines.sql`, previously unapplied to
    production) plus the missing `service_role` grant (same class of gap as

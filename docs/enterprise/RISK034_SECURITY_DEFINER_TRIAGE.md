@@ -27,7 +27,7 @@ again here:
 
 Fixing staging to match production's real, already-hardened state — not
 re-deciding search_path values from scratch — closed the bulk of the gap
-between the two environments. `supabase/migrations/20260808_risk034_security_definer_triage.sql`
+between the two environments. `supabase/migrations/20260808010004_risk034_security_definer_triage.sql`
 formally commits the view fix (idempotent on production, actually fixes it
 on staging) so this stops being tribal knowledge.
 
