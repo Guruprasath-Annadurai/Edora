@@ -154,7 +154,12 @@ revoke execute on function public.expand_weak_concepts(text[]) from anon, authen
 revoke execute on function public.search_ncert(vector, integer, text, integer) from authenticated;
 revoke execute on function public.search_ncert_fts(text, integer, text, integer) from authenticated;
 revoke execute on function public.search_ncert_hybrid(vector, text, integer, text, integer, integer) from anon, authenticated;
-revoke execute on function public.search_corpus_unified(vector, text, uuid, uuid, text, smallint, smallint, text[], uuid[], boolean, boolean, boolean, integer, integer, text) from authenticated;
+-- Signature corrected 2026-08-18: search_corpus_unified was redefined
+-- twice more after this revoke was originally written (20260805's
+-- multi-vector upgrade, then 20260807's p_mode addition) -- a fresh
+-- replay now reaches the real final 18-arg signature, which this
+-- REVOKE must match or it fails with "function does not exist".
+revoke execute on function public.search_corpus_unified(vector, text, uuid, uuid, text, integer, integer, text[], uuid[], boolean, boolean, boolean, integer, integer, vector, vector, text) from authenticated;
 
 -- 8. expand_weak_concepts, search_ncert_hybrid, submit_live_event_answers,
 --    submit_live_event_score also carried the same leftover PUBLIC grant as
