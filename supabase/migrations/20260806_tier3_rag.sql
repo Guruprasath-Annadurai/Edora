@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION public.get_top_ncert_similarity(
 )
 RETURNS FLOAT8
 LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   SELECT 1.0 - (embedding <=> p_embedding)
   FROM   ncert_content
@@ -43,7 +43,7 @@ CREATE OR REPLACE FUNCTION public.semantic_cache_lookup(
 )
 RETURNS TABLE (response_text TEXT, cache_key TEXT)
 LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   SELECT response_text, cache_key
   FROM   rag_query_cache
