@@ -28,15 +28,16 @@ INSERT INTO public.profiles (id, email, full_name) VALUES
 ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, full_name = EXCLUDED.full_name;
 
 -- correct_answer index: 0=A, 1=B, 2=C, 3=D (position in the options array)
--- year is NOT NULL on pyq_content (20260628000001_pyq_content_backfill.sql) --
--- this insert never supplied it, so it only ever worked by accident on
--- environments where the column had a default at some point in its history.
-INSERT INTO public.pyq_content (id, exam, year, subject, question_text, options, correct_option) VALUES
-  ('00000000-0000-0000-0000-0000000000a1', 'JEE', 2026, 'Physics', 'Q1?',
+-- year and chapter are both NOT NULL on pyq_content
+-- (20260628000001_pyq_content_backfill.sql) -- this insert never supplied
+-- either, so it only ever worked by accident on environments where those
+-- columns had defaults at some point in their history.
+INSERT INTO public.pyq_content (id, exam, year, subject, chapter, question_text, options, correct_option) VALUES
+  ('00000000-0000-0000-0000-0000000000a1', 'JEE', 2026, 'Physics', 'Test Chapter', 'Q1?',
     '[{"text":"a","label":"A","correct":true},{"text":"b","label":"B","correct":false},{"text":"c","label":"C","correct":false},{"text":"d","label":"D","correct":false}]'::jsonb, 'A'),
-  ('00000000-0000-0000-0000-0000000000a2', 'JEE', 2026, 'Physics', 'Q2?',
+  ('00000000-0000-0000-0000-0000000000a2', 'JEE', 2026, 'Physics', 'Test Chapter', 'Q2?',
     '[{"text":"a","label":"A","correct":false},{"text":"b","label":"B","correct":false},{"text":"c","label":"C","correct":true},{"text":"d","label":"D","correct":false}]'::jsonb, 'C'),
-  ('00000000-0000-0000-0000-0000000000a3', 'JEE', 2026, 'Physics', 'Q3?',
+  ('00000000-0000-0000-0000-0000000000a3', 'JEE', 2026, 'Physics', 'Test Chapter', 'Q3?',
     '[{"text":"a","label":"A","correct":false},{"text":"b","label":"B","correct":true},{"text":"c","label":"C","correct":false},{"text":"d","label":"D","correct":false}]'::jsonb, 'B');
 
 INSERT INTO public.live_events (id, title, subject, scheduled_at, duration_mins, question_ids, status, reward_badge)
@@ -75,8 +76,8 @@ SELECT is(
 );
 
 -- ── Test 3: security — question_id from another event is silently rejected ─
-INSERT INTO public.pyq_content (id, exam, year, subject, question_text, options, correct_option) VALUES
-  ('00000000-0000-0000-0000-0000000000fa', 'JEE', 2026, 'Chemistry', 'Foreign Q?',
+INSERT INTO public.pyq_content (id, exam, year, subject, chapter, question_text, options, correct_option) VALUES
+  ('00000000-0000-0000-0000-0000000000fa', 'JEE', 2026, 'Chemistry', 'Test Chapter', 'Foreign Q?',
     '[{"text":"a","label":"A","correct":true},{"text":"b","label":"B","correct":false},{"text":"c","label":"C","correct":false},{"text":"d","label":"D","correct":false}]'::jsonb, 'A');
 
 SELECT is(

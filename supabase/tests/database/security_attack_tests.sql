@@ -172,6 +172,18 @@ values ('ffffffff-0000-0000-0000-000000000001', 'ZZZ Attack Institution', 'Test 
 -- applied that stray file. Deleted the stray file rather than patching
 -- around it, since its content was pure duplicate cruft never used in
 -- production.
+--
+-- A second, independent bug also found live in CI: this whole block relies
+-- on institution_members' own RLS policy (unlike most other assertions in
+-- this file, which go through a SECURITY DEFINER function that checks
+-- auth.uid() internally regardless of the active postgres role) -- but
+-- unlike the live_room_messages/storage.objects/verified_question_bank
+-- blocks above, it never switched the active role to `authenticated`.
+-- Running as the default (superuser) role bypasses RLS entirely, so even
+-- after deleting the stray migration the "malicious" insert still silently
+-- succeeded. Bracketed the block with `set local role authenticated`,
+-- matching the pattern already used elsewhere in this file.
+set local role authenticated;
 select set_config('request.jwt.claims', json_build_object('sub','aaaaaaaa-0000-0000-0000-000000000002','role','authenticated')::text, true);
 select throws_ok(
   $$ insert into public.institution_members (institution_id, user_id, role) values ('ffffffff-0000-0000-0000-000000000001'::uuid, 'aaaaaaaa-0000-0000-0000-000000000002'::uuid, 'admin') $$,
@@ -190,6 +202,7 @@ select is(
   'student',
   'institution_members: the row that landed is role=student, not admin'
 );
+reset role;
 
 select * from finish();
 rollback;
