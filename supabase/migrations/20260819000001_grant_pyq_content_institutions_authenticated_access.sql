@@ -16,5 +16,13 @@
 -- exercised by real app code (client-side reads of pyq_content gated by
 -- its own RLS policies; the institutions trigger only ever fires in an
 -- authenticated request context).
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.pyq_content TO authenticated;
+--
+-- pyq_content is SELECT-only for authenticated: its only RLS policy is
+-- pyq_public_read (SELECT); writes are deliberately service_role-only (see
+-- 20260804_corpus_layer6.sql's "Write: service_role only" comment) -- an
+-- initial version of this migration also granted INSERT/UPDATE/DELETE,
+-- which was inert (no policy exists to make use of them) but misleading
+-- against that documented design. Tightened before this ever shipped
+-- beyond this session.
+GRANT SELECT ON public.pyq_content TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.institutions TO authenticated;

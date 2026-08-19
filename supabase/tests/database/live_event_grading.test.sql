@@ -32,6 +32,17 @@ ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, full_name = EXCLUDED.full
 -- (20260628000001_pyq_content_backfill.sql) -- this insert never supplied
 -- either, so it only ever worked by accident on environments where those
 -- columns had defaults at some point in their history.
+--
+-- pyq_content and live_events are both deliberately write-restricted to
+-- service_role only (see 20260804_corpus_layer6.sql's "Write: service_role
+-- only" comment and live_events_service_insert in
+-- 20260709055126_fix_multiple_permissive_policies_batch2.sql) -- there is
+-- no INSERT policy for `authenticated` at all, by design, since this
+-- content is meant to be server-managed. The ambient role this pgTAP
+-- session runs as is subject to RLS (unlike a superuser, which would
+-- bypass it silently), so these fixture inserts must explicitly assume
+-- service_role rather than relying on whatever role happens to be active.
+set local role service_role;
 INSERT INTO public.pyq_content (id, exam, year, subject, chapter, question_text, options, correct_option) VALUES
   ('00000000-0000-0000-0000-0000000000a1', 'JEE_MAIN', 2026, 'Physics', 'Test Chapter', 'Q1?',
     '[{"text":"a","label":"A","correct":true},{"text":"b","label":"B","correct":false},{"text":"c","label":"C","correct":false},{"text":"d","label":"D","correct":false}]'::jsonb, 'A'),
@@ -76,9 +87,13 @@ SELECT is(
 );
 
 -- ── Test 3: security — question_id from another event is silently rejected ─
+-- Same service_role requirement as the fixture inserts above.
+set local role service_role;
 INSERT INTO public.pyq_content (id, exam, year, subject, chapter, question_text, options, correct_option) VALUES
   ('00000000-0000-0000-0000-0000000000fa', 'JEE_MAIN', 2026, 'Chemistry', 'Test Chapter', 'Foreign Q?',
     '[{"text":"a","label":"A","correct":true},{"text":"b","label":"B","correct":false},{"text":"c","label":"C","correct":false},{"text":"d","label":"D","correct":false}]'::jsonb, 'A');
+SET LOCAL role authenticated;
+SET LOCAL request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
 
 SELECT is(
   (public.submit_live_event_answers(
