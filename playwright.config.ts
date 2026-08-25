@@ -19,6 +19,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
+  // Defense-in-depth against a repeat of the E2E-authenticated-staging job
+  // hanging 1+ hour (found and force-cancelled earlier in this mandate,
+  // root-caused to no CI-level cap existing anywhere in this pipeline — see
+  // the timeout-minutes addition in .github/workflows/ci.yml). Per-test
+  // timeouts alone don't bound a hang in webServer startup or module
+  // resolution, which happens before any individual test's clock starts.
+  // Set comfortably under this job's 10-minute CI timeout-minutes cap so
+  // Playwright's own diagnostic (which test/step was running) fires first.
+  globalTimeout: process.env.CI ? 8 * 60_000 : undefined,
   // 'list' alone produces no artifact on disk — a CI failure had nothing to
   // upload beyond raw log text. Adding the 'html' reporter so a real,
   // inspectable report (with screenshots/traces) exists for the "upload on

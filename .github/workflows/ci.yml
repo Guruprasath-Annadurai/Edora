@@ -14,6 +14,7 @@ jobs:
   type-check:
     name: Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +27,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,6 +40,7 @@ jobs:
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,6 +53,7 @@ jobs:
   edge-function-tests:
     name: Edge Function Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
@@ -70,6 +74,7 @@ jobs:
   security-attack-tests:
     name: Security Attack Tests (pgTAP)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       # RISK-005: supabase/tests/database/security_attack_tests.sql has
@@ -104,6 +109,7 @@ jobs:
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -143,6 +149,7 @@ jobs:
   e2e-authenticated-tests:
     name: E2E Tests (Authenticated, Staging)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # The `secrets` context isn't allowed directly inside ANY `if:`
     # expression (job- or step-level) — actionlint caught this: the first
     # version of this job used secrets in a job-level `if:` and broke the
@@ -182,6 +189,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [type-check, test]
     steps:
       - uses: actions/checkout@v4
@@ -208,6 +216,7 @@ jobs:
   android-build:
     name: Android Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [type-check, test]
     steps:
       - uses: actions/checkout@v4
@@ -268,6 +277,7 @@ jobs:
   android-release-build:
     name: Android Release Build (unsigned)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [type-check, test]
     steps:
       - uses: actions/checkout@v4
@@ -391,6 +401,7 @@ jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -435,6 +446,7 @@ jobs:
   secret-scan:
     name: Secret Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:

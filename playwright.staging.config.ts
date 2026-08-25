@@ -20,6 +20,14 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
+  // Defense-in-depth against a repeat of this exact job hanging 1+ hour
+  // (found and force-cancelled earlier in this mandate). Per-test timeouts
+  // (e.g. auth.setup.ts's explicit 15s waitForURL) don't bound a hang in
+  // webServer startup itself, which happens before any test's own clock
+  // starts. Set comfortably under this job's 10-minute CI timeout-minutes
+  // cap (.github/workflows/ci.yml) so Playwright's own diagnostic fires
+  // first, with the specific step still running.
+  globalTimeout: process.env.CI ? 8 * 60_000 : undefined,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report-staging', open: 'never' }]],
   use: {
     baseURL: 'http://localhost:8101',
