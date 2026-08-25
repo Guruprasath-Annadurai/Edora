@@ -6,6 +6,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }  from '../_shared/cors.ts';
+import { isValidMergedSummary } from './validate.ts';
 
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -47,23 +48,47 @@ async function embed(text: string): Promise<number[] | null> {
   } catch { return null; }
 }
 
-async function summarizeMerge(contents: string[]): Promise<string> {
-  try {
-    const res = await fetch(GROQ_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
-      body: JSON.stringify({
-        model: GROQ_MODEL, stream: false, max_tokens: 200, temperature: 0.3,
-        messages: [{
-          role: 'user',
-          content: `Merge these student memory notes into ONE concise sentence (max 150 chars). Keep key facts.\n\n${contents.map((c, i) => `${i + 1}. ${c}`).join('\n')}`,
-        }],
-      }),
-    });
-    if (!res.ok) return contents[0];
-    const j = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    return j.choices?.[0]?.message?.content?.trim() ?? contents[0];
-  } catch { return contents[0]; }
+async function summarizeMergeOnce(contents: string[]): Promise<string | null> {
+  const res = await fetch(GROQ_BASE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
+    body: JSON.stringify({
+      model: GROQ_MODEL, stream: false, max_tokens: 200, temperature: 0.3,
+      messages: [{
+        role: 'user',
+        content: `Merge these student memory notes into ONE concise sentence (max 150 chars). Keep key facts.\n\n${contents.map((c, i) => `${i + 1}. ${c}`).join('\n')}`,
+      }],
+    }),
+  });
+  if (!res.ok) return null;
+  const j = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  return j.choices?.[0]?.message?.content?.trim() ?? null;
+}
+
+// Two-layer retry+validate (matches novo-certifications/lesson-planner's
+// reference shape): network-level retry with exponential backoff on the
+// Groq call itself, then a semantic check on the parsed result before it's
+// trusted — re-running the whole call (not just re-parsing) if the content
+// comes back empty or clearly malformed. Found live 2026-08-25 during the
+// retry+validate pattern audit: this previously had zero retry and
+// silently accepted an empty/garbled completion with no validation at all.
+async function summarizeMerge(contents: string[], maxRetries = 2): Promise<string> {
+  let lastResult: string | null = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      lastResult = await summarizeMergeOnce(contents);
+    } catch {
+      lastResult = null;
+    }
+    if (isValidMergedSummary(lastResult)) return lastResult;
+    if (attempt < maxRetries) {
+      await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+    }
+  }
+  // Exhausted retries without a valid summary — safe deterministic
+  // fallback, same as before this fix, just now only reached after real
+  // retry+validate rather than on the first hiccup.
+  return contents[0];
 }
 
 // ── Per-user consolidation ────────────────────────────────────────────────────
