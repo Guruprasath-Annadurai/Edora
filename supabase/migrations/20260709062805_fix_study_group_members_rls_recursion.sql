@@ -20,7 +20,7 @@ $$;
 revoke all on function is_in_study_group(uuid, uuid) from public;
 grant execute on function is_in_study_group(uuid, uuid) to authenticated;
 
-drop policy "sgm_read" on "study_group_members";
+drop policy if exists "sgm_read" on "study_group_members";
 create policy "sgm_read" on "study_group_members" for select using (
   ((select auth.uid()) = user_id)
   or is_in_study_group(group_id, (select auth.uid()))

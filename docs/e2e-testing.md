@@ -1,13 +1,23 @@
 # E2E Testing
 
-Status: **started, narrow scope**. Last verified 2026-08-05.
+Status: **two suites — client-side-only against production, authenticated
+against staging**. Last verified 2026-08-07.
 
 ## Current truth
 
-Zero E2E tooling existed in this repo before this pass. Playwright
-(`@playwright/test`) is now installed, configured (`playwright.config.ts`),
-and has **1 spec file, 6 tests** (`e2e/login.spec.ts`), all passing —
-verified against a real local dev server, not just written and trusted.
+Two separate Playwright configs exist, deliberately kept apart:
+
+- `playwright.config.ts` — client-side-only specs (`e2e/login.spec.ts`,
+  `e2e/visual.spec.ts`), run against the real production Supabase project's
+  public anon key. Safe because these tests provably never submit real
+  credentials or reach an authenticated code path — see "The real
+  constraint" below.
+- `playwright.staging.config.ts` — authenticated specs
+  (`e2e/authenticated/*.spec.ts`), run against `edora-staging`, a real,
+  fully migrated, but genuinely isolated Supabase project (never
+  production). This suite logs in for real and exercises authenticated
+  writes. See "Authenticated E2E suite (staging)" below — this is the
+  resolution to the fork this doc used to describe as an open decision.
 
 ## The real constraint: no dedicated test Supabase project
 
@@ -35,15 +45,8 @@ point where that key would do anything against real data.
 
 ## What this does NOT cover
 
-This is a narrow starting point, not a golden-path suite. Explicitly not
-covered:
+Explicitly not covered by either suite:
 
-- **Actual sign-in/sign-up** — needs either a dedicated test Supabase
-  project + a disposable test account, or a mocking layer at the network
-  level (Playwright supports route interception, not used yet). Not built.
-- **Any authenticated flow** — home, chat, quizzes, mock tests, everything
-  that requires a logged-in session. This is the overwhelming majority of
-  the app's actual user-facing behavior and none of it has E2E coverage.
 - **Mobile-specific behavior** — Playwright here drives a desktop Chromium
   browser against the web build; Capacitor-specific native behavior
   (camera, push notifications, haptics, native auth flows) isn't reachable
@@ -127,13 +130,73 @@ exactly the class of gap E2E/real-runtime testing exists to catch, and
 exactly why it hadn't been caught before now: nothing before this job ever
 actually ran the app.
 
-## Next decision this needs, honestly stated
+## Authenticated E2E suite (staging)
 
-To get real golden-path coverage (login → home → do something → see the
-result), someone needs to decide: provision a dedicated test Supabase
-project (cost + setup), or build a mock-network-layer approach (more
-engineering work, zero infra cost, but doesn't exercise the real backend).
-Neither decision was made unilaterally here — this pass shipped the
-narrowest safe starting point and documented the fork in the road rather
-than picking a direction that commits to ongoing cost or risk without
-asking.
+The fork this doc used to leave open — dedicated test project vs. a
+mock-network layer — is resolved: `edora-staging` (Supabase project ref
+`uldgosisjidydqstabvl`, $0/month free tier) was provisioned during Gate 2,
+bootstrapped with all 178 local migrations, and verified fully isolated
+from production. A disposable, permanently-seeded test account
+(`e2e-test@edora-staging.internal`) lives only in that project's
+`auth.users`/`profiles` tables.
+
+**Config**: `playwright.staging.config.ts`, separate from
+`playwright.config.ts` — `testDir: e2e/authenticated/`, a `setup` project
+(`auth.setup.ts`) that logs in via the real UI and saves `storageState`,
+and a `chromium` project depending on it that reuses that session. Points
+the dev server at staging via `vite --mode staging` (port 8101; see the
+`dev:staging` / `test:e2e:staging` npm scripts).
+
+**Run locally**: `npm run test:e2e:staging`
+
+**Current coverage** (`e2e/authenticated/`):
+- `auth.setup.ts` — real login, asserts landing on `/home` (not
+  `/onboarding`) for an already-onboarded account.
+- `navigation.spec.ts` — tab-bar navigation across Home/Learn/Novo/Battle/
+  Profile.
+- `route-smoke.spec.ts` — 26 core authenticated routes render without the
+  per-route error boundary firing (see `components/ErrorBoundary.tsx`).
+- `profile-signout.spec.ts` — sign-out flow, ending back on `/login`.
+- `account-settings.spec.ts` — a real write round-trip: edit display name,
+  save, hard-reload, confirm the DB write persisted.
+
+This list is a reconstruction built from the app's real route table
+(`src/App.tsx`), not a recovery of some prior "30 mandated flows" list —
+no such list exists anywhere in this repo's docs. It prioritizes shared
+infrastructure (nav, auth lifecycle, settings writes) that every other
+authenticated journey depends on, over exhaustively covering all ~90
+routes.
+
+**CI**: `e2e-authenticated-tests` job in `.github/workflows/ci.yml`, gated
+on `secrets.VITE_STAGING_SUPABASE_URL` being set — it no-ops (not fails)
+on a fork or any repo where the secrets aren't configured. `VITE_STAGING_SUPABASE_URL`
+and `VITE_STAGING_SUPABASE_ANON_KEY` are set on this repo (`gh secret set`,
+using `edora-staging`'s real URL and legacy anon key — same "public,
+RLS-protected, not sensitive" reasoning as the production secrets above).
+Runs on every push/PR alongside `e2e-tests`; not yet observed green in a
+real CI run as of this writing — verified locally only so far.
+
+### Two real bugs this suite found (not written to find — found by running)
+
+1. **`/login` route redirect race** (`src/App.tsx`) — the route decided
+   between `/home` and `/onboarding` based on `profile` without checking
+   `profileLoading`, so a fast auth-state update could `replace`-navigate a
+   fully-onboarded user to `/onboarding` and strand them there.
+2. **`useAuth()` was never actually shared** (`src/hooks/useAuth.tsx`) —
+   every one of its ~90 call sites ran an independent copy of the
+   auth/profile state machine, so different components' views of "is the
+   profile ready" could disagree. Concretely: `AccountSettingsPage`'s Save
+   button silently no-opped (`profile` was `null` in its own instance)
+   while the page visibly displayed real data from a different instance.
+   Fixed by hoisting the state machine into a single `AuthProvider`
+   context mounted once in `App.tsx`. Also fixed in the same pass: a CSS
+   stacking-context bug that made modal buttons unclickable where they
+   overlapped the floating tab bar, and `signOut()` defaulting to
+   Supabase's `scope: 'global'` (logs out every device, not just this
+   one).
+
+Both were invisible to the client-side-only suite by construction — they
+only exist on authenticated code paths — and neither was caught by manual
+testing, because both require a specific timing window (a fast auth-state
+resolution, or clicking before a `useAuth()` instance's own fetch
+resolves) that's easy to hit in an automated run and easy to miss by hand.

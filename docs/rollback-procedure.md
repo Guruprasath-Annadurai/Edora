@@ -82,7 +82,11 @@ always recover a prior version.
 ## What's still missing
 
 - No dry run of `firebase hosting:rollback` has been performed against this project.
-- No documented staged-rollout percentage policy for Android releases.
+- ~~No documented staged-rollout percentage policy for Android releases.~~
+  **Addressed**: `docs/enterprise/CONTROLLED_ROLLOUT_PLAN.md` (Phase 15 of the
+  enterprise remediation mandate) defines the actual stages, dwell times, and
+  gating metrics. It has not been executed — every phase it depends on is
+  still only partially complete, per that document's own gate-status table.
 - No automated deploy pipeline, so "rollback" for both platforms is a manual,
   human-triggered action with no CI guardrail preventing a bad release from going
   out at 100% in the first place.

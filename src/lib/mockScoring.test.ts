@@ -71,6 +71,25 @@ describe('scoreMockExam', () => {
     expect(result.maxScore).toBe(8);
   });
 
+  it('ignores stray answers for question ids not present in the exam', () => {
+    const q = mcq();
+    const result = scoreMockExam(
+      [{ subject: 'Physics', questions: [q] }],
+      { [q.id]: 1, 'stale-id-from-a-different-attempt': 2 },
+    );
+    expect(result.totalScore).toBe(4);
+    expect(result.subjectScores.Physics.total).toBe(1);
+  });
+
+  it('requires an exact type match for MCQ answers — a stringified index is not the same as the numeric one', () => {
+    const q = mcq({ correct_idx: 1 });
+    // '1' !== 1 by strict equality; a genuinely correct answer stored as the
+    // wrong type must score as wrong, not silently coerce and award marks.
+    const result = scoreMockExam([{ subject: 'Physics', questions: [q] }], { [q.id]: '1' as unknown as number });
+    expect(result.totalScore).toBe(0);
+    expect(result.wrongQuestions).toEqual([q]);
+  });
+
   it('aggregates totalScore and maxScore across multiple sections independently', () => {
     const physics = mcq({ id: 'p1', subject: 'Physics', marks_positive: 4, marks_negative: 1 });
     const qa = tita({ id: 'q1', subject: 'QA', marks_positive: 3, marks_negative: 0 });

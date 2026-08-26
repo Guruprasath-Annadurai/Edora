@@ -21,6 +21,7 @@ import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { isValidBriefText } from './validate.ts';
 const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
 
 async function gemini(prompt: string): Promise<string> {
@@ -38,7 +39,7 @@ async function gemini(prompt: string): Promise<string> {
     if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -54,6 +55,21 @@ async function gemini(prompt: string): Promise<string> {
   }
   if (text === null) throw new Error(`Gemini call failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
   return text;
+}
+
+// Outer validate+regenerate loop matching the reference two-layer pattern
+// (novo-certifications/lesson-planner): gemini() already retries the
+// network call itself; this layer re-runs the WHOLE generation if the
+// parsed result comes back empty or malformed, rather than trusting
+// whatever gemini() returned. Found live 2026-08-25 during the retry+
+// validate pattern audit.
+async function generateBriefText(prompt: string, maxAttempts = 2): Promise<string> {
+  let lastText = '';
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    lastText = await gemini(prompt);
+    if (isValidBriefText(lastText)) return lastText;
+  }
+  throw new Error(`Gemini returned an empty/invalid brief after ${maxAttempts} attempts (last length: ${lastText.trim().length})`);
 }
 
 // ── Build personalised brief text ─────────────────────────────────────────────
@@ -139,7 +155,7 @@ Rules:
 
 Output ONLY the notification text, nothing else.`;
 
-  const text = await gemini(prompt);
+  const text = await generateBriefText(prompt);
   return { text, focusTopic: weakTopic?.topic ?? null, rivalName, xpDelta, examDays };
 }
 

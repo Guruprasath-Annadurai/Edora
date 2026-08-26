@@ -22,7 +22,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 
 
-import { withSentry } from '../_shared/sentry.ts';
+import { withSentry, captureException } from '../_shared/sentry.ts';
 import { pickActiveEntitlement } from '../_shared/rcEntitlement.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { logAdminAction } from '../_shared/auditLog.ts';
@@ -204,11 +204,42 @@ serve(withSentry('novo-subscription', async (req) => {
           });
 
           if (insertErr) {
-            // Log for ops — the next get_status call will self-heal via the activation_pending check
-            console.error('[webhook] CRITICAL: subscription insert failed for paying user', userId, insertErr.message);
-            // Still return 200: Razorpay has confirmed payment, retrying won't help a DB constraint error.
-            // get_status self-heals profile mismatches; support can query pending_payment rows.
-            return json({ received: true, event: eventType, note: 'subscription insert failed — manual review needed' });
+            // Phase 10 (payments/entitlement hardening): this webhook and the
+            // client's own verify_payment call both race to insert the same
+            // razorpay_payment_id after a successful checkout — Razorpay fires
+            // the webhook almost immediately, and the client calls
+            // verify_payment right after its own checkout callback resolves.
+            // Whichever loses hits the UNIQUE constraint on
+            // subscriptions.razorpay_payment_id (postgres code 23505). That's
+            // not a failure — it's confirmation the OTHER path already
+            // committed the exact same payment — so it was previously
+            // mis-handled as a "CRITICAL" alert (false-positive Sentry/Slack
+            // noise on ordinary, expected traffic) with no profile update
+            // applied, even though the sub row from the other path already
+            // existed. Only a genuinely unexpected DB error should alert.
+            if (insertErr.code === '23505') {
+              console.log(`[webhook] subscription for payment ${paymentId} already exists (verify_payment won the race) — continuing to ensure profile is active`);
+              const { data: raced } = await supabase
+                .from('subscriptions').select('expires_at')
+                .eq('razorpay_payment_id', paymentId).single();
+              if (raced) expiresAt = new Date(raced.expires_at);
+              // Fall through to the profile-update step below — idempotent either way.
+            } else {
+              console.error('[webhook] CRITICAL: subscription insert failed for paying user', userId, insertErr.message);
+              // Phase 9 (observability bootstrap): this failure mode previously had
+              // zero alerting — console.error alone never reaches edge_function_errors
+              // or Slack, since it isn't a thrown exception (deliberately, so Razorpay
+              // doesn't retry-storm on a DB constraint error retrying won't fix — see
+              // the 200 response below, unchanged). captureException mirrors this into
+              // the same table/Slack path as any other error, without throwing.
+              await captureException(new Error(`Subscription insert failed for paying user ${userId}: ${insertErr.message}`), {
+                functionName: 'novo-subscription',
+                extra: { orderId, paymentId, userId, plan },
+              });
+              // Still return 200: Razorpay has confirmed payment, retrying won't help a DB constraint error.
+              // get_status self-heals profile mismatches; support can query pending_payment rows.
+              return json({ received: true, event: eventType, note: 'subscription insert failed — manual review needed' });
+            }
           }
         }
 
@@ -221,6 +252,13 @@ serve(withSentry('novo-subscription', async (req) => {
         if (profileErr) {
           // Subscription row is committed; get_status will detect the mismatch and self-heal on next open.
           console.error('[webhook] CRITICAL: profile update failed for paying user', userId, profileErr.message);
+          // Phase 9: same reasoning as the insertErr branch above — mirror into
+          // edge_function_errors/Slack without throwing (self-heal path is real
+          // and unchanged; this only adds visibility that it's needed).
+          await captureException(new Error(`Profile update failed for paying user ${userId} after successful payment: ${profileErr.message}`), {
+            functionName: 'novo-subscription',
+            extra: { orderId, paymentId, userId, plan },
+          });
           // Return 200 — sub record exists; self-healing in get_status will fix the profile gap.
           return json({ received: true, event: eventType, note: 'profile update failed — self-heal pending' });
         }
@@ -518,7 +556,31 @@ serve(withSentry('novo-subscription', async (req) => {
       .select('*')
       .single();
 
-    if (subErr) return json({ error: subErr.message }, 500);
+    if (subErr) {
+      // Phase 10 (payments/entitlement hardening): the Razorpay webhook
+      // (payment.captured, above) races this exact call after every real
+      // checkout — Razorpay fires the webhook almost immediately, and the
+      // client calls verify_payment right after its own checkout callback
+      // resolves. If the webhook wins, this insert hits the UNIQUE
+      // constraint on razorpay_payment_id (23505). That's not a failure —
+      // it's confirmation the SAME payment was already recorded — so
+      // surfacing it as a raw 500 to a paying student ("duplicate key
+      // value violates unique constraint...") on an otherwise-successful
+      // purchase was a real, previously-unhandled bug. Re-fetch and return
+      // the same success shape the pre-check above already returns for
+      // this exact scenario.
+      if (subErr.code === '23505') {
+        const { data: raced } = await supabase
+          .from('subscriptions')
+          .select('id, expires_at, status')
+          .eq('razorpay_payment_id', razorpay_payment_id)
+          .maybeSingle();
+        if (raced) {
+          return json({ subscription: raced, pro_active: true, expires_at: raced.expires_at, already_verified: true });
+        }
+      }
+      return json({ error: subErr.message }, 500);
+    }
 
     // Activate Pro on profile
     await supabase.from('profiles').update({

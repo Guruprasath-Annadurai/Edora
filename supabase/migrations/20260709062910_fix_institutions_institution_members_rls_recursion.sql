@@ -17,13 +17,13 @@ $$;
 revoke all on function is_institution_member(uuid, uuid) from public;
 grant execute on function is_institution_member(uuid, uuid) to authenticated;
 
-drop policy "inst_read" on "institutions";
+drop policy if exists "inst_read" on "institutions";
 create policy "inst_read" on "institutions" for select using (
   ((select auth.uid()) = admin_user_id)
   or is_institution_member(id, (select auth.uid()))
 );
 
-drop policy "inst_mem_own" on "institution_members";
+drop policy if exists "inst_mem_own" on "institution_members";
 create policy "inst_mem_own" on "institution_members" for select using (
   (auth.uid() = user_id)
   or is_institution_admin(institution_id, auth.uid())
@@ -31,17 +31,17 @@ create policy "inst_mem_own" on "institution_members" for select using (
 
 -- inst_mem_insert/inst_mem_admin_update/inst_mem_admin_delete also reference
 -- institutions directly via EXISTS -- same recursion risk for those commands.
-drop policy "inst_mem_insert" on "institution_members";
+drop policy if exists "inst_mem_insert" on "institution_members";
 create policy "inst_mem_insert" on "institution_members" for insert with check (
   ((select auth.uid()) = user_id) or is_institution_admin(institution_id, (select auth.uid()))
 );
-drop policy "inst_mem_admin_update" on "institution_members";
+drop policy if exists "inst_mem_admin_update" on "institution_members";
 create policy "inst_mem_admin_update" on "institution_members" for update using (
   is_institution_admin(institution_id, (select auth.uid()))
 ) with check (
   is_institution_admin(institution_id, (select auth.uid()))
 );
-drop policy "inst_mem_admin_delete" on "institution_members";
+drop policy if exists "inst_mem_admin_delete" on "institution_members";
 create policy "inst_mem_admin_delete" on "institution_members" for delete using (
   is_institution_admin(institution_id, (select auth.uid()))
 );

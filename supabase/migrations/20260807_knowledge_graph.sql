@@ -201,6 +201,14 @@ AS $$
 $$;
 
 -- ── 4. search_corpus_unified — add p_mode + PYQ difficulty bias ───────────────
+-- New trailing param (p_mode) again changes arg count vs the 16-arg version
+-- from 20260805_multi_vector_index.sql -- same overload-ambiguity issue as
+-- enterprise/433/434. Drop the old signature first.
+DROP FUNCTION IF EXISTS public.search_corpus_unified(
+  vector, text, uuid, uuid, text, integer, integer, text[], uuid[],
+  boolean, boolean, boolean, integer, integer, vector, vector
+);
+
 CREATE OR REPLACE FUNCTION public.search_corpus_unified(
   p_embedding        vector(768),
   p_query_text       TEXT,
@@ -235,7 +243,7 @@ RETURNS TABLE (
   final_score    FLOAT8
 )
 LANGUAGE plpgsql STABLE SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_safe_query TEXT := NULLIF(btrim(p_query_text), '');

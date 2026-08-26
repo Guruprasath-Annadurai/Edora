@@ -24,7 +24,7 @@ const SERVICE_KEY     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON_KEY        = Deno.env.get('SUPABASE_ANON_KEY')!;
 const GEMINI_API_KEY  = Deno.env.get('GEMINI_API_KEY')!;
 
-const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY);

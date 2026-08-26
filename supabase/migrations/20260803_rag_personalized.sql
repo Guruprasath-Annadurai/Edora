@@ -91,7 +91,7 @@ RETURNS TABLE (
   final_score    FLOAT8
 )
 LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   WITH
   -- Dense retrieval — class range + subject pre-filter applied here

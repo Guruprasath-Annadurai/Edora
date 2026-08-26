@@ -1,5 +1,19 @@
 apply plugin: 'com.android.application'
 
+// Gate 1 (4.1.0 build provenance): versionName previously duplicated
+// package.json's version as a second hand-maintained literal — exactly the
+// "update one version location and forget another" risk this Gate exists to
+// close. Reading it directly from package.json means there is now exactly
+// one place a human ever types the semantic version string.
+//
+// versionCode is deliberately NOT derived the same way: Android requires it
+// to be a monotonically-increasing plain integer, and semver prerelease tags
+// (e.g. "-alpha.1") have no single canonical mapping to that scheme. It
+// remains a manually-bumped literal below — bump it by hand on every build
+// that could reach a real device/Play Console track, and note the bump in
+// the release's own commit message.
+def packageJson = new groovy.json.JsonSlurper().parseText(file("../../package.json").text)
+
 android {
     namespace = "com.edora.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +21,8 @@ android {
         applicationId "com.edora.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 52
-        versionName "4.0.0"
+        versionCode 53
+        versionName packageJson.version
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'

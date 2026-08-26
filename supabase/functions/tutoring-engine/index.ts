@@ -34,12 +34,13 @@ import { validateStructure, type SessionStructure, validateCheckpoint, type Chec
 // call sites need to change.
 const GROQ_KEY            = Deno.env.get('GROQ_API_KEY') ?? '';
 const GROQ_URL             = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL_PRIMARY   = 'llama-3.3-70b-versatile';
-const GROQ_MODEL_FALLBACK  = 'llama-3.1-8b-instant';
+// llama-3.3-70b-versatile / llama-3.1-8b-instant decommissioned by Groq (confirmed 2026-08-18)
+const GROQ_MODEL_PRIMARY   = 'openai/gpt-oss-120b';
+const GROQ_MODEL_FALLBACK  = 'openai/gpt-oss-20b';
 
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
 const GEMINI_URL =
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`;
 
 interface GeminiTurn { role: 'user' | 'model'; parts: Array<{ text: string }> }
 

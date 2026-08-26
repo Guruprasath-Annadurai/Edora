@@ -187,7 +187,7 @@ RETURNS TABLE (
   final_score    FLOAT8
 )
 LANGUAGE plpgsql STABLE SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_safe_query TEXT := NULLIF(btrim(p_query_text), '');
