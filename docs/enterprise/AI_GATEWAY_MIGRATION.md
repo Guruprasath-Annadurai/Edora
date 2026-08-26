@@ -154,7 +154,9 @@ reasonable risk to take.
 | `video-companion` | Direct | |
 | `weekly-report` | Direct | |
 
-**1 of 39 files migrated.** The remaining 38 keep calling providers
+**2 of 39 files migrated** (the table above already showed both
+`ai-question-gen` and `gemini-vision` as Migrated — this count was stale by
+one). The remaining 37 keep calling providers
 directly — the risk they represented (no cost ceiling, no kill switch,
 no unified log) is unchanged for those specific call sites until they're
 migrated. The gateway existing doesn't retroactively protect code that
@@ -173,3 +175,55 @@ doesn't call it.
    (large generation prompts) and already have an established pattern
    from `ai-question-gen` to copy.
 4. Everything else, as capacity allows.
+
+## Prompt versioning + a real bug found while starting on it (2026-08-25)
+
+Added the other documented gap from Phase 7's original scope — "no prompt
+versioning, no golden evaluation sets" — starting with prompt versioning:
+
+- `supabase/migrations/20260825000000_ai_gateway_prompt_versioning.sql` —
+  `ai_prompt_versions` (a real, diffable, rollback-able prompt store: one
+  row per `(prompt_key, version)`, exactly one `is_active` per key,
+  enforced by a partial unique index), plus `prompt_key`/`prompt_version`
+  columns on `ai_gateway_requests` so a logged call can be traced back to
+  the exact prompt version that produced it.
+- `_shared/aiGateway.ts` — `getActivePrompt()` (returns `null` if a key was
+  never registered, so adoption is non-breaking: no call site needs a
+  registered prompt to keep working) and `registerPromptVersion()`
+  (auto-increments version, deactivates the previous active version).
+  `callAI()`'s `CallAIOptions` gained optional `promptKey`/`promptVersion`
+  fields, logged through to `ai_gateway_requests`. 8 new Deno tests (14
+  total in `aiGateway.test.ts`, up from 6).
+- Not yet done: no call site actually calls `registerPromptVersion()` or
+  passes `promptKey` yet — the infrastructure is live and tested, but
+  adoption (migrating an actual prompt into the registry) hasn't started.
+  That's real, separate follow-up work, same as the table above.
+
+**Golden evaluation sets: found to already exist**, more substantially
+than this doc's original framing suggested. `novo-eval-run`
+(`novo_eval_cases`, 25 cases across CBSE/JEE/NEET) and
+`question-gen-eval-run` (`question_gen_eval_cases`, 9 cases across
+Physics/Chemistry/Mathematics/Biology) are both real, stored, per-subject
+golden sets with an LLM-judge scoring mechanism, not ad-hoc comparison
+tools. The real gap is breadth (2 harnesses, not comprehensive per-subject
+coverage) and that neither is wired into CI as a regression gate — not
+their absence.
+
+**Real bug found and fixed in passing** while surveying content tables for
+a related task (academic-validation-state labeling): `question-quality-audit`
+— a completely different function from the AI gateway, still `Direct` in
+the table above — had been silently broken in production since it was
+first deployed. It referenced `public.question_flags` and
+`public.question_corrections`, both from a migration
+(`20260801000000_admin_qa_pipelines.sql`) that was **never actually
+applied to production**. Every DB call either had no error-checking or
+defaulted the failure to an empty/null result, so `run_audit` ran,
+reported `flags_created: N`, and marked source student reports
+`'reviewed'` — while silently writing nothing anywhere. Every report this
+pipeline ever processed was lost. Rewritten to target the real, live
+tables (`question_quality_flags`, `verified_question_bank`), including
+their real `verdict` CHECK constraint (5 values, not the 3 the code
+assumed) and the `question_hash` NOT NULL + UNIQUE requirement neither
+prior version satisfied. Verified structurally correct against production
+via a rolled-back `INSERT`. See git history for the full fix
+(`supabase/functions/question-quality-audit/`).

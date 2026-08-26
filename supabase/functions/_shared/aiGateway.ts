@@ -37,6 +37,9 @@ export interface CallAIOptions {
   init: RequestInit;
   /** Extracted from the provider's response after a successful call, for cost estimation/logging. Optional — not every call site parses token counts yet. */
   extractUsage?: (responseJson: any) => { promptTokens?: number; completionTokens?: number };
+  /** Which registered prompt (see getActivePrompt/ai_prompt_versions) produced this call, if any. Purely for traceability in ai_gateway_requests — passing neither is fine for call sites not yet on the registry. */
+  promptKey?: string;
+  promptVersion?: number;
 }
 
 export interface CallAIResult {
@@ -84,6 +87,7 @@ async function logRequest(serviceDb: any, entry: {
   promptTokens?: number; completionTokens?: number; estimatedCostUsd?: number | null;
   status: 'success' | 'error' | 'blocked_kill_switch' | 'blocked_cost_ceiling';
   latencyMs?: number; errorMessage?: string | null;
+  promptKey?: string | null; promptVersion?: number | null;
 }): Promise<void> {
   try {
     await serviceDb.from('ai_gateway_requests').insert({
@@ -97,10 +101,79 @@ async function logRequest(serviceDb: any, entry: {
       status:                entry.status,
       latency_ms:           entry.latencyMs ?? null,
       error_message:        entry.errorMessage ?? null,
+      prompt_key:           entry.promptKey ?? null,
+      prompt_version:       entry.promptVersion ?? null,
     });
   } catch (err) {
     // Logging must never break the actual AI call it's describing.
     console.error('[aiGateway] failed to log request:', (err as Error)?.message);
+  }
+}
+
+/**
+ * Fetch the active version of a registered prompt template. Returns null if
+ * the key was never registered (or the read fails) — callers should fall
+ * back to their own inline prompt in that case, never throw. This is what
+ * makes prompt-registry adoption non-breaking: a function can start reading
+ * from the registry the moment a prompt_key exists for it, without every
+ * OTHER unmigrated function needing one first.
+ */
+export async function getActivePrompt(
+  serviceDb: any,
+  promptKey: string,
+): Promise<{ version: number; template: string } | null> {
+  try {
+    const { data, error } = await serviceDb
+      .from('ai_prompt_versions')
+      .select('version, template')
+      .eq('prompt_key', promptKey)
+      .eq('is_active', true)
+      .single();
+    if (error || !data) return null;
+    return { version: data.version, template: data.template };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Register a new version of a prompt and make it the active one. Intended
+ * for admin-console use (has_role(uid,'admin')-gated), not called from
+ * user-facing request paths. Deactivates the previous active version for
+ * the same key in the same call so ai_prompt_versions_one_active_idx is
+ * never violated.
+ */
+export async function registerPromptVersion(
+  serviceDb: any,
+  opts: { promptKey: string; template: string; notes?: string; createdBy?: string },
+): Promise<{ version: number } | null> {
+  try {
+    const { data: existing } = await serviceDb
+      .from('ai_prompt_versions')
+      .select('version')
+      .eq('prompt_key', opts.promptKey)
+      .order('version', { ascending: false })
+      .limit(1);
+    const nextVersion = (existing?.[0]?.version ?? 0) + 1;
+
+    await serviceDb
+      .from('ai_prompt_versions')
+      .update({ is_active: false })
+      .eq('prompt_key', opts.promptKey)
+      .eq('is_active', true);
+
+    const { error } = await serviceDb.from('ai_prompt_versions').insert({
+      prompt_key: opts.promptKey,
+      version: nextVersion,
+      template: opts.template,
+      notes: opts.notes ?? null,
+      is_active: true,
+      created_by: opts.createdBy ?? null,
+    });
+    if (error) return null;
+    return { version: nextVersion };
+  } catch {
+    return null;
   }
 }
 
@@ -114,7 +187,7 @@ async function logRequest(serviceDb: any, entry: {
  * _shared/rateLimit.ts already applies to rate limiting).
  */
 export async function callAI(serviceDb: any, opts: CallAIOptions): Promise<CallAIResult> {
-  const { functionName, provider, model, userId, url, init, extractUsage } = opts;
+  const { functionName, provider, model, userId, url, init, extractUsage, promptKey, promptVersion } = opts;
 
   const { data: config, error: configErr } = await serviceDb
     .from('ai_gateway_config')
@@ -123,12 +196,12 @@ export async function callAI(serviceDb: any, opts: CallAIOptions): Promise<CallA
     .single();
 
   if (configErr || !config) {
-    await logRequest(serviceDb, { functionName, provider, model, userId, status: 'blocked_kill_switch', errorMessage: 'ai_gateway_config unreadable — failing closed' });
+    await logRequest(serviceDb, { functionName, provider, model, userId, status: 'blocked_kill_switch', errorMessage: 'ai_gateway_config unreadable — failing closed', promptKey, promptVersion });
     return { ok: false, response: null, blockedReason: 'kill_switch', errorMessage: 'AI gateway configuration unavailable' };
   }
 
   if (!config.ai_enabled) {
-    await logRequest(serviceDb, { functionName, provider, model, userId, status: 'blocked_kill_switch' });
+    await logRequest(serviceDb, { functionName, provider, model, userId, status: 'blocked_kill_switch', promptKey, promptVersion });
     return { ok: false, response: null, blockedReason: 'kill_switch', errorMessage: 'AI calls are currently disabled (kill switch on)' };
   }
 
@@ -141,7 +214,7 @@ export async function callAI(serviceDb: any, opts: CallAIOptions): Promise<CallA
   const spentToday = (todaysCost ?? []).reduce((sum: number, r: { estimated_cost_usd: number }) => sum + (r.estimated_cost_usd ?? 0), 0);
 
   if (spentToday >= config.daily_cost_ceiling_usd) {
-    await logRequest(serviceDb, { functionName, provider, model, userId, status: 'blocked_cost_ceiling', errorMessage: `daily ceiling $${config.daily_cost_ceiling_usd} reached (spent $${spentToday.toFixed(2)})` });
+    await logRequest(serviceDb, { functionName, provider, model, userId, status: 'blocked_cost_ceiling', errorMessage: `daily ceiling $${config.daily_cost_ceiling_usd} reached (spent $${spentToday.toFixed(2)})`, promptKey, promptVersion });
     return { ok: false, response: null, blockedReason: 'cost_ceiling', errorMessage: 'Daily AI cost ceiling reached — try again tomorrow' };
   }
 
@@ -171,13 +244,14 @@ export async function callAI(serviceDb: any, opts: CallAIOptions): Promise<CallA
       status: response.ok ? 'success' : 'error',
       latencyMs,
       errorMessage: response.ok ? null : `HTTP ${response.status}`,
+      promptKey, promptVersion,
     });
 
     return { ok: response.ok, response, blockedReason: null, errorMessage: response.ok ? null : `HTTP ${response.status}` };
   } catch (err) {
     const latencyMs = Date.now() - startedAt;
     const errorMessage = (err as Error)?.message ?? 'network error';
-    await logRequest(serviceDb, { functionName, provider, model, userId, status: 'error', latencyMs, errorMessage });
+    await logRequest(serviceDb, { functionName, provider, model, userId, status: 'error', latencyMs, errorMessage, promptKey, promptVersion });
     return { ok: false, response: null, blockedReason: null, errorMessage };
   }
 }
