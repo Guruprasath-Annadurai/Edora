@@ -26,7 +26,7 @@
 //   const data = await result.response!.json();
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type AIProvider = 'groq' | 'gemini' | 'nvidia' | 'other';
+export type AIProvider = 'groq' | 'gemini' | 'nvidia' | 'anthropic' | 'other';
 
 export interface CallAIOptions {
   functionName: string;
@@ -72,6 +72,13 @@ const COST_PER_1M_TOKENS_USD: Record<string, { input: number; output: number }> 
   'openai/gpt-oss-120b':     { input: 0.59, output: 0.79 },
   'openai/gpt-oss-20b':      { input: 0.05, output: 0.08 },
   'gemini-flash-latest':     { input: 0.10, output: 0.40 },
+  // Anthropic — added 2026-08-28 ahead of the Claude credits purchase, no
+  // live call site yet. Rates are Anthropic's published per-1M-token list
+  // prices as of this date; check console.anthropic.com/settings/billing
+  // if the ceiling ever looks off, since these aren't fetched live.
+  'claude-haiku-4-5':        { input: 1.00, output: 5.00 },
+  'claude-sonnet-4-5':       { input: 3.00, output: 15.00 },
+  'claude-opus-4-5':         { input: 15.00, output: 75.00 },
 };
 
 function estimateCostUsd(model: string, promptTokens?: number, completionTokens?: number): number | null {
