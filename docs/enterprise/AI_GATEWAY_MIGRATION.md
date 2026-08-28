@@ -124,14 +124,14 @@ reasonable risk to take.
 | `ncert-ingest` | Direct | |
 | `novo-certifications` | Direct | |
 | `novo-challenges` | Direct | |
-| `novo-cron-proactive` | Direct | |
+| `novo-cron-proactive` | **Migrated** | Deployed to production 2026-08-28. Single `gemini()` call site routed through `callAI()`, keyed to the per-user `userId` being processed. |
 | `novo-daily-session` | Direct | |
 | `novo-eval-run` | Direct | Eval harness — arguably should stay direct or use a separate gateway bypass so eval runs don't count against the production cost ceiling. Flagged for a deliberate decision, not migrated by default. |
 | `novo-insights` | Direct | |
 | `novo-memory-consolidate` | Direct | |
 | `novo-memory-extract` | Direct | |
 | `novo-memory` | Direct | |
-| `novo-morning-brief` | Direct | |
+| `novo-morning-brief` | **Migrated** | Deployed to production 2026-08-28. `gemini()` (used by both cron batch mode and the authenticated preview action) routed through `callAI()`. |
 | `novo-ncert` | Direct | |
 | `novo-proactive` | Direct | |
 | `ocr` | Direct | |
@@ -154,22 +154,21 @@ reasonable risk to take.
 | `video-companion` | Direct | |
 | `weekly-report` | Direct | |
 
-**2 of 39 files fully migrated, 1 partially** (`ai-question-gen` and
-`gemini-vision` fully; `gemini-chat`'s primary + fallback completion paths
-as of 2026-08-28, with its internal RAG helpers deliberately left direct —
-see the table above). The remaining 36 keep calling providers
-directly — the risk they represented (no cost ceiling, no kill switch,
-no unified log) is unchanged for those specific call sites until they're
-migrated. The gateway existing doesn't retroactively protect code that
-doesn't call it.
+**4 of 39 files fully migrated, 1 partially** (`ai-question-gen`,
+`gemini-vision`, `novo-cron-proactive`, and `novo-morning-brief` fully;
+`gemini-chat`'s primary + fallback completion paths as of 2026-08-28, with
+its internal RAG helpers deliberately left direct — see the table above).
+The remaining 34 keep calling providers directly — the risk they
+represented (no cost ceiling, no kill switch, no unified log) is unchanged
+for those specific call sites until they're migrated. The gateway existing
+doesn't retroactively protect code that doesn't call it.
 
 ## Recommended migration order (not yet started beyond `ai-question-gen`, `gemini-vision`, and `gemini-chat`'s primary path)
 
 1. ~~`gemini-chat`~~ — done for the primary/fallback completion paths
    (2026-08-28); internal RAG helpers deliberately deferred, see table above.
-2. Any function with a cron trigger (`novo-cron-proactive`,
-   `novo-morning-brief`) — unattended, no user in the loop to notice a
-   runaway cost pattern until a bill arrives.
+2. ~~Cron-triggered functions~~ (`novo-cron-proactive`, `novo-morning-brief`)
+   — done 2026-08-28.
 3. Content-generation functions feeding the review queue
    (`ai-question-gen` ✅, `roadmap-generator`, `study-pack-generator`,
    `revision-planner`, `lesson-planner`) — highest direct cost per call
