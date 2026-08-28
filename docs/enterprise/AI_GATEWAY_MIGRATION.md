@@ -117,7 +117,7 @@ reasonable risk to take.
 | `curriculum-builder` | Direct | |
 | `debate-mode` | Direct | |
 | `exam-prediction` | Direct | |
-| `gemini-chat` | Direct | Highest-traffic surface (Novo AI chat) — also the largest single file, with 10+ internal call sites for chat, fallback, embeddings, and streaming. Migrating this one is the highest-value next step but also the largest single unit of work; deliberately not attempted in the same pass as standing up the gateway itself. |
+| `gemini-chat` | **Partially migrated** | Deployed to production (mlkzabspcwfockbmkmzl, v77) 2026-08-28. `callGroq()` (primary/thinking-model completion path) and `callGeminiFallback()` (last-resort fallback when Groq is rate-limited) now route through `callAI()` — subject to the kill switch and daily cost ceiling. The ~8 internal RAG helper call sites (`embedQuery`, `generateHypotheticalAnswer`, query-variant generation, cross-encoder reranking, step-back query, prereq generation) deliberately stay on direct `fetch()` — cheap, called multiple times per single chat turn, and gateway DB round-trip latency isn't worth it on that interactive hot path for their cost profile. |
 | `gemini-vision` | **Migrated** | All 6 actions route through `fetchGeminiWithRetry` → `callAI`. Deployed to both staging and production, verified live end-to-end on staging (real Gemini API call, real response, logged to `ai_gateway_requests`). |
 | `lesson-planner` | Direct | |
 | `mains-answer-evaluator` | Direct | |
@@ -154,18 +154,19 @@ reasonable risk to take.
 | `video-companion` | Direct | |
 | `weekly-report` | Direct | |
 
-**2 of 39 files migrated** (the table above already showed both
-`ai-question-gen` and `gemini-vision` as Migrated — this count was stale by
-one). The remaining 37 keep calling providers
+**2 of 39 files fully migrated, 1 partially** (`ai-question-gen` and
+`gemini-vision` fully; `gemini-chat`'s primary + fallback completion paths
+as of 2026-08-28, with its internal RAG helpers deliberately left direct —
+see the table above). The remaining 36 keep calling providers
 directly — the risk they represented (no cost ceiling, no kill switch,
 no unified log) is unchanged for those specific call sites until they're
 migrated. The gateway existing doesn't retroactively protect code that
 doesn't call it.
 
-## Recommended migration order (not yet started beyond `ai-question-gen`)
+## Recommended migration order (not yet started beyond `ai-question-gen`, `gemini-vision`, and `gemini-chat`'s primary path)
 
-1. `gemini-chat` — highest traffic and highest cost exposure; also the
-   biggest lift (multiple internal call sites in one file).
+1. ~~`gemini-chat`~~ — done for the primary/fallback completion paths
+   (2026-08-28); internal RAG helpers deliberately deferred, see table above.
 2. Any function with a cron trigger (`novo-cron-proactive`,
    `novo-morning-brief`) — unattended, no user in the loop to notice a
    runaway cost pattern until a bill arrives.
