@@ -16,6 +16,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
+import { callAI } from '../_shared/aiGateway.ts';
 
 const MIN_GAP_HOURS  = 8;
 const BATCH_SIZE     = 5; // users per invocation — prevents timeout
@@ -27,11 +28,21 @@ const VALID_MSG_TYPES = new Set([
 
 // ── Gemini helpers ────────────────────────────────────────────────────────────
 
-async function gemini(prompt: string): Promise<string> {
+// Phase 7 (RISK-006, AI gateway): cron-triggered functions are explicitly
+// the next migration priority in AI_GATEWAY_MIGRATION.md -- no human is in
+// the loop to notice a runaway cost pattern on an unattended scheduled job,
+// so the kill switch/cost ceiling matter here even more than on
+// interactive paths.
+// deno-lint-ignore no-explicit-any
+async function gemini(prompt: string, supabase: any, userId: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
-    {
+  const gatewayResult = await callAI(supabase, {
+    functionName: 'novo-cron-proactive',
+    provider: 'gemini',
+    model: 'gemini-flash-latest',
+    userId,
+    url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
+    init: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -39,22 +50,35 @@ async function gemini(prompt: string): Promise<string> {
         generationConfig: { temperature: 0.8, maxOutputTokens: 400 },
       }),
     },
-  );
-  const d = await res.json();
+    extractUsage: (json) => ({
+      promptTokens: json?.usageMetadata?.promptTokenCount,
+      completionTokens: json?.usageMetadata?.candidatesTokenCount,
+    }),
+  });
+
+  if (gatewayResult.blockedReason) {
+    throw new Error(`AI gateway blocked: ${gatewayResult.errorMessage}`);
+  }
+  if (!gatewayResult.response) {
+    throw new Error(gatewayResult.errorMessage ?? 'Gemini request failed');
+  }
+  const d = await gatewayResult.response.json();
   return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
-async function geminiJSON<T>(prompt: string): Promise<T> {
-  const raw = await gemini(prompt + '\n\nRespond with valid JSON only. No markdown fences.');
+// deno-lint-ignore no-explicit-any
+async function geminiJSON<T>(prompt: string, supabase: any, userId: string): Promise<T> {
+  const raw = await gemini(prompt + '\n\nRespond with valid JSON only. No markdown fences.', supabase, userId);
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('No JSON in response');
   return JSON.parse(match[0]) as T;
 }
 
-async function geminiJSONWithRetry<T>(prompt: string, maxRetries = 2): Promise<T> {
+// deno-lint-ignore no-explicit-any
+async function geminiJSONWithRetry<T>(prompt: string, supabase: any, userId: string, maxRetries = 2): Promise<T> {
   let lastErr: unknown;
   for (let i = 0; i <= maxRetries; i++) {
-    try { return await geminiJSON<T>(prompt); }
+    try { return await geminiJSON<T>(prompt, supabase, userId); }
     catch (e) {
       lastErr = e;
       if (i < maxRetries) await new Promise(r => setTimeout(r, 500 * 2 ** i));
@@ -196,7 +220,7 @@ Memories:\n${memoryContext}
 Message type: "${messageTypeHint}". Write ONE message (1-3 sentences, warm, specific, achievable next step).
 Return JSON: { "message": "...", "message_type": "${messageTypeHint}", "cta_label": "...", "cta_route": "..." }
 CTA options: "Start Sprint"→"/sprint", "Chat with Novo"→"/chat", "View Lesson Plan"→"/lesson-plan", "Review Weak Topics"→"/weakness-radar", null
-`);
+`, supabase, userId);
       if (!VALID_MSG_TYPES.has(candidate.message_type)) candidate.message_type = 'welcome_back';
       if (!candidate.message || candidate.message.trim().length < 10) throw new Error('empty');
       result = candidate;
