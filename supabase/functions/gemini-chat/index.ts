@@ -125,6 +125,236 @@ async function callGeminiFallback(
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Claude integration — feature-flagged (AI_CHAT_PROVIDER=claude), OFF by
+// default. Added 2026-08-28 alongside the ANTHROPIC_API_KEY secret; no
+// production traffic has hit this path yet since it hasn't been verified
+// against a real key from this environment. Flip AI_CHAT_PROVIDER=claude
+// (a Supabase secret, not a code change) to activate; unset it to roll
+// back to Groq instantly. Deliberately intercepted at callGroq()'s single
+// choke point rather than touching its ~6 call sites, so this stays a
+// one-line, reversible toggle.
+//
+// Anthropic's Messages API has a different request/response/streaming
+// shape than Groq's OpenAI-compatible endpoint (system prompt is a
+// top-level field not a message; tool calls are `tool_use` content
+// blocks, not `tool_calls`; streaming is a typed event sequence, not
+// OpenAI-style delta chunks). Everything below translates between the two
+// shapes so the existing ReAct loop / SSE parser (built for Groq) needs
+// no changes at all.
+// ─────────────────────────────────────────────────────────────────────────────
+const CLAUDE_MODEL_PRIMARY  = 'claude-sonnet-5';
+const CLAUDE_MODEL_FALLBACK = 'claude-haiku-4-5-20251001';
+const CLAUDE_API_URL        = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_VERSION     = '2023-06-01';
+const USE_CLAUDE = (Deno.env.get('AI_CHAT_PROVIDER') ?? '').toLowerCase() === 'claude';
+
+// GROQ_MODEL_THINKING and GROQ_MODEL_PRIMARY are currently the same string
+// (see top of file) — both map to Sonnet 5, since Claude doesn't need a
+// separate "thinking-tier" model the way the Groq routing does.
+// Known gap: routeModel()'s `supportsTools` disables tool-calling for the
+// THINKING tier (a Groq-specific workaround for deepseek-style reasoning
+// models tripping over tool calls) -- Claude Sonnet 5 supports tools fine,
+// so derivation-intent queries lose flashcard/weak-topic tool calls when
+// routed through Claude. Not fixed here; revisit if/when this flag is
+// actually turned on and that gap matters in practice.
+function mapGroqModelToClaude(groqModel: string): string {
+  return groqModel === GROQ_MODEL_FALLBACK ? CLAUDE_MODEL_FALLBACK : CLAUDE_MODEL_PRIMARY;
+}
+
+type AnthropicContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | { type: 'tool_result'; tool_use_id: string; content: string };
+
+// Convert the OpenAI-shaped `messages` array (system message inline, plus
+// assistant tool_calls / role:'tool' turns from the ReAct loop) into
+// Anthropic's shape: a top-level `system` string and a messages array
+// where tool calls are `tool_use` blocks and tool results are `tool_result`
+// blocks inside a user-role message.
+function toAnthropicMessages(msgs: unknown[]): { system?: string; messages: Array<{ role: 'user' | 'assistant'; content: string | AnthropicContentBlock[] }> } {
+  let system = '';
+  const out: Array<{ role: 'user' | 'assistant'; content: string | AnthropicContentBlock[] }> = [];
+  const arr = msgs as Array<{
+    role?: string; content?: string | null;
+    tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
+    tool_call_id?: string;
+  }>;
+  for (const m of arr) {
+    if (!m || !m.role) continue;
+    if (m.role === 'system') { system += (system ? '\n\n' : '') + (m.content ?? ''); continue; }
+    if (m.role === 'user') { out.push({ role: 'user', content: m.content ?? '' }); continue; }
+    if (m.role === 'assistant') {
+      if (m.tool_calls?.length) {
+        const blocks: AnthropicContentBlock[] = [];
+        if (m.content) blocks.push({ type: 'text', text: m.content });
+        for (const tc of m.tool_calls) {
+          let input: unknown = {};
+          try { input = JSON.parse(tc.function.arguments || '{}'); } catch { /* malformed args -> empty input */ }
+          blocks.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input });
+        }
+        out.push({ role: 'assistant', content: blocks });
+      } else {
+        out.push({ role: 'assistant', content: m.content ?? '' });
+      }
+      continue;
+    }
+    if (m.role === 'tool') {
+      const block: AnthropicContentBlock = { type: 'tool_result', tool_use_id: m.tool_call_id ?? '', content: String(m.content ?? '') };
+      const last = out[out.length - 1];
+      if (last && last.role === 'user' && Array.isArray(last.content)) {
+        last.content.push(block);
+      } else {
+        out.push({ role: 'user', content: [block] });
+      }
+      continue;
+    }
+  }
+  return { system: system || undefined, messages: out };
+}
+
+function toAnthropicTools(tools: typeof NOVO_TOOLS): Array<{ name: string; description: string; input_schema: unknown }> {
+  return tools.map(t => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters }));
+}
+
+// Translate Anthropic's typed SSE event stream into the OpenAI-style
+// `data: {"choices":[{"delta":{...},"finish_reason":...}]}` chunks the
+// existing drainStreamRound() parser expects, terminated by `data: [DONE]`.
+function anthropicToOpenAIStream(anthropicBody: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = anthropicBody.getReader();
+      let buf = '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (!raw) continue;
+            let evt: {
+              type?: string; index?: number;
+              content_block?: { type?: string; id?: string; name?: string };
+              delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string };
+            };
+            try { evt = JSON.parse(raw); } catch { continue; }
+
+            if (evt.type === 'content_block_start' && evt.content_block?.type === 'tool_use') {
+              const chunk = { choices: [{ delta: { tool_calls: [{ index: evt.index ?? 0, id: evt.content_block.id, function: { name: evt.content_block.name, arguments: '' } }] }, finish_reason: null }] };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            } else if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+              const chunk = { choices: [{ delta: { content: evt.delta.text ?? '' }, finish_reason: null }] };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            } else if (evt.type === 'content_block_delta' && evt.delta?.type === 'input_json_delta') {
+              const chunk = { choices: [{ delta: { tool_calls: [{ index: evt.index ?? 0, function: { arguments: evt.delta.partial_json ?? '' } }] }, finish_reason: null }] };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            } else if (evt.type === 'message_delta' && evt.delta?.stop_reason) {
+              const finish = evt.delta.stop_reason === 'tool_use' ? 'tool_calls' : 'stop';
+              const chunk = { choices: [{ delta: {}, finish_reason: finish }] };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            } else if (evt.type === 'message_stop') {
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            }
+          }
+        }
+      } catch { /* client disconnected or upstream closed */ }
+      controller.close();
+    },
+  });
+}
+
+// Same contract as callGroq(): returns an OpenAI-shaped Response (streaming
+// SSE or single JSON body) so the caller in callGroq() can hand it straight
+// back without the rest of the pipeline knowing the provider changed.
+async function callClaude(
+  claudeModel: string,
+  abortSignal: AbortSignal,
+  msgs: unknown[],
+  useStream: boolean,
+  withTools: boolean,
+  serviceDb: ReturnType<typeof createClient>,
+  userId: string | null,
+): Promise<Response> {
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
+  if (!anthropicKey) return new Response(JSON.stringify({ error: { message: 'ANTHROPIC_API_KEY not set' } }), { status: 500 });
+
+  const { system, messages: anthroMsgs } = toAnthropicMessages(msgs);
+  const body: Record<string, unknown> = {
+    model: claudeModel,
+    max_tokens: 4096,
+    temperature: 0.75,
+    messages: anthroMsgs,
+    stream: useStream,
+  };
+  if (system) body.system = system;
+  if (withTools) {
+    body.tools = toAnthropicTools(NOVO_TOOLS);
+    body.tool_choice = { type: 'auto' };
+  }
+
+  const gatewayResult = await callAI(serviceDb, {
+    functionName: 'gemini-chat',
+    provider: 'anthropic',
+    model: claudeModel,
+    userId,
+    url: CLAUDE_API_URL,
+    init: {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': ANTHROPIC_VERSION },
+      body: JSON.stringify(body),
+      signal: abortSignal,
+    },
+    extractUsage: (json) => ({ promptTokens: json?.usage?.input_tokens, completionTokens: json?.usage?.output_tokens }),
+  });
+
+  if (gatewayResult.blockedReason) {
+    console.warn('[novo] AI gateway blocked Claude call:', gatewayResult.errorMessage);
+    return new Response(JSON.stringify({ error: { message: gatewayResult.errorMessage } }), { status: 429 });
+  }
+  if (!gatewayResult.response) {
+    throw new Error(gatewayResult.errorMessage ?? 'Claude request failed');
+  }
+
+  const anthroRes = gatewayResult.response;
+  if (!anthroRes.ok) {
+    const errBody = await anthroRes.text().catch(() => '');
+    let message = `Claude error ${anthroRes.status}`;
+    try { message = (JSON.parse(errBody) as { error?: { message?: string } })?.error?.message ?? message; } catch { /* keep default message */ }
+    return new Response(JSON.stringify({ error: { message } }), { status: anthroRes.status });
+  }
+
+  if (useStream) {
+    if (!anthroRes.body) return new Response(null, { status: 502 });
+    return new Response(anthropicToOpenAIStream(anthroRes.body), { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+  }
+
+  const anthroJson = await anthroRes.json() as {
+    content?: Array<{ type: string; text?: string; id?: string; name?: string; input?: unknown }>;
+    stop_reason?: string;
+  };
+  const blocks = anthroJson.content ?? [];
+  const textOut = blocks.filter(b => b.type === 'text').map(b => b.text ?? '').join('');
+  const toolUseBlocks = blocks.filter(b => b.type === 'tool_use');
+  const openAIShape = {
+    choices: [{
+      finish_reason: anthroJson.stop_reason === 'tool_use' ? 'tool_calls' : 'stop',
+      message: {
+        content: textOut || null,
+        tool_calls: toolUseBlocks.length
+          ? toolUseBlocks.map(b => ({ id: b.id, function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } }))
+          : undefined,
+      },
+    }],
+  };
+  return new Response(JSON.stringify(openAIShape), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
+
 // Wrap a plain-text answer in an OpenAI-shaped Response so downstream
 // stream/non-stream parsing (built for Groq) doesn't need a separate code path.
 function fakeOpenAIResponse(text: string, asStream: boolean): Response {
@@ -2003,6 +2233,17 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
     model: string, abortSignal: AbortSignal, withTools = true,
     overrideMessages?: unknown[], overrideStream?: boolean,
   ): Promise<Response> {
+    if (USE_CLAUDE) {
+      return callClaude(
+        mapGroqModelToClaude(model),
+        abortSignal,
+        overrideMessages ?? messages,
+        overrideStream ?? stream,
+        withTools && supportsTools,
+        serviceDb,
+        userId,
+      );
+    }
     const body: Record<string, unknown> = {
       model,
       messages:    overrideMessages ?? messages,
