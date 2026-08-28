@@ -14,6 +14,7 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { validateStudyPack, type StudyPack, FLASHCARD_COUNT, QUIZ_COUNT, KEY_TERM_COUNT } from './validate.ts';
+import { callAI } from '../_shared/aiGateway.ts';
 // gemini-flash-latest with JSON mode for guaranteed structured output
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
@@ -155,12 +156,39 @@ serve(withSentry('study-pack-generator', async (req) => {
 
       let geminiRes: Response;
       try {
-        geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(geminiBody),
-          signal: controller.signal,
+        // Phase 7 (RISK-006, AI gateway): content-generation call feeding
+        // per-user study packs -- migrated per AI_GATEWAY_MIGRATION.md's
+        // recommended order.
+        const gatewayResult = await callAI(supabase, {
+          functionName: 'study-pack-generator',
+          provider: 'gemini',
+          model: 'gemini-flash-latest',
+          userId: user.id,
+          url: `${GEMINI_URL}?key=${apiKey}`,
+          init: {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(geminiBody),
+            signal: controller.signal,
+          },
+          extractUsage: (json) => ({
+            promptTokens: json?.usageMetadata?.promptTokenCount,
+            completionTokens: json?.usageMetadata?.candidatesTokenCount,
+          }),
         });
+
+        // Gateway block (kill switch / cost ceiling) — surface immediately,
+        // same as a real provider rate limit: retrying wouldn't help.
+        if (gatewayResult.blockedReason) {
+          return new Response(
+            JSON.stringify({ error: 'rate_limit', message: gatewayResult.errorMessage ?? 'Too many requests. Please wait a moment.' }),
+            { status: 429, headers: { ...CORS, 'Content-Type': 'application/json' } },
+          );
+        }
+        if (!gatewayResult.response) {
+          throw new Error(gatewayResult.errorMessage ?? 'Gemini request failed');
+        }
+        geminiRes = gatewayResult.response;
       } finally {
         clearTimeout(timeoutId);
       }

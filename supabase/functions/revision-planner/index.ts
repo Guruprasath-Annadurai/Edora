@@ -13,12 +13,21 @@ import { getCors } from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { validateWeeks } from './validate.ts';
+import { callAI } from '../_shared/aiGateway.ts';
 const GEMINI_MODEL = 'gemini-flash-latest';
 
-async function callGeminiOnce(prompt: string, apiKey: string): Promise<unknown> {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
+// Phase 7 (RISK-006, AI gateway): content-generation call feeding a
+// per-user revision plan -- migrated per AI_GATEWAY_MIGRATION.md's
+// recommended order (content-gen functions feeding the review/output
+// queue, after cron-triggered functions).
+async function callGeminiOnce(prompt: string, apiKey: string, supabase: ReturnType<typeof createClient>, userId: string): Promise<unknown> {
+  const gatewayResult = await callAI(supabase, {
+    functionName: 'revision-planner',
+    provider: 'gemini',
+    model: GEMINI_MODEL,
+    userId,
+    url: `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    init: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -26,7 +35,14 @@ async function callGeminiOnce(prompt: string, apiKey: string): Promise<unknown> 
         generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
       }),
     },
-  );
+    extractUsage: (json) => ({
+      promptTokens: json?.usageMetadata?.promptTokenCount,
+      completionTokens: json?.usageMetadata?.candidatesTokenCount,
+    }),
+  });
+  if (gatewayResult.blockedReason) throw new Error(`AI gateway blocked: ${gatewayResult.errorMessage}`);
+  if (!gatewayResult.response) throw new Error(gatewayResult.errorMessage ?? 'Gemini request failed');
+  const res = gatewayResult.response;
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
@@ -38,11 +54,11 @@ async function callGeminiOnce(prompt: string, apiKey: string): Promise<unknown> 
 // any transient Gemini hiccup (rate limit, timeout, malformed JSON) failed
 // the whole request immediately. This was the direct cause of "revision plan
 // failing to generate" reports.
-async function callGemini(prompt: string, apiKey: string, maxRetries = 2): Promise<unknown> {
+async function callGemini(prompt: string, apiKey: string, supabase: ReturnType<typeof createClient>, userId: string, maxRetries = 2): Promise<unknown> {
   let lastErr: unknown;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await callGeminiOnce(prompt, apiKey);
+      return await callGeminiOnce(prompt, apiKey, supabase, userId);
     } catch (e) {
       lastErr = e;
       if (attempt < maxRetries) {
@@ -137,7 +153,7 @@ Return ONLY JSON:
       let lastPlanErr = '';
       for (let attempt = 0; attempt < MAX_PLAN_ATTEMPTS; attempt++) {
         try {
-          const candidate = await callGemini(prompt, geminiKey) as { daily_hours: number; weeks: unknown[] };
+          const candidate = await callGemini(prompt, geminiKey, supabase, user.id) as { daily_hours: number; weeks: unknown[] };
           const validationErr = validateWeeks(candidate.weeks, allChapters.length);
           if (!validationErr) { result = candidate; break; }
           lastPlanErr = validationErr;

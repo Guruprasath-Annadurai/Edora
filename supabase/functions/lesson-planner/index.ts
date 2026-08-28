@@ -14,12 +14,21 @@ import { getCors } from '../_shared/cors.ts';
 
 
 import { withSentry } from '../_shared/sentry.ts';
+import { callAI } from '../_shared/aiGateway.ts';
 // ── Gemini with retry ─────────────────────────────────────────────────────────
-async function gemini(prompt: string): Promise<string> {
+// Phase 7 (RISK-006, AI gateway): content-generation calls feeding
+// per-user lesson plans -- migrated per AI_GATEWAY_MIGRATION.md's
+// recommended order.
+// deno-lint-ignore no-explicit-any
+async function gemini(prompt: string, supabase: any, userId: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
-    {
+  const gatewayResult = await callAI(supabase, {
+    functionName: 'lesson-planner',
+    provider: 'gemini',
+    model: 'gemini-flash-latest',
+    userId,
+    url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
+    init: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -27,24 +36,32 @@ async function gemini(prompt: string): Promise<string> {
         generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
       }),
     },
-  );
-  const d = await res.json();
+    extractUsage: (json) => ({
+      promptTokens: json?.usageMetadata?.promptTokenCount,
+      completionTokens: json?.usageMetadata?.candidatesTokenCount,
+    }),
+  });
+  if (gatewayResult.blockedReason) throw new Error(`AI gateway blocked: ${gatewayResult.errorMessage}`);
+  if (!gatewayResult.response) throw new Error(gatewayResult.errorMessage ?? 'Gemini request failed');
+  const d = await gatewayResult.response.json();
   return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
-async function geminiJSON<T>(prompt: string): Promise<T> {
-  const raw = await gemini(prompt + '\n\nRespond with valid JSON only. No markdown fences.');
+// deno-lint-ignore no-explicit-any
+async function geminiJSON<T>(prompt: string, supabase: any, userId: string): Promise<T> {
+  const raw = await gemini(prompt + '\n\nRespond with valid JSON only. No markdown fences.', supabase, userId);
   const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
   if (!match) throw new Error('No JSON found in Gemini response');
   return JSON.parse(match[0]) as T;
 }
 
 // Retry up to maxRetries times with 500ms→1000ms exponential backoff.
-async function geminiJSONWithRetry<T>(prompt: string, maxRetries = 2): Promise<T> {
+// deno-lint-ignore no-explicit-any
+async function geminiJSONWithRetry<T>(prompt: string, supabase: any, userId: string, maxRetries = 2): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await geminiJSON<T>(prompt);
+      return await geminiJSON<T>(prompt, supabase, userId);
     } catch (e) {
       lastErr = e;
       if (attempt < maxRetries) {
@@ -273,7 +290,7 @@ Return EXACTLY this JSON structure:
     const MAX_ATTEMPTS = 3;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
-        const candidate = await geminiJSONWithRetry<PlanData>(prompt);
+        const candidate = await geminiJSONWithRetry<PlanData>(prompt, supabase, user.id);
         const validationError = validatePlan(candidate);
         if (!validationError) { planData = candidate; break; }
         lastError = validationError;
@@ -477,7 +494,7 @@ Return a JSON array of task objects:
     const MAX_ATTEMPTS = 3;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
-        const candidate = await geminiJSONWithRetry<TaskRaw[]>(dayPrompt);
+        const candidate = await geminiJSONWithRetry<TaskRaw[]>(dayPrompt, supabase, user.id);
         const validationError = validateTasks(candidate);
         if (!validationError) { newTasks = candidate; break; }
         lastError = validationError;
