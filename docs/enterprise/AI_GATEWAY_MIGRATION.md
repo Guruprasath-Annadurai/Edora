@@ -119,7 +119,7 @@ reasonable risk to take.
 | `exam-prediction` | Direct | |
 | `gemini-chat` | **Partially migrated** | Deployed to production (mlkzabspcwfockbmkmzl, v77) 2026-08-28. `callGroq()` (primary/thinking-model completion path) and `callGeminiFallback()` (last-resort fallback when Groq is rate-limited) now route through `callAI()` — subject to the kill switch and daily cost ceiling. The ~8 internal RAG helper call sites (`embedQuery`, `generateHypotheticalAnswer`, query-variant generation, cross-encoder reranking, step-back query, prereq generation) deliberately stay on direct `fetch()` — cheap, called multiple times per single chat turn, and gateway DB round-trip latency isn't worth it on that interactive hot path for their cost profile. |
 | `gemini-vision` | **Migrated** | All 6 actions route through `fetchGeminiWithRetry` → `callAI`. Deployed to both staging and production, verified live end-to-end on staging (real Gemini API call, real response, logged to `ai_gateway_requests`). |
-| `lesson-planner` | Direct | |
+| `lesson-planner` | **Migrated** | Deployed to production 2026-08-28. Both call sites (`generate`, `regenerate_day`) route through `callAI()`. |
 | `mains-answer-evaluator` | Direct | |
 | `ncert-ingest` | Direct | |
 | `novo-certifications` | Direct | |
@@ -140,12 +140,12 @@ reasonable risk to take.
 | `pyq-ingest` | Direct | |
 | `question-gen-eval-run` | Direct | Same eval-harness consideration as `novo-eval-run`. |
 | `question-quality-audit` | Direct | |
-| `revision-planner` | Direct | |
-| `roadmap-generator` | Direct | |
+| `revision-planner` | **Migrated** | Deployed to production 2026-08-28. |
+| `roadmap-generator` | **Migrated** | Deployed to production 2026-08-28. Both providers migrated: the primary Gemini path and the NVIDIA Nemotron recalibration path (`callNemotronRecalibrate`). |
 | `school-report` | Direct | |
 | `story-mode` | Direct | |
 | `streak-challenges` | Direct | |
-| `study-pack-generator` | Direct | |
+| `study-pack-generator` | **Migrated** | Deployed to production 2026-08-28. |
 | `teacher-content-ingest` | Direct | |
 | `teacher-export` | Direct | |
 | `tournament` | Direct | |
@@ -154,14 +154,16 @@ reasonable risk to take.
 | `video-companion` | Direct | |
 | `weekly-report` | Direct | |
 
-**4 of 39 files fully migrated, 1 partially** (`ai-question-gen`,
-`gemini-vision`, `novo-cron-proactive`, and `novo-morning-brief` fully;
-`gemini-chat`'s primary + fallback completion paths as of 2026-08-28, with
-its internal RAG helpers deliberately left direct — see the table above).
-The remaining 34 keep calling providers directly — the risk they
-represented (no cost ceiling, no kill switch, no unified log) is unchanged
-for those specific call sites until they're migrated. The gateway existing
-doesn't retroactively protect code that doesn't call it.
+**8 of 39 files fully migrated, 1 partially** (`ai-question-gen`,
+`gemini-vision`, `novo-cron-proactive`, `novo-morning-brief`,
+`roadmap-generator`, `study-pack-generator`, `revision-planner`, and
+`lesson-planner` fully; `gemini-chat`'s primary + fallback completion
+paths as of 2026-08-28, with its internal RAG helpers deliberately left
+direct — see the table above). The remaining 30 keep calling providers
+directly — the risk they represented (no cost ceiling, no kill switch, no
+unified log) is unchanged for those specific call sites until they're
+migrated. The gateway existing doesn't retroactively protect code that
+doesn't call it.
 
 ## Recommended migration order (not yet started beyond `ai-question-gen`, `gemini-vision`, and `gemini-chat`'s primary path)
 
@@ -169,11 +171,9 @@ doesn't retroactively protect code that doesn't call it.
    (2026-08-28); internal RAG helpers deliberately deferred, see table above.
 2. ~~Cron-triggered functions~~ (`novo-cron-proactive`, `novo-morning-brief`)
    — done 2026-08-28.
-3. Content-generation functions feeding the review queue
-   (`ai-question-gen` ✅, `roadmap-generator`, `study-pack-generator`,
-   `revision-planner`, `lesson-planner`) — highest direct cost per call
-   (large generation prompts) and already have an established pattern
-   from `ai-question-gen` to copy.
+3. ~~Content-generation functions feeding the review queue~~
+   (`ai-question-gen`, `roadmap-generator`, `study-pack-generator`,
+   `revision-planner`, `lesson-planner`) — done 2026-08-28.
 4. Everything else, as capacity allows.
 
 ## Prompt versioning + a real bug found while starting on it (2026-08-25)
