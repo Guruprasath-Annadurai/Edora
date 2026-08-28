@@ -14,6 +14,7 @@ import { getCors }      from '../_shared/cors.ts';
 import { withSentry }   from '../_shared/sentry.ts';
 import { normalizeMemories } from '../_shared/memoryExtraction.ts';
 import { checkRateLimit as sharedCheckRateLimit, checkGlobalLLMBudget } from '../_shared/rateLimit.ts';
+import { callAI } from '../_shared/aiGateway.ts';
 import { validatePrereqGen, type PrereqGen } from './validate.ts';
 
 // ── Models ────────────────────────────────────────────────────────────────────
@@ -49,22 +50,66 @@ function toGeminiContents(msgs: unknown[]): { systemInstruction?: string; conten
   return { systemInstruction: systemInstruction || undefined, contents };
 }
 
-async function callGeminiFallback(msgs: unknown[], abortSignal: AbortSignal): Promise<string | null> {
+// Phase 7 (RISK-006, AI gateway): last-resort fallback, routed through
+// callAI() same as callGroq -- a kill switch/cost ceiling should stop
+// spend here too, not just on the primary Groq path. serviceDb/userId are
+// optional (default to null) since this is a rarely-exercised fallback
+// path with a couple of call sites that may not always have a live
+// session handy; callAI treats a null userId the same as any other call.
+async function callGeminiFallback(
+  msgs: unknown[],
+  abortSignal: AbortSignal,
+  serviceDb?: ReturnType<typeof createClient> | null,
+  userId?: string | null,
+): Promise<string | null> {
   const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
   if (!geminiKey) { console.error('[novo] Gemini fallback: GEMINI_API_KEY not set'); return null; }
   const { systemInstruction, contents } = toGeminiContents(msgs);
   if (!contents.length) { console.error('[novo] Gemini fallback: no usable contents from messages'); return null; }
   try {
-    const res = await fetch(`${GEMINI_GENERATE_URL}?key=${geminiKey}`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents,
-        ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
-        generationConfig: { temperature: 0.75, maxOutputTokens: 2048 },
-      }),
-      signal: abortSignal,
-    });
+    const body = {
+      contents,
+      ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
+      generationConfig: { temperature: 0.75, maxOutputTokens: 2048 },
+    };
+
+    let res: Response;
+    if (serviceDb) {
+      const gatewayResult = await callAI(serviceDb, {
+        functionName: 'gemini-chat',
+        provider: 'gemini',
+        model: GEMINI_FALLBACK_MODEL,
+        userId,
+        url: `${GEMINI_GENERATE_URL}?key=${geminiKey}`,
+        init: {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body),
+          signal:  abortSignal,
+        },
+        extractUsage: (json) => ({
+          promptTokens: json?.usageMetadata?.promptTokenCount,
+          completionTokens: json?.usageMetadata?.candidatesTokenCount,
+        }),
+      });
+      if (gatewayResult.blockedReason) {
+        console.warn('[novo] AI gateway blocked Gemini fallback call:', gatewayResult.errorMessage);
+        return null;
+      }
+      if (!gatewayResult.response) {
+        console.error('[novo] Gemini fallback threw:', gatewayResult.errorMessage);
+        return null;
+      }
+      res = gatewayResult.response;
+    } else {
+      res = await fetch(`${GEMINI_GENERATE_URL}?key=${geminiKey}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+        signal:  abortSignal,
+      });
+    }
+
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       console.error('[novo] Gemini fallback HTTP', res.status, errBody.slice(0, 300));
@@ -1497,6 +1542,13 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
     if (authErr || !authUser) return jsonRes({ error: 'Unauthorized' }, 401);
     user = authUser;
   }
+  // TS discards a `let` variable's narrowing once captured inside a later
+  // `function` declaration closure (unlike an arrow function invoked
+  // immediately in the same flow) -- callGroq below is exactly that case.
+  // A permanently-narrowed const sidesteps it cleanly, without a `!`
+  // non-null assertion, since both branches above guarantee `user` is set
+  // by this point.
+  const userId = user.id;
 
   // ── 2. Rate limit ─────────────────────────────────────────────────────────────
   const allowed = isEvalMode || await checkRateLimit(serviceDb, user.id);
@@ -1937,6 +1989,16 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
   // (routedModel computed earlier, before brainSystemPrompt — see above)
   const supportsTools = routedModel !== GROQ_MODEL_THINKING;
 
+  // Phase 7 (RISK-006, AI gateway): the main user-facing completion call --
+  // previously a bare fetch(), with no shared kill switch or cost ceiling.
+  // Routed through callAI() so gemini-chat (the highest-traffic, highest-
+  // cost-exposure function in the app) is finally protected the same way
+  // ai-question-gen/gemini-vision already are. A gateway block returns a
+  // synthetic 429 Response rather than throwing, so every existing caller
+  // below (which all branch on `.status === 429` / `!res.ok`) keeps working
+  // unchanged -- a blocked call falls through the SAME rate-limit/fallback
+  // path a real Groq 429 already takes, which is the correct behavior
+  // either way (both mean "don't trust this response, try the next tier").
   async function callGroq(
     model: string, abortSignal: AbortSignal, withTools = true,
     overrideMessages?: unknown[], overrideStream?: boolean,
@@ -1954,12 +2016,36 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
       body.tool_choice      = 'auto';
       body.parallel_tool_calls = false;
     }
-    return fetch(GROQ_BASE_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body:    JSON.stringify(body),
-      signal:  abortSignal,
+
+    const gatewayResult = await callAI(serviceDb, {
+      functionName: 'gemini-chat',
+      provider: 'groq',
+      model,
+      userId,
+      url: GROQ_BASE_URL,
+      init: {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body:    JSON.stringify(body),
+        signal:  abortSignal,
+      },
+      // Streaming responses (SSE, not a single JSON object) fail this parse
+      // silently -- caught by callAI's own try/catch, cost estimation just
+      // stays null for those calls rather than blocking anything.
+      extractUsage: (json) => ({
+        promptTokens: json?.usage?.prompt_tokens,
+        completionTokens: json?.usage?.completion_tokens,
+      }),
     });
+
+    if (gatewayResult.blockedReason) {
+      console.warn('[novo] AI gateway blocked Groq call:', gatewayResult.errorMessage);
+      return new Response(JSON.stringify({ error: { message: gatewayResult.errorMessage } }), { status: 429 });
+    }
+    if (!gatewayResult.response) {
+      throw new Error(gatewayResult.errorMessage ?? 'Groq request failed');
+    }
+    return gatewayResult.response;
   }
 
   const controller = new AbortController();
@@ -2001,7 +2087,7 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
   // Both Groq models rate-limited (or global budget already exhausted) →
   // last resort: Gemini, plain text, no tools
   if (groqRes.status === 429) {
-    const gemText = await callGeminiFallback(messages, controller.signal);
+    const gemText = await callGeminiFallback(messages, controller.signal, serviceDb, userId);
     if (gemText) {
       console.warn('[novo] Both Groq models rate-limited — fell back to Gemini');
       modelUsed = GEMINI_FALLBACK_MODEL;
