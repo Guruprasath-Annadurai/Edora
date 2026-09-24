@@ -17,7 +17,7 @@ import { checkRateLimit } from '../_shared/rateLimit.ts';
 async function geminiJSON<T>(prompt: string): Promise<T> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -58,7 +58,7 @@ async function reasonAboutReadinessOnce<T>(prompt: string): Promise<{ result: T;
     return { result: await nemotronJSON<T>(prompt), model: 'nemotron-3-ultra-550b' };
   } catch (e) {
     console.error('Nemotron readiness prediction failed, falling back to Gemini:', e);
-    return { result: await geminiJSON<T>(prompt), model: 'gemini-1.5-flash' };
+    return { result: await geminiJSON<T>(prompt), model: 'gemini-flash-latest' };
   }
 }
 

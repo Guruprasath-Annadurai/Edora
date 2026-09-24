@@ -81,8 +81,19 @@ export function AppShell() {
           see OfflineCache/offlineStudy for the handful of pages that already do. */}
       <div style={{ position: 'relative', zIndex: 2 }}><OfflineBanner /></div>
 
-      {/* Page content */}
-      <main className="flex-1 overflow-hidden relative" style={{ zIndex: 1 }} role="main">
+      {/* Page content
+          NOTE: deliberately no explicit z-index here. `position: relative` +
+          an explicit z-index would make `main` a new CSS stacking context,
+          capping every fixed-position modal a page renders inside it (e.g.
+          the sign-out confirm sheet's z-[600]) at that context's level —
+          so no z-index a page modal declares could ever out-rank a sibling
+          like TabBar's floating pill (z-index: 50), even though 600 > 50.
+          Found via the profile-signout E2E spec: the confirm button's tap
+          target overlapped the nav pill and was silently unclickable there.
+          Leaving z-index unset here lets modal z-indices resolve against
+          the true root stacking context instead. DOM order still keeps
+          this above the z-index:0 ambient background layer. */}
+      <main className="flex-1 overflow-hidden relative" role="main">
         <Outlet />
       </main>
 

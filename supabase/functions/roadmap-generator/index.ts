@@ -30,8 +30,9 @@ import { getCors } from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
 import { validateWeeks, type RoadmapWeek, type GeminiRoadmap } from './validate.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { callAI } from '../_shared/aiGateway.ts';
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
 const REQUEST_TIMEOUT_MS = 60_000;
 const MAX_PLAN_WEEKS     = 16;   // cap to avoid token overflow
@@ -141,26 +142,47 @@ function todayStudyDayIndex(startDate: string, daysPerWeek: number): number {
 }
 
 // ── Gemini call ───────────────────────────────────────────────────────────────
-async function callGeminiOnce(systemPrompt: string, userPrompt: string, apiKey: string): Promise<GeminiRoadmap> {
+// Phase 7 (RISK-006, AI gateway): content-generation calls feeding
+// per-user study roadmaps -- migrated per AI_GATEWAY_MIGRATION.md's
+// recommended order.
+async function callGeminiOnce(
+  systemPrompt: string, userPrompt: string, apiKey: string,
+  db: ReturnType<typeof createClient>, userId: string,
+): Promise<GeminiRoadmap> {
   const ctrl = new AbortController();
   const tid  = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const resp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema:   ROADMAP_SCHEMA,
-          temperature:      0.6,
-          maxOutputTokens:  6000,
-        },
+    const gatewayResult = await callAI(db, {
+      functionName: 'roadmap-generator',
+      provider: 'gemini',
+      model: 'gemini-flash-latest',
+      userId,
+      url: `${GEMINI_URL}?key=${apiKey}`,
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema:   ROADMAP_SCHEMA,
+            temperature:      0.6,
+            maxOutputTokens:  6000,
+          },
+        }),
+      },
+      extractUsage: (json) => ({
+        promptTokens: json?.usageMetadata?.promptTokenCount,
+        completionTokens: json?.usageMetadata?.candidatesTokenCount,
       }),
     });
+
+    if (gatewayResult.blockedReason) throw new Error(`AI gateway blocked: ${gatewayResult.errorMessage}`);
+    if (!gatewayResult.response) throw new Error(gatewayResult.errorMessage ?? 'Gemini request failed');
+    const resp = gatewayResult.response;
 
     if (!resp.ok) {
       const msg = await resp.text();
@@ -182,11 +204,14 @@ async function callGeminiOnce(systemPrompt: string, userPrompt: string, apiKey: 
 // empty/malformed weeks) failed the whole request immediately with no retry.
 // This was the direct cause of "edge function returned a non-2xx status
 // code" reports for roadmap generation.
-async function callGemini(systemPrompt: string, userPrompt: string, apiKey: string, maxRetries = 2): Promise<GeminiRoadmap> {
+async function callGemini(
+  systemPrompt: string, userPrompt: string, apiKey: string,
+  db: ReturnType<typeof createClient>, userId: string, maxRetries = 2,
+): Promise<GeminiRoadmap> {
   let lastErr: unknown;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await callGeminiOnce(systemPrompt, userPrompt, apiKey);
+      return await callGeminiOnce(systemPrompt, userPrompt, apiKey, db, userId);
     } catch (e) {
       lastErr = e;
       if (attempt < maxRetries) {
@@ -209,6 +234,8 @@ async function callNemotronRecalibrate(
   system: string,
   userPrompt: string,
   masteryContext: string,
+  db: ReturnType<typeof createClient>,
+  userId: string,
 ): Promise<GeminiRoadmap> {
   const key = Deno.env.get('NVIDIA_API_KEY');
   if (!key) throw new Error('NVIDIA_API_KEY not configured');
@@ -232,18 +259,32 @@ Respond with ONLY a single JSON object, no markdown fencing, matching exactly th
   const ctrl = new AbortController();
   const tid = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-      method: 'POST',
-      signal: ctrl.signal,
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'nvidia/nemotron-3-ultra-550b-a55b',
-        messages: [{ role: 'user', content: fullPrompt }],
-        temperature: 0.4,
-        max_tokens: 6000,
-        response_format: { type: 'json_object' },
+    const gatewayResult = await callAI(db, {
+      functionName: 'roadmap-generator',
+      provider: 'nvidia',
+      model: 'nvidia/nemotron-3-ultra-550b-a55b',
+      userId,
+      url: 'https://integrate.api.nvidia.com/v1/chat/completions',
+      init: {
+        method: 'POST',
+        signal: ctrl.signal,
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'nvidia/nemotron-3-ultra-550b-a55b',
+          messages: [{ role: 'user', content: fullPrompt }],
+          temperature: 0.4,
+          max_tokens: 6000,
+          response_format: { type: 'json_object' },
+        }),
+      },
+      extractUsage: (json) => ({
+        promptTokens: json?.usage?.prompt_tokens,
+        completionTokens: json?.usage?.completion_tokens,
       }),
     });
+    if (gatewayResult.blockedReason) throw new Error(`AI gateway blocked: ${gatewayResult.errorMessage}`);
+    if (!gatewayResult.response) throw new Error(gatewayResult.errorMessage ?? 'NVIDIA request failed');
+    const res = gatewayResult.response;
     if (!res.ok) throw new Error(`NVIDIA API error: ${res.status}`);
     const d = await res.json();
     const raw = d.choices?.[0]?.message?.content ?? '{}';
@@ -266,12 +307,14 @@ async function generateValidatedRoadmap(
   apiKey: string,
   expectedWeeks: number,
   daysPerWeek: number,
+  db: ReturnType<typeof createClient>,
+  userId: string,
   maxAttempts = 3,
 ): Promise<GeminiRoadmap> {
   let lastErr = '';
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const candidate = await callGemini(system, userPrompt, apiKey);
+      const candidate = await callGemini(system, userPrompt, apiKey, db, userId);
       const validationErr = validateWeeks(candidate.weeks, expectedWeeks, daysPerWeek);
       if (!validationErr) return candidate;
       lastErr = validationErr;
@@ -458,7 +501,7 @@ serve(withSentry('roadmap-generator', async (req) => {
         exam_name, exam_date, planWeeks, daysPerWeek, totalDays, study_level, startDate,
       );
 
-      const roadmapData = await generateValidatedRoadmap(system, userPrompt, geminiApiKey, planWeeks, daysPerWeek);
+      const roadmapData = await generateValidatedRoadmap(system, userPrompt, geminiApiKey, planWeeks, daysPerWeek, db, user.id);
 
       // Normalise: enforce sequential day numbers, cap to expected weeks/days
       const { weeks: normalisedWeeks, nextDay } = normaliseWeeks(
@@ -575,7 +618,7 @@ serve(withSentry('roadmap-generator', async (req) => {
       );
 
       let recalData: GeminiRoadmap;
-      let recalModel = 'gemini-1.5-flash';
+      let recalModel = 'gemini-flash-latest';
       if (body.use_nemotron) {
         try {
           const { data: cards } = await db
@@ -588,7 +631,7 @@ serve(withSentry('roadmap-generator', async (req) => {
             .map(c => `${c.subject} / ${c.topic}: EF=${c.easiness_factor}, reps=${c.repetitions}, correct=${c.correct_reviews}/${c.total_reviews}`)
             .join('\n') || '(no spaced-repetition history yet)';
 
-          recalData = await callNemotronRecalibrate(system, userPrompt, masteryContext);
+          recalData = await callNemotronRecalibrate(system, userPrompt, masteryContext, db, user.id);
           recalModel = 'nemotron-3-ultra-550b';
 
           await db.from('roadmap_reoptimizations').insert({
@@ -600,10 +643,10 @@ serve(withSentry('roadmap-generator', async (req) => {
           });
         } catch (e) {
           console.error('Nemotron recalibration failed, falling back to Gemini:', e);
-          recalData = await generateValidatedRoadmap(system, userPrompt, geminiApiKey, remainingWeeks, daysPerWeek);
+          recalData = await generateValidatedRoadmap(system, userPrompt, geminiApiKey, remainingWeeks, daysPerWeek, db, user.id);
         }
       } else {
-        recalData = await generateValidatedRoadmap(system, userPrompt, geminiApiKey, remainingWeeks, daysPerWeek);
+        recalData = await generateValidatedRoadmap(system, userPrompt, geminiApiKey, remainingWeeks, daysPerWeek, db, user.id);
       }
 
       // Normalise regenerated weeks (sequential from startDay, capped to remainingWeeks)

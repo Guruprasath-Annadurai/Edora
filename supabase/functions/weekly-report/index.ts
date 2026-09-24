@@ -21,7 +21,7 @@ async function gemini(prompt: string): Promise<string> {
     if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -99,7 +99,7 @@ async function generateParentDigest(prompt: string): Promise<{ text: string; mod
       if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
         );
@@ -111,7 +111,7 @@ async function generateParentDigest(prompt: string): Promise<{ text: string; mod
       }
     }
     if (!text) console.error(`Gemini digest fallback failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
-    return { text, model: 'gemini-1.5-flash' };
+    return { text, model: 'gemini-flash-latest' };
   }
 }
 
@@ -374,7 +374,7 @@ Do NOT use bullet points. Write in natural flowing prose. No headers.`;
     // Hardened further: if even Gemini fails, fall back to a deterministic
     // plain-stats sentence rather than 500ing the whole report generation.
     let reportText: string;
-    let narrativeModel = 'gemini-1.5-flash';
+    let narrativeModel = 'gemini-flash-latest';
     try {
       if (body.use_nemotron) {
         try {

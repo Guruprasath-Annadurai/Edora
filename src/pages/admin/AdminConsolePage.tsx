@@ -67,6 +67,17 @@ interface ObservabilityFnRow {
 }
 interface ConnectionStats { current_connections: number; max_connections: number; active_queries: number }
 
+interface AIGatewayFnRow {
+  function_name: string; count: number; blocked: number; errors: number; cost_usd: number;
+}
+interface AIGatewayStatus {
+  ai_enabled: boolean | null;
+  daily_cost_ceiling_usd: number | null;
+  spent_today_usd: number;
+  requests_today: number;
+  by_function: AIGatewayFnRow[];
+}
+
 async function callFn(fn: string, action: string, body: Record<string, unknown> = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   return supabase.functions.invoke(fn, {
@@ -104,7 +115,7 @@ export default function AdminConsolePage() {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const [tab, setTab] = useState<'events' | 'reports' | 'audit' | 'admins' | 'quality' | 'anomalies' | 'pyqcontent' | 'mainsqa' | 'cronhealth' | 'observability'>('events');
+  const [tab, setTab] = useState<'events' | 'reports' | 'audit' | 'admins' | 'quality' | 'anomalies' | 'pyqcontent' | 'mainsqa' | 'cronhealth' | 'observability' | 'aigateway'>('events');
   const [forbidden, setForbidden] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -149,6 +160,10 @@ export default function AdminConsolePage() {
   const [obsFunctions, setObsFunctions] = useState<ObservabilityFnRow[] | null>(null);
   const [obsConnStats, setObsConnStats] = useState<ConnectionStats | null>(null);
   const [obsLoading, setObsLoading] = useState(false);
+
+  const [aiGwStatus, setAiGwStatus] = useState<AIGatewayStatus | null>(null);
+  const [aiGwLoading, setAiGwLoading] = useState(false);
+  const [aiGwToggling, setAiGwToggling] = useState(false);
 
   const loadReports = useCallback(async (status: typeof reportsStatus = reportsStatus) => {
     setReportsLoading(true);
@@ -287,6 +302,25 @@ export default function AdminConsolePage() {
     setObsLoading(false);
   }, []);
 
+  const loadAiGatewayStatus = useCallback(async () => {
+    setAiGwLoading(true);
+    const { data, error } = await callAdminConsole('get_ai_gateway_status');
+    if (!error && !data?.error) setAiGwStatus(data as AIGatewayStatus);
+    setAiGwLoading(false);
+  }, []);
+
+  // The emergency lever for RISK-006 — flips ai_gateway_config.ai_enabled,
+  // which every callAI() invocation checks before reaching any provider.
+  // Takes effect on the very next AI call, not at next deploy.
+  const toggleAiKillSwitch = useCallback(async () => {
+    if (!aiGwStatus || aiGwToggling) return;
+    const nextEnabled = !aiGwStatus.ai_enabled;
+    setAiGwToggling(true);
+    const { data, error } = await callAdminConsole('set_ai_gateway_kill_switch', { enabled: nextEnabled });
+    if (!error && !data?.error) setAiGwStatus(prev => prev ? { ...prev, ai_enabled: nextEnabled } : prev);
+    setAiGwToggling(false);
+  }, [aiGwStatus, aiGwToggling]);
+
   const loadEvents = useCallback(async () => {
     const { data, error } = await callAdminConsole('list_live_events');
     if (error || data?.error) { setForbidden(true); return; }
@@ -353,6 +387,7 @@ export default function AdminConsolePage() {
     if (tab === 'mainsqa' && bandStats === null) loadBandStats();
     if (tab === 'cronhealth' && cronRows.length === 0 && !cronLoading) loadCronHealth();
     if (tab === 'observability' && obsFunctions === null && !obsLoading) loadObservability();
+    if (tab === 'aigateway' && aiGwStatus === null && !aiGwLoading) loadAiGatewayStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -388,13 +423,13 @@ export default function AdminConsolePage() {
       </div>
 
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto">
-        {(['events', 'reports', 'audit', 'admins', 'quality', 'anomalies', 'pyqcontent', 'mainsqa', 'cronhealth', 'observability'] as const).map(t => (
+        {(['events', 'reports', 'audit', 'admins', 'quality', 'anomalies', 'pyqcontent', 'mainsqa', 'cronhealth', 'observability', 'aigateway'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="shrink-0 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
             style={t === tab
               ? { background: 'var(--v2-primary-tint-2)', color: 'var(--v2-primary)', border: '1px solid var(--v2-primary)' }
               : { background: 'var(--v2-card)', color: 'var(--v2-text-4)', border: '1px solid var(--v2-border)' }}>
-            {t === 'events' ? 'Live Events' : t === 'reports' ? `Reports${reportsTotal ? ` (${reportsTotal})` : ''}` : t === 'audit' ? 'Audit Log' : t === 'admins' ? 'Admins' : t === 'quality' ? 'Question QA' : t === 'anomalies' ? 'Anomalies' : t === 'pyqcontent' ? 'Content QA' : t === 'mainsqa' ? 'Mains QA' : t === 'cronhealth' ? 'Cron Health' : 'Observability'}
+            {t === 'events' ? 'Live Events' : t === 'reports' ? `Reports${reportsTotal ? ` (${reportsTotal})` : ''}` : t === 'audit' ? 'Audit Log' : t === 'admins' ? 'Admins' : t === 'quality' ? 'Question QA' : t === 'anomalies' ? 'Anomalies' : t === 'pyqcontent' ? 'Content QA' : t === 'mainsqa' ? 'Mains QA' : t === 'cronhealth' ? 'Cron Health' : t === 'observability' ? 'Observability' : 'AI Gateway'}
           </button>
         ))}
       </div>
@@ -912,6 +947,60 @@ export default function AdminConsolePage() {
                     </div>
                     <p className="text-[11px] text-white/40">last seen {new Date(r.last_seen).toLocaleString()}</p>
                     <p className="text-[11px] text-white/30 mt-1 truncate">{r.last_error}</p>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === 'aigateway' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-white/40">Central AI gateway (RISK-006) — kill switch, daily spend, per-function breakdown.</p>
+              <button onClick={loadAiGatewayStatus} disabled={aiGwLoading}
+                className="shrink-0 ml-2 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--ink-060)' }}>
+                <RefreshCw size={14} className={`text-white/60 ${aiGwLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+
+            {aiGwLoading && !aiGwStatus ? (
+              <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-white/40 animate-spin" /></div>
+            ) : aiGwStatus && (
+              <>
+                <div className="rounded-2xl p-4 flex items-center justify-between" style={{ background: 'var(--ink-040)' }}>
+                  <div>
+                    <p className="text-sm font-semibold text-white">AI calls</p>
+                    <p className="text-[11px] text-white/40">{aiGwStatus.ai_enabled ? 'Enabled — calls reach providers normally' : 'DISABLED — every callAI() request is blocked'}</p>
+                  </div>
+                  <button onClick={toggleAiKillSwitch} disabled={aiGwToggling}
+                    className="shrink-0 px-4 py-2 rounded-xl text-xs font-bold"
+                    style={aiGwStatus.ai_enabled
+                      ? { background: 'rgba(239,68,68,0.15)', color: isLight ? '#B91C1C' : '#F87171', border: '1px solid rgba(239,68,68,0.35)' }
+                      : { background: 'rgba(74,222,128,0.15)', color: isLight ? '#047857' : '#4ADE80', border: '1px solid rgba(74,222,128,0.35)' }}>
+                    {aiGwToggling ? '…' : aiGwStatus.ai_enabled ? 'Turn OFF (kill switch)' : 'Turn ON'}
+                  </button>
+                </div>
+
+                <div className="rounded-2xl p-3 flex items-center justify-between" style={{ background: 'var(--ink-040)' }}>
+                  <span className="text-sm font-semibold text-white">Spent today</span>
+                  <span className="text-sm font-bold" style={{
+                    color: aiGwStatus.daily_cost_ceiling_usd && aiGwStatus.spent_today_usd / aiGwStatus.daily_cost_ceiling_usd >= 0.8 ? (isLight ? '#B91C1C' : '#F87171') : (isLight ? '#047857' : '#4ADE80'),
+                  }}>
+                    ${aiGwStatus.spent_today_usd.toFixed(2)} / ${aiGwStatus.daily_cost_ceiling_usd?.toFixed(2) ?? '—'}
+                    {' '}({aiGwStatus.requests_today} request{aiGwStatus.requests_today === 1 ? '' : 's'})
+                  </span>
+                </div>
+
+                {aiGwStatus.by_function.length === 0 ? (
+                  <p className="text-white/40 text-sm text-center py-10">No gateway-mediated AI calls today yet.</p>
+                ) : aiGwStatus.by_function.map(r => (
+                  <div key={r.function_name} className="rounded-2xl p-3" style={{ background: 'var(--ink-040)' }}>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <span className="text-sm font-semibold text-white">{r.function_name}</span>
+                      <span className="text-xs font-bold text-white/60">${r.cost_usd.toFixed(4)}</span>
+                    </div>
+                    <p className="text-[11px] text-white/40">{r.count} call{r.count === 1 ? '' : 's'} · {r.errors} error{r.errors === 1 ? '' : 's'} · {r.blocked} blocked</p>
                   </div>
                 ))}
               </>

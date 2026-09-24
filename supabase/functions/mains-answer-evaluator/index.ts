@@ -18,7 +18,7 @@ import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { isValidEvaluation, type Evaluation } from './validate.ts';
 
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY')!;
-const GROQ_MODEL   = 'llama-3.3-70b-versatile';
+const GROQ_MODEL   = 'openai/gpt-oss-120b'; // llama-3.3-70b-versatile decommissioned by Groq (confirmed 2026-08-18)
 const GROQ_URL     = 'https://api.groq.com/openai/v1/chat/completions';
 
 interface MainsQuestion {

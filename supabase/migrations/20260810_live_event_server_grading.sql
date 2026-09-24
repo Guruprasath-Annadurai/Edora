@@ -1,12 +1,26 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Live event server-side answer grading (CSO-003 fix)
 --
--- Replaces the old submit_live_event_score RPC that trusted a client-provided
--- integer. The new RPC accepts an array of {question_id, chosen_idx} pairs,
--- grades them against pyq_questions.correct_idx, and returns the computed score.
+-- Deprecates the old submit_live_event_score RPC that trusted a
+-- client-provided integer score.
 --
--- Old RPC is kept (renamed) so in-flight app versions don't crash — it now
--- rejects all calls with a 403-equivalent error message embedded in the result.
+-- Found live 2026-08-19 while getting pgTAP running end to end in CI: this
+-- migration's submit_live_event_answers originally re-queried
+-- public.pyq_questions.correct_idx -- the exact wrong-table bug that
+-- 20260702095948_fix_submit_live_event_answers_wrong_table.sql already
+-- fixed over a week earlier (pyq_questions is a real but unrelated,
+-- unpopulated legacy table; live_events.question_ids actually reference
+-- pyq_content). Confirmed via a live pg_proc query that production's
+-- actual submit_live_event_answers was never overwritten by this file (it
+-- still runs the correct 20260702 version) and that this file's version
+-- was never in production's migration ledger at all -- so this was a
+-- real, previously-uncommitted regression that only ever existed in this
+-- repo, not in production. Rewritten to match what's actually live: the
+-- submit_live_event_score deprecation below IS live in production (found
+-- via the same pg_proc query, applied out-of-band, same undocumented-
+-- drift pattern as RISK-029/033/034), so that part is kept; only the
+-- submit_live_event_answers body was corrected back to the pyq_content-
+-- based logic.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── 1. Rename old trusted-score RPC to make it inert ─────────────────────────
@@ -25,9 +39,20 @@ BEGIN
 END;
 $$;
 GRANT EXECUTE ON FUNCTION public.submit_live_event_score TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.submit_live_event_score(uuid, integer, integer) FROM anon;
+-- DROP FUNCTION + CREATE FUNCTION resets grants to Postgres defaults, which
+-- includes an implicit PUBLIC EXECUTE grant that a per-role REVOKE does not
+-- remove (PUBLIC is a pseudo-role every role inherits from unless
+-- explicitly revoked) -- caught live via information_schema.role_routine_grants
+-- immediately after applying this to production. Harmless in practice (the
+-- function only ever raises an exception), but inconsistent with the
+-- explicit-anon-revoke intent above, so closing it properly.
+REVOKE EXECUTE ON FUNCTION public.submit_live_event_score(uuid, integer, integer) FROM public;
 
 
--- ── 2. New server-graded RPC ──────────────────────────────────────────────────
+-- ── 2. Server-graded RPC (unchanged from the 20260702 fix, restated here so
+--       this migration is idempotent against production rather than
+--       clobbering it with the wrong-table version) ───────────────────────
 -- p_answers format: [{"question_id": "<uuid>", "chosen_idx": 2}, ...]
 -- Returns: {"score": N, "max_score": M}
 
@@ -43,8 +68,12 @@ DECLARE
   v_answer             JSONB;
   v_question_id        UUID;
   v_chosen_idx         INTEGER;
-  v_correct_idx        SMALLINT;
+  v_correct_idx        INTEGER;
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN jsonb_build_object('error', 'Unauthorized');
+  END IF;
+
   -- Fetch the authoritative question list for this event
   SELECT question_ids INTO v_event_question_ids
   FROM public.live_events
@@ -62,9 +91,14 @@ BEGIN
     -- Only count questions that belong to this event (prevents injection of
     -- answers for questions from other events)
     IF v_question_id = ANY(v_event_question_ids) THEN
-      SELECT correct_idx INTO v_correct_idx
-      FROM public.pyq_questions
-      WHERE id = v_question_id;
+      -- pyq_content stores options as a jsonb array of {text,label,correct}
+      -- objects, not a correct_idx column -- derive the 0-based index of
+      -- the entry flagged correct=true.
+      SELECT (elem.ord - 1) INTO v_correct_idx
+      FROM public.pyq_content pc,
+           jsonb_array_elements(pc.options) WITH ORDINALITY AS elem(val, ord)
+      WHERE pc.id = v_question_id
+        AND (elem.val->>'correct')::boolean IS TRUE;
 
       IF FOUND THEN
         v_max_score := v_max_score + 1;
@@ -88,3 +122,4 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.submit_live_event_answers TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.submit_live_event_answers(uuid, jsonb, integer) FROM anon;

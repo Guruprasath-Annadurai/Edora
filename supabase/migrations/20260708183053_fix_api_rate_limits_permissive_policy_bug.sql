@@ -5,9 +5,9 @@
 -- strict one -- any client could insert arbitrary rows into api_rate_limits,
 -- bypassing rate limiting entirely (insert fake rows to dodge your own
 -- limit, or spam the table). Drop the loose one, keep the strict one.
-drop policy "service_insert_rate_limits" on "api_rate_limits";
+drop policy if exists "service_insert_rate_limits" on "api_rate_limits";
 
 -- Also true accidental duplicate (identical qual, two policies, likely two
 -- different sessions adding the same SELECT policy without checking first).
-drop policy "Users read own rate limits" on "api_rate_limits";
+drop policy if exists "Users read own rate limits" on "api_rate_limits";
 -- kept: rate_limits_own_read (identical logic)

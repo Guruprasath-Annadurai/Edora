@@ -1,0 +1,19 @@
+-- Found live 2026-08-19 while getting the pgTAP suite to actually pass in
+-- CI: public.institution_members has RLS policies that assume direct
+-- client access (inst_mem_own for SELECT, inst_mem_insert for INSERT,
+-- inst_mem_admin_update/delete) but was never given an explicit table-level
+-- GRANT in any committed migration. Production has full SELECT/INSERT/
+-- UPDATE/DELETE for `authenticated` (confirmed via a live
+-- information_schema.role_table_grants query) -- applied out-of-band at
+-- some point, the same undocumented-production-drift pattern already named
+-- in RISK-029/033/034. A fresh replay (CI, staging) never gets this grant,
+-- so every direct client read/write hits a flat permission-denied before
+-- RLS is ever evaluated, masking whatever the RLS policy would have done.
+--
+-- Idempotent on production; this is what actually fixes the gap on
+-- staging/CI. Granting only `authenticated` (not `anon`): the RLS policies
+-- all key off auth.uid(), which is null for anon, so anon has no legitimate
+-- use for this table -- production's existing anon grant here is the
+-- platform-wide default applied to every table at project creation, not
+-- something this table specifically needs, and is out of scope for this fix.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.institution_members TO authenticated;

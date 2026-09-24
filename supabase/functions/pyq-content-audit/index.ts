@@ -1,104 +1,100 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pyq-content-audit — staff-only, gated by public.has_role(uid,'admin')
+// pyq-content-audit — AI second-reviewer pass over pyq_content rows that
+// haven't been human-reviewed. Fact-checks question/options/correct_option/
+// solution for accuracy and well-formedness. Nemotron-primary/Gemini-fallback,
+// same discipline as every other feature this session. Feeds the same
+// approve/reject review queue an admin uses (Admin Console "Content QA" tab).
+// A genuinely empty model response (both Nemotron and Gemini failed/rate-
+// limited) is treated as INCONCLUSIVE, not a flag — the row is left pending
+// for the next run rather than being falsely marked as a found problem.
+// Every run_audit call reports to cron_health, whether triggered by cron or
+// an admin — this closes the "silent failure" blind spot found this session
+// (all 5 nightly crons were timing out for hours with nobody noticing).
+// Actions: run_audit (admin/cron) | list_flagged (admin) | approve (admin) |
+//          reject (admin, soft-delete via is_active=false)
 //
-// Second-review pass over pyq_content: an LLM checks each unreviewed row for
-// a wrong answer key, an ambiguous question, or a solution that doesn't
-// match the marked correct option, and flags anything suspect for a human.
-// Rows that pass are marked reviewed so they're never re-audited.
-//
-// Actions: run_audit | list_flagged | approve | reject
-// ─────────────────────────────────────────────────────────────────────────────
+// SYNCED FROM PRODUCTION 2026-08-08: this file had drifted out of the local
+// repo entirely — the version previously committed here queried a different,
+// never-deployed-to-production schema (a bare `reviewed` column +
+// `pyq_content_flags` table from migration 20260801000000_admin_qa_pipelines.sql,
+// which the local repo's migration history has but production never received
+// for this table). Production's real, live function is this one: it operates
+// directly on pyq_content's own is_reviewed/flagged_for_review/review_notes/
+// reviewed_by columns, is NVIDIA Nemotron-primary with a Gemini fallback (not
+// Groq), and is triggered both by an admin action and a nightly cron (see
+// cron_health row 'pyq-content-audit-nightly'). Pulled back into git so the
+// repo reflects what's actually running, not a stale draft.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { reportCronHealth } from '../_shared/cronHealth.ts';
 
-const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY')!;
-const GROQ_MODEL   = 'llama-3.3-70b-versatile';
-const GROQ_URL     = 'https://api.groq.com/openai/v1/chat/completions';
-const BATCH_SIZE   = 15;
+const MAX_PER_RUN = 20;
+const DELAY_BETWEEN_CALLS_MS = 400;
 
-interface ReviewResult {
-  verdict: 'approved' | 'flagged';
-  review_notes: string;
+function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
+async function gemini(prompt: string): Promise<string> {
+  const key = Deno.env.get('GEMINI_API_KEY')!;
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) },
+  );
+  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+  const d = await res.json();
+  return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
-type Row = {
-  question_text: string; options: unknown; correct_option: string | null; solution_text: string | null;
-};
-
-// Single attempt: throws on network failure, non-2xx, unparseable JSON, or a
-// missing/invalid verdict — never silently defaults to "approved".
-async function reviewRowOnce(row: Row): Promise<ReviewResult> {
-  const prompt = `You are a subject-matter expert doing second-review QA on a previous-year-question bank entry for an Indian exam-prep app.
-
-Question:
-"""
-${row.question_text}
-"""
-
-Options: ${JSON.stringify(row.options)}
-Marked correct option: ${row.correct_option ?? '(none recorded)'}
-Solution/explanation on file: ${row.solution_text ?? '(none recorded)'}
-
-Check for: a wrong answer key, an ambiguous or malformed question, or a solution that contradicts the marked correct option.
-
-Respond with ONLY valid JSON, no markdown fences:
-{"verdict":"approved"|"flagged", "review_notes":"one or two sentences explaining your verdict"}`;
-
-  const res = await fetch(GROQ_URL, {
+async function nemotron(prompt: string): Promise<string> {
+  const key = Deno.env.get('NVIDIA_API_KEY');
+  if (!key) throw new Error('NVIDIA_API_KEY not configured');
+  const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: GROQ_MODEL,
+      model: 'nvidia/nemotron-3-ultra-550b-a55b',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.1,
-      response_format: { type: 'json_object' },
+      max_tokens: 400,
     }),
   });
-  if (!res.ok) throw new Error(`Groq ${res.status}`);
-  const data = await res.json();
-  const parsed = JSON.parse(data.choices[0].message.content);
-
-  if (parsed.verdict !== 'approved' && parsed.verdict !== 'flagged') {
-    throw new Error(`Invalid verdict in response: ${JSON.stringify(parsed.verdict)}`);
-  }
-  if (typeof parsed.review_notes !== 'string' || parsed.review_notes.trim().length === 0) {
-    throw new Error('Missing or empty review_notes in response');
-  }
-  return { verdict: parsed.verdict, review_notes: parsed.review_notes };
+  if (!res.ok) throw new Error(`NVIDIA API error: ${res.status}`);
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content ?? '';
 }
 
-// Network-level retry with exponential backoff (fetch failure, non-2xx, bad JSON).
-async function reviewRowWithRetry(row: Row, maxRetries = 2): Promise<ReviewResult> {
-  let lastErr: unknown;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+async function reasonAboutContent(prompt: string): Promise<{ text: string; model: string } | null> {
+  try {
+    const text = await nemotron(prompt);
+    if (text.trim()) return { text, model: 'nemotron-3-ultra-550b' };
+    throw new Error('empty response');
+  } catch (e) {
+    console.error('Nemotron content audit failed, falling back to Gemini:', e);
     try {
-      return await reviewRowOnce(row);
-    } catch (e) {
-      lastErr = e;
-      if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
-      }
+      const text = await gemini(prompt);
+      if (text.trim()) return { text, model: 'gemini-flash-latest' };
+      return null;
+    } catch (e2) {
+      console.error('Gemini content audit also failed:', e2);
+      return null;
     }
   }
-  throw lastErr;
 }
 
-// Outer semantic layer: re-runs the whole generate+validate cycle if the
-// model returns a structurally invalid response, instead of ever guessing.
-async function reviewRow(row: Row): Promise<ReviewResult> {
-  const MAX_ATTEMPTS = 3;
-  let lastErr: unknown;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    try {
-      return await reviewRowWithRetry(row);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr instanceof Error ? lastErr : new Error(`Failed to review row after ${MAX_ATTEMPTS} attempts`);
+function parseVerdict(raw: string): { ok: boolean; reasoning: string } | null {
+  const match = raw.match(/VERDICT:\s*(ok|flag)/i);
+  if (!match) return null;
+  const ok = match[1].toLowerCase() === 'ok';
+  const reasoning = raw.replace(/VERDICT:.*(\n|$)/i, '').trim() || raw.trim();
+  return { ok, reasoning };
+}
+
+// deno-lint-ignore no-explicit-any
+async function requireAdmin(supabase: any, userId: string): Promise<boolean> {
+  const { data } = await supabase.from('user_roles').select('role').eq('user_id', userId).in('role', ['admin', 'moderator']);
+  return (data?.length ?? 0) > 0;
 }
 
 serve(withSentry('pyq-content-audit', async (req) => {
@@ -108,80 +104,134 @@ serve(withSentry('pyq-content-audit', async (req) => {
 
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
-  const authHeader = req.headers.get('Authorization') ?? '';
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-  const userDb = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user }, error: authErr } = await userDb.auth.getUser();
-  if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
-
-  const serviceDb = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const { data: isAdmin } = await serviceDb.rpc('has_role', { _user_id: user.id, _role: 'admin' });
-  if (!isAdmin) return json({ error: 'Forbidden — admin role required' }, 403);
-
-  const rl = await checkRateLimit(serviceDb, user.id, 'pyq_content_audit', 20, 60);
-  if (!rl.allowed) return json({ error: 'Too many requests', retry_after_secs: rl.retryAfterSecs }, 429);
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    { auth: { persistSession: false } },
+  );
 
   const body = await req.json().catch(() => ({}));
   const { action } = body;
 
-  if (action === 'run_audit') {
-    const { data: rows, error } = await serviceDb
-      .from('pyq_content')
-      .select('id, exam, subject, chapter, question_text, options, correct_option, solution_text')
-      .eq('reviewed', false)
-      .limit(BATCH_SIZE);
-    if (error) return json({ error: error.message }, 500);
+  const cronSecret = req.headers.get('x-cron-secret');
+  const isCron = action === 'run_audit' && cronSecret && cronSecret === Deno.env.get('CRON_SECRET');
 
-    let flagged = 0, approved = 0;
-    for (const row of (rows ?? []) as Record<string, unknown>[]) {
-      try {
-        const result = await reviewRow(row as { question_text: string; options: unknown; correct_option: string | null; solution_text: string | null });
-        if (result.verdict === 'flagged') {
-          await serviceDb.from('pyq_content_flags').insert({
-            pyq_content_id: row.id,
-            exam: row.exam,
-            subject: row.subject,
-            chapter: row.chapter,
-            question_text: row.question_text,
-            options: row.options,
-            correct_option: row.correct_option,
-            solution_text: row.solution_text,
-            review_notes: result.review_notes,
-            status: 'flagged',
-          });
-          flagged += 1;
-        } else {
-          approved += 1;
-        }
-        await serviceDb.from('pyq_content').update({ reviewed: true }).eq('id', row.id as string);
-      } catch (e) {
-        console.error('[pyq-content-audit] review failed:', row.id, e);
-      }
-    }
-    return json({ ok: true, rows_reviewed: (rows ?? []).length, flagged, approved });
+  let userId: string | null = null;
+  if (!isCron) {
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (authErr || !user) return json({ error: 'Unauthorized' }, 401);
+    userId = user.id;
+    if (!(await requireAdmin(supabase, userId))) return json({ error: 'Forbidden — admin only' }, 403);
+    const rl = await checkRateLimit(supabase, userId, `pyq_content_audit_${action}`, 15, 60);
+    if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
   }
 
   if (action === 'list_flagged') {
-    const status = (body.status as string | undefined) ?? 'flagged';
-    const { data, error } = await serviceDb
-      .from('pyq_content_flags').select('*').eq('status', status)
-      .order('created_at', { ascending: false }).limit(100);
-    if (error) return json({ error: error.message }, 500);
-    return json({ flags: data ?? [] });
+    const { data, count } = await supabase
+      .from('pyq_content')
+      .select('*', { count: 'exact' })
+      .eq('flagged_for_review', true)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .range(body.offset ?? 0, (body.offset ?? 0) + (body.limit ?? 30) - 1);
+    return json({ flags: data ?? [], total: count ?? 0 });
   }
 
-  if (action === 'approve' || action === 'reject') {
-    const { id } = body as { id: string };
+  if (action === 'approve') {
+    const { id } = body;
     if (!id) return json({ error: 'id required' }, 400);
-    const status = action === 'approve' ? 'approved' : 'retired';
-    const { error } = await serviceDb.from('pyq_content_flags').update({ status }).eq('id', id);
-    if (error) return json({ error: error.message }, 500);
-    return json({ ok: true });
+    const { data, error } = await supabase
+      .from('pyq_content')
+      .update({ is_reviewed: true, flagged_for_review: false, reviewed_by: `human:${userId}` })
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) return json({ error: error.message }, 400);
+    return json({ row: data });
   }
 
-  return json({ error: 'Unknown action. Use: run_audit | list_flagged | approve | reject' }, 400);
+  if (action === 'reject') {
+    const { id } = body;
+    if (!id) return json({ error: 'id required' }, 400);
+    const { data, error } = await supabase
+      .from('pyq_content')
+      .update({ is_active: false, flagged_for_review: false, reviewed_by: `human:${userId}` })
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) return json({ error: error.message }, 400);
+    return json({ row: data });
+  }
+
+  if (action === 'run_audit') {
+    try {
+      const { data: candidates } = await supabase
+        .from('pyq_content')
+        .select('id, exam, subject, chapter, question_text, options, correct_option, solution_text, question_type')
+        .eq('is_reviewed', false)
+        .eq('is_active', true)
+        .limit(MAX_PER_RUN);
+
+      const results = [];
+      let inconclusive = 0;
+      for (const c of candidates ?? []) {
+        const prompt = `You are fact-checking a practice exam question before it goes live to students. Verify: (1) the marked correct answer is actually correct, (2) the question is well-formed and unambiguous, (3) the solution/explanation is accurate.
+
+Exam: ${c.exam} / ${c.subject} / ${c.chapter}
+Question: ${c.question_text}
+${c.question_type === 'mcq' ? `Options: ${JSON.stringify(c.options)}` : `Expected answer: ${c.correct_option}`}
+Marked correct: ${c.correct_option}
+Solution given: ${c.solution_text ?? 'none'}
+
+Respond in exactly this format:
+VERDICT: <ok|flag>
+Reasoning: <1-2 sentences — if flagging, say exactly what's wrong>`;
+
+        const outcome = await reasonAboutContent(prompt);
+        if (!outcome) {
+          inconclusive++;
+          await sleep(DELAY_BETWEEN_CALLS_MS);
+          continue;
+        }
+
+        const parsed = parseVerdict(outcome.text);
+        if (!parsed) {
+          inconclusive++;
+          await sleep(DELAY_BETWEEN_CALLS_MS);
+          continue;
+        }
+
+        const { ok, reasoning } = parsed;
+        const { data: updated } = await supabase
+          .from('pyq_content')
+          .update({
+            is_reviewed: ok,
+            flagged_for_review: !ok,
+            review_notes: reasoning,
+            reviewed_by: outcome.model,
+          })
+          .eq('id', c.id)
+          .select('id, exam, subject, question_text, is_reviewed, flagged_for_review')
+          .single();
+
+        results.push(updated);
+        await sleep(DELAY_BETWEEN_CALLS_MS);
+      }
+
+      const flaggedCount = results.filter(r => r?.flagged_for_review).length;
+      const status = results.length === 0 && inconclusive > 0 ? 'inconclusive' : 'success';
+      await reportCronHealth(supabase, 'pyq-content-audit-nightly', status, {
+        audited: results.length, flagged: flaggedCount, inconclusive, candidates_seen: candidates?.length ?? 0,
+      });
+      return json({ audited: results.length, flagged: flaggedCount, inconclusive, results });
+    } catch (e) {
+      await reportCronHealth(supabase, 'pyq-content-audit-nightly', 'error', {
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
+    }
+  }
+
+  return json({ error: 'Unknown action' }, 400);
 }));

@@ -1,8 +1,12 @@
 {
   "name": "edora",
   "private": true,
-  "version": "4.0.0",
+  "version": "4.1.0-alpha.1",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "packageManager": "npm@11.12.1",
   "scripts": {
     "dev": "vite --port 8100",
     "build": "tsc -b && vite build && cp -r public/.well-known dist/",
@@ -14,6 +18,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
+    "dev:staging": "vite --mode staging --port 8101",
+    "test:e2e:staging": "playwright test --config=playwright.staging.config.ts",
     "ios": "npm run build:mobile && npx cap sync ios && npx cap open ios",
     "android": "npm run build:mobile && npx cap sync android && npx cap open android",
     "cap:sync": "npx cap sync",

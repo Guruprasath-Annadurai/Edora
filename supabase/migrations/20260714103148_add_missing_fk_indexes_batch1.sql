@@ -10,8 +10,17 @@ create index if not exists "idx_classroom_members_user_id" on public."classroom_
 create index if not exists "idx_classrooms_teacher_id" on public."classrooms" ("teacher_id");
 create index if not exists "idx_curriculum_adjustments_revision_plan_id" on public."curriculum_adjustments" ("revision_plan_id");
 create index if not exists "idx_curriculum_prerequisites_required_topic_id" on public."curriculum_prerequisites" ("required_topic_id");
-create index if not exists "idx_freeze_gifts_to_user_id" on public."freeze_gifts" ("to_user_id");
-create index if not exists "idx_freeze_gifts_from_user_id" on public."freeze_gifts" ("from_user_id");
+-- freeze_gifts doesn't exist yet at this point in migration history --
+-- created later by 20260718_battle_elo_mission.sql. "IF NOT EXISTS" on
+-- CREATE INDEX only guards against the index already existing, not a
+-- missing table, so this needs its own existence guard.
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'freeze_gifts') then
+    execute 'create index if not exists "idx_freeze_gifts_to_user_id" on public."freeze_gifts" ("to_user_id")';
+    execute 'create index if not exists "idx_freeze_gifts_from_user_id" on public."freeze_gifts" ("from_user_id")';
+  end if;
+end $$;
 create index if not exists "idx_friend_nudges_from_user" on public."friend_nudges" ("from_user");
 create index if not exists "idx_live_events_winner_id" on public."live_events" ("winner_id");
 create index if not exists "idx_live_study_rooms_host_id" on public."live_study_rooms" ("host_id");

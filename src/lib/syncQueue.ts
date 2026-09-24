@@ -81,6 +81,23 @@ export const SyncQueue = {
   },
 
   // Process all queued actions against Supabase. Returns number flushed.
+  //
+  // Persists the queue after EVERY entry, not once at the end. This runs
+  // right after reconnecting — exactly when the network is most likely to
+  // drop again mid-flush (one bar of signal on a train), and it's just as
+  // exposed to the app being backgrounded and reclaimed by the OS partway
+  // through (routine on mid-range Android). With a single end-of-loop save,
+  // either of those interrupting flush() after entry 3 of 5 had already
+  // succeeded meant the WHOLE original 5-entry queue — including the 3
+  // already-written entries — was still sitting on disk and got replayed
+  // in full on the next flush. Several actions aren't idempotent against
+  // that replay (xp_grant was a non-atomic read-then-write increment;
+  // quiz_answer/quiz_session/topic_perf have no dedup key), so this
+  // silently duplicated XP and quiz history rather than losing it — the
+  // inverse but equally real version of RISK-009's "progress lost on flaky
+  // networks." Saving after each entry makes the on-disk queue always
+  // reflect exactly what's actually left to do, so an interruption at any
+  // point can only ever re-attempt work that genuinely never completed.
   async flush(): Promise<number> {
     const queue = await loadQueue();
     if (queue.length === 0) return 0;
@@ -88,21 +105,22 @@ export const SyncQueue = {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return 0;
 
-    const remaining: QueueEntry[] = [];
+    let remaining = queue.slice();
     let flushed = 0;
 
     for (const entry of queue) {
       try {
         await processAction(entry.action, session.access_token, session.user.id);
         flushed++;
+        remaining = remaining.filter(e => e.id !== entry.id);
       } catch {
         entry.attempts++;
         // Discard after 5 failed attempts (e.g. data is too old or invalid)
-        if (entry.attempts < 5) remaining.push(entry);
+        if (entry.attempts >= 5) remaining = remaining.filter(e => e.id !== entry.id);
       }
+      await saveQueue(remaining);
     }
 
-    await saveQueue(remaining);
     return flushed;
   },
 };
@@ -131,15 +149,18 @@ async function processAction(action: SyncAction, accessToken: string, sessionUse
         throw new Error('xp_grant user_id does not match authenticated session — discarding');
       }
 
-      // Read current XP then write incremented value (queue is sequential, no race)
-      const { data: profile } = await withRetry(() =>
-        supabase.from('profiles').select('xp').eq('id', user_id).single()
-      );
-      await withRetry(() =>
-        supabase.from('profiles')
-          .update({ xp: (profile?.xp ?? 0) + safeAmount })
-          .eq('id', user_id)
-      );
+      // Atomic server-side increment (public.increment_xp — same RPC every
+      // other XP-granting path in the app already uses, see
+      // 20260804193659_fix_increment_xp_missing_auth_check.sql) instead of
+      // this queue's old read-then-write: reading xp then writing xp+amount
+      // as two separate round trips raced any concurrent XP write to the
+      // same row (a second device's queue flushing at the same moment, or
+      // any other path awarding XP mid-flush) — a classic lost-update, and
+      // the read-then-write version also never recalculated `level`, so a
+      // user's level silently drifted out of sync with their xp whenever
+      // XP arrived through this offline path specifically. increment_xp
+      // does both in one statement.
+      await withRetry(() => supabase.rpc('increment_xp', { user_id, amount: safeAmount }));
       await withRetry(() => supabase.from('xp_history').insert({ user_id, amount: safeAmount, reason }));
       break;
     }

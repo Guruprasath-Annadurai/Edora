@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION public.get_top_ncert_similarity(
 )
 RETURNS FLOAT8
 LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   SELECT 1.0 - (embedding <=> p_embedding)
   FROM   ncert_content
@@ -43,7 +43,7 @@ CREATE OR REPLACE FUNCTION public.semantic_cache_lookup(
 )
 RETURNS TABLE (response_text TEXT, cache_key TEXT)
 LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   SELECT response_text, cache_key
   FROM   rag_query_cache
@@ -56,7 +56,12 @@ AS $$
 $$;
 
 -- ── 4. set_rag_cache — updated signature; adds p_embedding (DEFAULT NULL) ────
--- Existing callers with 7 positional args continue to work unchanged.
+-- Adding a new trailing parameter changes the arg count, so CREATE OR
+-- REPLACE would create a second overload (7-arg + 8-arg) rather than truly
+-- replacing it, making bare-name calls/grants ambiguous -- drop the old
+-- 7-arg signature first (same fix as enterprise/433's search_corpus_unified).
+DROP FUNCTION IF EXISTS public.set_rag_cache(text, text, text, uuid[], text, text, integer);
+
 CREATE OR REPLACE FUNCTION public.set_rag_cache(
   p_key         TEXT,
   p_query       TEXT,
@@ -94,6 +99,19 @@ END;
 $$;
 
 -- ── 5. Grants ─────────────────────────────────────────────────────────────────
-GRANT EXECUTE ON FUNCTION public.get_top_ncert_similarity  TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.semantic_cache_lookup     TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.set_rag_cache             TO authenticated, service_role;
+-- All three called exclusively from gemini-chat's service-role client
+-- (confirmed via full-codebase grep, 2026-08-18) -- never from an
+-- authenticated client session. service_role-only, matching the same
+-- reasoning RISK-034 already established for set_rag_cache/get_rag_cache.
+-- (Originally granted `authenticated` here too -- found and corrected
+-- live on production the same day this migration was finally applied,
+-- since DROP+CREATE resets a function's grants to Postgres defaults,
+-- which had briefly reintroduced the exact cache-poisoning vector
+-- RISK-034 closed. No anon/authenticated/PUBLIC grant should ever
+-- exist on these three.)
+REVOKE EXECUTE ON FUNCTION public.get_top_ncert_similarity FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.semantic_cache_lookup    FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.set_rag_cache            FROM anon, authenticated, PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_top_ncert_similarity  TO service_role;
+GRANT EXECUTE ON FUNCTION public.semantic_cache_lookup     TO service_role;
+GRANT EXECUTE ON FUNCTION public.set_rag_cache             TO service_role;

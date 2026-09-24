@@ -21,9 +21,14 @@ import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
+import { isValidBriefText } from './validate.ts';
+import { callAI } from '../_shared/aiGateway.ts';
 const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
 
-async function gemini(prompt: string): Promise<string> {
+// Phase 7 (RISK-006, AI gateway): cron-triggered functions are the next
+// migration priority per AI_GATEWAY_MIGRATION.md -- no human is in the
+// loop to notice a runaway cost pattern on an unattended scheduled job.
+async function gemini(prompt: string, supabase: ReturnType<typeof createClient>, userId: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   // A single transient network blip previously failed the brief generation
   // outright for that user (or the whole cron batch, for that one user's
@@ -37,14 +42,25 @@ async function gemini(prompt: string): Promise<string> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS && text === null; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-        {
+      const gatewayResult = await callAI(supabase, {
+        functionName: 'novo-morning-brief',
+        provider: 'gemini',
+        model: 'gemini-flash-latest',
+        userId,
+        url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
+        init: {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
         },
-      );
+        extractUsage: (json) => ({
+          promptTokens: json?.usageMetadata?.promptTokenCount,
+          completionTokens: json?.usageMetadata?.candidatesTokenCount,
+        }),
+      });
+      if (gatewayResult.blockedReason) { lastErr = `AI gateway blocked: ${gatewayResult.errorMessage}`; continue; }
+      if (!gatewayResult.response) { lastErr = gatewayResult.errorMessage ?? 'Gemini request failed'; continue; }
+      const res = gatewayResult.response;
       if (!res.ok) { lastErr = `Gemini ${res.status}: ${await res.text()}`; continue; }
       const d = await res.json();
       text = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
@@ -54,6 +70,21 @@ async function gemini(prompt: string): Promise<string> {
   }
   if (text === null) throw new Error(`Gemini call failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
   return text;
+}
+
+// Outer validate+regenerate loop matching the reference two-layer pattern
+// (novo-certifications/lesson-planner): gemini() already retries the
+// network call itself; this layer re-runs the WHOLE generation if the
+// parsed result comes back empty or malformed, rather than trusting
+// whatever gemini() returned. Found live 2026-08-25 during the retry+
+// validate pattern audit.
+async function generateBriefText(prompt: string, supabase: ReturnType<typeof createClient>, userId: string, maxAttempts = 2): Promise<string> {
+  let lastText = '';
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    lastText = await gemini(prompt, supabase, userId);
+    if (isValidBriefText(lastText)) return lastText;
+  }
+  throw new Error(`Gemini returned an empty/invalid brief after ${maxAttempts} attempts (last length: ${lastText.trim().length})`);
 }
 
 // ── Build personalised brief text ─────────────────────────────────────────────
@@ -139,7 +170,7 @@ Rules:
 
 Output ONLY the notification text, nothing else.`;
 
-  const text = await gemini(prompt);
+  const text = await generateBriefText(prompt, supabase, userId);
   return { text, focusTopic: weakTopic?.topic ?? null, rivalName, xpDelta, examDays };
 }
 

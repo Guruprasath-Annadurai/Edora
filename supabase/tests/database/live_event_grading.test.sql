@@ -19,16 +19,36 @@ SELECT plan(6);
 INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-000000000001', 'grading-test@example.com');
 
+-- auth.users insert above fires the handle_new_user trigger (001_initial_
+-- schema.sql), which already creates a matching profiles row -- ON CONFLICT
+-- so this test doesn't depend on that trigger's exact default values, or
+-- collide with them, whichever the case in a given environment.
 INSERT INTO public.profiles (id, email, full_name) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'grading-test@example.com', 'Grading Test');
+  ('00000000-0000-0000-0000-000000000001', 'grading-test@example.com', 'Grading Test')
+ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, full_name = EXCLUDED.full_name;
 
 -- correct_answer index: 0=A, 1=B, 2=C, 3=D (position in the options array)
-INSERT INTO public.pyq_content (id, exam, subject, question_text, options, correct_option) VALUES
-  ('00000000-0000-0000-0000-0000000000a1', 'JEE', 'Physics', 'Q1?',
+-- year and chapter are both NOT NULL on pyq_content
+-- (20260628000001_pyq_content_backfill.sql) -- this insert never supplied
+-- either, so it only ever worked by accident on environments where those
+-- columns had defaults at some point in their history.
+--
+-- pyq_content and live_events are both deliberately write-restricted to
+-- service_role only (see 20260804_corpus_layer6.sql's "Write: service_role
+-- only" comment and live_events_service_insert in
+-- 20260709055126_fix_multiple_permissive_policies_batch2.sql) -- there is
+-- no INSERT policy for `authenticated` at all, by design, since this
+-- content is meant to be server-managed. The ambient role this pgTAP
+-- session runs as is subject to RLS (unlike a superuser, which would
+-- bypass it silently), so these fixture inserts must explicitly assume
+-- service_role rather than relying on whatever role happens to be active.
+set local role service_role;
+INSERT INTO public.pyq_content (id, exam, year, subject, chapter, question_text, options, correct_option) VALUES
+  ('00000000-0000-0000-0000-0000000000a1', 'JEE_MAIN', 2026, 'Physics', 'Test Chapter', 'Q1?',
     '[{"text":"a","label":"A","correct":true},{"text":"b","label":"B","correct":false},{"text":"c","label":"C","correct":false},{"text":"d","label":"D","correct":false}]'::jsonb, 'A'),
-  ('00000000-0000-0000-0000-0000000000a2', 'JEE', 'Physics', 'Q2?',
+  ('00000000-0000-0000-0000-0000000000a2', 'JEE_MAIN', 2026, 'Physics', 'Test Chapter', 'Q2?',
     '[{"text":"a","label":"A","correct":false},{"text":"b","label":"B","correct":false},{"text":"c","label":"C","correct":true},{"text":"d","label":"D","correct":false}]'::jsonb, 'C'),
-  ('00000000-0000-0000-0000-0000000000a3', 'JEE', 'Physics', 'Q3?',
+  ('00000000-0000-0000-0000-0000000000a3', 'JEE_MAIN', 2026, 'Physics', 'Test Chapter', 'Q3?',
     '[{"text":"a","label":"A","correct":false},{"text":"b","label":"B","correct":true},{"text":"c","label":"C","correct":false},{"text":"d","label":"D","correct":false}]'::jsonb, 'B');
 
 INSERT INTO public.live_events (id, title, subject, scheduled_at, duration_mins, question_ids, status, reward_badge)
@@ -67,9 +87,13 @@ SELECT is(
 );
 
 -- ── Test 3: security — question_id from another event is silently rejected ─
-INSERT INTO public.pyq_content (id, exam, subject, question_text, options, correct_option) VALUES
-  ('00000000-0000-0000-0000-0000000000fa', 'JEE', 'Chemistry', 'Foreign Q?',
+-- Same service_role requirement as the fixture inserts above.
+set local role service_role;
+INSERT INTO public.pyq_content (id, exam, year, subject, chapter, question_text, options, correct_option) VALUES
+  ('00000000-0000-0000-0000-0000000000fa', 'JEE_MAIN', 2026, 'Chemistry', 'Test Chapter', 'Foreign Q?',
     '[{"text":"a","label":"A","correct":true},{"text":"b","label":"B","correct":false},{"text":"c","label":"C","correct":false},{"text":"d","label":"D","correct":false}]'::jsonb, 'A');
+SET LOCAL role authenticated;
+SET LOCAL request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
 
 SELECT is(
   (public.submit_live_event_answers(

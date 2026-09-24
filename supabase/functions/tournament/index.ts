@@ -13,7 +13,7 @@ import { validateTournamentGen, type TournamentGenShape } from './validate.ts';
 async function geminiJSONOnce<T>(prompt: string): Promise<T> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

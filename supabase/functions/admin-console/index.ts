@@ -6,6 +6,8 @@
 //   list_live_events    — recent events + participant counts
 //   cancel_live_event   — mark an event cancelled
 //   list_audit_log      — recent admin_action_audit rows
+//   get_ai_gateway_status      — Phase 7: kill switch state, daily spend, per-function breakdown
+//   set_ai_gateway_kill_switch — Phase 7: flip the AI gateway kill switch on/off
 // ─────────────────────────────────────────────────────────────────────────────
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -226,6 +228,67 @@ serve(withSentry('admin-console', async (req) => {
       connection_stats: connStats ?? null,
       checked_at: new Date().toISOString(),
     });
+  }
+
+  // ── get_ai_gateway_status — Phase 7 (RISK-006): kill switch state, daily
+  // spend, and recent request volume for the central AI gateway
+  // (supabase/functions/_shared/aiGateway.ts). ─────────────────────────────
+  if (action === 'get_ai_gateway_status') {
+    const { data: config } = await serviceDb
+      .from('ai_gateway_config')
+      .select('ai_enabled, daily_cost_ceiling_usd, updated_at')
+      .eq('id', true)
+      .single();
+
+    const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
+    const { data: todaysRequests } = await serviceDb
+      .from('ai_gateway_requests')
+      .select('function_name, provider, status, estimated_cost_usd')
+      .gte('created_at', todayStart.toISOString())
+      .limit(5000);
+
+    const rows = (todaysRequests ?? []) as { function_name: string; provider: string; status: string; estimated_cost_usd: number | null }[];
+    const spentToday = rows.reduce((sum, r) => sum + (r.estimated_cost_usd ?? 0), 0);
+    const byFunction: Record<string, { count: number; blocked: number; errors: number; cost_usd: number }> = {};
+    for (const r of rows) {
+      const b = byFunction[r.function_name] ??= { count: 0, blocked: 0, errors: 0, cost_usd: 0 };
+      b.count += 1;
+      b.cost_usd += r.estimated_cost_usd ?? 0;
+      if (r.status.startsWith('blocked_')) b.blocked += 1;
+      if (r.status === 'error') b.errors += 1;
+    }
+
+    return json({
+      ai_enabled: config?.ai_enabled ?? null,
+      daily_cost_ceiling_usd: config?.daily_cost_ceiling_usd ?? null,
+      config_updated_at: config?.updated_at ?? null,
+      spent_today_usd: Math.round(spentToday * 1_000_000) / 1_000_000,
+      requests_today: rows.length,
+      by_function: Object.entries(byFunction).map(([function_name, stats]) => ({ function_name, ...stats })).sort((a, b) => b.count - a.count),
+      checked_at: new Date().toISOString(),
+    });
+  }
+
+  // ── set_ai_gateway_kill_switch — the emergency lever for RISK-006. Flips
+  // ai_gateway_config.ai_enabled; every future callAI() invocation reads
+  // this before reaching any provider, so this takes effect on the very
+  // next AI call across all migrated functions, not just at deploy time. ──
+  if (action === 'set_ai_gateway_kill_switch') {
+    const enabled = body.enabled;
+    if (typeof enabled !== 'boolean') return json({ error: 'enabled must be a boolean' }, 400);
+
+    const { error } = await serviceDb
+      .from('ai_gateway_config')
+      .update({ ai_enabled: enabled, updated_at: new Date().toISOString(), updated_by: user.id })
+      .eq('id', true);
+    if (error) return json({ error: 'Failed to update kill switch' }, 500);
+
+    await logAdminAction(serviceDb, {
+      actorId: user.id, actorRole: 'user', action: 'set_ai_gateway_kill_switch',
+      source: 'admin-console', metadata: { enabled },
+    });
+
+    return json({ ai_enabled: enabled });
   }
 
   // ── list_question_reports — the student "report wrong answer" review queue ──

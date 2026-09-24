@@ -14,22 +14,29 @@ import { getCors }      from '../_shared/cors.ts';
 import { withSentry }   from '../_shared/sentry.ts';
 import { normalizeMemories } from '../_shared/memoryExtraction.ts';
 import { checkRateLimit as sharedCheckRateLimit, checkGlobalLLMBudget } from '../_shared/rateLimit.ts';
+import { callAI } from '../_shared/aiGateway.ts';
 import { validatePrereqGen, type PrereqGen } from './validate.ts';
 
 // ── Models ────────────────────────────────────────────────────────────────────
-// Primary:  llama-3.3-70b-versatile  (best quality, 6000 TPM free)
-// Thinking: deepseek-r1-distill-llama-70b (chain-of-thought — derivations, proofs)
-// Fallback: llama-3.1-8b-instant    (30000 TPM free — factual lookups + rate-limit)
-const GROQ_MODEL_PRIMARY  = 'llama-3.3-70b-versatile';
-const GROQ_MODEL_THINKING = 'deepseek-r1-distill-llama-70b';
-const GROQ_MODEL_FALLBACK = 'llama-3.1-8b-instant';
+// Both deepseek-r1-distill-llama-70b (found 2026-08-16) AND
+// llama-3.3-70b-versatile + llama-3.1-8b-instant (found 2026-08-18, via the
+// new monitoring-check AI-model watchdog — Groq's own live /v1/models list
+// confirms both gone, not a fluke) have been decommissioned by Groq in the
+// span of this one mandate. Standardizing on the openai/gpt-oss family
+// (confirmed live via Groq's real model list) since it's what's actually
+// available right now, not a repeat guess at a dated model name.
+// Primary/Thinking: openai/gpt-oss-120b (largest available — quality + reasoning)
+// Fallback:         openai/gpt-oss-20b  (smaller/faster/cheaper)
+const GROQ_MODEL_PRIMARY  = 'openai/gpt-oss-120b';
+const GROQ_MODEL_THINKING = 'openai/gpt-oss-120b';
+const GROQ_MODEL_FALLBACK = 'openai/gpt-oss-20b';
 const GROQ_BASE_URL       = 'https://api.groq.com/openai/v1/chat/completions';
 const TIMEOUT_MS          = 35_000; // thinking model needs extra headroom
 
 // Last-resort fallback when BOTH Groq models are rate-limited (free-tier 6000 TPM
 // wall). No tool calling on this path — plain-text answer only, better than a
 // hard 429 to the student.
-const GEMINI_FALLBACK_MODEL = 'gemini-2.0-flash';
+const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
 const GEMINI_GENERATE_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FALLBACK_MODEL}:generateContent`;
 
 function toGeminiContents(msgs: unknown[]): { systemInstruction?: string; contents: Array<{ role: string; parts: Array<{ text: string }> }> } {
@@ -43,22 +50,66 @@ function toGeminiContents(msgs: unknown[]): { systemInstruction?: string; conten
   return { systemInstruction: systemInstruction || undefined, contents };
 }
 
-async function callGeminiFallback(msgs: unknown[], abortSignal: AbortSignal): Promise<string | null> {
+// Phase 7 (RISK-006, AI gateway): last-resort fallback, routed through
+// callAI() same as callGroq -- a kill switch/cost ceiling should stop
+// spend here too, not just on the primary Groq path. serviceDb/userId are
+// optional (default to null) since this is a rarely-exercised fallback
+// path with a couple of call sites that may not always have a live
+// session handy; callAI treats a null userId the same as any other call.
+async function callGeminiFallback(
+  msgs: unknown[],
+  abortSignal: AbortSignal,
+  serviceDb?: ReturnType<typeof createClient> | null,
+  userId?: string | null,
+): Promise<string | null> {
   const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
   if (!geminiKey) { console.error('[novo] Gemini fallback: GEMINI_API_KEY not set'); return null; }
   const { systemInstruction, contents } = toGeminiContents(msgs);
   if (!contents.length) { console.error('[novo] Gemini fallback: no usable contents from messages'); return null; }
   try {
-    const res = await fetch(`${GEMINI_GENERATE_URL}?key=${geminiKey}`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents,
-        ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
-        generationConfig: { temperature: 0.75, maxOutputTokens: 2048 },
-      }),
-      signal: abortSignal,
-    });
+    const body = {
+      contents,
+      ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
+      generationConfig: { temperature: 0.75, maxOutputTokens: 2048 },
+    };
+
+    let res: Response;
+    if (serviceDb) {
+      const gatewayResult = await callAI(serviceDb, {
+        functionName: 'gemini-chat',
+        provider: 'gemini',
+        model: GEMINI_FALLBACK_MODEL,
+        userId,
+        url: `${GEMINI_GENERATE_URL}?key=${geminiKey}`,
+        init: {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body),
+          signal:  abortSignal,
+        },
+        extractUsage: (json) => ({
+          promptTokens: json?.usageMetadata?.promptTokenCount,
+          completionTokens: json?.usageMetadata?.candidatesTokenCount,
+        }),
+      });
+      if (gatewayResult.blockedReason) {
+        console.warn('[novo] AI gateway blocked Gemini fallback call:', gatewayResult.errorMessage);
+        return null;
+      }
+      if (!gatewayResult.response) {
+        console.error('[novo] Gemini fallback threw:', gatewayResult.errorMessage);
+        return null;
+      }
+      res = gatewayResult.response;
+    } else {
+      res = await fetch(`${GEMINI_GENERATE_URL}?key=${geminiKey}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+        signal:  abortSignal,
+      });
+    }
+
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       console.error('[novo] Gemini fallback HTTP', res.status, errBody.slice(0, 300));
@@ -72,6 +123,236 @@ async function callGeminiFallback(msgs: unknown[], abortSignal: AbortSignal): Pr
     console.error('[novo] Gemini fallback threw:', (err as Error)?.message);
     return null;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Claude integration — feature-flagged (AI_CHAT_PROVIDER=claude), OFF by
+// default. Added 2026-08-28 alongside the ANTHROPIC_API_KEY secret; no
+// production traffic has hit this path yet since it hasn't been verified
+// against a real key from this environment. Flip AI_CHAT_PROVIDER=claude
+// (a Supabase secret, not a code change) to activate; unset it to roll
+// back to Groq instantly. Deliberately intercepted at callGroq()'s single
+// choke point rather than touching its ~6 call sites, so this stays a
+// one-line, reversible toggle.
+//
+// Anthropic's Messages API has a different request/response/streaming
+// shape than Groq's OpenAI-compatible endpoint (system prompt is a
+// top-level field not a message; tool calls are `tool_use` content
+// blocks, not `tool_calls`; streaming is a typed event sequence, not
+// OpenAI-style delta chunks). Everything below translates between the two
+// shapes so the existing ReAct loop / SSE parser (built for Groq) needs
+// no changes at all.
+// ─────────────────────────────────────────────────────────────────────────────
+const CLAUDE_MODEL_PRIMARY  = 'claude-sonnet-5';
+const CLAUDE_MODEL_FALLBACK = 'claude-haiku-4-5-20251001';
+const CLAUDE_API_URL        = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_VERSION     = '2023-06-01';
+const USE_CLAUDE = (Deno.env.get('AI_CHAT_PROVIDER') ?? '').toLowerCase() === 'claude';
+
+// GROQ_MODEL_THINKING and GROQ_MODEL_PRIMARY are currently the same string
+// (see top of file) — both map to Sonnet 5, since Claude doesn't need a
+// separate "thinking-tier" model the way the Groq routing does.
+// Known gap: routeModel()'s `supportsTools` disables tool-calling for the
+// THINKING tier (a Groq-specific workaround for deepseek-style reasoning
+// models tripping over tool calls) -- Claude Sonnet 5 supports tools fine,
+// so derivation-intent queries lose flashcard/weak-topic tool calls when
+// routed through Claude. Not fixed here; revisit if/when this flag is
+// actually turned on and that gap matters in practice.
+function mapGroqModelToClaude(groqModel: string): string {
+  return groqModel === GROQ_MODEL_FALLBACK ? CLAUDE_MODEL_FALLBACK : CLAUDE_MODEL_PRIMARY;
+}
+
+type AnthropicContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | { type: 'tool_result'; tool_use_id: string; content: string };
+
+// Convert the OpenAI-shaped `messages` array (system message inline, plus
+// assistant tool_calls / role:'tool' turns from the ReAct loop) into
+// Anthropic's shape: a top-level `system` string and a messages array
+// where tool calls are `tool_use` blocks and tool results are `tool_result`
+// blocks inside a user-role message.
+function toAnthropicMessages(msgs: unknown[]): { system?: string; messages: Array<{ role: 'user' | 'assistant'; content: string | AnthropicContentBlock[] }> } {
+  let system = '';
+  const out: Array<{ role: 'user' | 'assistant'; content: string | AnthropicContentBlock[] }> = [];
+  const arr = msgs as Array<{
+    role?: string; content?: string | null;
+    tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
+    tool_call_id?: string;
+  }>;
+  for (const m of arr) {
+    if (!m || !m.role) continue;
+    if (m.role === 'system') { system += (system ? '\n\n' : '') + (m.content ?? ''); continue; }
+    if (m.role === 'user') { out.push({ role: 'user', content: m.content ?? '' }); continue; }
+    if (m.role === 'assistant') {
+      if (m.tool_calls?.length) {
+        const blocks: AnthropicContentBlock[] = [];
+        if (m.content) blocks.push({ type: 'text', text: m.content });
+        for (const tc of m.tool_calls) {
+          let input: unknown = {};
+          try { input = JSON.parse(tc.function.arguments || '{}'); } catch { /* malformed args -> empty input */ }
+          blocks.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input });
+        }
+        out.push({ role: 'assistant', content: blocks });
+      } else {
+        out.push({ role: 'assistant', content: m.content ?? '' });
+      }
+      continue;
+    }
+    if (m.role === 'tool') {
+      const block: AnthropicContentBlock = { type: 'tool_result', tool_use_id: m.tool_call_id ?? '', content: String(m.content ?? '') };
+      const last = out[out.length - 1];
+      if (last && last.role === 'user' && Array.isArray(last.content)) {
+        last.content.push(block);
+      } else {
+        out.push({ role: 'user', content: [block] });
+      }
+      continue;
+    }
+  }
+  return { system: system || undefined, messages: out };
+}
+
+function toAnthropicTools(tools: typeof NOVO_TOOLS): Array<{ name: string; description: string; input_schema: unknown }> {
+  return tools.map(t => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters }));
+}
+
+// Translate Anthropic's typed SSE event stream into the OpenAI-style
+// `data: {"choices":[{"delta":{...},"finish_reason":...}]}` chunks the
+// existing drainStreamRound() parser expects, terminated by `data: [DONE]`.
+function anthropicToOpenAIStream(anthropicBody: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = anthropicBody.getReader();
+      let buf = '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (!raw) continue;
+            let evt: {
+              type?: string; index?: number;
+              content_block?: { type?: string; id?: string; name?: string };
+              delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string };
+            };
+            try { evt = JSON.parse(raw); } catch { continue; }
+
+            if (evt.type === 'content_block_start' && evt.content_block?.type === 'tool_use') {
+              const chunk = { choices: [{ delta: { tool_calls: [{ index: evt.index ?? 0, id: evt.content_block.id, function: { name: evt.content_block.name, arguments: '' } }] }, finish_reason: null }] };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            } else if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+              const chunk = { choices: [{ delta: { content: evt.delta.text ?? '' }, finish_reason: null }] };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            } else if (evt.type === 'content_block_delta' && evt.delta?.type === 'input_json_delta') {
+              const chunk = { choices: [{ delta: { tool_calls: [{ index: evt.index ?? 0, function: { arguments: evt.delta.partial_json ?? '' } }] }, finish_reason: null }] };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            } else if (evt.type === 'message_delta' && evt.delta?.stop_reason) {
+              const finish = evt.delta.stop_reason === 'tool_use' ? 'tool_calls' : 'stop';
+              const chunk = { choices: [{ delta: {}, finish_reason: finish }] };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            } else if (evt.type === 'message_stop') {
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            }
+          }
+        }
+      } catch { /* client disconnected or upstream closed */ }
+      controller.close();
+    },
+  });
+}
+
+// Same contract as callGroq(): returns an OpenAI-shaped Response (streaming
+// SSE or single JSON body) so the caller in callGroq() can hand it straight
+// back without the rest of the pipeline knowing the provider changed.
+async function callClaude(
+  claudeModel: string,
+  abortSignal: AbortSignal,
+  msgs: unknown[],
+  useStream: boolean,
+  withTools: boolean,
+  serviceDb: ReturnType<typeof createClient>,
+  userId: string | null,
+): Promise<Response> {
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
+  if (!anthropicKey) return new Response(JSON.stringify({ error: { message: 'ANTHROPIC_API_KEY not set' } }), { status: 500 });
+
+  const { system, messages: anthroMsgs } = toAnthropicMessages(msgs);
+  const body: Record<string, unknown> = {
+    model: claudeModel,
+    max_tokens: 4096,
+    temperature: 0.75,
+    messages: anthroMsgs,
+    stream: useStream,
+  };
+  if (system) body.system = system;
+  if (withTools) {
+    body.tools = toAnthropicTools(NOVO_TOOLS);
+    body.tool_choice = { type: 'auto' };
+  }
+
+  const gatewayResult = await callAI(serviceDb, {
+    functionName: 'gemini-chat',
+    provider: 'anthropic',
+    model: claudeModel,
+    userId,
+    url: CLAUDE_API_URL,
+    init: {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': ANTHROPIC_VERSION },
+      body: JSON.stringify(body),
+      signal: abortSignal,
+    },
+    extractUsage: (json) => ({ promptTokens: json?.usage?.input_tokens, completionTokens: json?.usage?.output_tokens }),
+  });
+
+  if (gatewayResult.blockedReason) {
+    console.warn('[novo] AI gateway blocked Claude call:', gatewayResult.errorMessage);
+    return new Response(JSON.stringify({ error: { message: gatewayResult.errorMessage } }), { status: 429 });
+  }
+  if (!gatewayResult.response) {
+    throw new Error(gatewayResult.errorMessage ?? 'Claude request failed');
+  }
+
+  const anthroRes = gatewayResult.response;
+  if (!anthroRes.ok) {
+    const errBody = await anthroRes.text().catch(() => '');
+    let message = `Claude error ${anthroRes.status}`;
+    try { message = (JSON.parse(errBody) as { error?: { message?: string } })?.error?.message ?? message; } catch { /* keep default message */ }
+    return new Response(JSON.stringify({ error: { message } }), { status: anthroRes.status });
+  }
+
+  if (useStream) {
+    if (!anthroRes.body) return new Response(null, { status: 502 });
+    return new Response(anthropicToOpenAIStream(anthroRes.body), { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+  }
+
+  const anthroJson = await anthroRes.json() as {
+    content?: Array<{ type: string; text?: string; id?: string; name?: string; input?: unknown }>;
+    stop_reason?: string;
+  };
+  const blocks = anthroJson.content ?? [];
+  const textOut = blocks.filter(b => b.type === 'text').map(b => b.text ?? '').join('');
+  const toolUseBlocks = blocks.filter(b => b.type === 'tool_use');
+  const openAIShape = {
+    choices: [{
+      finish_reason: anthroJson.stop_reason === 'tool_use' ? 'tool_calls' : 'stop',
+      message: {
+        content: textOut || null,
+        tool_calls: toolUseBlocks.length
+          ? toolUseBlocks.map(b => ({ id: b.id, function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } }))
+          : undefined,
+      },
+    }],
+  };
+  return new Response(JSON.stringify(openAIShape), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
 
 // Wrap a plain-text answer in an OpenAI-shaped Response so downstream
@@ -392,7 +673,7 @@ Max 5 prereqs, most important first. topic names must be concise (3-6 words).`;
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: 'llama-3.1-8b-instant', stream: false, max_tokens: 400, temperature: 0.2,
+      model: GROQ_MODEL_FALLBACK, stream: false, max_tokens: 400, temperature: 0.2,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -1491,6 +1772,13 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
     if (authErr || !authUser) return jsonRes({ error: 'Unauthorized' }, 401);
     user = authUser;
   }
+  // TS discards a `let` variable's narrowing once captured inside a later
+  // `function` declaration closure (unlike an arrow function invoked
+  // immediately in the same flow) -- callGroq below is exactly that case.
+  // A permanently-narrowed const sidesteps it cleanly, without a `!`
+  // non-null assertion, since both branches above guarantee `user` is set
+  // by this point.
+  const userId = user.id;
 
   // ── 2. Rate limit ─────────────────────────────────────────────────────────────
   const allowed = isEvalMode || await checkRateLimit(serviceDb, user.id);
@@ -1538,6 +1826,9 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
   // ── L3: Classify query BEFORE parallel fetch so embedding + k strategy known ──
   const queryType   = classifyQuery(safePrompt, lastChunkIds.length > 0);
   const queryIntent = classifyQueryIntent(safePrompt);
+  // Computed early (not just at Groq-call time) so the system prompt itself
+  // can be trimmed for the fallback model — see brainSystemPrompt below.
+  const routedModel = routeModel(queryIntent, queryType);
 
   // ── 8. Conversation-Aware Retrieval — enrich query with last 3 assistant turns ─
   // contextualQuery is used for embeddings only; safePrompt stays as cache key,
@@ -1870,8 +2161,13 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
     '',
     personalityBlock,
     '',
-    // Skip in eval mode — saves ~1500 tokens, LLM knows curriculum from training
-    isEvalMode ? '' : WORLD_CURRICULUM_KNOWLEDGE,
+    // Skip in eval mode, and for the fallback model — saves ~1500 tokens.
+    // llama-3.1-8b-instant's free-tier TPM cap (6000/min) was being blown by
+    // this block alone on ordinary queries (confirmed live 2026-08-16: 6099
+    // and 6539 tokens requested against a 6000 limit → hard 413s). The model
+    // knows curriculum basics from training; this block is a quality boost
+    // the fast/cheap fallback path can't afford.
+    isEvalMode || routedModel === GROQ_MODEL_FALLBACK ? '' : WORLD_CURRICULUM_KNOWLEDGE,
     '',
     NOTATION_STANDARDS,
     '',
@@ -1903,15 +2199,51 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
     { role: 'user', content: safePrompt },
   ];
 
+  // Used only when a mid-flight 429 forces a retry on the small model (see
+  // "Rate-limited → fall back" below): brainSystemPrompt was sized for
+  // routedModel, which may have been the (larger-budget) primary/thinking
+  // model — replaying it unchanged against llama-3.1-8b-instant's 6000 TPM
+  // cap risks the same overflow this fix targets. Strips the one ~1500-token
+  // block and trims history further for a comfortable margin.
+  const fallbackMessages = [
+    { role: 'system', content: brainSystemPrompt.replace(WORLD_CURRICULUM_KNOWLEDGE, '').trim() },
+    ...(history as Array<{ role: string; text: string }>).slice(-6).map(h => ({
+      role:    h.role === 'model' ? 'assistant' : 'user',
+      content: String(h.text).slice(0, 1200),
+    })),
+    { role: 'user', content: safePrompt },
+  ];
+
   // ── 9. Call Groq — model routing + tools + rate-limit fallback ──────────────
   // thinking model (deepseek-r1) does not support tools; use primary for tool calls
-  const routedModel   = routeModel(queryIntent, queryType);
+  // (routedModel computed earlier, before brainSystemPrompt — see above)
   const supportsTools = routedModel !== GROQ_MODEL_THINKING;
 
+  // Phase 7 (RISK-006, AI gateway): the main user-facing completion call --
+  // previously a bare fetch(), with no shared kill switch or cost ceiling.
+  // Routed through callAI() so gemini-chat (the highest-traffic, highest-
+  // cost-exposure function in the app) is finally protected the same way
+  // ai-question-gen/gemini-vision already are. A gateway block returns a
+  // synthetic 429 Response rather than throwing, so every existing caller
+  // below (which all branch on `.status === 429` / `!res.ok`) keeps working
+  // unchanged -- a blocked call falls through the SAME rate-limit/fallback
+  // path a real Groq 429 already takes, which is the correct behavior
+  // either way (both mean "don't trust this response, try the next tier").
   async function callGroq(
     model: string, abortSignal: AbortSignal, withTools = true,
     overrideMessages?: unknown[], overrideStream?: boolean,
   ): Promise<Response> {
+    if (USE_CLAUDE) {
+      return callClaude(
+        mapGroqModelToClaude(model),
+        abortSignal,
+        overrideMessages ?? messages,
+        overrideStream ?? stream,
+        withTools && supportsTools,
+        serviceDb,
+        userId,
+      );
+    }
     const body: Record<string, unknown> = {
       model,
       messages:    overrideMessages ?? messages,
@@ -1925,12 +2257,36 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
       body.tool_choice      = 'auto';
       body.parallel_tool_calls = false;
     }
-    return fetch(GROQ_BASE_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body:    JSON.stringify(body),
-      signal:  abortSignal,
+
+    const gatewayResult = await callAI(serviceDb, {
+      functionName: 'gemini-chat',
+      provider: 'groq',
+      model,
+      userId,
+      url: GROQ_BASE_URL,
+      init: {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body:    JSON.stringify(body),
+        signal:  abortSignal,
+      },
+      // Streaming responses (SSE, not a single JSON object) fail this parse
+      // silently -- caught by callAI's own try/catch, cost estimation just
+      // stays null for those calls rather than blocking anything.
+      extractUsage: (json) => ({
+        promptTokens: json?.usage?.prompt_tokens,
+        completionTokens: json?.usage?.completion_tokens,
+      }),
     });
+
+    if (gatewayResult.blockedReason) {
+      console.warn('[novo] AI gateway blocked Groq call:', gatewayResult.errorMessage);
+      return new Response(JSON.stringify({ error: { message: gatewayResult.errorMessage } }), { status: 429 });
+    }
+    if (!gatewayResult.response) {
+      throw new Error(gatewayResult.errorMessage ?? 'Groq request failed');
+    }
+    return gatewayResult.response;
   }
 
   const controller = new AbortController();
@@ -1959,7 +2315,7 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
       if (groqRes.status === 429) {
         console.warn('[novo] Model rate-limited — falling back to', GROQ_MODEL_FALLBACK);
         modelUsed = GROQ_MODEL_FALLBACK;
-        groqRes   = await callGroq(GROQ_MODEL_FALLBACK, controller.signal, false);
+        groqRes   = await callGroq(GROQ_MODEL_FALLBACK, controller.signal, false, fallbackMessages);
       }
     } catch (fetchErr) {
       console.error('[novo] Groq fetch threw:', (fetchErr as Error)?.message);
@@ -1972,7 +2328,7 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
   // Both Groq models rate-limited (or global budget already exhausted) →
   // last resort: Gemini, plain text, no tools
   if (groqRes.status === 429) {
-    const gemText = await callGeminiFallback(messages, controller.signal);
+    const gemText = await callGeminiFallback(messages, controller.signal, serviceDb, userId);
     if (gemText) {
       console.warn('[novo] Both Groq models rate-limited — fell back to Gemini');
       modelUsed = GEMINI_FALLBACK_MODEL;

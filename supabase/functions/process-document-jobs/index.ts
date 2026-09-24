@@ -18,7 +18,7 @@ import { withSentry } from '../_shared/sentry.ts';
 import { isValidStudyPack, type StudyPack } from './validate.ts';
 
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 const MAX_TEXT_CHARS = 12_000;
 const REQUEST_TIMEOUT_MS = 45_000;
 const BATCH_SIZE = 5;
