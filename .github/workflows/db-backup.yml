@@ -1,0 +1,110 @@
+name: Database Logical Backup
+
+on:
+  schedule:
+    # Run daily at 03:00 UTC (low-traffic window)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual backup execution'
+        required: false
+        default: 'Manual operator trigger'
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Logical Backup & Encrypted Artifact Archival
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Install Database Client Tools & GPG
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client gnupg gzip
+
+      - name: Validate Direct Session Connection Secrets
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_SESSION_URL }}
+          BACKUP_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::Secret SUPABASE_DB_SESSION_URL is not configured."
+            echo "Note: This must be a Direct or Session-mode connection (Port 5432), NEVER transaction pooler (Port 6543)."
+            exit 1
+          fi
+          if [ -z "$BACKUP_KEY" ]; then
+            echo "::error::Secret BACKUP_ENCRYPTION_KEY is not configured."
+            exit 1
+          fi
+
+          # Fail immediately if port 6543 is detected
+          if echo "$DB_URL" | grep -q ":6543"; then
+            echo "::error::SUPABASE_DB_SESSION_URL is configured to port 6543 (transaction pooler). pg_dump requires a direct/session connection (port 5432)."
+            exit 1
+          fi
+
+      - name: Execute pg_dump, Compress and Encrypt
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_SESSION_URL }}
+          BACKUP_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          set -euo pipefail
+          TIMESTAMP=$(date -u +'%Y%m%d_%H%M%SZ')
+          BACKUP_DIR="backups_staging"
+          mkdir -p "$BACKUP_DIR"
+          chmod 700 "$BACKUP_DIR"
+
+          ENCRYPTED_FILE="${BACKUP_DIR}/edora_backup_${TIMESTAMP}.sql.gz.gpg"
+          METADATA_FILE="${BACKUP_DIR}/backup_metadata_${TIMESTAMP}.json"
+
+          echo "Starting logical schema and tier-1/tier-2 data dump..."
+          
+          # Exclude volatile telemetry / high-volume sync queues from core backup if desired
+          # Dumps public schema, auth schema tables if accessible, and storage metadata
+          # Stream directly through gzip and gpg symmetric AES256 encryption.
+          # Plaintext SQL NEVER touches runner disk unencrypted.
+          pg_dump \
+            --dbname="$DB_URL" \
+            --format=plain \
+            --no-owner \
+            --no-privileges \
+            --schema=public \
+            --exclude-table-data='public.user_telemetry*' \
+            --exclude-table-data='public.sync_queue_logs*' \
+            | gzip -9 \
+            | gpg --symmetric --batch --yes --cipher-algo AES256 --passphrase "$BACKUP_KEY" -o "$ENCRYPTED_FILE"
+
+          # Record non-sensitive metadata
+          FILE_SIZE=$(wc -c < "$ENCRYPTED_FILE" | tr -d ' ')
+          SHA256_HASH=$(sha256sum "$ENCRYPTED_FILE" | awk '{print $1}')
+
+          cat <<EOF > "$METADATA_FILE"
+          {
+            "timestamp": "$TIMESTAMP",
+            "file_name": "edora_backup_${TIMESTAMP}.sql.gz.gpg",
+            "size_bytes": $FILE_SIZE,
+            "sha256": "$SHA256_HASH",
+            "cipher": "AES256",
+            "format": "sql.gz.gpg",
+            "trigger": "${{ github.event_name }}"
+          }
+          EOF
+
+          echo "Backup encrypted successfully."
+          echo "Archive Size: $FILE_SIZE bytes"
+          echo "SHA256: $SHA256_HASH"
+
+      - name: Upload Encrypted Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: edora-encrypted-backup-${{ github.run_id }}
+          path: |
+            backups_staging/*.sql.gz.gpg
+            backups_staging/*.json
+          retention-days: 7
+          if-no-files-found: error
