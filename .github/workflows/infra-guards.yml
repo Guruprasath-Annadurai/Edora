@@ -1,0 +1,28 @@
+name: Infrastructure & Secret Guards
+
+on:
+  pull_request:
+  push:
+    branches: [main, master, release/*, infra/*]
+
+concurrency:
+  group: infra-guards-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets-and-env-guard:
+    name: Secrets & Environment Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Secrets & Environment Static Guard
+        run: |
+          chmod +x scripts/infra/check_secrets_and_env.sh
+          ./scripts/infra/check_secrets_and_env.sh
+
+      - name: Run Secret Guard Self-Tests
+        run: |
+          chmod +x scripts/infra/check_secrets_and_env.test.sh
+          ./scripts/infra/check_secrets_and_env.test.sh
