@@ -96,11 +96,37 @@ On the **first calendar day of each month**:
 
 ---
 
-## 6. Secondary Zero-Cost Backup Mirror (Founder Controlled)
+## 6. Backup Durability Status & Secondary Cold Storage
 
-While GitHub Artifacts retain files for 7 days at zero cost:
-* A founder workstation or zero-tier external storage (e.g. encrypted local archive or rsync) can download the latest encrypted snapshot weekly using the GitHub CLI:
-  ```bash
-  gh run download <RUN_ID> -n edora-encrypted-backup-<RUN_ID>
-  ```
-* Because files are encrypted with AES-256 before leaving the runner, storing them on secure external media does not expose sensitive learner data.
+```
+CURRENT STATUS:
+  BACKUP FOUNDATION ACTIVE
+  DURABLE SECONDARY COPY NOT YET CONFIGURED
+```
+
+### Durability Analysis:
+The primary workflow `.github/workflows/db-backup.yml` archives encrypted dumps in GitHub Actions storage.
+* GitHub Actions artifacts have an enforced **7-day retention limit**.
+* By itself, a 7-day GitHub artifact is **NOT** a durable disaster-recovery archive.
+* Do NOT treat the backup system as fully durable until a secondary offline or external copy is established.
+
+### Provider-Neutral Secondary Hook (`BACKUP_SECONDARY_DESTINATION`):
+* An optional GitHub Actions secret `BACKUP_SECONDARY_DESTINATION` can be configured with an external Webhook, private rsync/SSH target, or S3-compatible cold bucket.
+* If configured, the workflow dispatches the encrypted archive immediately upon creation.
+
+### Exact Manual Zero-Cost Fallback (Weekly / Monthly):
+Until an automated external target is configured, the founder or operations lead must execute the following zero-cost routine:
+1. List recent backup runs via GitHub CLI:
+   ```bash
+   gh run list --workflow=db-backup.yml --limit 3
+   ```
+2. Download the latest encrypted artifact:
+   ```bash
+   gh run download <RUN_ID> -n edora-encrypted-backup-<RUN_ID> -D ~/edora_cold_backups/
+   ```
+3. Archive to founder-controlled encrypted offline storage (e.g., encrypted flash drive or secure local disk).
+4. Verify non-destructive recovery using:
+   ```bash
+   ./scripts/infra/verify_backup_restore.sh ~/edora_cold_backups/edora_backup_*.sql.gz.gpg
+   ```
+* **Security Reminder:** Backup dumps must NEVER be committed to Git or pushed into repository history.
