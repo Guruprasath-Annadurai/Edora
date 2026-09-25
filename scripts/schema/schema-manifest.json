@@ -1,14 +1,20 @@
 {
-  "generatedAt": "2026-09-25T09:33:17.925Z",
+  "generatedAt": "2026-09-25T17:56:36.172Z",
   "tables": {
     "profiles": [
+      "analytics_opt_out",
       "anonymised_at",
       "avatar_url",
       "battle_elo",
       "battle_elo_updated_at",
+      "city_name",
       "created_at",
+      "data_export_requested_at",
+      "deletion_requested_at",
       "dpdp_consent_at",
+      "dpdp_consent_version",
       "email",
+      "exam_date",
       "exam_name",
       "explanation_style",
       "full_name",
@@ -17,15 +23,27 @@
       "is_parent",
       "is_pro",
       "is_teacher",
+      "last_active",
+      "last_brief_sent_at",
+      "last_push_at",
       "last_rank_push_at",
+      "last_referral_push_at",
       "last_sprint_date",
       "level",
+      "marketing_opt_out",
       "memory_opt_out",
+      "morning_brief_enabled",
       "novo_personality",
       "preferred_language",
       "preferred_study_hour",
+      "pro_expires_at",
       "push_token",
+      "push_token_updated_at",
       "referral_code",
+      "referral_xp_earned",
+      "referred_by",
+      "school_id",
+      "school_name",
       "state_name",
       "streak_count",
       "streak_freeze_count",
@@ -42,7 +60,6 @@
       "user_id"
     ],
     "tutor_chats": [
-      "constraint",
       "content",
       "created_at",
       "id",
@@ -53,7 +70,6 @@
     ],
     "flashcards": [
       "back",
-      "constraint",
       "created_at",
       "ease_factor",
       "front",
@@ -637,8 +653,11 @@
       "group_streak",
       "id",
       "invite_code",
+      "is_classroom",
+      "last_streak_at",
       "max_members",
-      "name"
+      "name",
+      "total_xp"
     ],
     "study_circle_members": [
       "circle_id",
@@ -660,7 +679,6 @@
       "user_id"
     ],
     "novo_memories": [
-      "constraint",
       "content",
       "created_at",
       "embedding",
@@ -1249,7 +1267,6 @@
     ],
     "subscriptions": [
       "amount_paise",
-      "constraint",
       "created_at",
       "currency",
       "expires_at",
@@ -1258,6 +1275,7 @@
       "razorpay_order_id",
       "razorpay_payment_id",
       "razorpay_signature",
+      "rc_event_id",
       "starts_at",
       "status",
       "store",
@@ -1269,15 +1287,19 @@
       "chunk_level",
       "class_num",
       "content",
+      "content_hash",
       "content_tsv",
       "content_type",
       "created_at",
       "embedding",
+      "embedding_c",
       "embedding_q",
       "id",
+      "parent_id",
       "section_title",
       "source_type",
       "subject",
+      "token_count",
       "validation_state"
     ],
     "analytics_events": [
@@ -1361,7 +1383,6 @@
     ],
     "gmail_sends": [
       "assignment_id",
-      "constraint",
       "gmail_message_id",
       "id",
       "recipient_email",
@@ -1385,7 +1406,6 @@
     "pyq_content": [
       "chapter",
       "class_level",
-      "constraint",
       "content_hash",
       "content_tsv",
       "correct_option",
@@ -1568,6 +1588,7 @@
       "answers",
       "attempt_key",
       "completed_at",
+      "config_version",
       "created_at",
       "exam_type",
       "id",
@@ -1615,14 +1636,17 @@
       "difficulty",
       "explanation",
       "flag_count",
+      "flags",
       "generated_by",
       "id",
       "is_retired",
       "language",
+      "ncert_reference",
       "options",
       "quality_score",
       "question",
-      "subject"
+      "subject",
+      "verify_in_textbook"
     ],
     "ai_question_flags": [
       "created_at",
@@ -1644,6 +1668,7 @@
     ],
     "referral_rewards": [
       "description",
+      "referee_streak_freezes",
       "referee_xp",
       "referrer_streak_freezes",
       "referrer_xp",
@@ -1811,6 +1836,7 @@
       "attempt_count",
       "correct_rate",
       "corrected_question",
+      "correction_bank_id",
       "created_at",
       "id",
       "model_used",
@@ -1966,7 +1992,6 @@
     ],
     "mains_questions": [
       "class_level",
-      "constraint",
       "created_at",
       "difficulty",
       "exam",
@@ -2252,6 +2277,7 @@
       "model",
       "prompt_key",
       "prompt_tokens",
+      "prompt_version",
       "provider",
       "status",
       "user_id"
@@ -2265,6 +2291,14 @@
       "prompt_key",
       "template",
       "version"
+    ],
+    "ai_success_rate_by_function_provider": [],
+    "app_flags": [
+      "description",
+      "enabled",
+      "flag_name",
+      "metadata",
+      "updated_at"
     ]
   },
   "functions": [
@@ -2280,6 +2314,7 @@
     "cleanup_push_log",
     "cleanup_rank_snapshots",
     "cleanup_rate_limits",
+    "complete_quiz_session",
     "create_institution",
     "current_device_id",
     "enforce_rate_limit",
@@ -2287,6 +2322,7 @@
     "finalize_live_event",
     "generate_referral_code",
     "get_ab_variant",
+    "get_app_flags",
     "get_connection_stats",
     "get_corpus_status",
     "get_daily_session_progress",
@@ -2314,6 +2350,7 @@
     "is_institution_member",
     "join_institution",
     "match_study_buddy",
+    "normalize_profile_exam_name",
     "post_achievement",
     "process_referral",
     "prune_novo_memories",
