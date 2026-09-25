@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T17:56:36.172Z",
+  "generatedAt": "2026-09-25T19:24:47.614Z",
   "tables": {
     "profiles": [
       "analytics_opt_out",
@@ -2335,6 +2335,7 @@
     "get_school_leaderboard",
     "get_school_summary",
     "get_table_primary_keys",
+    "get_today_plan",
     "get_top_ncert_similarity",
     "gift_streak_freeze",
     "handle_feed_reaction",
