@@ -88,7 +88,39 @@ export async function initRevenueCat(userId?: string): Promise<void> {
 
 // ── Core purchase via RevenueCat (iOS + Android) ──────────────────────────────
 
-async function purchaseNative(planId: PlanId): Promise<{ success: boolean }> {
+export type PurchaseState = 'confirmed' | 'pending_activation' | 'cancelled';
+export interface PurchaseResult {
+  /** true ONLY when the backend confirmed profiles.is_pro (state === 'confirmed'). */
+  success: boolean;
+  state: PurchaseState;
+}
+
+/** Bounded reconciliation: gaps (ms) between verify attempts after the first one. */
+export const VERIFY_RETRY_DELAYS_MS = [3000, 4000, 5000];
+
+async function verifyBackendPro(): Promise<boolean> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
+  try {
+    const { data, error } = await supabase.functions.invoke('novo-subscription', {
+      body:    { action: 'verify_revenuecat' },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    return !error && (data as { pro_active?: boolean } | null)?.pro_active === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Re-check the backend entitlement WITHOUT touching the store (no repurchase, no double billing).
+ * Used by the "Check status" action after a purchase that is still pending activation.
+ */
+export async function confirmProActivation(): Promise<boolean> {
+  return verifyBackendPro();
+}
+
+async function purchaseNative(planId: PlanId): Promise<PurchaseResult> {
   if (!revenueCatReady) throw new Error('Payment service is not ready. Please restart the app and try again.');
 
   const product = PRODUCTS[planId];
@@ -110,27 +142,24 @@ async function purchaseNative(planId: PlanId): Promise<{ success: boolean }> {
     const activeEntitlement = customerInfo.entitlements.active['pro'];
     if (!activeEntitlement) throw new Error('Purchase completed but access was not granted. Contact support if this persists.');
 
-    // Server-side verification — server calls RevenueCat REST API using the user's
-    // JWT to look up the entitlement. No sensitive data passed from client.
-    const { data: { session } } = await supabase.auth.getSession();
-    const verify = () => supabase.functions.invoke('novo-subscription', {
-      body:    { action: 'verify_revenuecat' },
-      headers: { Authorization: `Bearer ${session?.access_token}` },
-    });
-    let { data: verifyResult, error: verifyErr } = await verify();
-    if (verifyErr || !(verifyResult as { pro_active?: boolean })?.pro_active) {
-      // RevenueCat can take a few seconds to expose a fresh purchase — retry once before giving up.
-      await new Promise(r => setTimeout(r, 3000));
-      ({ data: verifyResult, error: verifyErr } = await verify());
+    // Server-side verification (idempotent; the store purchase is already complete, so this
+    // never re-purchases). RevenueCat can take several seconds to expose a fresh purchase,
+    // so reconcile for a bounded time before reporting "pending".
+    let confirmed = await verifyBackendPro();
+    for (const delay of VERIFY_RETRY_DELAYS_MS) {
+      if (confirmed) break;
+      await new Promise(r => setTimeout(r, delay));
+      confirmed = await verifyBackendPro();
     }
-    if (verifyErr || !(verifyResult as { pro_active?: boolean })?.pro_active) {
-      // RC entitlement check failed — may be propagation delay (RC can take ~5s after purchase).
-      // The RC webhook will activate Pro when it arrives. Log for reconciliation.
-      console.error('[IAP] Server verification did not confirm Pro:', verifyErr?.message ?? verifyResult);
+    if (!confirmed) {
+      // Store purchase is real; the RC webhook / a later status check will activate Pro.
+      console.error('[IAP] Store purchase completed but backend Pro not yet confirmed');
     }
 
-    track('pro_subscribed', { plan: planId, price: product.price_inr, platform: Capacitor.getPlatform() });
-    return { success: true };
+    track('pro_subscribed', { plan: planId, price: product.price_inr, platform: Capacitor.getPlatform(), confirmed });
+    return confirmed
+      ? { success: true, state: 'confirmed' }
+      : { success: false, state: 'pending_activation' };
 
   } catch (err: unknown) {
     // User-cancelled — not an error
@@ -138,7 +167,7 @@ async function purchaseNative(planId: PlanId): Promise<{ success: boolean }> {
       (err as { userCancelled?: boolean }).userCancelled ||
       (err as Error)?.message?.includes('cancel')
     ) {
-      return { success: false };
+      return { success: false, state: 'cancelled' };
     }
     throw err;
   }
@@ -199,7 +228,7 @@ export const IAP = {
   platform: getIAPPlatform(),
   products: PRODUCTS,
 
-  async purchase(planId: PlanId): Promise<{ success: boolean }> {
+  async purchase(planId: PlanId): Promise<PurchaseResult> {
     const platform = getIAPPlatform();
     track('pro_checkout_started', { plan: planId, price: PRODUCTS[planId].price_inr });
 

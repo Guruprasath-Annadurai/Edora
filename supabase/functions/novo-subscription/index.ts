@@ -79,7 +79,7 @@ async function verifyRevenueCatEntitlement(
   }
 
   const body = await res.json();
-  return pickActiveEntitlement(body);
+  return pickActiveEntitlement(body) as RCEntitlement | null;
 }
 
 // ── Razorpay API call helper ──────────────────────────────────────────────────
@@ -171,7 +171,7 @@ serve(withSentry('novo-subscription', async (req) => {
         // Ensure Pro is activated even if the client-side verify_payment call failed
         const { data: existingSub } = await supabase
           .from('subscriptions')
-          .select('id')
+          .select('id, expires_at')
           .eq('razorpay_payment_id', paymentId)
           .maybeSingle();
 

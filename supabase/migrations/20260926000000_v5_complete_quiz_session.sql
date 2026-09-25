@@ -78,6 +78,7 @@ begin
   end if;
 
   -- First (and only) time this session is recorded: grant XP + topic stats, once.
+  -- TRUST DEBT (docs/product/V5_TRUST_DEBT.md TD-1): p_score is client-supplied; this is NOT tamper-proof.
   v_xp := p_score * 10;                                   -- <= 1000, within increment_xp_unchecked's range check
   perform public.increment_xp_unchecked(v_uid, v_xp);
   perform public.upsert_topic_performance(v_uid, v_subject, p_topic, p_score, p_questions_count);

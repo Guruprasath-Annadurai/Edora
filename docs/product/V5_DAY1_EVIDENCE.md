@@ -47,3 +47,11 @@ Quiz rows before/after (production): 0 -> 0 (probe rolled back). XP before/after
 
 ## GO / NO-GO for Day 2
 CONDITIONAL GO: code-level Day-1 gates pass. Not a production-ready claim: device purchase verification and production RPC application remain open.
+
+---
+## Day 1 closeout (founder items A–E)
+- **A. Native purchase semantics:** `IAP.purchase` now returns `{success, state}` with `state` = `confirmed | pending_activation | cancelled`. `success` is true only when the backend `verify_revenuecat` returns `pro_active === true`. After the store purchase it verifies, then polls a bounded 3 more times (3 s / 4 s / 5 s). If the backend is still unconfirmed it returns `pending_activation`; the UI shows "Purchase received. We're activating Pro now." with a "Check status" action, does not navigate away, and the main button re-checks status instead of starting a second store purchase. `confirmProActivation()` re-checks the backend only (no store call, no repurchase). Tests: `iap.test.ts` (confirmed / pending / late-reconcile / cancelled / no-store-call), `ProSubscriptionPage.test.tsx` (pending copy, no "activated" claim, one purchase call only).
+- **B. Deno check:** `deno check supabase/functions/novo-subscription/index.ts` -> 0 errors (was 2). Fixes: type cast at `pickActiveEntitlement` return; `select('id, expires_at')` in the webhook retry path. No behaviour change.
+- **C. XP trust debt:** registered as TD-1 in `V5_TRUST_DEBT.md` and noted in the RPC source. XP is not tamper-proof today.
+- **D. Sequential final checks:** tsc 0; lint 0 errors (3 pre-existing warnings); Vitest 19 files / 133 tests, 3 consecutive runs all green; Deno 287/287; `deno check` 0 errors; build OK (initial JS ~257.6 KB gzip for the index chunk). The earlier Vitest failure did not reappear: recorded as one unreproduced historical flake (it happened while tsc and build ran concurrently).
+- **E. Production:** no writes. `score_pct`, `complete_quiz_session` and the `novo-subscription` changes are NOT deployed.

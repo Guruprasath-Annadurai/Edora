@@ -11,7 +11,7 @@ vi.mock('@/lib/supabase', () => ({ supabase: { functions: { invoke: (...a: unkno
 const rc = vi.hoisted(() => ({ restorePurchases: vi.fn(), configure: vi.fn(), setLogLevel: vi.fn(), getOfferings: vi.fn(), purchasePackage: vi.fn() }));
 vi.mock('@revenuecat/purchases-capacitor', () => ({ Purchases: rc, LOG_LEVEL: { WARN: 'WARN' } }));
 
-import { restorePurchases, initRevenueCat, assertWebCheckoutAllowed } from '@/lib/iap';
+import { restorePurchases, initRevenueCat, assertWebCheckoutAllowed, IAP, confirmProActivation } from '@/lib/iap';
 
 beforeEach(async () => {
   invoke.mockReset(); getSession.mockReset(); Object.values(rc).forEach(f => f.mockReset());
@@ -66,5 +66,60 @@ describe('Razorpay web checkout isolation', () => {
     cap.native = true; cap.platform = 'android'; expect(() => assertWebCheckoutAllowed()).toThrow(/not available in the app/i);
     cap.platform = 'ios';                        expect(() => assertWebCheckoutAllowed()).toThrow();
     cap.native = false; cap.platform = 'web';    expect(() => assertWebCheckoutAllowed()).not.toThrow();
+  });
+});
+
+describe('native purchase — success only when the BACKEND confirms Pro', () => {
+  const pkg = { identifier: '$rc_annual', product: { identifier: 'com.edora.app.pro_annual' } };
+  beforeEach(() => {
+    rc.getOfferings.mockResolvedValue({ current: { availablePackages: [pkg] }, all: {} });
+    rc.purchasePackage.mockResolvedValue({ customerInfo: { entitlements: { active: { pro: {} } } } });
+  });
+  const verifyCalls = () => invoke.mock.calls.filter(c => (c[1] as { body: { action: string } }).body.action === 'verify_revenuecat').length;
+
+  it('confirmed: backend pro_active on the first check => success/confirmed, single verify call', async () => {
+    invoke.mockResolvedValue({ data: { pro_active: true }, error: null });
+    const r = await IAP.purchase('pro_annual');
+    expect(r).toEqual({ success: true, state: 'confirmed' });
+    expect(verifyCalls()).toBe(1);
+    expect(rc.purchasePackage).toHaveBeenCalledTimes(1);
+  });
+
+  it('pending_activation: store purchase done but backend never confirms => NOT success, bounded polling, exactly one store purchase', async () => {
+    vi.useFakeTimers();
+    try {
+      invoke.mockResolvedValue({ data: null, error: { message: 'boom' } });
+      const p = IAP.purchase('pro_annual');
+      await vi.runAllTimersAsync();
+      const r = await p;
+      expect(r).toEqual({ success: false, state: 'pending_activation' });
+      expect(verifyCalls()).toBe(4);            // 1 + 3 bounded retries
+      expect(rc.purchasePackage).toHaveBeenCalledTimes(1); // never repurchases
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('reconciles: backend confirms on a later poll => confirmed', async () => {
+    vi.useFakeTimers();
+    try {
+      invoke.mockResolvedValueOnce({ data: { pro_active: false }, error: null })
+            .mockResolvedValueOnce({ data: { pro_active: true }, error: null });
+      const p = IAP.purchase('pro_annual');
+      await vi.runAllTimersAsync();
+      expect(await p).toEqual({ success: true, state: 'confirmed' });
+      expect(verifyCalls()).toBe(2);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('cancelled: user cancels in the store => cancelled, no backend call', async () => {
+    rc.purchasePackage.mockRejectedValue(Object.assign(new Error('x'), { userCancelled: true }));
+    expect(await IAP.purchase('pro_annual')).toEqual({ success: false, state: 'cancelled' });
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('confirmProActivation only re-checks the backend (never touches the store)', async () => {
+    invoke.mockResolvedValue({ data: { pro_active: true }, error: null });
+    expect(await confirmProActivation()).toBe(true);
+    expect(rc.purchasePackage).not.toHaveBeenCalled();
+    expect(rc.restorePurchases).not.toHaveBeenCalled();
   });
 });

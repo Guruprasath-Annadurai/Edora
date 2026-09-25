@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { Browser } from '@capacitor/browser';
 import { Toast } from '@capacitor/toast';
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
-import { IAP, restorePurchases, getIAPPlatform, initRevenueCat, assertWebCheckoutAllowed } from '@/lib/iap';
+import { IAP, restorePurchases, confirmProActivation, getIAPPlatform, initRevenueCat, assertWebCheckoutAllowed } from '@/lib/iap';
 import { track } from '@/lib/analytics';
 import { maybePromptRating } from '@/lib/appRating';
 import { usePricingVariant, usePaywallCTAVariant } from '@/hooks/useExperiment';
@@ -118,6 +118,7 @@ export default function ProSubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [loading,      setLoading]      = useState(false);
   const [restoring,    setRestoring]    = useState(false);
+  const [pendingActivation, setPendingActivation] = useState(false);
   const [status,       setStatus]       = useState<{ is_pro: boolean; pro_expires_at: string | null; active_plan: string | null } | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [cancelConfirm, setCancelConfirm] = useState(false);
@@ -157,6 +158,7 @@ export default function ProSubscriptionPage() {
   // ── Purchase handler ─────────────────────────────────────────────────────
   async function handleSubscribe() {
     if (!user) return;
+    if (pendingActivation) { await handleCheckActivation(); return; } // never repurchase while activation is pending
     setErrorMsg('');
     setLoading(true);
 
@@ -165,8 +167,17 @@ export default function ProSubscriptionPage() {
       if (platform === 'ios' || platform === 'android') {
         await initRevenueCat(user.id);
         const planId = selectedPlan === 'annual' ? 'pro_annual' : 'pro_monthly';
-        const { success } = await IAP.purchase(planId);
+        const { success, state } = await IAP.purchase(planId);
+        if (state === 'pending_activation') {
+          // Store purchase went through but the server has not confirmed Pro yet.
+          // Never claim activation; never offer a second purchase.
+          setPendingActivation(true);
+          setErrorMsg('');
+          await refetchProfile();
+          return;
+        }
         if (success) {
+          setPendingActivation(false);
           await refetchProfile();
           track('pro_purchase_success', { plan: selectedPlan, platform });
           trackConversion('pricing_variant', pricingVariant, 'pro_purchase', { plan: selectedPlan, platform });
@@ -224,6 +235,24 @@ export default function ProSubscriptionPage() {
       }
     } finally {
       setLoading(false);
+    }
+  }
+
+  // ── Re-check activation after a purchase that is still pending (no store call) ──
+  async function handleCheckActivation() {
+    setRestoring(true);
+    try {
+      const ok = await confirmProActivation();
+      await refetchProfile();
+      if (ok) {
+        setPendingActivation(false);
+        await Toast.show({ text: '✅ Pro is active!', duration: 'long' });
+        navigate('/home');
+      } else {
+        await Toast.show({ text: "Still activating — this can take a minute. You won't be charged again.", duration: 'long' });
+      }
+    } finally {
+      setRestoring(false);
     }
   }
 
@@ -579,6 +608,19 @@ export default function ProSubscriptionPage() {
             {restoring ? <RefreshCw size={11} className="animate-spin" /> : null}
             Restore previous purchase
           </button>
+        )}
+
+        {/* Purchase received, backend not yet confirmed */}
+        {pendingActivation && (
+          <div className="rounded-xl p-3 flex flex-col gap-2"
+            style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)' }}>
+            <p className="text-xs font-semibold">Purchase received. We&apos;re activating Pro now.</p>
+            <p className="text-xs opacity-80">This can take a minute. You won&apos;t be charged again.</p>
+            <button onClick={handleCheckActivation} disabled={restoring}
+              className="text-xs font-semibold underline self-start disabled:opacity-50">
+              Check status
+            </button>
+          </div>
         )}
 
         {/* Error message */}

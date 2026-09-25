@@ -1,0 +1,1 @@
+deno check novo-subscription exit=0 (zero errors)

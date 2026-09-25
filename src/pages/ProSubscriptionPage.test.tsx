@@ -49,7 +49,7 @@ describe('ProSubscriptionPage — the /pro purchase screen and billing isolation
 
   it('NATIVE ANDROID: subscribing uses the in-app (Play/RevenueCat) purchase and NEVER loads Razorpay or creates a web order', async () => {
     cap.native = true; cap.platform = 'android';
-    purchase.mockResolvedValue({ success: false });
+    purchase.mockResolvedValue({ success: false, state: 'cancelled' });
     render(<MemoryRouter><ProSubscriptionPage /></MemoryRouter>);
     fireEvent.click(await waitFor(() => cta()));
     await waitFor(() => expect(purchase).toHaveBeenCalledTimes(1));
@@ -63,5 +63,20 @@ describe('ProSubscriptionPage — the /pro purchase screen and billing isolation
     fireEvent.click(await waitFor(() => cta()));
     await waitFor(() => expect(document.querySelector('script[src*="razorpay"]')).not.toBeNull());
     expect(purchase).not.toHaveBeenCalled();
+  });
+
+  it('PENDING ACTIVATION: store purchase without backend confirmation shows calm pending copy, stays on /pro, never claims activation', async () => {
+    cap.native = true; cap.platform = 'android';
+    purchase.mockResolvedValue({ success: false, state: 'pending_activation' });
+    render(<MemoryRouter><ProSubscriptionPage /></MemoryRouter>);
+    fireEvent.click(await waitFor(() => cta()));
+    expect(await screen.findByText(/activating pro now/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /check status/i })).toBeTruthy();
+    expect(screen.queryByText(/pro is active|activated/i)).toBeNull();
+    // pressing the main CTA again must NOT start a second store purchase
+    invoke.mockResolvedValue({ data: { pro_active: false }, error: null });
+    fireEvent.click(cta());
+    await waitFor(() => expect(invoke.mock.calls.some(c => (c[1] as { body?: { action?: string } })?.body?.action === 'verify_revenuecat')).toBe(true));
+    expect(purchase).toHaveBeenCalledTimes(1);
   });
 });
