@@ -353,7 +353,7 @@ Return EXACTLY this JSON structure:
       cta_label:    'View Plan',
       cta_route:    '/lesson-plan',
       context_data: { subject, week_start: weekStart },
-    }).catch(() => {}); // non-fatal
+    }).then(() => {}, () => {}); // non-fatal
 
     return json({ plan, tasks, from_cache: false });
   }
@@ -424,12 +424,12 @@ Return EXACTLY this JSON structure:
 
       await supabase.from('novo_memories').insert({
         user_id:     user.id,
-        memory_type: 'milestone',
+        memory_type: 'achievement',
         content:     `Completed the full ${plan.subject} lesson plan for the week`,
         subject:     plan.subject ?? null,
         importance:  7,
         source:      'system',
-      }).catch(() => {});
+      }).then(() => {}, () => {});
     }
 
     return json({ task, plan });

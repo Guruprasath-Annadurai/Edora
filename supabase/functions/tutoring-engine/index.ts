@@ -830,27 +830,27 @@ Write a warm, celebratory wrap-up message (100-150 words):
       summary: `Tutoring session on "${session.topic}": ${accuracy}% accuracy over ${newTotalCP} checkpoints. Covered ${concepts.length} concepts.`,
       struggles: struggles.length > 0 ? struggles : null,
       wins:      wins.length > 0 ? wins : null,
-    }).then(() => {}).catch(() => {});
+    }).then(() => {}, () => {});
 
     // Save weakness memory if overall accuracy was low
     if (accuracy < 60) {
       db.from('novo_memories').insert({
         user_id:     session.user_id,
-        memory_type: 'struggle',
+        memory_type: 'learning_pattern',
         content:     `Struggled during tutoring on "${session.topic}" — ${accuracy}% accuracy`,
         topic:       session.topic,
         importance:  accuracy < 40 ? 8 : 6,
         source:      'tutoring',
-      }).then(() => {}).catch(() => {});
+      }).then(() => {}, () => {});
     } else if (accuracy >= 85) {
       db.from('novo_memories').insert({
         user_id:     session.user_id,
-        memory_type: 'strength',
+        memory_type: 'achievement',
         content:     `Mastered "${session.topic}" in tutoring with ${accuracy}% accuracy`,
         topic:       session.topic,
         importance:  7,
         source:      'tutoring',
-      }).then(() => {}).catch(() => {});
+      }).then(() => {}, () => {});
     }
 
     return ok({

@@ -135,16 +135,16 @@ async function applyAdjustment(userId: string, t: StagnantTopic): Promise<void> 
   // Mirror gemini-chat's log_weak_topic + schedule_revision tool behavior
   await db.from('novo_memories').insert([
     {
-      user_id: userId, memory_type: 'struggle',
+      user_id: userId, memory_type: 'learning_pattern',
       content: `Weak: ${t.topic} — stagnating (${t.reason})`,
       subject: t.subject, topic: t.topic, importance: 8,
-      source: 'adaptive_curriculum', last_used_at: now,
+      source: 'system', last_used_at: now,
     },
     {
-      user_id: userId, memory_type: 'schedule_request',
+      user_id: userId, memory_type: 'academic_goal',
       content: `Schedule revision: ${t.topic}`,
       subject: t.subject, topic: t.topic, importance: 9,
-      source: 'adaptive_curriculum', last_used_at: now,
+      source: 'system', last_used_at: now,
     },
   ]);
 

@@ -388,17 +388,17 @@ Return a JSON array of exactly ${TOTAL_QUESTIONS} objects:
         // Save milestone memory
         await supabase.from('novo_memories').insert({
           user_id:     user.id,
-          memory_type: 'milestone',
+          memory_type: 'achievement',
           content:     `Earned Novo Certification in "${assessment.topic}" (${assessment.subject}) with ${pctScore}% score`,
           subject:     assessment.subject,
           topic:       assessment.topic,
           importance:  9,
           source:      'system',
-        }).catch(e => console.error('[novo-certifications] milestone memory insert failed:', e?.message));
+        }).then(() => {}, (e: any) => console.error('[novo-certifications] milestone memory insert failed:', e?.message));
 
         // Award XP (non-fatal)
         const xpGain = 100 + Math.round((pctScore - PASS_THRESHOLD) * 2);
-        await supabase.rpc('increment_xp', { user_id: user.id, amount: xpGain }).catch(e =>
+        await supabase.rpc('increment_xp', { user_id: user.id, amount: xpGain }).then(() => {}, (e: any) =>
           console.error('[novo-certifications] increment_xp failed:', e?.message)
         );
       }
@@ -406,13 +406,13 @@ Return a JSON array of exactly ${TOTAL_QUESTIONS} objects:
       // Save struggle memory (non-fatal)
       await supabase.from('novo_memories').insert({
         user_id:     user.id,
-        memory_type: 'struggle',
+        memory_type: 'learning_pattern',
         content:     `Did not pass certification assessment for "${assessment.topic}" in ${assessment.subject} (scored ${pctScore}%)`,
         subject:     assessment.subject,
         topic:       assessment.topic,
         importance:  7,
         source:      'system',
-      }).catch(e => console.error('[novo-certifications] struggle memory insert failed:', e?.message));
+      }).then(() => {}, (e: any) => console.error('[novo-certifications] struggle memory insert failed:', e?.message));
     }
 
     // Mark assessment as complete

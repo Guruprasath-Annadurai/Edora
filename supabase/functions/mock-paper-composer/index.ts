@@ -114,6 +114,9 @@ serve(withSentry('mock-paper-composer', async (req) => {
       .select('id, chapter, difficulty, question_type, marks')
       .eq('exam', exam)
       .eq('subject', sec.subject)
+      .eq('is_active', true)
+      .eq('flagged_for_review', false)
+      .neq('validation_state', 'rejected')
       .limit(Math.max(sec.count * 4, 40));
 
     const candidates = (pool ?? []) as Candidate[];

@@ -2,7 +2,42 @@
 // so it can be unit tested without triggering index.ts's top-level serve()
 // call.
 
-export const VALID_TYPES = new Set(['struggle', 'strength', 'preference', 'milestone', 'pattern', 'exam_context']);
+export const CANONICAL_MEMORY_TYPES = [
+  'learning_pattern',
+  'academic_goal',
+  'personal_fact',
+  'emotion',
+  'achievement',
+  'fact',
+] as const;
+
+export const LEGACY_MEMORY_TYPES = [
+  'struggle',
+  'strength',
+  'preference',
+  'milestone',
+  'pattern',
+  'exam_context',
+] as const;
+
+export const VALID_TYPES = new Set<string>([...CANONICAL_MEMORY_TYPES, ...LEGACY_MEMORY_TYPES]);
+
+export function normalizeMemoryType(type: string): string {
+  const v = type.trim().toLowerCase();
+  switch (v) {
+    case 'struggle':
+    case 'strength':
+    case 'preference':
+    case 'pattern':
+      return 'learning_pattern';
+    case 'milestone':
+      return 'achievement';
+    case 'exam_context':
+      return 'academic_goal';
+    default:
+      return v;
+  }
+}
 
 export type MemoryExtract = {
   memory_type: string; content: string; subject: string | null;

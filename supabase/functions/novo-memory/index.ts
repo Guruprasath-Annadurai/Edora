@@ -17,7 +17,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
-import { VALID_TYPES, validateExtraction, type MemoryExtract, type ExtractionResult } from './validate.ts';
+import { VALID_TYPES, normalizeMemoryType, validateExtraction, type MemoryExtract, type ExtractionResult } from './validate.ts';
 // ── Explanation style descriptions for system-prompt injection ────────────────
 const STYLE_DESCRIPTIONS: Record<string, string> = {
   simple:    'Use simple language, everyday analogies, and avoid jargon. Break every concept into the smallest possible steps. Assume no prior knowledge.',
@@ -292,7 +292,7 @@ serve(withSentry('novo-memory', async (req) => {
       topicEmbedding
         ? supabase.rpc('search_novo_memories', {
             p_user_id:   user.id,
-            p_embedding: JSON.stringify(topicEmbedding),
+            p_embedding: `[${topicEmbedding.join(',')}]`,
             p_limit:     6,
             p_min_sim:   0.65,
           })
@@ -411,10 +411,11 @@ serve(withSentry('novo-memory', async (req) => {
     if (!memory_type || !content) return json({ error: 'memory_type and content required' }, 400);
     if (!VALID_TYPES.has(memory_type)) return json({ error: 'Invalid memory_type' }, 400);
 
+    const canonicalType = normalizeMemoryType(memory_type);
     const rl = await checkRateLimit(supabase, user.id, 'memory_save', 50, 60);
     if (!rl.allowed) return json({ error: 'Rate limit exceeded', retry_after_secs: rl.retryAfterSecs }, 429);
 
-    const dup = await findDuplicate(supabase, user.id, content, memory_type, subject ?? null);
+    const dup = await findDuplicate(supabase, user.id, content, canonicalType, subject ?? null);
     if (dup) {
       if (importance > dup.importance) {
         await supabase.from('novo_memories').update({ importance }).eq('id', dup.id);
@@ -423,11 +424,21 @@ serve(withSentry('novo-memory', async (req) => {
     }
 
     // Generate embedding asynchronously — don't block the save on it
-    const embedding = await embedText(`${memory_type}: ${content}${subject ? ` (${subject})` : ''}`);
+    const embedding = await embedText(`${canonicalType}: ${content}${subject ? ` (${subject})` : ''}`);
 
+    const safeSource = source && ['chat','sprint','quiz','tutoring','debate','system'].includes(source) ? source : 'chat';
     const { data, error } = await supabase
       .from('novo_memories')
-      .insert({ user_id: user.id, memory_type, content, subject, topic, importance, source, embedding: embedding ? JSON.stringify(embedding) : null })
+      .insert({
+        user_id: user.id,
+        memory_type: canonicalType,
+        content,
+        subject,
+        topic,
+        importance,
+        source: safeSource,
+        embedding: embedding ? `[${embedding.join(',')}]` : null,
+      })
       .select('id').single();
     if (error) return json({ error: error.message }, 500);
 
@@ -472,7 +483,7 @@ serve(withSentry('novo-memory', async (req) => {
 You are analysing a student-tutor conversation. Return a JSON object with two keys:
 
 1. "memories": array of 1-5 learning memories (can be empty [])
-Each memory: { "memory_type": "struggle"|"strength"|"preference"|"milestone"|"pattern"|"exam_context", "content": "concise third-person statement (≤120 chars)", "subject": string|null, "topic": string|null, "importance": 1-10 }
+Each memory: { "memory_type": "learning_pattern"|"academic_goal"|"personal_fact"|"emotion"|"achievement"|"fact", "content": "concise third-person statement (≤120 chars)", "subject": string|null, "topic": string|null, "importance": 1-10 }
 Rules: Only meaningful patterns (not trivial exchanges). importance ≥ 7 for clear repeated patterns.
 
 2. "session_summary": single object:
@@ -526,17 +537,24 @@ ${convo}
     const valid = (extracted.memories ?? []).filter((m: MemoryExtract) => m.content && VALID_TYPES.has(m.memory_type));
     let saved = 0;
     for (const m of valid) {
+      const canonicalType = normalizeMemoryType(m.memory_type);
       const content = m.content.slice(0, 500);
       const imp     = Math.min(10, Math.max(1, Math.round(m.importance ?? 5)));
       const subj    = m.subject || subject || null;
-      const dup     = await findDuplicate(supabase, user.id, content, m.memory_type, subj);
+      const dup     = await findDuplicate(supabase, user.id, content, canonicalType, subj);
       if (dup) { if (imp > dup.importance) await supabase.from('novo_memories').update({ importance: imp }).eq('id', dup.id); continue; }
       // Generate embedding for semantic search
-      const embedding = await embedText(`${m.memory_type}: ${content}${subj ? ` (${subj})` : ''}`);
+      const embedding = await embedText(`${canonicalType}: ${content}${subj ? ` (${subj})` : ''}`);
+      const safeSource = source && ['chat','sprint','quiz','tutoring','debate','system'].includes(source) ? source : 'chat';
       const { error } = await supabase.from('novo_memories').insert({
-        user_id: user.id, memory_type: m.memory_type, content, subject: subj, topic: m.topic || null,
-        importance: imp, source,
-        embedding: embedding ? JSON.stringify(embedding) : null,
+        user_id: user.id,
+        memory_type: canonicalType,
+        content,
+        subject: subj,
+        topic: m.topic || null,
+        importance: imp,
+        source: safeSource,
+        embedding: embedding ? `[${embedding.join(',')}]` : null,
       });
       if (!error) saved++;
     }
