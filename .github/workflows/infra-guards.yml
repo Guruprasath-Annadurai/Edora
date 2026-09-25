@@ -26,3 +26,21 @@ jobs:
         run: |
           chmod +x scripts/infra/check_secrets_and_env.test.sh
           ./scripts/infra/check_secrets_and_env.test.sh
+
+  schema-reference-guard:
+    name: Database Schema Reference Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify Database Schema References
+        run: |
+          node scripts/schema/check_schema_references.js
+
+      - name: Run Schema Guard Self-Tests
+        run: |
+          node scripts/schema/check_schema_references.test.js

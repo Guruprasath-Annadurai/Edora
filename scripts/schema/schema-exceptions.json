@@ -1,0 +1,56 @@
+{
+  "description": "Documented exceptions for Supabase schema validation. Tables or columns here are authorized despite not having explicit CREATE TABLE statements in public migrations.",
+  "allowedTables": [
+    "users",
+    "objects",
+    "buckets"
+  ],
+  "allowedRpcFunctions": [
+    "graphql",
+    "get_auth_uid",
+    "get_chunk_citations",
+    "get_weak_topics",
+    "update_streak_on_challenge"
+  ],
+  "legacyUnmigratedTables": [
+    {
+      "table": "user_moods",
+      "reason": "Legacy client reference in MoodCheckIn/MoodHeatmap. Migration 20260708 states user_moods was never created. Tracked for V5 product cleanup."
+    },
+    {
+      "table": "xp_history",
+      "reason": "Legacy reference in syncQueue/export-user-data. Replaced by user_rewards / profiles.xp in V4. Tracked for V5 syncQueue cleanup."
+    },
+    {
+      "table": "quiz_user_answers",
+      "reason": "Legacy reference in syncQueue/export-user-data. Stored in quiz_sessions.user_answers JSONB column. Tracked for V5 cleanup."
+    },
+    {
+      "table": "study_streaks",
+      "reason": "Legacy reference in syncQueue/export-user-data. Tracked for V5 cleanup."
+    },
+    {
+      "table": "quiz_questions",
+      "reason": "Referenced in OfflineModePage. Questions are stored in JSONB or question_translations. Tracked for V5 cleanup."
+    },
+    {
+      "table": "document_jobs",
+      "reason": "Referenced in StudyPackPage and process-document-jobs. Pending schema migration or mock replacement in V5."
+    },
+    {
+      "table": "flashcard_reviews",
+      "reason": "Referenced in export-user-data. Flashcard reviews tracked via flashcards table directly."
+    },
+    {
+      "table": "questions",
+      "reason": "Referenced in novo-daily-session. Tracked for V5 cleanup."
+    },
+    {
+      "table": "daily_sessions",
+      "reason": "Referenced in parent-link. Tracked for V5 cleanup."
+    }
+  ],
+  "allowedVirtualColumns": {
+    "*": ["count", "exact", "planned", "estimated"]
+  }
+}
