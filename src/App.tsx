@@ -23,6 +23,9 @@ import { useTeacherBroadcast } from '@/hooks/useRealtime';
 import { useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { usePerformanceTier } from '@/hooks/usePerformanceTier';
+import { AppFlagsProvider } from '@/hooks/useAppFlags';
+import { useAndroidBack } from '@/hooks/useMobileHardware';
+import { needsOnboarding } from '@/lib/onboardingState';
 
 // Core shell pages — eager so the first paint after login is instant
 import LoginPage              from '@/pages/auth/LoginPage';
@@ -37,6 +40,9 @@ import ProfilePage            from '@/pages/ProfilePage';
 
 // Everything else is lazy-loaded — keeps the main bundle small
 const ChatPage              = lazy(() => import('@/pages/ChatPage'));
+const PracticePage          = lazy(() => import('@/pages/PracticePage'));
+const ProgressPage          = lazy(() => import('@/pages/ProgressPage'));
+const SetupExamPage         = lazy(() => import('@/pages/SetupExamPage'));
 const FlashcardPage         = lazy(() => import('@/pages/FlashcardPage'));
 const QuizPage              = lazy(() => import('@/pages/QuizPage'));
 const ScannerPage           = lazy(() => import('@/pages/tools/ScannerPage'));
@@ -259,6 +265,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     return <DPDPConsentModal userId={user.id} onAccepted={() => refetchProfile()} />;
   }
 
+  // V5: a brand-new account (created < 24 h ago) that has not finished onboarding is sent to it once.
+  // Existing learners are never forced through onboarding (they get a dismissible exam nudge instead).
+  if (needsOnboarding(profile)) return <Navigate to="/onboarding" replace />;
+
   return <>{children}</>;
 }
 
@@ -393,6 +403,9 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
           <Route path="/learning"  element={<RouteErrorBoundary label="learning"><LearningPage /></RouteErrorBoundary>} />
           <Route path="/tools"     element={<RouteErrorBoundary label="tools"><ToolsPage /></RouteErrorBoundary>} />
           <Route path="/profile"   element={<RouteErrorBoundary label="profile"><ProfilePage /></RouteErrorBoundary>} />
+          <Route path="/practice"  element={<RouteErrorBoundary label="practice"><PracticePage /></RouteErrorBoundary>} />
+          <Route path="/progress"  element={<RouteErrorBoundary label="progress"><ProgressPage /></RouteErrorBoundary>} />
+          <Route path="/setup-exam" element={<RouteErrorBoundary label="setup-exam"><SetupExamPage /></RouteErrorBoundary>} />
           <Route path="/chat"      element={<RouteErrorBoundary label="chat"><ChatPage /></RouteErrorBoundary>} />
           <Route path="/flashcard" element={<RouteErrorBoundary label="flashcard"><FlashcardPage /></RouteErrorBoundary>} />
           <Route path="/quiz"      element={<RouteErrorBoundary label="quiz"><QuizPage /></RouteErrorBoundary>} />
@@ -558,6 +571,9 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
   );
 }
 
+// One app-wide Android Back handler (covers /login, /onboarding, teacher/admin as well as the tab shell).
+function BackManager() { useAndroidBack(); return null; }
+
 function AppInner() {
   const deepLinkNavigateRef = useOAuthDeepLink();
   usePerformanceTier();
@@ -576,7 +592,10 @@ function AppInner() {
         <ThemeProvider isPro={profile?.is_pro ?? false}>
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <ConnectionGuard>
-              <AppRoutes deepLinkNavigateRef={deepLinkNavigateRef} />
+              <AppFlagsProvider>
+                <BackManager />
+                <AppRoutes deepLinkNavigateRef={deepLinkNavigateRef} />
+              </AppFlagsProvider>
             </ConnectionGuard>
           </BrowserRouter>
         </ThemeProvider>

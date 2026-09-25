@@ -26,6 +26,8 @@ export type UIStringKey =
   | 'nav.novo'
   | 'nav.battle'
   | 'nav.profile'
+  | 'nav.practice'
+  | 'nav.progress'
   // LearningPage
   | 'learning.eyebrow'
   | 'learning.title'
@@ -199,6 +201,8 @@ export const UI_STRINGS: { en: UIStringTable } & Record<Exclude<AppLanguage, 'en
     'nav.novo':    'Novo',
     'nav.battle':  'Battle',
     'nav.profile': 'Profile',
+    'nav.practice': 'Practice',
+    'nav.progress': 'Progress',
     'learning.eyebrow': 'Your Courses',
     'learning.title': 'Learning Hub',
     'learning.search_aria': 'Search features',
@@ -366,6 +370,8 @@ export const UI_STRINGS: { en: UIStringTable } & Record<Exclude<AppLanguage, 'en
     'nav.novo':    'नोवो',
     'nav.battle':  'मुकाबला',
     'nav.profile': 'प्रोफ़ाइल',
+    'nav.practice': 'अभ्यास',
+    'nav.progress': 'प्रगति',
     'learning.eyebrow': 'आपके कोर्स',
     'learning.title': 'लर्निंग हब',
     'learning.search_aria': 'सुविधाएं खोजें',
@@ -533,6 +539,8 @@ export const UI_STRINGS: { en: UIStringTable } & Record<Exclude<AppLanguage, 'en
     'nav.novo':    'நோவோ',
     'nav.battle':  'போட்டி',
     'nav.profile': 'சுயவிவரம்',
+    'nav.practice': 'பயிற்சி',
+    'nav.progress': 'முன்னேற்றம்',
   },
   te: {
     'nav.home':    'హోమ్',

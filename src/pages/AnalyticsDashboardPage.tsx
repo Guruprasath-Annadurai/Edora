@@ -11,6 +11,7 @@ import { StatsPageSkeleton } from '@/components/ui/skeleton';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { AnalyticsStats } from '@/types';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAppFlag } from '@/hooks/useAppFlags';
 
 async function callFn(body: Record<string, unknown>) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -98,6 +99,7 @@ function ScoreRing({ score }: { score: number }) {
 
 // ── Pro gate overlay ──────────────────────────────────────────────────────────
 function ProGate({ preview }: { preview: { total_sprints: number; total_quizzes: number; xp: number; streak: number } | null }) {
+  const proEnabled = useAppFlag('pro_enabled');
   const navigate = useNavigate();
   const { user } = useAuth();
   const [weekData, setWeekData] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
@@ -136,9 +138,11 @@ function ProGate({ preview }: { preview: { total_sprints: number; total_quizzes:
             <p className="font-heading font-bold text-white text-lg">Advanced Analytics</p>
             <p className="text-sm text-muted-foreground mt-1">Unlock deep insights, weak-topic heatmaps, and predicted exam scores with Novo Pro.</p>
           </div>
+          {proEnabled && (
           <Button onClick={() => navigate('/pro')} className="px-8">
             <Crown size={16} className="mr-1" /> Upgrade to Pro
           </Button>
+          )}
         </div>
 
         {/* Blurred content behind gate */}

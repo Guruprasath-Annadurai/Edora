@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
 import { isInFreeTrial } from '@/lib/trial';
+import { useBackHandler } from '@/hooks/useBackStack';
+import { useAppFlag } from '@/hooks/useAppFlags';
 
 interface ProGateProps {
   /** Feature name shown in the paywall header */
@@ -32,6 +34,7 @@ const TEASER_FEATURES = [
 // ── Inline paywall (full-screen replacement) ─────────────────────────────────
 function InlinePaywall({ featureName, featureDesc }: { featureName: string; featureDesc?: string }) {
   const navigate = useNavigate();
+  const proEnabled = useAppFlag('pro_enabled');
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center"
       style={{ background: 'var(--color-base)' }}>
@@ -65,6 +68,7 @@ function InlinePaywall({ featureName, featureDesc }: { featureName: string; feat
           ))}
         </div>
 
+        {proEnabled && (<>
         <motion.button whileTap={{ scale: 0.96 }}
           onClick={() => navigate('/pro')}
           className="w-full h-12 rounded-2xl font-heading font-bold text-white flex items-center justify-center gap-2"
@@ -75,6 +79,7 @@ function InlinePaywall({ featureName, featureDesc }: { featureName: string; feat
         <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
           From ₹58/month · Cancel anytime
         </p>
+        </>)}
       </motion.div>
     </div>
   );
@@ -86,7 +91,9 @@ function SheetPaywall({
 }: {
   featureName: string; featureDesc?: string; open: boolean; onClose?: () => void;
 }) {
+  useBackHandler(open, () => { if (!onClose) return false; onClose(); return true; }, 70);
   const navigate = useNavigate();
+  const proEnabled = useAppFlag('pro_enabled');
   return (
     <AnimatePresence>
       {open && (
@@ -137,6 +144,7 @@ function SheetPaywall({
               ))}
             </div>
 
+            {proEnabled && (<>
             {/* CTA */}
             <motion.button whileTap={{ scale: 0.97 }}
               onClick={() => { onClose?.(); navigate('/pro'); }}
@@ -148,6 +156,7 @@ function SheetPaywall({
             <p className="text-center text-xs" style={{ color: 'var(--ink-500)' }}>
               From ₹58/month · Cancel anytime
             </p>
+            </>)}
           </motion.div>
         </motion.div>
       )}

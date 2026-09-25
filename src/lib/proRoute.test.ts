@@ -34,6 +34,7 @@ describe('/pro — every Pro gate must reach a functional purchase screen', () =
       'src/pages/AnalyticsDashboardPage.tsx',         // upgrade button
       'src/pages/MockTestPage.tsx',                   // upgrade link
       'src/lib/featureRegistry.ts',                   // command-palette entry
+      'src/lib/routeVisibility.ts',                   // pro_enabled flag rule (hides /pro; not a navigation)
     ]);
     const found = new Set<string>();
     for (const f of walk(join(root, 'src'))) {

@@ -16,7 +16,7 @@ export function WarRoomBanner({ examName, hoursLeft }: WarRoomBannerProps) {
 
   return (
     <motion.button
-      onClick={() => navigate('/battle')}
+      onClick={() => navigate('/exam-war-room')}
       style={{
         width: '100%',
         borderRadius: 18,

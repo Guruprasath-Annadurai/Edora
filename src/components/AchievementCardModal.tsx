@@ -11,8 +11,10 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { renderAchievementCard, type AchievementCardData } from '@/lib/achievementCard';
 import { track } from '@/lib/analytics';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 export default function AchievementCardModal({ data, onClose }: { data: AchievementCardData; onClose: () => void }) {
+  useBackHandler(true, () => { onClose(); return true; }, 80);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
 

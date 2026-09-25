@@ -44,6 +44,7 @@ import {
 import { ProactiveBanner } from '@/components/chat/ProactiveBanner';
 import { PersonalityCards } from '@/components/chat/PersonalityCards';
 import { PersonalitySheet } from '@/components/chat/PersonalitySheet';
+import { useAppFlag } from '@/hooks/useAppFlags';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,7 @@ interface Message {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
+  const proEnabled = useAppFlag('pro_enabled');
   const navigate = useNavigate();
   const { profile, user }   = useAuth();
   const { speak, getState } = useNovoTTS();
@@ -1170,6 +1172,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
           <span className="text-xs" style={{ color: 'var(--ink-500)' }}>
             {FREE_AI_DAILY_LIMIT - aiUsageCount} of {FREE_AI_DAILY_LIMIT} free answers left today
           </span>
+          {proEnabled && (
           <button
             onClick={() => navigate('/pro')}
             className="text-xs font-semibold active:opacity-60 transition-opacity"
@@ -1177,6 +1180,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
           >
             Go unlimited →
           </button>
+          )}
         </div>
       )}
 
@@ -1321,6 +1325,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
                   </p>
                 </div>
               </div>
+              {proEnabled && (<>
               <motion.button whileTap={{ scale: 0.97 }}
                 onClick={() => { setShowAiLimitSheet(false); navigate('/pro'); }}
                 className="w-full h-12 rounded-2xl font-heading font-bold text-white flex items-center justify-center gap-2"
@@ -1330,6 +1335,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
               <p className="text-center text-xs" style={{ color: 'var(--ink-500)' }}>
                 From ₹58/month · Cancel anytime
               </p>
+              </>)}
             </motion.div>
           </motion.div>
         )}

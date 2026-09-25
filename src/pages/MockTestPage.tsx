@@ -10,6 +10,7 @@ import { ProGate } from '@/components/ui/ProGate';
 import { track } from '@/lib/analytics';
 import { scoreMockExam } from '@/lib/mockScoring';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAppFlag } from '@/hooks/useAppFlags';
 import {
   saveMockExamSnapshot, loadMockExamSnapshot, clearMockExamSnapshot,
   type MockExamSnapshot,
@@ -151,6 +152,7 @@ function formatTime(secs: number) {
 }
 
 export default function MockTestPage() {
+  const proEnabled = useAppFlag('pro_enabled');
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const { profile, user } = useAuth();
@@ -881,10 +883,10 @@ export default function MockTestPage() {
                     Get detailed analysis sent to parent email
                   </p>
                 </div>
-                <Link to="/pro">
+                {proEnabled && (<Link to="/pro">
                   <Button className="text-xs px-3 py-1.5 rounded-xl h-auto font-bold"
                     style={{ background: '#FBBF24', color: 'var(--color-on-accent)' }}>Pro</Button>
-                </Link>
+                </Link>)}
               </div>
             )}
 

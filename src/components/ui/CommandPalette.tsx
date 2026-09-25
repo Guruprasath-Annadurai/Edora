@@ -10,6 +10,8 @@ import {
   getRecentFeatures,
   recordRecentFeature } from '@/lib/featureRegistry';
 import { useHaptic } from '@/hooks/useHaptic';
+import { useBackHandler } from '@/hooks/useBackStack';
+import { useAppFlags } from '@/hooks/useAppFlags';
 
 interface Props {
   open: boolean;
@@ -17,7 +19,9 @@ interface Props {
 }
 
 export function CommandPalette({ open, onClose }: Props) {
+  useBackHandler(open, () => { onClose(); return true; }, 80);
   const navigate = useNavigate();
+  const flags = useAppFlags();
   const { light, medium } = useHaptic();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef  = useRef<HTMLDivElement>(null);
@@ -26,7 +30,7 @@ export function CommandPalette({ open, onClose }: Props) {
   const [cursor,   setCursor]   = useState(0);
   const [recents,  setRecents]  = useState<Feature[]>([]);
 
-  const results  = query.trim() ? searchFeatures(query) : [];
+  const results  = query.trim() ? searchFeatures(query, flags) : [];
   const showRecents = !query.trim() && recents.length > 0;
 
   // Flat list for keyboard nav
@@ -38,10 +42,10 @@ export function CommandPalette({ open, onClose }: Props) {
     if (open) {
       setQuery('');
       setCursor(0);
-      setRecents(getRecentFeatures());
+      setRecents(getRecentFeatures(flags));
       setTimeout(() => inputRef.current?.focus(), 80);
     }
-  }, [open]);
+  }, [open, flags]);
 
   const select = useCallback((f: Feature) => {
     medium();

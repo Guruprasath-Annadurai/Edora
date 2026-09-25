@@ -1,7 +1,9 @@
 import { useRef, useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { GatedOutlet } from '@/components/guards/FeatureGate';
+import { useAppFlags } from '@/hooks/useAppFlags';
+import { isEntryVisible } from '@/lib/routeVisibility';
 import { TabBar } from './TabBar';
-import { useAndroidBack } from '@/hooks/useMobileHardware';
 import { CelebrationOverlay, CelebrationHandle, setCelebrationRef } from '@/components/celebrations/CelebrationOverlay';
 import { QuickStartFAB } from '@/components/ui/QuickStartFAB';
 import { useEyeStrainMode } from '@/hooks/useEyeStrainMode';
@@ -14,7 +16,6 @@ import { Capacitor } from '@capacitor/core';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 
 export function AppShell() {
-  useAndroidBack();
   useEyeStrainMode();
   const celebRef = useRef<CelebrationHandle>(null);
   const { profile } = useAuth();
@@ -26,7 +27,10 @@ export function AppShell() {
   // Account Settings — a floating "start a quiz" shortcut has no contextual
   // relevance on settings/profile-editing screens anyway, so hide it there
   // the same way it's already hidden on /chat.
-  const showQuickStartFAB = !location.pathname.startsWith('/chat')
+  const flags = useAppFlags();
+  // QuickStart launches AI question generation: hidden when ai_generation_enabled is off.
+  const showQuickStartFAB = isEntryVisible('/quiz', flags)
+    && !location.pathname.startsWith('/chat')
     && !location.pathname.startsWith('/account')
     && !location.pathname.startsWith('/settings');
   const [sessionEndOpen,      setSessionEndOpen]      = useState(false);
@@ -94,7 +98,7 @@ export function AppShell() {
           the true root stacking context instead. DOM order still keeps
           this above the z-index:0 ambient background layer. */}
       <main className="flex-1 overflow-hidden relative" role="main">
-        <Outlet />
+        <GatedOutlet />
       </main>
 
       {/* Floating Quick Start button — hidden on /chat, see showQuickStartFAB above */}

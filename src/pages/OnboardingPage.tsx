@@ -1,574 +1,264 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {Sparkles, GraduationCap, BookOpen, Target, Check,
-  ArrowRight, ChevronRight, Calendar, Gift, Flame, Zap, Smile, Meh, CloudRain, Moon, Languages} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, Check, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
-import { NovoAvatar } from '@/components/novo/NovoAvatar';
-import type { NovoState } from '@/components/novo/NovoAvatar';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { incrementSession, maybePromptRating } from '@/lib/appRating';
-import { useTheme } from '@/contexts/ThemeContext';
+import { track } from '@/lib/analytics';
+import { incrementSession } from '@/lib/appRating';
+import { useBackHandler } from '@/hooks/useBackStack';
+import { EXAM_TARGETS, GENERAL_EXAM } from '@/lib/examTargets';
+import {
+  TOTAL_STEPS, canProceed, loadDraft, saveDraft, clearDraft, buildProfileUpdate,
+  type OnboardingDraft, type StudyLevel,
+} from '@/lib/onboardingState';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-const STUDY_LEVELS = [
-  { value: 'school',   label: 'School',     sub: 'Class 6–12', icon: BookOpen      },
-  { value: 'college',  label: 'College',    sub: 'UG / PG',    icon: GraduationCap },
-  { value: 'jee_neet', label: 'JEE / NEET', sub: 'Entrance',   icon: Target        },
-  { value: 'sat_act',  label: 'SAT / ACT',  sub: 'Global',     icon: Sparkles      },
+// V5 onboarding: three short, deterministic steps. No AI is involved anywhere here.
+//   1. Exam target (incl. "Not sure yet" -> GENERAL) + optional date
+//   2. Level + subjects
+//   3. Language
+// Progress is saved locally after every change, so a killed app resumes at the last step, and a failed
+// profile save keeps everything on screen with a Retry button — nothing is lost or silently skipped.
+
+const STUDY_LEVELS: { value: StudyLevel; label: string; sub: string }[] = [
+  { value: 'school',   label: 'School',     sub: 'Class 6–12' },
+  { value: 'college',  label: 'College',    sub: 'UG / PG' },
+  { value: 'jee_neet', label: 'JEE / NEET', sub: 'Entrance prep' },
+  { value: 'sat_act',  label: 'SAT / ACT',  sub: 'Global tests' },
 ];
 
-const SUBJECTS = [
-  { value: 'Mathematics', color: '#93C5FD', colorLight: '#1D4ED8' },
-  { value: 'Physics',     color: '#C4B5FD', colorLight: '#6D28D9' },
-  { value: 'Chemistry',   color: '#6EE7B7', colorLight: '#047857' },
-  { value: 'Biology',     color: '#86EFAC', colorLight: '#15803D' },
-  { value: 'English',     color: '#FCA5A5', colorLight: '#B91C1C' },
-  { value: 'History',     color: '#FDE68A', colorLight: '#92400E' },
-  { value: 'Economics',   color: '#A5F3FC', colorLight: '#0E7490' },
-  { value: 'Computer Science', color: '#DDD6FE', colorLight: '#6D28D9' },
-];
+const SUBJECTS = ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'History', 'Economics', 'Computer Science'];
 
-const EXAMS = [
-  { value: 'JEE Main',     label: 'JEE Main'     },
-  { value: 'JEE Advanced', label: 'JEE Advanced' },
-  { value: 'NEET',         label: 'NEET UG'       },
-  { value: 'SAT',          label: 'SAT'           },
-  { value: 'CBSE',         label: 'CBSE Board'    },
-  { value: 'Other',        label: 'Other'         },
-];
-
+// Honest scope: app screens are English + Hindi; Novo (the tutor) can explain in more languages.
 const LANGUAGES = [
-  { value: 'en', label: 'English',    native: 'English' },
-  { value: 'hi', label: 'Hindi',      native: 'हिन्दी' },
-  { value: 'ta', label: 'Tamil',      native: 'தமிழ்' },
-  { value: 'te', label: 'Telugu',     native: 'తెలుగు' },
-  { value: 'kn', label: 'Kannada',    native: 'ಕನ್ನಡ' },
-  { value: 'mr', label: 'Marathi',    native: 'मराठी' },
-  { value: 'bn', label: 'Bengali',    native: 'বাংলা' },
+  { value: 'en', label: 'English', native: 'English' },
+  { value: 'hi', label: 'Hindi',   native: 'हिन्दी' },
+  { value: 'ta', label: 'Tamil',   native: 'தமிழ்' },
+  { value: 'te', label: 'Telugu',  native: 'తెలుగు' },
+  { value: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' },
+  { value: 'mr', label: 'Marathi', native: 'मराठी' },
+  { value: 'bn', label: 'Bengali', native: 'বাংলা' },
 ];
 
-const MOODS = [
-  { icon: Flame,     label: 'Excited',    value: 'focused',    color: '#F97316', colorLight: '#9A3412' },
-  { icon: Zap,       label: 'Determined', value: 'determined', color: '#7C3AED', colorLight: '#6D28D9' },
-  { icon: Smile,     label: 'Curious',    value: 'good',       color: '#10B981', colorLight: '#047857' },
-  { icon: Meh,       label: 'Uncertain',  value: 'okay',       color: '#F59E0B', colorLight: '#92400E' },
-  { icon: CloudRain, label: 'Anxious',    value: 'anxious',    color: '#EF4444', colorLight: '#B91C1C' },
-  { icon: Moon,      label: 'Tired',      value: 'low',        color: '#6B7280', colorLight: '#52525B' },
+const STEP_COPY = [
+  { title: 'What are you preparing for?', body: 'Pick your exam. If you are not sure yet, choose general study — you can change it any time.' },
+  { title: 'Your level and subjects', body: 'This helps Novo pick the right questions and explanations.' },
+  { title: 'Which language should Novo explain in?', body: 'Edora screens are in English and हिन्दी. Novo can explain concepts in the languages below.' },
 ];
 
-// ── Novo intro messages for each step ────────────────────────────────────────
-const NOVO_INTRO = [
-  {
-    state: 'talking' as NovoState,
-    heading: 'Hey, I\'m Novo.',
-    body: 'Your personal AI study companion for JEE and NEET. I remember everything about how you learn — your patterns, your weak topics, your wins.',
-    cta: 'Let\'s meet properly' },
-  {
-    state: 'idle' as NovoState,
-    heading: 'What are you preparing for?',
-    body: 'I\'ll tailor every explanation, quiz, and revision plan specifically for your exam level.',
-    cta: null },
-  {
-    state: 'talking' as NovoState,
-    heading: 'What language do you prefer?',
-    body: 'I can explain concepts, give hints, and chat with you in your mother tongue — making learning 2× easier.',
-    cta: null },
-  {
-    state: 'thinking' as NovoState,
-    heading: 'Which subjects do you study?',
-    body: 'Pick all that apply. I\'ll track your progress and adapt your sessions for each one.',
-    cta: null },
-  {
-    state: 'concerned' as NovoState,
-    heading: 'Got a target exam?',
-    body: 'If you\'re aiming for a specific exam and date, I\'ll build a countdown and adjust the intensity as we get closer.',
-    cta: null },
-  {
-    state: 'idle' as NovoState,
-    heading: 'Before we start...',
-    body: 'How are you feeling about studying right now? No judgment — this helps me calibrate how we begin.',
-    cta: null },
-  {
-    state: 'talking' as NovoState,
-    heading: 'Got a referral code?',
-    body: 'If a friend invited you, enter their code to get 50 bonus XP. You can also skip this step.',
-    cta: null },
-];
+async function haptic() { try { await Haptics.impact({ style: ImpactStyle.Light }); } catch { /* web */ } }
 
-async function haptic() {
-  try { await Haptics.impact({ style: ImpactStyle.Light }); } catch { /* web */ }
-}
+const chip = (active: boolean): React.CSSProperties => ({
+  minHeight: 52, padding: '12px 16px', borderRadius: 14, textAlign: 'left', width: '100%',
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+  fontSize: 16, fontWeight: 600, cursor: 'pointer',
+  color: 'var(--ink-950)',
+  background: active ? 'rgba(79,70,229,0.14)' : 'var(--ink-60, rgba(127,127,127,0.08))',
+  border: `2px solid ${active ? '#4F46E5' : 'var(--ink-140, rgba(127,127,127,0.25))'}`,
+});
 
-// ── Step components ───────────────────────────────────────────────────────────
-function StepLayout({ heading, body, novoState, children }: {
-  heading: string;
-  body: string;
-  novoState: NovoState;
-  children: React.ReactNode;
-}) {
-  return (
-    <motion.div
-      key={heading}
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '0 24px' }}
-    >
-      {/* Novo avatar */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-        <NovoAvatar state={novoState} size="xl" showLabel />
-      </div>
-
-      {/* Speech bubble */}
-      <div style={{
-        padding: '16px 18px', borderRadius: 20, marginBottom: 28,
-        background: 'rgba(124,58,237,0.1)',
-        border: '1px solid rgba(124,58,237,0.25)',
-        position: 'relative' }}>
-        {/* Bubble tail */}
-        <div style={{
-          position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
-          width: 0, height: 0,
-          borderLeft: '8px solid transparent',
-          borderRight: '8px solid transparent',
-          borderBottom: '8px solid rgba(124,58,237,0.25)' }} />
-        <h2 style={{ fontFamily: 'Sora, sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--ink-950)', marginBottom: 6, lineHeight: 1.2 }}>
-          {heading}
-        </h2>
-        <p style={{ fontSize: 13, color: 'var(--ink-650)', lineHeight: 1.55 }}>
-          {body}
-        </p>
-      </div>
-
-      {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {children}
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
-  const { user } = useAuth();
-  const navigate  = useNavigate();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
+  const { user, profile, refetchProfile } = useAuth();
+  const navigate = useNavigate();
+  const uid = user?.id ?? '';
 
-  const [step, setStep]               = useState(0);
-  const [studyLevel, setStudyLevel]   = useState('');
-  const [language, setLanguage]       = useState('en');
-  const [subjects, setSubjects]       = useState<string[]>([]);
-  const [examName, setExamName]       = useState('');
-  const [examDate, setExamDate]       = useState('');
-  const [mood, setMood]               = useState('');
-  const [referralCode, setReferralCode] = useState('');
-  const [referralStatus, setReferralStatus] = useState<'idle'|'ok'|'err'>('idle');
-  const [saving, setSaving]           = useState(false);
+  const [draft, setDraft] = useState<OnboardingDraft>(() => (uid ? loadDraft(uid) : loadDraft('anon')));
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const loadedFor = useRef<string>('');
 
-  const totalSteps = NOVO_INTRO.length;
-  async function nextStep() {
-    await haptic();
-    if (step < totalSteps - 1) {
-      setStep(s => s + 1);
-    } else {
-      await finish();
-    }
+  // Draft is keyed by user; reload once when the user id becomes known.
+  useEffect(() => {
+    if (uid && loadedFor.current !== uid) { loadedFor.current = uid; setDraft(loadDraft(uid)); }
+  }, [uid]);
+
+  function update(patch: Partial<OnboardingDraft>) {
+    setDraft(prev => {
+      const next = { ...prev, ...patch };
+      if (uid) saveDraft(uid, next);
+      return next;
+    });
   }
 
-  async function finish() {
+  const step = draft.step;
+  const selectedExam = useMemo(() => EXAM_TARGETS.find(e => e.value === draft.examName), [draft.examName]);
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Android/system Back: previous step first; only on step 0 does it leave onboarding (to the default handler).
+  useBackHandler(step > 0, () => update({ step: step - 1 }), 60);
+
+  async function finish(d: OnboardingDraft) {
     if (!user || saving) return;
     setSaving(true);
+    setSaveError(null);
+    try {
+      const { data: existing, error: readErr } = await supabase
+        .from('profiles').select('study_preferences').eq('id', user.id).maybeSingle();
+      if (readErr) throw readErr;
 
-    // Save mood for today
-    const moodKey = `edora_mood_${user.id}_${new Date().toISOString().slice(0, 10)}`;
-    if (mood) localStorage.setItem(moodKey, mood);
+      const { error } = await supabase
+        .from('profiles')
+        .update(buildProfileUpdate(d, (existing?.study_preferences ?? null) as Record<string, unknown> | null))
+        .eq('id', user.id);
+      if (error) throw error;
 
-    // Record DPDP consent for OAuth/OTP users — password-signup records it at sign-up time,
-    // but Google/Apple/OTP users reach onboarding without a prior consent checkpoint.
-    const { data: existing } = await supabase
-      .from('profiles').select('dpdp_consent_at').eq('id', user.id).single();
-    const consentFields = existing?.dpdp_consent_at ? {} : {
-      dpdp_consent_at:      new Date().toISOString(),
-      dpdp_consent_version: 'v2026.06' };
-
-    await supabase.from('profiles').update({
-      study_level:         studyLevel || null,
-      subjects:            subjects.length ? subjects : null,
-      exam_name:           examName || null,
-      exam_date:           examDate || null,
-      preferred_language:  language || 'en',
-      onboarding_completed: true,
-      ...consentFields }).eq('id', user.id);
-
-    // Process referral code if provided
-    if (referralCode.trim()) {
-      await supabase.rpc('process_referral', {
-        p_referee_id:    user.id,
-        p_referral_code: referralCode.trim().toUpperCase() });
+      clearDraft(user.id);
+      track('onboarding_completed', { exam: d.examName || GENERAL_EXAM, level: d.studyLevel || 'school', language: d.language });
+      incrementSession();
+      await refetchProfile();
+      navigate('/home', { replace: true });
+    } catch (e) {
+      // Keep every answer on screen and in the saved draft; the learner can retry.
+      console.error('[onboarding] profile save failed:', (e as Error)?.message ?? e);
+      setSaveError('We could not save your choices. Check your connection and try again — nothing you picked is lost.');
+    } finally {
+      setSaving(false);
     }
-
-    if (mood) {
-      await supabase.from('user_moods').insert({
-        user_id: user.id, mood, logged_at: new Date().toISOString() });
-    }
-
-    incrementSession();
-    maybePromptRating('onboarding_done').catch(() => {});
-    navigate('/home', { replace: true });
   }
 
-  function canProceed() {
-    if (step === 0) return true;
-    if (step === 1) return !!studyLevel;
-    if (step === 2) return !!language;      // language picker
-    if (step === 3) return subjects.length > 0;
-    if (step === 4) return true;            // exam optional
-    if (step === 5) return !!mood;
-    if (step === 6) return true;            // referral optional
-    return true;
+  async function next() {
+    await haptic();
+    if (!canProceed(step, draft)) return;
+    if (step < TOTAL_STEPS - 1) update({ step: step + 1 });
+    else await finish(draft);
   }
 
-  const intro = NOVO_INTRO[step];
+  // "Skip for now": never traps a learner. Uses GENERAL (truthful fallback) for anything unanswered.
+  async function skip() {
+    await haptic();
+    const d: OnboardingDraft = { ...draft, examName: draft.examName || GENERAL_EXAM };
+    await finish(d);
+  }
+
+  // If an already-onboarded learner lands here (e.g. stale link), send them on instead of trapping them.
+  useEffect(() => {
+    const done = profile?.study_preferences && typeof (profile.study_preferences as Record<string, unknown>).onboarding_completed_at === 'string';
+    if (done && !saving) navigate('/home', { replace: true });
+  }, [profile, saving, navigate]);
+
+  const copy = STEP_COPY[step];
+  const isLast = step === TOTAL_STEPS - 1;
 
   return (
-    <div className="bg-deep-space" style={{
-      height: '100dvh', display: 'flex', flexDirection: 'column',
-      overflow: 'hidden', position: 'relative' }}>
-      {/* 5-layer ambient orb system matching AppShell */}
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
-        <div style={{ position: 'absolute', width: 440, height: 440, top: -130, left: -100, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.22), transparent 68%)', filter: 'blur(50px)' }} />
-        <div style={{ position: 'absolute', width: 360, height: 360, bottom: 80, right: -80, borderRadius: '50%', background: 'radial-gradient(circle, rgba(91,106,245,0.18), transparent 68%)', filter: 'blur(46px)' }} />
-        <div style={{ position: 'absolute', width: 250, height: 250, top: '38%', left: '36%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(6,182,212,0.11), transparent 70%)', filter: 'blur(38px)' }} />
-        <div style={{ position: 'absolute', width: 210, height: 210, top: -50, right: -50, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.09), transparent 70%)', filter: 'blur(42px)' }} />
-        <div style={{ position: 'absolute', width: 320, height: 180, bottom: 0, left: '15%', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(91,106,245,0.10), transparent 70%)', filter: 'blur(34px)' }} />
-      </div>
-
-      {/* Progress indicator — segment dots */}
-      <div style={{ position: 'relative', zIndex: 1, paddingTop: 'max(20px, env(safe-area-inset-top))', paddingLeft: 24, paddingRight: 24, paddingBottom: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <motion.div
-              key={i}
-              animate={{
-                width: i === step ? 24 : 8,
-                background: i <= step
-                  ? 'linear-gradient(90deg,#7C3AED,#A855F7)'
-                  : 'var(--ink-150)',
-                opacity: i < step ? 0.55 : 1 }}
-              transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-              style={{
-                height: 8,
-                borderRadius: 4,
-                flexShrink: 0,
-                boxShadow: i === step ? '0 0 10px rgba(168,85,247,0.55)' : 'none' }}
-            />
-          ))}
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg, #0B1020)', color: 'var(--ink-950)' }}>
+      {/* Header: back + progress */}
+      <div style={{ padding: 'calc(env(safe-area-inset-top) + 12px) 20px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button
+          onClick={() => step > 0 && update({ step: step - 1 })}
+          disabled={step === 0}
+          aria-label="Back"
+          style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: step === 0 ? 0 : 1, background: 'transparent', color: 'inherit' }}
+        >
+          <ChevronLeft size={22} />
+        </button>
+        <div style={{ flex: 1 }} aria-label={`Step ${step + 1} of ${TOTAL_STEPS}`} role="progressbar" aria-valuemin={1} aria-valuemax={TOTAL_STEPS} aria-valuenow={step + 1}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+              <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i <= step ? '#4F46E5' : 'rgba(127,127,127,0.3)' }} />
+            ))}
+          </div>
         </div>
+        <span style={{ fontSize: 13, color: 'var(--ink-650)', minWidth: 44, textAlign: 'right' }}>{step + 1}/{TOTAL_STEPS}</span>
       </div>
 
-      {/* Steps */}
-      <div style={{ flex: 1, position: 'relative', zIndex: 1, overflow: 'hidden', paddingTop: 20 }}>
-        <AnimatePresence mode="wait">
-          {step === 0 && (
-            <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
-              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 20 }}>
-                <motion.button
-                  onClick={nextStep}
-                  style={{
-                    padding: '16px 40px', borderRadius: 18,
-                    background: 'linear-gradient(135deg, #7C3AED, #A855F7)',
-                    color: '#ffffff', fontSize: 15, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    boxShadow: '0 8px 32px rgba(124,58,237,0.5)',
-                    border: 'none', cursor: 'pointer', minHeight: 52 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {intro.cta} <ArrowRight size={18} />
-                </motion.button>
-              </div>
-            </StepLayout>
-          )}
+      {/* Content (scrolls; keyboard-safe because the footer is in normal flow, not fixed) */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 16px' }}>
+        <h1 style={{ fontFamily: 'Sora, sans-serif', fontSize: 24, fontWeight: 800, lineHeight: 1.25, margin: '8px 0 6px' }}>{copy.title}</h1>
+        <p style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--ink-650)', marginBottom: 20 }}>{copy.body}</p>
 
-          {step === 1 && (
-            <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                {STUDY_LEVELS.map(({ value, label, sub, icon: Icon }) => {
-                  const active = studyLevel === value;
-                  return (
-                    <motion.button
-                      key={value}
-                      onClick={() => { haptic(); setStudyLevel(value); }}
-                      style={{
-                        padding: '16px 12px', borderRadius: 18, textAlign: 'left',
-                        background: active ? 'rgba(124,58,237,0.15)' : 'var(--ink-070)',
-                        border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid var(--ink-070)',
-                        boxShadow: active ? '0 0 16px rgba(124,58,237,0.2)' : 'none',
-                        cursor: 'pointer', minHeight: 44 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Icon size={20} style={{ color: active ? (isLight ? '#6D28D9' : '#A855F7') : 'var(--ink-500)', marginBottom: 8 }} />
-                      <div style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--ink-950)' : 'var(--ink-700)', marginBottom: 2 }}>{label}</div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-400)' }}>{sub}</div>
-                      {active && <div style={{ position: 'absolute', top: 12, right: 12 }}><Check size={14} style={{ color: isLight ? '#6D28D9' : '#A855F7' }} /></div>}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </StepLayout>
-          )}
+        {step === 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} role="radiogroup" aria-label="Exam target">
+            {EXAM_TARGETS.map(e => {
+              const active = draft.examName === e.value;
+              return (
+                <button key={e.value} role="radio" aria-checked={active} style={chip(active)}
+                  onClick={() => update({ examName: e.value, examDate: e.hasDate ? draft.examDate : '' })}>
+                  <span>{e.label}</span>
+                  {active && <Check size={20} color="#4F46E5" />}
+                </button>
+              );
+            })}
+            {selectedExam?.hasDate && (
+              <label style={{ display: 'block', marginTop: 8 }}>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Exam date (optional)</span>
+                <input
+                  type="date" min={today} value={draft.examDate}
+                  onChange={e => update({ examDate: e.target.value })}
+                  style={{ width: '100%', minHeight: 52, borderRadius: 12, padding: '0 14px', fontSize: 16, border: '2px solid var(--ink-140, rgba(127,127,127,0.25))', background: 'transparent', color: 'inherit' }}
+                />
+              </label>
+            )}
+          </div>
+        )}
 
-          {step === 2 && (
-            <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {LANGUAGES.map(lang => {
-                  const active = language === lang.value;
-                  return (
-                    <motion.button
-                      key={lang.value}
-                      onClick={() => { haptic(); setLanguage(lang.value); }}
-                      style={{
-                        padding: '14px 16px', borderRadius: 16, textAlign: 'left',
-                        background: active ? 'rgba(124,58,237,0.18)' : 'var(--ink-060)',
-                        border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid var(--ink-080)',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
-                      whileTap={{ scale: 0.97 }}
-                    >
-                      <Languages size={20} style={{ color: active ? (isLight ? '#6D28D9' : '#A855F7') : 'var(--ink-400)' }} strokeWidth={1.7} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--ink-950)' : 'var(--ink-700)' }}>{lang.label}</div>
-                        <div style={{ fontSize: 12, color: 'var(--ink-400)' }}>{lang.native}</div>
-                      </div>
-                      {active && <Check size={16} style={{ color: isLight ? '#6D28D9' : '#A855F7', flexShrink: 0 }} />}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </StepLayout>
-          )}
+        {step === 1 && (
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }} role="radiogroup" aria-label="Study level">
+              {STUDY_LEVELS.map(l => {
+                const active = draft.studyLevel === l.value;
+                return (
+                  <button key={l.value} role="radio" aria-checked={active} onClick={() => update({ studyLevel: l.value })}
+                    style={{ ...chip(active), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 2 }}>
+                    <span>{l.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-650)' }}>{l.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Subjects (pick all that apply)</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }} role="group" aria-label="Subjects">
+              {SUBJECTS.map(s => {
+                const active = draft.subjects.includes(s);
+                return (
+                  <button key={s} aria-pressed={active}
+                    onClick={() => update({ subjects: active ? draft.subjects.filter(x => x !== s) : [...draft.subjects, s] })}
+                    style={{ ...chip(active), width: 'auto', minHeight: 48, padding: '10px 16px' }}>
+                    {s}{active && <Check size={16} color="#4F46E5" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-          {step === 3 && (
-            <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {SUBJECTS.map(({ value, color, colorLight }) => {
-                  const active = subjects.includes(value);
-                  const activeColor = isLight ? colorLight : color;
-                  return (
-                    <motion.button
-                      key={value}
-                      onClick={() => {
-                        haptic();
-                        setSubjects(prev => active ? prev.filter(s => s !== value) : [...prev, value]);
-                      }}
-                      style={{
-                        padding: '8px 16px', borderRadius: 100,
-                        background: active ? `rgba(${hexToRgb(color)}, 0.18)` : 'var(--ink-050)',
-                        border: active ? `1.5px solid ${color}60` : '1.5px solid var(--ink-080)',
-                        color: active ? activeColor : 'var(--ink-600)',
-                        fontSize: 13, fontWeight: 700,
-                        cursor: 'pointer', minHeight: 36, display: 'flex', alignItems: 'center', gap: 4 }}
-                      whileTap={{ scale: 0.92 }}
-                    >
-                      {active && <Check size={12} />}
-                      {value}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </StepLayout>
-          )}
+        {step === 2 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} role="radiogroup" aria-label="Language">
+            {LANGUAGES.map(l => {
+              const active = draft.language === l.value;
+              return (
+                <button key={l.value} role="radio" aria-checked={active} style={chip(active)} onClick={() => update({ language: l.value })}>
+                  <span>{l.label} <span style={{ fontWeight: 500, color: 'var(--ink-650)' }}>· {l.native}</span></span>
+                  {active && <Check size={20} color="#4F46E5" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-          {step === 4 && (
-            <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {/* Exam selector */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-                  {EXAMS.map(e => {
-                    const active = examName === e.value;
-                    return (
-                      <motion.button
-                        key={e.value}
-                        onClick={() => { haptic(); setExamName(active ? '' : e.value); }}
-                        style={{
-                          padding: '8px 14px', borderRadius: 100,
-                          background: active ? 'rgba(124,58,237,0.18)' : 'var(--ink-050)',
-                          border: active ? '1.5px solid rgba(124,58,237,0.5)' : '1.5px solid var(--ink-080)',
-                          color: active ? (isLight ? '#6D28D9' : '#A855F7') : 'var(--ink-600)',
-                          fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 36,
-                          display: 'flex', alignItems: 'center', gap: 4 }}
-                        whileTap={{ scale: 0.92 }}
-                      >
-                        {active && <Check size={12} />}
-                        {e.label}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-
-                {/* Date picker */}
-                {examName && examName !== 'Other' && (
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                      <Calendar size={13} /> Exam date (optional)
-                    </label>
-                    <input
-                      type="date"
-                      value={examDate}
-                      onChange={e => setExamDate(e.target.value)}
-                      min={new Date().toISOString().slice(0, 10)}
-                      max={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
-                      style={{
-                        width: '100%', padding: '12px 14px', borderRadius: 14,
-                        background: 'var(--ink-050)',
-                        border: '1px solid var(--ink-100)',
-                        color: 'var(--ink-950)', fontSize: 14, fontWeight: 600,
-                        outline: 'none', cursor: 'pointer',
-                        WebkitUserSelect: 'text' }}
-                    />
-                  </motion.div>
-                )}
-
-                {/* Skip hint */}
-                <p style={{ fontSize: 12, color: 'var(--ink-500)', textAlign: 'center', marginTop: 4 }}>
-                  Skip if not sure — you can set this later in Profile
-                </p>
-              </div>
-            </StepLayout>
-          )}
-
-          {step === 5 && (
-            <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                {MOODS.map(m => {
-                  const active = mood === m.value;
-                  const moodColor = isLight ? m.colorLight : m.color;
-                  return (
-                    <motion.button
-                      key={m.value}
-                      onClick={() => { haptic(); setMood(m.value); }}
-                      style={{
-                        padding: '14px 8px', borderRadius: 18,
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                        background: active ? `rgba(${hexToRgb(m.color)}, 0.15)` : 'var(--ink-070)',
-                        border: active ? `1.5px solid ${m.color}60` : '1.5px solid var(--ink-060)',
-                        cursor: 'pointer', minHeight: 44 }}
-                      whileTap={{ scale: 0.93 }}
-                      animate={active ? { scale: [1, 1.05, 1] } : { scale: 1 }}
-                    >
-                      <m.icon size={26} style={{ color: moodColor }} strokeWidth={1.7} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: active ? moodColor : 'var(--ink-550)' }}>
-                        {m.label}
-                      </span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {mood && (
-                <motion.p
-                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                  style={{ fontSize: 13, color: 'var(--ink-550)', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}
-                >
-                  Got it. {mood === 'anxious' ? "I'll go gentle today." : mood === 'low' ? "Short sessions today — quality over quantity." : mood === 'focused' ? "Let's make the most of this energy." : "Let's get started."}
-                </motion.p>
-              )}
-            </StepLayout>
-          )}
-          {step === 6 && (
-            <StepLayout heading={intro.heading} body={intro.body} novoState={intro.state}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  background: 'var(--ink-060)', borderRadius: 16,
-                  border: '1px solid var(--ink-100)', padding: '12px 16px' }}>
-                  <Gift size={18} style={{ color: isLight ? '#4338CA' : '#A0AEFF', flexShrink: 0 }} />
-                  <input
-                    value={referralCode}
-                    onChange={e => { setReferralCode(e.target.value.toUpperCase()); setReferralStatus('idle'); }}
-                    placeholder="Enter 8-character code (e.g. ABCD1234)"
-                    maxLength={8}
-                    style={{
-                      flex: 1, background: 'none', outline: 'none',
-                      fontSize: 16, fontWeight: 700, letterSpacing: '0.12em',
-                      color: 'var(--ink-950)' }}
-                  />
-                  {referralStatus === 'ok' && <Check size={16} style={{ color: isLight ? '#047857' : '#34D399' }} />}
-                </div>
-
-                {referralStatus === 'ok' && (
-                  <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 14,
-                      background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
-                    <Check size={16} style={{ color: isLight ? '#047857' : '#34D399' }} />
-                    <p style={{ fontSize: 13, color: isLight ? '#047857' : '#34D399', fontWeight: 600 }}>
-                      Code applied. You'll get 50 bonus XP after setup.
-                    </p>
-                  </motion.div>
-                )}
-
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '8px 16px', borderRadius: 100,
-                    background: 'rgba(160,174,255,0.08)', border: '1px solid rgba(160,174,255,0.15)' }}>
-                    <Gift size={13} style={{ color: isLight ? '#4338CA' : '#A0AEFF' }} />
-                    <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>Both you and your friend earn bonus XP</span>
-                  </div>
-                </div>
-              </div>
-            </StepLayout>
-          )}
-        </AnimatePresence>
+        {saveError && (
+          <div role="alert" style={{ marginTop: 16, display: 'flex', gap: 10, padding: 14, borderRadius: 12, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.35)' }}>
+            <AlertCircle size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: 1 }} />
+            <span style={{ fontSize: 14, lineHeight: 1.45 }}>{saveError}</span>
+          </div>
+        )}
       </div>
 
-      {/* Bottom CTA */}
-      {step > 0 && (
-        <div style={{
-          position: 'relative', zIndex: 1,
-          padding: '16px 24px',
-          paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
-          display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <motion.button
-            onClick={nextStep}
-            disabled={!canProceed() || saving}
-            style={{
-              width: '100%', padding: '16px', borderRadius: 18,
-              background: canProceed()
-                ? 'linear-gradient(135deg, #7C3AED, #A855F7)'
-                : 'var(--ink-060)',
-              color: canProceed() ? 'white' : 'var(--ink-500)',
-              fontSize: 15, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              border: 'none', cursor: canProceed() ? 'pointer' : 'not-allowed',
-              minHeight: 52,
-              boxShadow: canProceed() ? '0 8px 28px rgba(124,58,237,0.45)' : 'none',
-              transition: 'all 0.2s' }}
-            whileTap={canProceed() ? { scale: 0.97 } : {}}
-          >
-            {saving ? 'Setting up...' : step === totalSteps - 1 ? "Let's go" : 'Continue'}
-            {!saving && <ChevronRight size={18} />}
-          </motion.button>
-
-          {(step === 4 || step === 6) && (
-            <button
-              onClick={nextStep}
-              style={{ fontSize: 12, color: 'var(--ink-500)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', minHeight: 32 }}
-            >
-              Skip for now
-            </button>
-          )}
-        </div>
-      )}
+      {/* Footer */}
+      <div style={{ padding: '12px 20px calc(env(safe-area-inset-bottom) + 16px)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button
+          onClick={next}
+          disabled={!canProceed(step, draft) || saving}
+          style={{
+            minHeight: 54, borderRadius: 14, fontSize: 17, fontWeight: 700, color: '#fff',
+            background: canProceed(step, draft) && !saving ? '#4F46E5' : 'rgba(79,70,229,0.4)',
+          }}
+        >
+          {saving ? 'Saving…' : saveError ? 'Try again' : isLast ? 'Start learning' : 'Continue'}
+        </button>
+        <button onClick={skip} disabled={saving} style={{ minHeight: 44, fontSize: 15, fontWeight: 600, color: 'var(--ink-650)', background: 'transparent' }}>
+          Skip for now
+        </button>
+      </div>
     </div>
   );
-}
-
-function hexToRgb(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `${r},${g},${b}`;
 }

@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
 import { spring } from '@/lib/motion';
 import { Button } from '@/components/ui/button';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 interface PermissionRationaleProps {
   open: boolean;
@@ -19,6 +20,7 @@ export function PermissionRationale({
   allowLabel = 'Allow', denyLabel = 'Not now',
   onAllow, onDeny,
 }: PermissionRationaleProps) {
+  useBackHandler(open, () => { onDeny(); return true; }, 80);
   return (
     <AnimatePresence>
       {open && (

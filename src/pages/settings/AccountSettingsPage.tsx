@@ -13,6 +13,7 @@ import { reindexAllUserContent, getUserIndexStatus } from '@/lib/userContentInde
 import { useTheme } from '@/contexts/ThemeContext';
 import { isExportEnabled, setExportEnabled } from '@/lib/exportDocs';
 import { useGmailConnector } from '@/hooks/useGmailConnector';
+import { resolveExamName } from '@/lib/examTargets';
 
 const STUDY_LEVELS = [
   { value: 'school',   label: 'School (Class 6–12)' },
@@ -80,7 +81,7 @@ export default function AccountSettingsPage() {
       .update({
         full_name:  name.trim(),
         study_level: level,
-        exam_name:  examName.trim() || null,
+        exam_name:  resolveExamName(examName),
         exam_date:  examDate || null })
       .eq('id', profile.id);
     if (error) {

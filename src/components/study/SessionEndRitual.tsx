@@ -4,6 +4,7 @@ import { spring } from '@/lib/motion';
 import { BookOpen, Brain, Clock, Flame, ChevronRight, X } from 'lucide-react';
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
 import { useSessionTimer } from '@/hooks/useSessionTimer';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 interface Props {
   /** Controlled: set true when user navigates away / closes app */
@@ -39,6 +40,7 @@ function novoMessage(durationMin: number, topics: number): string {
 }
 
 export function SessionEndRitual({ open, onClose, streak = 0, struggledWith, nextSuggestion }: Props) {
+  useBackHandler(open, () => { onClose(); return true; }, 80);
   const { getSummary, resetSession } = useSessionTimer();
   const [summary, setSummary] = useState<ReturnType<typeof getSummary> | null>(null);
 

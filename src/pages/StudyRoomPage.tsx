@@ -27,7 +27,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { track } from '@/lib/analytics';
 import { Capacitor } from '@capacitor/core';
-import { App as CapApp } from '@capacitor/app';
+import { registerBackHandler } from '@/lib/backStack';
 import { Toast } from '@capacitor/toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { QuizQuestion } from '@/types';
@@ -236,17 +236,12 @@ export default function StudyRoomPage() {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Native Android: hardware back button
-    let backListener: { remove: () => void } | null = null;
-    if (Capacitor.isNativePlatform()) {
-      CapApp.addListener('backButton', () => {
-        leaveRoom();
-      }).then(l => { backListener = l; });
-    }
+    // Native Android: hardware back button — via the central back stack (no competing listener)
+    const unregisterBack = registerBackHandler(() => { leaveRoom(); return true; }, 70);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      backListener?.remove();
+      unregisterBack();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);

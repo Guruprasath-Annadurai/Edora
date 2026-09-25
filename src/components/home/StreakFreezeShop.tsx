@@ -4,6 +4,7 @@ import { spring } from '@/lib/motion';
 import { Snowflake, X, ShoppingBag, CheckCircle2, Zap, Shield, Gift, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 interface Props {
   open: boolean;
@@ -52,6 +53,7 @@ const MILESTONES = [
 ];
 
 export function StreakFreezeShop({ open, onClose, freezeCount, onPurchased }: Props) {
+  useBackHandler(open, () => { onClose(); return true; }, 80);
   const { user, profile } = useAuth();
   const [state, setState]     = useState<PurchaseState>('idle');
   const [errorMsg, setErrorMsg] = useState('');

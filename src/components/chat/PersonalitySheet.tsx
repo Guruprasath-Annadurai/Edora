@@ -1,12 +1,14 @@
 import { motion } from 'framer-motion';
 import { PersonalityCards } from '@/components/chat/PersonalityCards';
 import type { NovoPersonality } from '@/types';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 export function PersonalitySheet({ current, onSelect, onClose }: {
   current: NovoPersonality;
   onSelect: (p: NovoPersonality) => void;
   onClose: () => void;
 }) {
+  useBackHandler(true, () => { onClose(); return true; }, 70);
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-end" onClick={onClose}>

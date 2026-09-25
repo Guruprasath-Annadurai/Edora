@@ -1,0 +1,3 @@
+dist/assets/index.BI6QSeYB.js                                 874.95 kB │ gzip: 258.97 kB
+dist/assets/exceljs.min.CC1u6lOP.js                           938.57 kB │ gzip: 269.59 kB
+✓ built in 25.61s

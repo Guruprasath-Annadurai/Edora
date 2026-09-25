@@ -38,6 +38,8 @@ export interface Profile {
   memory_opt_out?: boolean;
   // Referral program
   referral_code?: string | null;
+  // jsonb: V5 onboarding stores { subjects, onboarding_version, onboarding_completed_at } here
+  study_preferences?: Record<string, unknown> | null;
 }
 
 export interface Achievement {

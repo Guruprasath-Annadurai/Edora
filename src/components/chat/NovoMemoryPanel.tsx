@@ -4,6 +4,7 @@ import { spring } from '@/lib/motion';
 import { X, Brain, Trash2, ChevronRight, Zap, BookOpen, Calendar, Puzzle, Scale, Microscope, HelpCircle, type LucideIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { NovoMemoryContext, ExplanationStyle } from '@/types';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 const STYLE_CONFIG: Record<ExplanationStyle, { icon: LucideIcon; label: string; desc: string }> = {
   simple:   { icon: Puzzle,     label: 'Simple',   desc: 'Analogies & tiny steps' },
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export function NovoMemoryPanel({ context, onClose, onRefresh }: Props) {
+  useBackHandler(true, () => { onClose(); return true; }, 70);
   const [deletingId, setDeletingId]   = useState<string | null>(null);
   const [updatingStyle, setUpdating]  = useState(false);
   const [activeStyle, setActiveStyle] = useState<ExplanationStyle>(context.explanation_style);

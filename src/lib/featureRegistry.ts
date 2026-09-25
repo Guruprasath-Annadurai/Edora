@@ -1,3 +1,6 @@
+import type { AppFlags } from '@/lib/appFlags';
+import { isEntryVisible } from '@/lib/routeVisibility';
+
 export type FeatureCategory =
   | 'Study'
   | 'Battle'
@@ -41,7 +44,7 @@ export const FEATURE_REGISTRY: Feature[] = [
   { label: 'Solved Examples',   desc: '10,000+ step-by-step worked solutions',          to: '/solved',            emoji: '✅', category: 'Study',     keywords: ['solved','examples','solutions','step by step'] },
   { label: 'Mock Test',         desc: 'Full-length timed mock examination',             to: '/mock-test',         emoji: '📝', category: 'Study',     keywords: ['mock','test','exam','timed','full length'] },
   { label: 'Exam Simulator',    desc: 'Realistic exam environment simulation',          to: '/exam-simulator',    emoji: '💻', category: 'Study',     keywords: ['exam','simulator','realistic','environment'] },
-  { label: 'PYQ Bank',          desc: 'Previous year questions & solutions',            to: '/pyq',               emoji: '🗂️', category: 'Study',     keywords: ['pyq','previous year','past papers','questions'] },
+  { label: 'PYQ Bank',          desc: 'Previous year questions & solutions',            to: '/pyq-bank',          emoji: '🗂️', category: 'Study',     keywords: ['pyq','previous year','past papers','questions'] },
   { label: 'Concept Reels',     desc: '60-second TikTok-style concept videos',          to: '/reels',             emoji: '🎬', category: 'Study',     keywords: ['reels','video','short','tiktok','60 second'] },
   { label: 'Concept Videos',    desc: 'Full concept explanation videos',                to: '/concept-videos',    emoji: '🎥', category: 'Study',     keywords: ['video','explanation','lecture','concept'] },
   { label: 'Video Companion',   desc: 'Study alongside any educational video',          to: '/video-companion',   emoji: '📺', category: 'Study',     keywords: ['video','companion','youtube','watch'] },
@@ -93,7 +96,7 @@ export const FEATURE_REGISTRY: Feature[] = [
   { label: 'Scanner',           desc: 'Scan textbook pages to study',                   to: '/scanner',           emoji: '📷', category: 'Tools',     keywords: ['scan','camera','textbook','ocr'] },
   { label: 'Study Notes',       desc: 'Smart AI-powered note-taking',                   to: '/notes',             emoji: '📝', category: 'Tools',     keywords: ['notes','note taking','write','smart'] },
   { label: 'Mnemonic Generator',desc: 'Create memory aids for tough concepts',          to: '/mnemonic',          emoji: '🧩', category: 'Tools',     keywords: ['mnemonic','memory','aid','remember'] },
-  { label: 'Mistake Journal',   desc: 'Track and learn from your errors',               to: '/mistake-journal',   emoji: '📔', category: 'Tools',     keywords: ['mistake','journal','track','learn','errors'] },
+  { label: 'Mistake Journal',   desc: 'Track and learn from your errors',               to: '/journal',           emoji: '📔', category: 'Tools',     keywords: ['mistake','journal','track','learn','errors'] },
   { label: 'Study Pack',        desc: 'Download offline study packs',                   to: '/study-pack',        emoji: '📦', category: 'Tools',     keywords: ['pack','offline','download','bundle'] },
   { label: 'Browser',           desc: 'In-app web browser for research',                to: '/browser',           emoji: '🌐', category: 'Tools',     keywords: ['browser','web','search','internet'] },
   { label: 'Offline Mode',      desc: 'Study without internet connection',               to: '/offline',           emoji: '📴', category: 'Tools',     keywords: ['offline','download','no internet'] },
@@ -110,10 +113,12 @@ export const FEATURE_REGISTRY: Feature[] = [
 ];
 
 /** Simple fuzzy-ish search: checks label, desc, category, and keywords */
-export function searchFeatures(query: string): Feature[] {
+export function searchFeatures(query: string, flags: AppFlags): Feature[] {
   const q = query.toLowerCase().trim();
   if (!q) return [];
   return FEATURE_REGISTRY.filter(f => {
+    // V5: only core destinations whose flag is on are discoverable (Battle, experimental, admin, legacy: hidden)
+    if (!isEntryVisible(f.to, flags)) return false;
     const haystack = [f.label, f.desc, f.category, ...(f.keywords ?? [])].join(' ').toLowerCase();
     // All words in query must appear somewhere
     return q.split(/\s+/).every(word => haystack.includes(word));
@@ -127,12 +132,12 @@ export const CATEGORY_ORDER: FeatureCategory[] = [
 const RECENT_KEY = 'edora_cmd_recent';
 const MAX_RECENT  = 6;
 
-export function getRecentFeatures(): Feature[] {
+export function getRecentFeatures(flags: AppFlags): Feature[] {
   try {
     const raw: string[] = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
     return raw
       .map(to => FEATURE_REGISTRY.find(f => f.to === to))
-      .filter((f): f is Feature => f !== undefined);
+      .filter((f): f is Feature => f !== undefined && isEntryVisible(f.to, flags));
   } catch { return []; }
 }
 
