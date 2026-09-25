@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T09:33:17.925Z",
+  "generatedAt": "2026-09-25T09:38:02.619Z",
   "tables": {
     "profiles": [
       "anonymised_at",
@@ -2265,7 +2265,11 @@
       "prompt_key",
       "template",
       "version"
-    ]
+    ],
+    "v_ai_gateway_hourly_metrics": [],
+    "v_ai_provider_fallback_summary": [],
+    "v_quiz_session_health": [],
+    "v_database_table_sizes": []
   },
   "functions": [
     "accept_friend_request",
