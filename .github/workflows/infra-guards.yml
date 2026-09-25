@@ -37,6 +37,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Verify Schema Manifest Freshness Against Migrations
+        run: |
+          node scripts/schema/generate_schema_manifest.js --check-stale
+
       - name: Verify Database Schema References
         run: |
           node scripts/schema/check_schema_references.js

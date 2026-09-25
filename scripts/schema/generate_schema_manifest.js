@@ -96,6 +96,23 @@ function parseSqlMigrations() {
     serialized.tables[table] = Array.from(cols).sort();
   }
 
+  // Handle --check-stale flag
+  const isCheckStale = process.argv.includes('--check-stale');
+  if (isCheckStale && fs.existsSync(MANIFEST_FILE)) {
+    const existing = JSON.parse(fs.readFileSync(MANIFEST_FILE, 'utf-8'));
+    const tablesMatch = JSON.stringify(existing.tables) === JSON.stringify(serialized.tables);
+    const functionsMatch = JSON.stringify(existing.functions) === JSON.stringify(serialized.functions);
+
+    if (!tablesMatch || !functionsMatch) {
+      console.error('::error::Checked-in schema-manifest.json is stale and does not match migrations.');
+      console.error('Run "node scripts/schema/generate_schema_manifest.js" to regenerate the manifest.');
+      process.exit(1);
+    } else {
+      console.log('✓ Checked-in schema-manifest.json is up-to-date with current migrations.');
+      process.exit(0);
+    }
+  }
+
   fs.writeFileSync(MANIFEST_FILE, JSON.stringify(serialized, null, 2), 'utf-8');
   console.log(`✓ Schema manifest generated with ${Object.keys(serialized.tables).length} tables and ${serialized.functions.length} functions.`);
   console.log(`Saved to: ${MANIFEST_FILE}`);
