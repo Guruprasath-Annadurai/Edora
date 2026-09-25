@@ -9,7 +9,8 @@
 // L6  Image Generation       — [DRAW: prompt] → Pollinations.ai URL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+type DbClient = SupabaseClient<any, any, any>;
 import { getCors }      from '../_shared/cors.ts';
 import { withSentry }   from '../_shared/sentry.ts';
 import { toAnthropicMessages, toAnthropicTools, anthropicToOpenAIStream, anthropicJsonToOpenAI } from './claudeAdapter.ts';
@@ -62,7 +63,7 @@ function toGeminiContents(msgs: unknown[]): { systemInstruction?: string; conten
 async function callGeminiFallback(
   msgs: unknown[],
   abortSignal: AbortSignal,
-  serviceDb?: ReturnType<typeof createClient> | null,
+  serviceDb?: DbClient | null,
   userId?: string | null,
 ): Promise<string | null> {
   const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
@@ -174,7 +175,7 @@ async function callClaude(
   msgs: unknown[],
   useStream: boolean,
   withTools: boolean,
-  serviceDb: ReturnType<typeof createClient>,
+  serviceDb: DbClient,
   userId: string | null,
 ): Promise<Response> {
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
@@ -381,7 +382,7 @@ type ToolCallAccum = { id: string; name: string; arguments: string };
 
 // Execute tool calls server-side. Returns results for follow-up messages if needed.
 async function executeToolCalls(
-  serviceDb: ReturnType<typeof createClient>,
+  serviceDb: DbClient,
   userId:    string,
   toolCalls: Array<{ id: string; function: { name: string; arguments: string } }>,
 ): Promise<Array<{ id: string; result: string }>> {
@@ -575,7 +576,7 @@ Max 5 prereqs, most important first. topic names must be concise (3-6 words).`;
 // knowledge_graph and re-used by future lookups. The graceful degradation
 // message is the final fallback, only used once retries are exhausted.
 async function autoGeneratePrereqs(
-  serviceDb: ReturnType<typeof createClient>,
+  serviceDb: DbClient,
   topic: string, subject: string, curriculum: string | null, apiKey: string,
 ): Promise<string> {
   const MAX_ATTEMPTS = 2;
@@ -927,7 +928,7 @@ function buildSRContextBlock(srCards: SRCard[]): string {
 //   section hit    → fetch parent chapter
 //   chapter hit    → used as-is
 async function fetchRagChunks(
-  serviceDb:      ReturnType<typeof import('https://esm.sh/@supabase/supabase-js@2').createClient>,
+  serviceDb:      DbClient,
   embedding:      number[],
   queryText:      string,
   subj:           string,
@@ -1457,6 +1458,7 @@ interface UserProfile {
   exam_date?: string;
   study_level?: string;
   novo_personality?: string;
+  preferred_language?: string;
 }
 
 function buildMemoryContext(profile: UserProfile, memories: NovoMemory[]): string {
@@ -1534,7 +1536,7 @@ function resolveImageTags(text: string): string {
 // feature — has had no working rate limit at all in production. Delegates
 // to the shared, schema-correct, fail-closed limiter instead.
 async function checkRateLimit(
-  serviceDb: ReturnType<typeof createClient>,
+  serviceDb: DbClient,
   userId: string,
 ): Promise<boolean> {
   const result = await sharedCheckRateLimit(serviceDb, userId, 'gemini-chat', 30, 60);
@@ -1545,7 +1547,7 @@ async function checkRateLimit(
 // L4 — Memory extraction (fire-and-forget)
 // ─────────────────────────────────────────────────────────────────────────────
 async function extractAndSaveMemories(
-  serviceDb: ReturnType<typeof createClient>,
+  serviceDb: DbClient,
   userId: string,
   userMessage: string,
   assistantResponse: string,
@@ -1939,10 +1941,10 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
 
   // L5-D: Record chunk usage — fire-and-forget, never block the response
   if (ragChunkIds.length > 0) {
-    serviceDb.rpc('upsert_chunk_history', {
+    (serviceDb.rpc('upsert_chunk_history', {
       p_user_id:   user.id,
       p_chunk_ids: ragChunkIds,
-    }).then(() => {}).catch(() => {});
+    }) as any).catch(() => {});
   }
 
   // L5-C: Build SR injection block (injected into system prompt below)

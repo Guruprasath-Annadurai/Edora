@@ -16,7 +16,8 @@
 // Output: saves to morning_brief_log, sends via novo-push FCM dispatcher.
 // ─────────────────────────────────────────────────────────────────────────────
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+type DbClient = SupabaseClient<any, any, any>;
 import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
@@ -26,21 +27,48 @@ import { callAI } from '../_shared/aiGateway.ts';
 import { isPermanentStatus } from '../_shared/retryPolicy.ts';
 const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
 
-// Phase 7 (RISK-006, AI gateway): cron-triggered functions are the next
-// migration priority per AI_GATEWAY_MIGRATION.md -- no human is in the
-// loop to notice a runaway cost pattern on an unattended scheduled job.
-async function gemini(prompt: string, supabase: ReturnType<typeof createClient>, userId: string): Promise<string> {
-  const key = Deno.env.get('GEMINI_API_KEY')!;
-  // A single transient network blip previously failed the brief generation
-  // outright for that user (or the whole cron batch, for that one user's
-  // Promise.all entry) — retry with backoff, matching the pattern used
-  // elsewhere (mains-answer-evaluator, ai-question-gen) for the same class
-  // of failure. The per-user try/catch in the cron loop below still ensures
-  // one user's persistent failure never aborts the batch for others.
-  const MAX_ATTEMPTS = 3;
-  let lastErr = '';
+async function groq(prompt: string, supabase: DbClient, userId: string): Promise<string | null> {
+  const key = Deno.env.get('GROQ_API_KEY');
+  if (!key) return null;
+  try {
+    const gatewayResult = await callAI(supabase, {
+      functionName: 'novo-morning-brief',
+      provider: 'groq',
+      model: 'openai/gpt-oss-20b',
+      userId,
+      url: 'https://api.groq.com/openai/v1/chat/completions',
+      init: {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-20b',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 300,
+        }),
+      },
+      extractUsage: (json) => ({
+        promptTokens: json?.usage?.prompt_tokens,
+        completionTokens: json?.usage?.completion_tokens,
+      }),
+    });
+    if (!gatewayResult.response?.ok) return null;
+    const d = await gatewayResult.response.json();
+    return d.choices?.[0]?.message?.content?.trim() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function gemini(prompt: string, supabase: DbClient, userId: string): Promise<string | null> {
+  const key = Deno.env.get('GEMINI_API_KEY');
+  if (!key) return null;
+  const MAX_ATTEMPTS = 2;
   let text: string | null = null;
-  let permanent = false;   // a permanent 4xx (e.g. the 403 that burned 1,512 calls in 12 days) is never retried
+  let permanent = false;
   for (let attempt = 0; attempt < MAX_ATTEMPTS && text === null && !permanent; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
     try {
@@ -60,42 +88,46 @@ async function gemini(prompt: string, supabase: ReturnType<typeof createClient>,
           completionTokens: json?.usageMetadata?.candidatesTokenCount,
         }),
       });
-      if (gatewayResult.blockedReason) { lastErr = `AI gateway blocked: ${gatewayResult.errorMessage}`; continue; }
-      if (!gatewayResult.response) { lastErr = gatewayResult.errorMessage ?? 'Gemini request failed'; continue; }
+      if (gatewayResult.blockedReason || !gatewayResult.response) continue;
       const res = gatewayResult.response;
       if (!res.ok) {
-        lastErr = `Gemini ${res.status}: ${await res.text()}`;
-        if (isPermanentStatus(res.status)) { console.error(`[retry][permanent] novo-morning-brief HTTP ${res.status} — not retrying`); permanent = true; }
+        if (isPermanentStatus(res.status)) {
+          console.error(`[retry][permanent] novo-morning-brief HTTP ${res.status} — not retrying`);
+          permanent = true;
+        }
         continue;
       }
       const d = await res.json();
       text = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
-    } catch (e) {
-      lastErr = (e as Error).message ?? 'fetch failed';
+    } catch {
+      // transient failure
     }
   }
-  if (text === null) throw new Error(permanent ? `Gemini call failed permanently (not retried): ${lastErr}` : `Gemini call failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
   return text;
 }
 
-// Outer validate+regenerate loop matching the reference two-layer pattern
-// (novo-certifications/lesson-planner): gemini() already retries the
-// network call itself; this layer re-runs the WHOLE generation if the
-// parsed result comes back empty or malformed, rather than trusting
-// whatever gemini() returned. Found live 2026-08-25 during the retry+
-// validate pattern audit.
-async function generateBriefText(prompt: string, supabase: ReturnType<typeof createClient>, userId: string, maxAttempts = 2): Promise<string> {
-  let lastText = '';
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    lastText = await gemini(prompt, supabase, userId);
-    if (isValidBriefText(lastText)) return lastText;
+async function generateBriefText(prompt: string, supabase: DbClient, userId: string, maxAttempts = 2): Promise<string> {
+  // 1. Primary: Groq fast model
+  try {
+    const groqText = await groq(prompt, supabase, userId);
+    if (groqText && isValidBriefText(groqText)) return groqText;
+  } catch {
+    // fallback to Gemini
   }
-  throw new Error(`Gemini returned an empty/invalid brief after ${maxAttempts} attempts (last length: ${lastText.trim().length})`);
+
+  // 2. Fallback: Gemini Flash
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const geminiText = await gemini(prompt, supabase, userId);
+    if (geminiText && isValidBriefText(geminiText)) return geminiText;
+  }
+
+  // 3. Deterministic safe fallback — guarantees no empty response crash
+  return 'Ready for today\'s study targets? Complete a quick practice sprint and build your streak!';
 }
 
 // ── Build personalised brief text ─────────────────────────────────────────────
 async function buildBrief(
-  supabase: ReturnType<typeof createClient>,
+  supabase: DbClient,
   userId: string,
 ): Promise<{
   text: string; focusTopic: string | null; rivalName: string | null;
@@ -154,7 +186,7 @@ async function buildBrief(
     }
   }
 
-  // 4. Generate brief via Gemini
+  // 4. Generate brief via Groq/Gemini
   const context = [
     `Student: ${firstName}`,
     weakTopic ? `Weakest topic: ${weakTopic.topic} (${weakTopic.struggle_count} struggles, ${weakTopic.win_count} wins)` : '',
@@ -182,7 +214,7 @@ Output ONLY the notification text, nothing else.`;
 
 // ── Send push via novo-push dispatcher ────────────────────────────────────────
 async function sendPush(
-  supabase: ReturnType<typeof createClient>,
+  supabase: DbClient,
   userId: string,
   title: string,
   body: string,
@@ -206,7 +238,12 @@ serve(withSentry('novo-morning-brief', async (req) => {
 
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
-  const supabase = createClient(
+  const isEnabled = Deno.env.get('NOVO_MORNING_BRIEF_ENABLED') !== 'false' && Deno.env.get('MORNING_BRIEF_ENABLED') !== 'false';
+  if (!isEnabled) {
+    return json({ sent: 0, disabled: true, message: 'novo-morning-brief is disabled via configuration' });
+  }
+
+  const supabase: DbClient = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { persistSession: false } },

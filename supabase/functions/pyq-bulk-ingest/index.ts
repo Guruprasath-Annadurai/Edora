@@ -28,13 +28,13 @@ interface IngestQuestion {
   subject: string;
   chapter: string;
   question_text: string;
-  solution_text?: string;
+  solution_text?: string | null;
   options?: Array<{ label: string; text: string; correct: boolean }>;
-  correct_option?: string;
+  correct_option?: string | null;
   question_type?: string;
   difficulty?: string;
   marks?: number;
-  class_level?: string;
+  class_level?: string | null;
 }
 
 function validateQuestion(q: unknown, idx: number): { valid: IngestQuestion | null; error: string | null } {

@@ -23,7 +23,7 @@ async function sha256Hex(text: string): Promise<string> {
 async function gemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
@@ -106,7 +106,7 @@ serve(withSentry('mock-paper-composer', async (req) => {
   }
 
   const sectionPlans: SectionPlan[] = [];
-  let modelUsed = 'gemini-1.5-flash';
+  let modelUsed = 'gemini-flash-latest';
 
   for (const sec of sections) {
     const { data: pool } = await supabase
@@ -153,7 +153,7 @@ Respond with ONLY this JSON shape:
     } catch (e) {
       console.error('Nemotron paper composition failed, falling back to Gemini:', e);
       raw = await gemini(prompt);
-      modelUsed = 'gemini-1.5-flash';
+      modelUsed = 'gemini-flash-latest';
     }
 
     let parsed: { ordered_ids?: string[]; rationale?: string };

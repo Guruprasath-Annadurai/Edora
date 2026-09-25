@@ -10,7 +10,8 @@
 // The cron path reports its outcome to cron_health.
 // Actions: run_clustering (self-triggered OR cron via x-cron-secret)
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+type DbClient = SupabaseClient<any, any, any>;
 import { getCors } from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
@@ -24,7 +25,7 @@ const MAX_CRON_USERS_PER_RUN = 25;
 async function gemini(prompt: string): Promise<string> {
   const key = Deno.env.get('GEMINI_API_KEY')!;
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
@@ -61,7 +62,7 @@ async function reasonAboutClusters(prompt: string): Promise<{ text: string; mode
     throw new Error('empty response');
   } catch (e) {
     console.error('Nemotron mistake clustering failed, falling back to Gemini:', e);
-    return { text: await gemini(prompt), model: 'gemini-1.5-flash' };
+    return { text: await gemini(prompt), model: 'gemini-flash-latest' };
   }
 }
 
@@ -80,7 +81,7 @@ function parseClusters(raw: string): RawCluster[] {
   }
 }
 
-async function collectMisses(supabase: ReturnType<typeof createClient>, userId: string): Promise<Miss[]> {
+async function collectMisses(supabase: DbClient, userId: string): Promise<Miss[]> {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: sessions } = await supabase
     .from('quiz_sessions')
@@ -111,7 +112,7 @@ async function collectMisses(supabase: ReturnType<typeof createClient>, userId: 
   return misses;
 }
 
-async function clusterForUser(supabase: ReturnType<typeof createClient>, userId: string): Promise<number> {
+async function clusterForUser(supabase: DbClient, userId: string): Promise<number> {
   const misses = await collectMisses(supabase, userId);
   if (misses.length < MIN_MISSES_TO_CLUSTER) return 0;
 
@@ -132,8 +133,8 @@ Respond with ONLY this JSON shape:
   const validIndices = new Set(misses.map((_, i) => i));
   const cleanClusters = rawClusters
     .map(c => ({
-      pattern_type: typeof c.pattern_type === 'string' ? c.pattern_type : null,
-      description: typeof c.description === 'string' ? c.description : null,
+      pattern_type: typeof c.pattern_type === 'string' ? c.pattern_type : '',
+      description: typeof c.description === 'string' ? c.description : '',
       subject: typeof c.subject === 'string' ? c.subject : null,
       indices: Array.isArray(c.question_indices) ? c.question_indices.filter(i => validIndices.has(i)) : [],
     }))
