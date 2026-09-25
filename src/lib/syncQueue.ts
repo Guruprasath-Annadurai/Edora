@@ -364,18 +364,31 @@ export const SyncQueue = {
 
         // If action was legacy quiz_session, also prune any paired legacy xp_grant and topic_perf
         // to prevent double-awarding XP or topic stats when transforming to complete_quiz_session.
+        //
+        // SAFETY: Only prune entries that were enqueued within LEGACY_PRUNE_WINDOW_MS of this
+        // quiz_session entry. This is the temporal correlation that proves they belong to the
+        // same offline quiz batch. Without this, two different quizzes on the same topic (e.g.
+        // "Optics Quiz A" and "Optics Quiz B") would cross-contaminate: flushing Quiz A would
+        // also prune Quiz B's xp_grant/topic_perf — silently deleting earned progress.
+        //
+        // Preference: preserve an ambiguous entry over silently deleting earned progress.
         if (entry.action.type === 'quiz_session') {
           const p = entry.action.payload;
+          const LEGACY_PRUNE_WINDOW_MS = 2000;
           remaining = remaining.filter(e => {
             if (e.id === entry.id) return false;
+            // Only consider entries enqueued within the same offline batch window
+            const withinWindow = Math.abs(e.queued_at - entry.queued_at) <= LEGACY_PRUNE_WINDOW_MS;
             if (
+              withinWindow &&
               e.action.type === 'xp_grant' &&
               e.action.payload.user_id === p.user_id &&
-              (e.action.payload.reason === `quiz:${p.topic}` || e.action.payload.reason.startsWith('quiz:'))
+              e.action.payload.reason === `quiz:${p.topic}`
             ) {
               return false;
             }
             if (
+              withinWindow &&
               e.action.type === 'topic_perf' &&
               e.action.payload.user_id === p.user_id &&
               e.action.payload.topic === p.topic
