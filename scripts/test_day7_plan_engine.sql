@@ -6,15 +6,30 @@
 --   1. Schema and dependency base creation
 --   2. Application of all actual V5 migrations via \i including:
 --      supabase/migrations/20260930000000_v5_get_today_plan.sql
---   3. Security & Isolation Tests (anon rejection, cross-user isolation)
+--   3. Security & Permission Tests:
+--      - Unauthenticated caller rejected with 42501
+--      - authenticated has EXECUTE; anon and service_role do NOT
 --   4. PYQ Trust Eligibility Tests (unreviewed, flagged, inactive, trusted)
---   5. Persona A (No History -> Diagnostic)
---   6. Persona B (Weak Topic -> Lowest Mastery Deterministic Win)
---   7. Persona C (Due Reviews -> Review Due Priority 1)
---   8. Persona D (Exam <= 14 Days + Trusted PYQ -> Exam Push Priority 5)
---   9. Persona E (GENERAL -> Never Exam Push)
---  10. Mixed Priority (4 candidates -> Strictly Top 3 in Canonical Order)
---  11. EXPLAIN Query Plan Evidence on Synthetic Fixtures
+--   5. CBSE exam_push Class Relevance Tests:
+--      - CBSE 10 + trusted Class 10 -> eligible
+--      - CBSE 10 + trusted Class 12 only -> ineligible
+--      - CBSE 10 + class_level NULL only -> ineligible
+--      - unreviewed/flagged/inactive/rejected -> ineligible
+--   6. Persona A (No History -> Diagnostic only, no invented learn_next)
+--   7. Persona B (Weak Topic -> Lowest Mastery Deterministic Win)
+--   8. Persona C (Due Reviews -> Review Due Priority 1)
+--   9. Persona D (Exam <= 14 Days + Trusted PYQ -> Exam Push Priority 5)
+--  10. Persona E (GENERAL -> Never Exam Push)
+--  11. Persona M (Mixed Priority: 4 candidates -> Strictly Top 3 in Canonical Order)
+--  12. learn_next Hierarchy Tests:
+--      - ACTIVE CHAPTER: incomplete chapter 5 -> returns chapter 5 (no jump to ch 1)
+--      - COMPLETED CHAPTER: completed chapter 5 -> returns chapter 6
+--      - EXPLICIT PREFERENCES: no history, explicit prefs -> first chapter
+--      - INSUFFICIENT DATA: JEE/NEET profile, no prefs -> NO learn_next (no heuristics)
+--  13. Target Path Allowlist Verification:
+--      - Asserts EVERY returned item is in ('/spaced-review', '/practice', '/pyq-bank')
+--  14. Cross-User Isolation
+--  15. EXPLAIN Query Plan Observations
 -- ==============================================================================
 
 \set ON_ERROR_STOP on
@@ -301,6 +316,21 @@ BEGIN
       RAISE EXCEPTION 'TEST FAILED: Unexpected error code %', v_err_code;
     END IF;
   END;
+
+  -- Test permissions: authenticated has execute, anon and service_role do NOT
+  IF NOT has_function_privilege('authenticated', 'public.get_today_plan()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'PERM FAILED: authenticated role should have EXECUTE on get_today_plan';
+  END IF;
+
+  IF has_function_privilege('anon', 'public.get_today_plan()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'PERM FAILED: anon role should NOT have EXECUTE on get_today_plan';
+  END IF;
+
+  IF has_function_privilege('service_role', 'public.get_today_plan()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'PERM FAILED: service_role should NOT have EXECUTE on get_today_plan (scoped exclusively to auth.uid)';
+  END IF;
+
+  RAISE NOTICE 'SECURITY PASS: Role privileges verified (authenticated=true, anon=false, service_role=false).';
 END $$;
 
 -- ── Setup Test Fixtures ──────────────────────────────────────────────────────
@@ -480,11 +510,73 @@ BEGIN
   RAISE NOTICE 'PYQ TRUST TEST PASS: Strictly trusted questions activate exam_push; unreviewed/flagged/rejected/inactive blocked.';
 END $$;
 
+-- ── 3. CBSE exam_push Class Relevance Tests ─────────────────────────────────
+DO $$
+DECLARE
+  u_cbse10 UUID := '77777777-7777-7777-7777-777777777777';
+  v_count INTEGER;
+BEGIN
+  INSERT INTO auth.users (id, email) VALUES (u_cbse10, 'cbse10@test.com') ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.profiles (id, exam_name, exam_date, study_level)
+  VALUES (u_cbse10, 'CBSE 10', CURRENT_DATE + 5, 'school')
+  ON CONFLICT (id) DO UPDATE SET exam_name = 'CBSE 10', exam_date = CURRENT_DATE + 5;
+
+  -- Add history so diagnostic does not crowd
+  INSERT INTO public.quiz_sessions (id, user_id, subject, topic, score)
+  VALUES (gen_random_uuid(), u_cbse10, 'Science', 'Chemical', 80);
+
+  PERFORM set_config('request.jwt.claim.sub', u_cbse10::text, true);
+
+  -- Clean BOARDS pyq
+  DELETE FROM public.pyq_content WHERE exam = 'BOARDS';
+
+  -- Case A: class_level NULL (even if trusted) -> must NOT match CBSE 10
+  INSERT INTO public.pyq_content (exam, year, subject, chapter, question_text, is_reviewed, is_active, flagged_for_review, validation_state, class_level)
+  VALUES ('BOARDS', 2024, 'Science', 'Chemical', 'Null class BOARDS Q', true, true, false, 'human_verified', NULL);
+
+  SELECT count(*) INTO v_count FROM public.get_today_plan() WHERE kind = 'exam_push';
+  IF v_count != 0 THEN
+    RAISE EXCEPTION 'CBSE TRUST FAILED: BOARDS question with class_level NULL should NOT match CBSE 10!';
+  END IF;
+
+  -- Case B: class_level '12' -> must NOT match CBSE 10
+  DELETE FROM public.pyq_content WHERE exam = 'BOARDS';
+  INSERT INTO public.pyq_content (exam, year, subject, chapter, question_text, is_reviewed, is_active, flagged_for_review, validation_state, class_level)
+  VALUES ('BOARDS', 2024, 'Physics', 'Electrostatics', 'Class 12 BOARDS Q', true, true, false, 'human_verified', '12');
+
+  SELECT count(*) INTO v_count FROM public.get_today_plan() WHERE kind = 'exam_push';
+  IF v_count != 0 THEN
+    RAISE EXCEPTION 'CBSE TRUST FAILED: BOARDS question for class 12 should NOT match CBSE 10!';
+  END IF;
+
+  -- Case C: class_level '10' but unreviewed -> must NOT match
+  DELETE FROM public.pyq_content WHERE exam = 'BOARDS';
+  INSERT INTO public.pyq_content (exam, year, subject, chapter, question_text, is_reviewed, is_active, flagged_for_review, validation_state, class_level)
+  VALUES ('BOARDS', 2024, 'Science', 'Chemical', 'Unreviewed Class 10 Q', false, true, false, 'unreviewed', '10');
+
+  SELECT count(*) INTO v_count FROM public.get_today_plan() WHERE kind = 'exam_push';
+  IF v_count != 0 THEN
+    RAISE EXCEPTION 'CBSE TRUST FAILED: Unreviewed Class 10 BOARDS question should NOT match!';
+  END IF;
+
+  -- Case D: class_level '10' TRUSTED -> MUST match CBSE 10
+  DELETE FROM public.pyq_content WHERE exam = 'BOARDS';
+  INSERT INTO public.pyq_content (exam, year, subject, chapter, question_text, is_reviewed, is_active, flagged_for_review, validation_state, class_level)
+  VALUES ('BOARDS', 2024, 'Science', 'Chemical', 'Trusted Class 10 BOARDS Q', true, true, false, 'human_verified', '10');
+
+  SELECT count(*) INTO v_count FROM public.get_today_plan() WHERE kind = 'exam_push';
+  IF v_count != 1 THEN
+    RAISE EXCEPTION 'CBSE TRUST FAILED: Trusted Class 10 BOARDS question failed to match CBSE 10!';
+  END IF;
+
+  RAISE NOTICE 'CBSE TRUST TEST PASS: Strict class relevance enforced (Class 10 requires trusted class_level=10; null and class 12 blocked).';
+END $$;
+
 -- Also seed a trusted JEE_MAIN PYQ for Persona M
 INSERT INTO public.pyq_content (exam, year, subject, chapter, question_text, is_reviewed, is_active, flagged_for_review, validation_state)
 VALUES ('JEE_MAIN', 2024, 'Physics', 'Mechanics', 'Trusted JEE Main Q', true, true, false, 'ai_reviewed_ok');
 
--- ── 3. Persona A: NO HISTORY -> Diagnostic Item ─────────────────────────────
+-- ── 4. Persona A: NO HISTORY -> Diagnostic Only (No Invented learn_next) ─────
 DO $$
 DECLARE
   u_a UUID := '11111111-1111-1111-1111-111111111111';
@@ -499,19 +591,19 @@ BEGIN
       IF v_rec.priority != 3 OR v_rec.target_path != '/practice' THEN
         RAISE EXCEPTION 'Persona A diagnostic contract mismatch: %', v_rec;
       END IF;
-    ELSIF v_rec.kind IN ('review_due', 'fix_weak', 'exam_push') THEN
-      RAISE EXCEPTION 'Persona A should NOT have received %', v_rec.kind;
+    ELSE
+      RAISE EXCEPTION 'Persona A should NOT have received % (got %)', v_rec.kind, v_rec;
     END IF;
   END LOOP;
 
-  IF v_count = 0 THEN
-    RAISE EXCEPTION 'Persona A received zero items!';
+  IF v_count != 1 THEN
+    RAISE EXCEPTION 'Persona A expected exactly 1 diagnostic item, got % items', v_count;
   END IF;
 
-  RAISE NOTICE 'PERSONA A PASS: No history produced diagnostic item at priority 3.';
+  RAISE NOTICE 'PERSONA A PASS: No history produced exactly 1 diagnostic item; no invented learn_next emitted.';
 END $$;
 
--- ── 4. Persona B: WEAK TOPIC -> Weakest Eligible Row Wins ───────────────────
+-- ── 5. Persona B: WEAK TOPIC -> Weakest Eligible Row Wins ───────────────────
 DO $$
 DECLARE
   u_b UUID := '22222222-2222-2222-2222-222222222222';
@@ -540,7 +632,7 @@ BEGIN
   RAISE NOTICE 'PERSONA B PASS: Weakest eligible subtopic deterministically won (Center of Mass, mastery 0.20).';
 END $$;
 
--- ── 5. Persona C: DUE REVIEWS -> Review Due Priority 1 ──────────────────────
+-- ── 6. Persona C: DUE REVIEWS -> Review Due Priority 1 ──────────────────────
 DO $$
 DECLARE
   u_c UUID := '33333333-3333-3333-3333-333333333333';
@@ -567,13 +659,18 @@ BEGIN
   RAISE NOTICE 'PERSONA C PASS: Review due is priority 1 with exact due count (2).';
 END $$;
 
--- ── 6. Persona D: EXAM <= 14 DAYS -> Exam Push Priority 5 ───────────────────
+-- ── 7. Persona D: EXAM <= 14 DAYS -> Exam Push Priority 5 ───────────────────
 DO $$
 DECLARE
   u_d UUID := '44444444-4444-4444-4444-444444444444';
   v_found_exam BOOLEAN := false;
   v_rec RECORD;
 BEGIN
+  -- Re-ensure trusted NEET PYQ exists
+  DELETE FROM public.pyq_content WHERE exam = 'NEET';
+  INSERT INTO public.pyq_content (exam, year, subject, chapter, question_text, is_reviewed, is_active, flagged_for_review, validation_state)
+  VALUES ('NEET', 2024, 'Biology', 'Genetics', 'Trusted Q', true, true, false, 'human_verified');
+
   PERFORM set_config('request.jwt.claim.sub', u_d::text, true);
 
   FOR v_rec IN SELECT * FROM public.get_today_plan() LOOP
@@ -595,7 +692,7 @@ BEGIN
   RAISE NOTICE 'PERSONA D PASS: Exam in 7 days with trusted PYQs activated exam_push at priority 5.';
 END $$;
 
--- ── 7. Persona E: GENERAL -> Never Exam Push ────────────────────────────────
+-- ── 8. Persona E: GENERAL -> Never Exam Push ────────────────────────────────
 DO $$
 DECLARE
   u_e UUID := '55555555-5555-5555-5555-555555555555';
@@ -614,7 +711,7 @@ BEGIN
   RAISE NOTICE 'PERSONA E PASS: GENERAL learner never receives exam_push.';
 END $$;
 
--- ── 8. Persona M: MIXED PRIORITY (4 candidates -> top 3 in order) ───────────
+-- ── 9. Persona M: MIXED PRIORITY (4 candidates -> top 3 in order) ───────────
 DO $$
 DECLARE
   u_m UUID := '66666666-6666-6666-6666-666666666666';
@@ -638,7 +735,164 @@ BEGIN
   RAISE NOTICE 'PERSONA M PASS: 4 candidates strictly cut to top 3 in canonical order (review_due, fix_weak, learn_next). Exam push safely bounded.';
 END $$;
 
--- ── 9. Cross-User Isolation Test ────────────────────────────────────────────
+-- ── 10. learn_next Hierarchy Tests ──────────────────────────────────────────
+DO $$
+DECLARE
+  u_ln_active UUID := '88888888-8888-8888-8888-888888888881';
+  u_ln_completed UUID := '88888888-8888-8888-8888-888888888882';
+  u_ln_prefs UUID := '88888888-8888-8888-8888-888888888883';
+  u_ln_nodata UUID := '88888888-8888-8888-8888-888888888884';
+
+  ch1 UUID := '10101010-1010-1010-1010-000000000001';
+  ch2 UUID := '10101010-1010-1010-1010-000000000002';
+  ch3 UUID := '10101010-1010-1010-1010-000000000003';
+  ch4 UUID := '10101010-1010-1010-1010-000000000004';
+  ch5 UUID := '10101010-1010-1010-1010-000000000005';
+  ch6 UUID := '10101010-1010-1010-1010-000000000006';
+
+  m9_1 UUID := '90909090-9090-9090-9090-000000000001';
+  m9_2 UUID := '90909090-9090-9090-9090-000000000002';
+
+  v_rec RECORD;
+  v_found BOOLEAN := false;
+  v_count INTEGER := 0;
+BEGIN
+  -- Insert Class 11 Physics Chapters 1..6
+  INSERT INTO public.ncert_chapters (id, class_num, subject, chapter_num, chapter_title) VALUES
+    (ch1, 11, 'Physics', 1, 'Units and Measurements'),
+    (ch2, 11, 'Physics', 2, 'Motion in a Straight Line'),
+    (ch3, 11, 'Physics', 3, 'Motion in a Plane'),
+    (ch4, 11, 'Physics', 4, 'Laws of Motion'),
+    (ch5, 11, 'Physics', 5, 'Work Energy and Power'),
+    (ch6, 11, 'Physics', 6, 'System of Particles and Rotational Motion')
+  ON CONFLICT (class_num, subject, chapter_num) DO NOTHING;
+
+  -- Insert Class 9 Mathematics Chapters
+  INSERT INTO public.ncert_chapters (id, class_num, subject, chapter_num, chapter_title) VALUES
+    (m9_1, 9, 'Mathematics', 1, 'Number Systems'),
+    (m9_2, 9, 'Mathematics', 2, 'Polynomials')
+  ON CONFLICT (class_num, subject, chapter_num) DO NOTHING;
+
+  -- ── Test 10.A: ACTIVE CHAPTER (incomplete chapter 5, ch 1..4 have NO progress)
+  INSERT INTO auth.users (id, email) VALUES (u_ln_active, 'active@test.com') ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.profiles (id, exam_name, study_level) VALUES (u_ln_active, 'GENERAL', 'school')
+  ON CONFLICT (id) DO NOTHING;
+  -- Add history so diagnostic is not triggered
+  INSERT INTO public.quiz_sessions (id, user_id, subject, topic, score) VALUES (gen_random_uuid(), u_ln_active, 'Physics', 'General', 70);
+
+  -- Incomplete progress on chapter 5
+  INSERT INTO public.ncert_chapter_progress (user_id, chapter_id, completed_at, questions_attempted, updated_at)
+  VALUES (u_ln_active, ch5, NULL, 5, now())
+  ON CONFLICT (user_id, chapter_id) DO UPDATE SET completed_at = NULL, updated_at = now();
+
+  PERFORM set_config('request.jwt.claim.sub', u_ln_active::text, true);
+  v_found := false;
+  FOR v_rec IN SELECT * FROM public.get_today_plan() WHERE kind = 'learn_next' LOOP
+    v_found := true;
+    IF v_rec.chapter != 'Work Energy and Power' THEN
+      RAISE EXCEPTION 'LEARN NEXT ACTIVE FAIL: expected chapter 5 (Work Energy and Power), got %', v_rec.chapter;
+    END IF;
+    IF (v_rec.target_params->>'class')::INTEGER != 11 OR (v_rec.target_params->>'chapter_id')::UUID != ch5 THEN
+      RAISE EXCEPTION 'LEARN NEXT ACTIVE params mismatch: %', v_rec.target_params;
+    END IF;
+    IF v_rec.target_path != '/practice' THEN
+      RAISE EXCEPTION 'LEARN NEXT target_path must be /practice, got %', v_rec.target_path;
+    END IF;
+  END LOOP;
+  IF NOT v_found THEN
+    RAISE EXCEPTION 'LEARN NEXT ACTIVE FAIL: learn_next item not emitted!';
+  END IF;
+
+  -- ── Test 10.B: COMPLETED CHAPTER (chapter 5 completed -> recommend chapter 6)
+  INSERT INTO auth.users (id, email) VALUES (u_ln_completed, 'completed@test.com') ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.profiles (id, exam_name, study_level) VALUES (u_ln_completed, 'GENERAL', 'school')
+  ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.quiz_sessions (id, user_id, subject, topic, score) VALUES (gen_random_uuid(), u_ln_completed, 'Physics', 'General', 75);
+
+  -- Completed chapter 5
+  INSERT INTO public.ncert_chapter_progress (user_id, chapter_id, completed_at, questions_attempted, updated_at)
+  VALUES (u_ln_completed, ch5, now() - INTERVAL '1 hour', 10, now())
+  ON CONFLICT (user_id, chapter_id) DO UPDATE SET completed_at = now() - INTERVAL '1 hour', updated_at = now();
+
+  PERFORM set_config('request.jwt.claim.sub', u_ln_completed::text, true);
+  v_found := false;
+  FOR v_rec IN SELECT * FROM public.get_today_plan() WHERE kind = 'learn_next' LOOP
+    v_found := true;
+    IF v_rec.chapter != 'System of Particles and Rotational Motion' THEN
+      RAISE EXCEPTION 'LEARN NEXT COMPLETED FAIL: expected chapter 6 (System of Particles...), got %', v_rec.chapter;
+    END IF;
+    IF (v_rec.target_params->>'chapter_id')::UUID != ch6 THEN
+      RAISE EXCEPTION 'LEARN NEXT COMPLETED params chapter_id mismatch: %', v_rec.target_params;
+    END IF;
+  END LOOP;
+  IF NOT v_found THEN
+    RAISE EXCEPTION 'LEARN NEXT COMPLETED FAIL: learn_next item not emitted!';
+  END IF;
+
+  -- ── Test 10.C: EXPLICIT PREFERENCES (no history, explicit class+subject -> chapter 1)
+  INSERT INTO auth.users (id, email) VALUES (u_ln_prefs, 'prefs@test.com') ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.profiles (id, exam_name, study_level, study_preferences)
+  VALUES (u_ln_prefs, 'GENERAL', 'school', '{"class": "9", "subjects": ["Mathematics"]}'::JSONB)
+  ON CONFLICT (id) DO NOTHING;
+
+  PERFORM set_config('request.jwt.claim.sub', u_ln_prefs::text, true);
+  v_found := false;
+  FOR v_rec IN SELECT * FROM public.get_today_plan() WHERE kind = 'learn_next' LOOP
+    v_found := true;
+    IF v_rec.chapter != 'Number Systems' THEN
+      RAISE EXCEPTION 'LEARN NEXT PREFS FAIL: expected chapter 1 (Number Systems), got %', v_rec.chapter;
+    END IF;
+    IF (v_rec.target_params->>'chapter_id')::UUID != m9_1 THEN
+      RAISE EXCEPTION 'LEARN NEXT PREFS params mismatch: %', v_rec.target_params;
+    END IF;
+  END LOOP;
+  IF NOT v_found THEN
+    RAISE EXCEPTION 'LEARN NEXT PREFS FAIL: learn_next item not emitted!';
+  END IF;
+
+  -- ── Test 10.D: INSUFFICIENT DATA (JEE/NEET profile, no chapter progress, no explicit class/subject)
+  INSERT INTO auth.users (id, email) VALUES (u_ln_nodata, 'nodata@test.com') ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.profiles (id, exam_name, study_level, study_preferences)
+  VALUES (u_ln_nodata, 'JEE Main', 'competitive', '{}'::JSONB)
+  ON CONFLICT (id) DO NOTHING;
+
+  PERFORM set_config('request.jwt.claim.sub', u_ln_nodata::text, true);
+  SELECT count(*) INTO v_count FROM public.get_today_plan() WHERE kind = 'learn_next';
+  IF v_count != 0 THEN
+    RAISE EXCEPTION 'LEARN NEXT INSUFFICIENT DATA FAIL: Emitted learn_next via heuristic! Count: %', v_count;
+  END IF;
+
+  -- Repeat for NEET
+  UPDATE public.profiles SET exam_name = 'NEET' WHERE id = u_ln_nodata;
+  SELECT count(*) INTO v_count FROM public.get_today_plan() WHERE kind = 'learn_next';
+  IF v_count != 0 THEN
+    RAISE EXCEPTION 'LEARN NEXT INSUFFICIENT DATA FAIL: NEET profile emitted learn_next via heuristic! Count: %', v_count;
+  END IF;
+
+  RAISE NOTICE 'LEARN NEXT TESTS PASS: Active chapter respected, completed advances to next, explicit preferences honored, zero heuristics for insufficient data.';
+END $$;
+
+-- ── 11. Target Path Allowlist Verification ───────────────────────────────────
+DO $$
+DECLARE
+  u UUID;
+  v_rec RECORD;
+  v_allowed TEXT[] := ARRAY['/spaced-review', '/practice', '/pyq-bank'];
+BEGIN
+  FOR u IN SELECT id FROM auth.users LOOP
+    PERFORM set_config('request.jwt.claim.sub', u::text, true);
+    FOR v_rec IN SELECT * FROM public.get_today_plan() LOOP
+      IF NOT (v_rec.target_path = ANY(v_allowed)) THEN
+        RAISE EXCEPTION 'TARGET ALLOWLIST VIOLATION: User % received forbidden target_path "%" for kind "%"',
+          u, v_rec.target_path, v_rec.kind;
+      END IF;
+    END LOOP;
+  END LOOP;
+
+  RAISE NOTICE 'TARGET PATH ALLOWLIST PASS: 100%% of items across all test personas adhere strictly to V5 core routes (/spaced-review, /practice, /pyq-bank).';
+END $$;
+
+-- ── 12. Cross-User Isolation Test ───────────────────────────────────────────
 DO $$
 DECLARE
   u_b UUID := '22222222-2222-2222-2222-222222222222';
@@ -660,8 +914,8 @@ BEGIN
   RAISE NOTICE 'CROSS-USER ISOLATION PASS: Zero cross-user data leakage between callers.';
 END $$;
 
--- ── 10. EXPLAIN Performance Analysis on Hot Queries ─────────────────────────
-\echo '--- EXPLAIN PLAN: Weak Subtopic with Partial Index ---'
+-- ── 13. EXPLAIN Observations on Disposable Fixture ──────────────────────────
+\echo '--- EXPLAIN PLAN OBSERVATION: Weak Subtopic with Partial Index ---'
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT subject, subtopic, mastery_score, attempts
 FROM public.subtopic_mastery
@@ -671,14 +925,14 @@ WHERE user_id = '22222222-2222-2222-2222-222222222222'
 ORDER BY mastery_score ASC, attempts DESC, last_attempted_at ASC NULLS FIRST, subtopic ASC, id ASC
 LIMIT 1;
 
-\echo '--- EXPLAIN PLAN: Spaced Repetition Due Cards ---'
+\echo '--- EXPLAIN PLAN OBSERVATION: Spaced Repetition Due Cards ---'
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT count(*)::INTEGER
 FROM public.sr_cards
 WHERE user_id = '33333333-3333-3333-3333-333333333333'
   AND next_review_date <= CURRENT_DATE;
 
-\echo '--- EXPLAIN PLAN: Full get_today_plan() RPC Call ---'
+\echo '--- EXPLAIN PLAN OBSERVATION: Full get_today_plan() RPC Call ---'
 SELECT set_config('request.jwt.claim.sub', '66666666-6666-6666-6666-666666666666', false);
 
 EXPLAIN (ANALYZE, BUFFERS)

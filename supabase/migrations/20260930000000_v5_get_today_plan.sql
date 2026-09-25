@@ -11,13 +11,20 @@
 --   1. review_due   - Spaced repetition cards due today or earlier (from public.sr_cards)
 --   2. fix_weak     - Weakest subtopic with attempts >= 3, mastery < 0.5 (from public.subtopic_mastery)
 --   3. diagnostic   - 5-question check for learners with zero prior learning history
---   4. learn_next   - Next incomplete chapter in deterministic syllabus order (from public.ncert_chapters)
+--   4. learn_next   - Next chapter in deterministic syllabus order (from public.ncert_chapters)
 --   5. exam_push    - Exam drill if exam <= 14 days and trusted PYQs exist (from public.pyq_content)
+--
+-- Core Target Routes (V5 Allowlist):
+--   review_due  -> /spaced-review
+--   fix_weak    -> /practice
+--   diagnostic  -> /practice
+--   learn_next  -> /practice
+--   exam_push   -> /pyq-bank
 --
 -- Security:
 --   SECURITY DEFINER with pinned empty search_path
 --   Fully qualified relation references
---   REVOKE EXECUTE from public, anon; GRANT EXECUTE to authenticated, service_role
+--   REVOKE ALL from public, anon, service_role; GRANT EXECUTE to authenticated
 --   Rejects unauthenticated callers with 42501 (insufficient privilege)
 -- ==============================================================================
 
@@ -66,6 +73,13 @@ DECLARE
   v_has_history BOOLEAN := false;
   
   -- learn_next
+  v_recent_chap_id UUID;
+  v_recent_completed_at TIMESTAMPTZ;
+  v_recent_class INTEGER;
+  v_recent_subj TEXT;
+  v_recent_chap_num INTEGER;
+  v_recent_chap_title TEXT;
+
   v_next_class INTEGER;
   v_next_subj TEXT;
   v_next_chap_id UUID;
@@ -145,68 +159,93 @@ BEGIN
   ) INTO v_has_history;
 
   -- ── CANDIDATE 4: learn_next (Priority 4) ──────────────────────────────────
-  -- Step A: check recent chapter progress
-  SELECT c.class_num, c.subject
-  INTO v_next_class, v_next_subj
+  -- Hierarchy A: Existing chapter progress
+  SELECT
+    cp.chapter_id,
+    cp.completed_at,
+    c.class_num,
+    c.subject,
+    c.chapter_num,
+    c.chapter_title
+  INTO
+    v_recent_chap_id,
+    v_recent_completed_at,
+    v_recent_class,
+    v_recent_subj,
+    v_recent_chap_num,
+    v_recent_chap_title
   FROM public.ncert_chapter_progress cp
   JOIN public.ncert_chapters c ON c.id = cp.chapter_id
   WHERE cp.user_id = v_user_id
   ORDER BY cp.updated_at DESC, cp.chapter_id ASC
   LIMIT 1;
 
-  -- Step B: fallback to profile exam_name or study_preferences
-  IF v_next_class IS NULL THEN
-    IF v_profile_exam = 'CBSE 10' THEN
-      v_next_class := 10;
-    ELSIF v_profile_exam = 'CBSE 12' THEN
-      v_next_class := 12;
-    ELSIF (v_profile_prefs->>'class') ~ '^[0-9]+$' THEN
+  IF v_recent_chap_id IS NOT NULL THEN
+    IF v_recent_completed_at IS NULL THEN
+      -- Chapter in progress (not completed): recommend THAT current chapter
+      v_next_chap_id := v_recent_chap_id;
+      v_next_chap_title := v_recent_chap_title;
+      v_next_chap_num := v_recent_chap_num;
+      v_next_class_final := v_recent_class;
+      v_next_subj_final := v_recent_subj;
+    ELSE
+      -- Chapter is completed: recommend the next chapter_num in the SAME class + subject
+      SELECT
+        c2.id,
+        c2.subject,
+        c2.class_num,
+        c2.chapter_num,
+        c2.chapter_title
+      INTO
+        v_next_chap_id,
+        v_next_subj_final,
+        v_next_class_final,
+        v_next_chap_num,
+        v_next_chap_title
+      FROM public.ncert_chapters c2
+      WHERE c2.class_num = v_recent_class
+        AND c2.subject ILIKE v_recent_subj
+        AND c2.chapter_num > v_recent_chap_num
+      ORDER BY c2.chapter_num ASC, c2.id ASC
+      LIMIT 1;
+    END IF;
+  ELSE
+    -- Hierarchy B: Explicit profile preferences (no chapter progress)
+    IF (v_profile_prefs->>'class') ~ '^[0-9]+$' THEN
       v_next_class := (v_profile_prefs->>'class')::INTEGER;
     ELSIF (v_profile_prefs->>'grade') ~ '^[0-9]+$' THEN
       v_next_class := (v_profile_prefs->>'grade')::INTEGER;
     ELSIF (v_profile_prefs->>'class_level') ~ '^[0-9]+$' THEN
       v_next_class := (v_profile_prefs->>'class_level')::INTEGER;
     END IF;
-  END IF;
 
-  IF v_next_subj IS NULL THEN
     IF jsonb_typeof(v_profile_prefs->'subjects') = 'array' AND jsonb_array_length(v_profile_prefs->'subjects') > 0 THEN
       v_next_subj := v_profile_prefs->'subjects'->>0;
-    ELSIF v_profile_exam = 'NEET' THEN
-      v_next_subj := 'Biology';
-      v_next_class := COALESCE(v_next_class, 11);
-    ELSIF v_profile_exam IN ('JEE Main', 'JEE Advanced') THEN
-      v_next_subj := 'Physics';
-      v_next_class := COALESCE(v_next_class, 11);
-    ELSIF v_next_class = 10 THEN
-      v_next_subj := 'Science';
-    ELSIF v_next_class = 12 THEN
-      v_next_subj := 'Physics';
+    ELSIF v_profile_prefs->>'subject' IS NOT NULL AND length(trim(v_profile_prefs->>'subject')) > 0 THEN
+      v_next_subj := trim(v_profile_prefs->>'subject');
     END IF;
-  END IF;
 
-  -- Step C: query the next incomplete chapter in syllabus order
-  IF v_next_class IS NOT NULL AND v_next_subj IS NOT NULL THEN
-    SELECT
-      c.id,
-      c.subject,
-      c.class_num,
-      c.chapter_num,
-      c.chapter_title
-    INTO
-      v_next_chap_id,
-      v_next_subj_final,
-      v_next_class_final,
-      v_next_chap_num,
-      v_next_chap_title
-    FROM public.ncert_chapters c
-    LEFT JOIN public.ncert_chapter_progress cp
-      ON cp.chapter_id = c.id AND cp.user_id = v_user_id
-    WHERE c.class_num = v_next_class
-      AND c.subject ILIKE v_next_subj
-      AND cp.completed_at IS NULL
-    ORDER BY c.chapter_num ASC, c.id ASC
-    LIMIT 1;
+    -- Only when both class and subject can be determined reliably from real data
+    IF v_next_class IS NOT NULL AND v_next_subj IS NOT NULL THEN
+      SELECT
+        c3.id,
+        c3.subject,
+        c3.class_num,
+        c3.chapter_num,
+        c3.chapter_title
+      INTO
+        v_next_chap_id,
+        v_next_subj_final,
+        v_next_class_final,
+        v_next_chap_num,
+        v_next_chap_title
+      FROM public.ncert_chapters c3
+      WHERE c3.class_num = v_next_class
+        AND c3.subject ILIKE v_next_subj
+      ORDER BY c3.chapter_num ASC, c3.id ASC
+      LIMIT 1;
+    END IF;
+    -- Hierarchy C: If class or subject cannot be determined, v_next_chap_id remains NULL (omit learn_next).
   END IF;
 
   -- ── CANDIDATE 5: exam_push (Priority 5) ───────────────────────────────────
@@ -231,12 +270,12 @@ BEGIN
     END CASE;
 
     IF v_pyq_exam IS NOT NULL THEN
-      -- Strict V5 trust policy
+      -- Strict V5 trust policy + tight class relevance (no class_level IS NULL fallback for BOARDS)
       SELECT count(*)::INTEGER
       INTO v_pyq_count
       FROM public.pyq_content pq
       WHERE pq.exam = v_pyq_exam
-        AND (v_pyq_class_level IS NULL OR pq.class_level = v_pyq_class_level OR pq.class_level IS NULL)
+        AND (v_pyq_class_level IS NULL OR pq.class_level = v_pyq_class_level)
         AND pq.is_active = true
         AND pq.flagged_for_review = false
         AND pq.is_reviewed = true
@@ -312,12 +351,22 @@ BEGIN
       4::INTEGER AS c_priority,
       ('Next Chapter: ' || v_next_chap_title)::TEXT AS c_title,
       20::INTEGER AS c_duration_minutes,
-      '/ncert-chapters'::TEXT AS c_target_path,
-      jsonb_build_object('class', v_next_class_final, 'subject', v_next_subj_final, 'chapter_id', v_next_chap_id) AS c_target_params,
+      '/practice'::TEXT AS c_target_path,
+      jsonb_build_object(
+        'mode', 'learn_next',
+        'class', v_next_class_final,
+        'subject', v_next_subj_final,
+        'chapter_id', v_next_chap_id,
+        'chapter', v_next_chap_title
+      ) AS c_target_params,
       v_next_subj_final::TEXT AS c_subject,
       v_next_chap_title::TEXT AS c_chapter,
       NULL::TEXT AS c_topic,
-      jsonb_build_object('chapter_num', v_next_chap_num, 'class_num', v_next_class_final, 'type', 'syllabus_progression') AS c_reason
+      jsonb_build_object(
+        'chapter_num', v_next_chap_num,
+        'class_num', v_next_class_final,
+        'type', 'syllabus_progression'
+      ) AS c_reason
     WHERE v_next_chap_id IS NOT NULL
 
     UNION ALL
@@ -353,14 +402,15 @@ BEGIN
     cand.c_topic,
     cand.c_reason
   FROM candidates cand
+  WHERE cand.c_target_path IN ('/spaced-review', '/practice', '/pyq-bank')
   ORDER BY cand.c_priority ASC, cand.c_title ASC
   LIMIT 3;
 END;
 $$;
 
--- Permissions: revoke from public/anon, grant only to authenticated and service_role
-REVOKE EXECUTE ON FUNCTION public.get_today_plan() FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.get_today_plan() TO authenticated, service_role;
+-- Permissions: revoke from public, anon, service_role; grant only to authenticated
+REVOKE ALL ON FUNCTION public.get_today_plan() FROM public, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.get_today_plan() TO authenticated;
 
 COMMENT ON FUNCTION public.get_today_plan() IS
-  'Edora V5 Deterministic Plan Engine (Day 7): Returns up to 3 bounded plan items strictly ordered by priority (review_due > fix_weak > diagnostic > learn_next > exam_push).';
+  'Edora V5 Deterministic Plan Engine (Day 7): Returns up to 3 bounded plan items strictly ordered by priority (review_due > fix_weak > diagnostic > learn_next > exam_push) and restricted to core V5 routes.';

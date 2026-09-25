@@ -11,14 +11,21 @@
 
 ## 1. Executive Summary
 
-In accordance with Edora V5 architecture directives, the deterministic **Today's Plan** backend engine has been implemented as a PostgreSQL stored procedure (`public.get_today_plan()`). 
+In accordance with Edora V5 architecture directives and the Day 7 pre-integration corrections, the deterministic **Today's Plan** backend engine has been finalized in PostgreSQL stored procedure [`public.get_today_plan()`](file:///Users/ag/edora-day7-backend/supabase/migrations/20260930000000_v5_get_today_plan.sql).
 
 Key architectural characteristics:
-- **Zero AI / Zero LLM Overhead:** The plan generation is 100% deterministic, immediate, and free from runtime API costs or hallucinations.
-- **Strictly User-Scoped:** Authenticates callers exclusively via `auth.uid()`. Unauthenticated execution is immediately rejected with SQLSTATE `42501` (`insufficient_privilege`).
-- **Defensive Database Security:** Declared `SECURITY DEFINER` with `SET search_path = ''` to eliminate search path hijacking attacks. All table and type references are explicitly fully qualified as `public.*`.
-- **Enforced Bounded Output:** Returns at most 3 items sorted by canonical priority (1 to 5), ensuring students receive an actionable, cognitive-load-balanced daily roadmap.
-- **V5 Strict PYQ Trust Policy Enforced:** The `exam_push` candidate strictly requires `is_active = true AND flagged_for_review = false AND is_reviewed = true AND validation_state IN ('ai_reviewed_ok', 'human_verified')`. Unreviewed PYQs are never surfaced.
+- **Zero AI / Zero LLM Overhead:** Plan generation is 100% deterministic, immediate, and free from external API latency, token costs, or hallucinations.
+- **Strictly User-Scoped:** Derives identity exclusively from `auth.uid()`. Unauthenticated callers are rejected immediately with SQLSTATE `42501` (`insufficient_privilege`).
+- **Defensive Privilege Model:** Function is declared `SECURITY DEFINER` with `SET search_path = ''`. Execution privilege is granted **exclusively** to `authenticated` and revoked from `public`, `anon`, and `service_role`.
+- **Bounded Output Contract:** Returns at most 3 items sorted by canonical priority (1 to 5).
+- **Core Route Allowlist Enforced:** Every item returned is strictly routed to the V5 core route allowlist:
+  - `review_due`  $\rightarrow$ `/spaced-review`
+  - `fix_weak`    $\rightarrow$ `/practice`
+  - `diagnostic`  $\rightarrow$ `/practice`
+  - `learn_next`  $\rightarrow$ `/practice`
+  - `exam_push`   $\rightarrow$ `/pyq-bank`
+- **Zero Invented Curriculum Heuristics:** `learn_next` strictly follows a 3-tier hierarchy based on real learner data. If class or subject cannot be defensibly established from chapter progress or explicit `study_preferences`, `learn_next` is omitted.
+- **Tight CBSE Board Class Relevance:** For `CBSE 10` and `CBSE 12`, `exam_push` strictly requires exact matching `class_level = '10'` and `'12'` respectively. Questions with `class_level IS NULL` or cross-class levels are strictly rejected.
 
 ---
 
@@ -27,11 +34,13 @@ Key architectural characteristics:
 - **Migration File:** [`supabase/migrations/20260930000000_v5_get_today_plan.sql`](file:///Users/ag/edora-day7-backend/supabase/migrations/20260930000000_v5_get_today_plan.sql)
 - **Migration Prefix Uniqueness:** Verified unique prefix across all 196 migration files in `supabase/migrations/`.
 - **Supporting Indexes:**
-  - `idx_subtopic_mastery_plan_weak` on `public.subtopic_mastery (user_id, mastery_score ASC, attempts DESC, last_attempted_at ASC)` with partial predicate `WHERE attempts >= 3 AND mastery_score < 0.5`.
+  - `idx_subtopic_mastery_plan_weak` on `public.subtopic_mastery (user_id, mastery_score ASC, attempts DESC, last_attempted_at ASC)` with partial filter `WHERE attempts >= 3 AND mastery_score < 0.5`.
   - Leverages existing index `sr_cards_user_review_idx` on `public.sr_cards (user_id, next_review_date)`.
 - **Permissions:**
-  - `REVOKE ALL ON FUNCTION public.get_today_plan() FROM PUBLIC, anon;`
-  - `GRANT EXECUTE ON FUNCTION public.get_today_plan() TO authenticated, service_role;`
+  ```sql
+  REVOKE ALL ON FUNCTION public.get_today_plan() FROM public, anon, service_role;
+  GRANT EXECUTE ON FUNCTION public.get_today_plan() TO authenticated;
+  ```
 
 ---
 
@@ -57,207 +66,185 @@ SECURITY DEFINER
 SET search_path = ''
 ```
 
-### Output Column Schema:
-| Column | Type | Nullable | Description |
+### Output Schema:
+| Column | Type | Target Route Contract | Description |
 |---|---|---|---|
-| `kind` | `TEXT` | No | Identifier of the activity: `'review_due'`, `'fix_weak'`, `'diagnostic'`, `'learn_next'`, or `'exam_push'` |
-| `priority` | `INTEGER` | No | Canonical priority rank (1 through 5) |
-| `title` | `TEXT` | No | Human-readable action title for student display |
-| `duration_minutes` | `INTEGER` | No | Estimated commitment in minutes (e.g. 10, 15, 20) |
-| `target_path` | `TEXT` | No | Client application routing path (e.g. `'/sr'`, `'/practice'`, `'/diagnostic'`, `'/curriculum'`) |
-| `target_params` | `JSONB` | No | Navigation parameters, filters, or query keys |
-| `subject` | `TEXT` | Yes | Subject identifier (e.g. `'Physics'`, `'Mathematics'`, `'Biology'`) |
-| `chapter` | `TEXT` | Yes | NCERT / Curriculum chapter title |
-| `topic` | `TEXT` | Yes | Specific subtopic or module |
-| `reason` | `JSONB` | No | Structured telemetry / explanation payload for UI display |
+| `kind` | `TEXT` | N/A | Identifier: `'review_due'`, `'fix_weak'`, `'diagnostic'`, `'learn_next'`, or `'exam_push'` |
+| `priority` | `INTEGER` | N/A | Canonical priority rank (1 through 5) |
+| `title` | `TEXT` | N/A | Student-facing action headline |
+| `duration_minutes` | `INTEGER` | N/A | Bounded estimated duration (e.g. 10, 15, 20, 25) |
+| `target_path` | `TEXT` | `IN ('/spaced-review', '/practice', '/pyq-bank')` | Client routing path strictly restricted to V5 core allowlist |
+| `target_params` | `JSONB` | JSON object | Structured parameters for navigation without raw URL string formatting |
+| `subject` | `TEXT` | Nullable | Subject string |
+| `chapter` | `TEXT` | Nullable | Chapter title |
+| `topic` | `TEXT` | Nullable | Subtopic title |
+| `reason` | `JSONB` | JSON object | Structured telemetry payload |
 
 ---
 
 ## 4. Priority Hierarchy & Business Logic
 
-The engine evaluates 5 distinct candidate types and returns `ORDER BY priority ASC, tie_break ASC LIMIT 3`.
-
-### 1. `review_due` (Priority 1)
+### Priority 1: `review_due`
 - **Source:** `public.sr_cards`
-- **Condition:** `user_id = v_uid AND next_review_date <= CURRENT_DATE`
-- **Candidate Generated:** Aggregates total due cards.
-  - Title: `"Review <N> due flashcards"`
-  - Target Path: `"/sr"`
-  - Duration: `10` minutes
-  - Reason: `{"due_count": N}`
+- **Trigger:** Cards with `user_id = auth.uid()` and `next_review_date <= CURRENT_DATE`.
+- **Target Path:** `/spaced-review`
+- **Target Params:** `{"due_count": N}`
 
-### 2. `fix_weak` (Priority 2)
+### Priority 2: `fix_weak`
 - **Source:** `public.subtopic_mastery`
-- **Condition:** `user_id = v_uid AND attempts >= 3 AND mastery_score < 0.5`
-- **Deterministic Selection (Single Weakest):**
-  `ORDER BY mastery_score ASC, attempts DESC, last_attempted_at ASC NULLS FIRST, subtopic ASC, id ASC LIMIT 1`
-- **Candidate Generated:**
-  - Title: `"Fix weak area: <subtopic>"`
-  - Target Path: `"/practice"`
-  - Target Params: `{"subject": subject, "subtopic": subtopic, "mode": "remedial"}`
-  - Duration: `15` minutes
-  - Reason: `{"mastery_score": round(mastery_score, 2), "attempts": attempts}`
+- **Trigger:** Subtopic with `attempts >= 3` and `mastery_score < 0.5`.
+- **Deterministic Selection:** `ORDER BY mastery_score ASC, attempts DESC, last_attempted_at ASC NULLS FIRST, subtopic ASC, id ASC LIMIT 1`.
+- **Target Path:** `/practice`
+- **Target Params:** `{"mode": "weak_topic", "subject": subject, "subtopic": subtopic}`
 
-### 3. `diagnostic` (Priority 3)
-- **Source:** `public.quiz_sessions`, `public.subtopic_mastery`, `public.topic_performance`, `public.ncert_chapter_progress`
-- **No-History Definition:**
-  Evaluated if `COUNT(*) = 0` across **all four** tables for the user:
-  - `quiz_sessions` where `user_id = v_uid`
-  - `subtopic_mastery` where `user_id = v_uid`
-  - `topic_performance` where `user_id = v_uid`
-  - `ncert_chapter_progress` where `user_id = v_uid`
-- **Candidate Generated:**
-  - Title: `"Take your diagnostic quiz"`
-  - Target Path: `"/diagnostic"`
-  - Duration: `15` minutes
-  - Reason: `{"no_history": true}`
+### Priority 3: `diagnostic`
+- **Source:** Multi-table learner activity evaluation:
+  - `quiz_sessions`
+  - `subtopic_mastery`
+  - `topic_performance`
+  - `ncert_chapter_progress`
+- **Trigger:** Evaluated ONLY if the learner has zero prior records across all four activity tables.
+- **Target Path:** `/practice`
+- **Target Params:** `{"mode": "diagnostic", "questions_count": 5}`
 
-### 4. `learn_next` (Priority 4)
-- **Source:** `public.ncert_chapter_progress` inner joined with `public.ncert_chapters` (falling back to earliest syllabus chapter for user's profile stream/grade)
-- **Selection Logic:**
-  1. Finds in-progress chapters (`status != 'completed'`) ordered by `last_accessed_at DESC NULLS LAST, chapter_number ASC`.
-  2. If none in progress, selects the first unstarted chapter in standard NCERT sequence (`chapter_number ASC`).
-  3. If no progress records exist, looks up `public.profiles` for `target_exam` / `grade` and picks the first chapter in `ncert_chapters`.
-- **Candidate Generated:**
-  - Title: `"Continue <chapter_name>"` (or `"Start <chapter_name>"`)
-  - Target Path: `"/curriculum"`
-  - Target Params: `{"subject": subject, "chapter_id": chapter_id}`
-  - Duration: `20` minutes
-  - Reason: `{"chapter_id": chapter_id, "status": status, "progress_pct": progress_pct}`
+### Priority 4: `learn_next`
+- **Source:** `public.ncert_chapter_progress` $\rightarrow$ `public.ncert_chapters` $\rightarrow$ `profiles.study_preferences`.
+- **Strict 3-Tier Hierarchy (Zero Heuristics):**
+  1. **Hierarchy A (Existing Chapter Progress):**
+     - Queries most recent chapter progress row by `updated_at DESC`.
+     - If chapter is **incomplete** (`completed_at IS NULL`): recommends **that current chapter** (does NOT jump back to chapter 1).
+     - If chapter is **completed** (`completed_at IS NOT NULL`): recommends the **next `chapter_num`** in the same `class_num` and `subject`.
+  2. **Hierarchy B (Explicit Profile Preferences):**
+     - Evaluated only when no chapter progress exists.
+     - Reads explicit `class` / `grade` / `class_level` and `subjects[0]` from `profiles.study_preferences`.
+     - Recommends the first deterministic chapter (`chapter_num ASC`) for that class and subject.
+  3. **Hierarchy C (Insufficient Data):**
+     - If class or subject cannot be reliably determined from real learner data, `learn_next` is **omitted**.
+     - No guessing or exam-name defaults (e.g. NO `JEE -> Physics`, NO `NEET -> Biology`, NO `CBSE -> Science/Physics`).
+- **Target Path:** `/practice`
+- **Target Params:**
+  ```json
+  {
+    "mode": "learn_next",
+    "class": 11,
+    "subject": "Physics",
+    "chapter_id": "...",
+    "chapter": "Work Energy and Power"
+  }
+  ```
 
-### 5. `exam_push` (Priority 5)
-- **Source:** `public.profiles`, `public.exam_profiles`, `public.pyq_content`
-- **Eligibility:**
-  - Profile must specify an exam other than `'GENERAL'` / `NULL`.
-  - Target exam date must be between `CURRENT_DATE` and `CURRENT_DATE + 14` days (`days_left <= 14`).
-  - **V5 Strict PYQ Trust Filter:** Must have at least one question in `public.pyq_content` matching `exam` with:
-    - `is_active = true`
-    - `flagged_for_review = false`
-    - `is_reviewed = true`
-    - `validation_state IN ('ai_reviewed_ok', 'human_verified')`
-- **Candidate Generated:**
-  - Title: `"Exam countdown: <days_left> days to <exam> PYQs"`
-  - Target Path: `"/practice"`
-  - Target Params: `{"exam": exam, "mode": "pyq_sprint"}`
-  - Duration: `20` minutes
-  - Reason: `{"exam": exam, "days_left": days_left}`
+### Priority 5: `exam_push`
+- **Source:** `public.profiles` $\rightarrow$ `public.pyq_content`.
+- **Trigger:** Profile target exam is not `GENERAL`/`NULL`, exam date is within 14 days (`0 <= days_left <= 14`), and trusted PYQ supply exists.
+- **Strict Class Relevance & Trust Policy:**
+  - `CBSE 10`: requires `exam = 'BOARDS' AND class_level = '10'`. Questions with `class_level IS NULL` or `'12'` are ineligible.
+  - `CBSE 12`: requires `exam = 'BOARDS' AND class_level = '12'`. Questions with `class_level IS NULL` or `'10'` are ineligible.
+  - `JEE Main` / `JEE Advanced` / `NEET` / `BITSAT` / `CAT` / `UPSC`: matched on normalized exam enum.
+  - Strict trust predicate enforced: `is_active = true AND flagged_for_review = false AND is_reviewed = true AND validation_state IN ('ai_reviewed_ok', 'human_verified')`.
+- **Target Path:** `/pyq-bank`
+- **Target Params:** `{"exam": exam, "days_remaining": days_left}`
 
 ---
 
-## 5. SQL Verification & Persona Test Suite
+## 5. Verification Test Suite & Results
 
-All tests were executed against a live PostgreSQL 17 test cluster using [`scripts/test_day7_plan_engine.sql`](file:///Users/ag/edora-day7-backend/scripts/test_day7_plan_engine.sql).
+The complete verification suite [`scripts/test_day7_plan_engine.sql`](file:///Users/ag/edora-day7-backend/scripts/test_day7_plan_engine.sql) was executed against a disposable PostgreSQL 17 test database.
 
-### Test Coverage Results:
-
+### Test Log Output:
 ```
-=== STEP 2: VERIFY AUTHENTICATION SECURITY (UNAUTHENTICATED) ===
-OK: Expected 42501 error received for unauthenticated user:
-[42501] get_today_plan: Authentication required
+--- Security & Permission Checks ---
+NOTICE:  SECURITY PASS: Unauthenticated caller rejected with 42501 (insufficient privilege)
+NOTICE:  SECURITY PASS: Role privileges verified (authenticated=true, anon=false, service_role=false).
 
-=== STEP 4: VERIFY V5 PYQ STRICT TRUST BEHAVIOR ===
-Scenario 1 (Unreviewed/Flagged PYQ only):
-Rows returned: 0 (OK - unreviewed PYQ did not trigger exam_push)
-Scenario 2 (Trusted PYQ present):
-Rows returned: 1 (OK - exam_push triggered with trusted PYQ)
+--- PYQ Trust Policy Checks ---
+NOTICE:  PYQ TRUST TEST PASS: Strictly trusted questions activate exam_push; unreviewed/flagged/rejected/inactive blocked.
 
-=== STEP 5: VERIFY PERSONA A (NEW USER - NO HISTORY) ===
-Rows returned: 2
-- priority 3: diagnostic ("Take your diagnostic quiz") -> /diagnostic
-- priority 4: learn_next ("Start Kinematics") -> /curriculum
+--- CBSE Strict Class Relevance Checks ---
+NOTICE:  CBSE TRUST TEST PASS: Strict class relevance enforced (Class 10 requires trusted class_level=10; null and class 12 blocked).
 
-=== STEP 6: VERIFY PERSONA B (WEAK TOPIC USER) ===
-Rows returned: 2
-- priority 2: fix_weak ("Fix weak area: Center of Mass") [mastery: 0.20, attempts: 4]
-- priority 4: learn_next ("Continue Kinematics")
+--- Persona Checks ---
+NOTICE:  PERSONA A PASS: No history produced exactly 1 diagnostic item; no invented learn_next emitted.
+NOTICE:  PERSONA B PASS: Weakest eligible subtopic deterministically won (Center of Mass, mastery 0.20).
+NOTICE:  PERSONA C PASS: Review due is priority 1 with exact due count (2).
+NOTICE:  PERSONA D PASS: Exam in 7 days with trusted PYQs activated exam_push at priority 5.
+NOTICE:  PERSONA E PASS: GENERAL learner never receives exam_push.
+NOTICE:  PERSONA M PASS: 4 candidates strictly cut to top 3 in canonical order (review_due, fix_weak, learn_next). Exam push safely bounded.
 
-=== STEP 7: VERIFY PERSONA C (SPACED REPETITION USER) ===
-Rows returned: 2
-- priority 1: review_due ("Review 2 due flashcards") -> /sr
-- priority 4: learn_next ("Continue Thermodynamics")
+--- learn_next Hierarchy Checks ---
+NOTICE:  LEARN NEXT TESTS PASS: Active chapter respected, completed advances to next, explicit preferences honored, zero heuristics for insufficient data.
 
-=== STEP 8: VERIFY PERSONA D (EXAM IMMINENT USER) ===
-Rows returned: 2
-- priority 4: learn_next ("Continue Organic Chemistry")
-- priority 5: exam_push ("Exam countdown: 7 days to JEE PYQs") -> /practice
+--- Target Path Allowlist Checks ---
+NOTICE:  TARGET PATH ALLOWLIST PASS: 100% of items across all test personas adhere strictly to V5 core routes (/spaced-review, /practice, /pyq-bank).
 
-=== STEP 9: VERIFY PERSONA E (GENERAL USER - EXAM IN 5 DAYS) ===
-Rows returned: 2
-- priority 3: diagnostic ("Take your diagnostic quiz")
-- priority 4: learn_next ("Start Kinematics")
-(No exam_push generated for GENERAL stream - OK)
-
-=== STEP 10: VERIFY MIXED CANDIDATES (BOUNDED TO <= 3) ===
-Candidates present in user history: 4 (review_due, fix_weak, learn_next, exam_push)
-Rows returned: 3
-1. [priority 1] review_due ("Review 5 due flashcards")
-2. [priority 2] fix_weak ("Fix weak area: Rotational Dynamics") [mastery: 0.15]
-3. [priority 4] learn_next ("Continue Waves")
-(Exam push priority 5 dropped as bounded to 3 - OK)
-
-=== STEP 11: VERIFY CROSS-USER ISOLATION ===
-Persona A seeing cards from Persona C or B: 0 rows (OK - 0 cross-user leak)
+--- Cross-User Isolation ---
+NOTICE:  CROSS-USER ISOLATION PASS: Zero cross-user data leakage between callers.
 ```
 
 ---
 
-## 6. Query Plan & Performance Analysis
+## 6. Query Plan Observations (Local Disposable Fixture Only)
 
-Query execution plans were generated using `EXPLAIN (ANALYZE, BUFFERS)` under session-level simulated authentication:
+> [!NOTE]
+> The performance metrics below are observations from a **local disposable PostgreSQL 17 test fixture** with synthetic data. They are **not** production capacity measurements and must not be interpreted as benchmark representations for 100k+ concurrent users.
 
-### 1. `fix_weak` Partial Index Scan
+### Partial Index Scan on `fix_weak`
 ```
-Index Scan using idx_subtopic_mastery_plan_weak on subtopic_mastery (cost=8.17..8.19 rows=1 width=136) (actual time=0.034..0.035 rows=1 loops=1)
-  Index Cond: (user_id = '...'::uuid)
-  Buffers: shared hit=4
-Planning Time: 0.089 ms
-Execution Time: 0.052 ms
+Limit  (cost=8.17..8.19 rows=1 width=100) (actual time=0.006..0.006 rows=1 loops=1)
+  Buffers: shared hit=2
+  ->  Incremental Sort  (cost=8.17..8.21 rows=2 width=100) (actual time=0.005..0.006 rows=1 loops=1)
+        Sort Key: mastery_score, attempts DESC, last_attempted_at NULLS FIRST, subtopic, id
+        Presorted Key: mastery_score, attempts
+        Full-sort Groups: 1  Sort Method: quicksort
+        Buffers: shared hit=2
+        ->  Index Scan using idx_subtopic_mastery_plan_weak on subtopic_mastery  (cost=0.14..8.16 rows=1 width=100) (actual time=0.002..0.003 rows=2 loops=1)
+              Index Cond: (user_id = '...'::uuid)
+Planning Time: 0.062 ms
+Execution Time: 0.012 ms
 ```
 
-### 2. `review_due` Index-Only Scan
+### Index-Only Scan on `review_due`
 ```
-Aggregate (cost=8.17..8.18 rows=1 width=8) (actual time=0.076..0.076 rows=1 loops=1)
-  ->  Index Only Scan using sr_cards_user_review_idx on sr_cards (cost=0.15..8.17 rows=1 width=0) (actual time=0.069..0.070 rows=2 loops=1)
+Aggregate  (cost=8.17..8.18 rows=1 width=4) (actual time=0.032..0.032 rows=1 loops=1)
+  Buffers: shared hit=2
+  ->  Index Only Scan using sr_cards_user_review_idx on sr_cards  (cost=0.15..8.17 rows=1 width=0) (actual time=0.023..0.025 rows=2 loops=1)
         Index Cond: ((user_id = '...'::uuid) AND (next_review_date <= CURRENT_DATE))
-        Heap Fetches: 0
-Planning Time: 0.134 ms
-Execution Time: 0.101 ms
+        Heap Fetches: 2
+Planning Time: 0.143 ms
+Execution Time: 0.055 ms
 ```
 
-### 3. RPC Stored Procedure End-to-End
+### Full RPC Execution Observation
 ```
-Function Scan on get_today_plan (cost=0.25..10.25 rows=1000 width=164) (actual time=6.082..6.084 rows=3 loops=1)
-  Buffers: shared hit=17
-Planning Time: 0.024 ms
-Execution Time: 6.108 ms
+Function Scan on get_today_plan  (cost=0.25..10.25 rows=1000 width=264) (actual time=1.102..1.102 rows=3 loops=1)
+  Buffers: shared hit=14
+Planning Time: 0.034 ms
+Execution Time: 1.163 ms
 ```
-
-**Conclusion:** Total execution time is ~6.1 ms with only 17 buffer hits. All critical candidate evaluations leverage direct partial indexes and index-only scans.
 
 ---
 
 ## 7. Quality Gate Audit Summary
 
-| Check | Tool / Script | Status | Result Details |
-|---|---|---|---|
-| Migration Versioning | `ls supabase/migrations` | **PASSED** | 196 migrations, zero duplicate version prefixes |
-| Schema Manifest | `generate_schema_manifest.js --check-stale` | **PASSED** | Fresh, includes `get_today_plan` |
-| Schema Reference Linter | `check_schema_references.js` | **PASSED** | 0 violations across codebase |
-| Schema Tool Regression Tests | `check_schema_references.test.js` | **PASSED** | 5 tests + 1 bonus test passing |
-| Edge Function Unit Tests | `deno test -A supabase/functions/` | **PASSED** | 373 passed, 0 failed |
-| Frontend Unit Tests | `vitest run` | **PASSED** | 307 passed, 41 test files, 0 failed |
-| TypeScript Type Check | `npm run type-check` | **PASSED** | 0 type errors |
-| ESLint Check | `npm run lint` | **PASSED** | 0 errors, 7 warnings (pre-existing) |
-| SQL Persona Suite | `psql -f scripts/test_day7_plan_engine.sql` | **PASSED** | 10/10 scenarios passed |
+| Check | Tool / Command | Result |
+|---|---|---|
+| Migration Uniqueness | `ls supabase/migrations/*.sql` check | **PASSED** (0 duplicate prefixes across 196 migrations) |
+| Schema Manifest Freshness | `node scripts/schema/generate_schema_manifest.js --check-stale` | **PASSED** (Manifest matches database migrations) |
+| Schema Reference Linter | `node scripts/schema/check_schema_references.js` | **PASSED** (0 table/RPC reference violations) |
+| Schema Reference Unit Tests | `node scripts/schema/check_schema_references.test.js` | **PASSED** (5 tests + 1 bonus test passing) |
+| Edge Function Unit Tests | `deno test -A supabase/functions/` | **PASSED** (373 passed, 0 failed) |
+| Frontend Vitest Suite | `npm test` | **PASSED** (307 passed, 41 files, 0 failed) |
+| TypeScript Type Check | `npm run type-check` (`tsc -b --noEmit`) | **PASSED** (0 type errors) |
+| ESLint Check | `npm run lint` | **PASSED** (0 errors, 7 non-blocking warnings) |
+| SQL Verification Suite | `psql -f scripts/test_day7_plan_engine.sql` | **PASSED** (All 15 verification sections clean) |
 
 ---
 
-## 8. Known Limitations & Production Impact
+## 8. Commitments & Production Impact
 
-- **Production Deployments:** NONE. No code has been deployed to production.
-- **Claude Working Tree:** Untouched (`/Users/ag/edora` was never modified).
-- **Home UI / React Hooks:** Excluded. Day 8 Home UI and React query hooks remain parked for the Day 8 integration phase.
-- **AI Plan Generation:** Excluded. The engine is entirely deterministic and requires no external API keys or background jobs.
+- **Production Deployment:** NONE.
+- **Claude Working Tree:** Untouched (`/Users/ag/edora` unmodified).
+- **Home UI / React Presentation:** Excluded.
+- **Remote Branch:** Strictly `v5/day7-plan-backend`.
 
 ---
 
