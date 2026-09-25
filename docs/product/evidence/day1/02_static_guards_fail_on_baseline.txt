@@ -1,0 +1,9 @@
+{
+  'contains persistCompletedQuiz (expected: NO on baseline)': false,
+  'live quiz_sessions insert present': true,
+  'direct increment_xp present': true,
+  'score_pct present': true,
+  'legacy enqueue types present': true,
+  'SyncQueue.flush() present': true
+}
+=> the static guards would FAIL on baseline: true

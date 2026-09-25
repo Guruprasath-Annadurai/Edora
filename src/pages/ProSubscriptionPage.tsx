@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { Browser } from '@capacitor/browser';
 import { Toast } from '@capacitor/toast';
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
-import { IAP, restorePurchases, getIAPPlatform, initRevenueCat } from '@/lib/iap';
+import { IAP, restorePurchases, getIAPPlatform, initRevenueCat, assertWebCheckoutAllowed } from '@/lib/iap';
 import { track } from '@/lib/analytics';
 import { maybePromptRating } from '@/lib/appRating';
 import { usePricingVariant, usePaywallCTAVariant } from '@/hooks/useExperiment';
@@ -35,6 +35,8 @@ interface RazorpayOptions {
 
 let razorpayScriptLoaded = false;
 function loadRazorpayScript(): Promise<void> {
+  // Defence in depth: the Razorpay SDK must never be loaded inside the native app.
+  try { assertWebCheckoutAllowed(); } catch (e) { return Promise.reject(e); }
   if (razorpayScriptLoaded || typeof window.Razorpay !== 'undefined') {
     razorpayScriptLoaded = true;
     return Promise.resolve();
@@ -230,6 +232,7 @@ export default function ProSubscriptionPage() {
     setRestoring(true);
     setErrorMsg('');
     try {
+      if (user) await initRevenueCat(user.id);
       const restored = await restorePurchases();
       if (restored) {
         await refetchProfile();

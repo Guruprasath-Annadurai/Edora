@@ -1,0 +1,85 @@
+
+ RUN  v4.1.10 /Users/ag/edora
+
+stdout | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema = production today (NO score_pct) > one completed quiz => exactly ONE row, XP exactly ONCE, topic stats once
+[NEW/without score_pct] status saved rows 1 xp 30 topic_total 5 queue 0
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema = production today (NO score_pct) > one completed quiz => exactly ONE row, XP exactly ONCE, topic stats once 2531ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema = production today (NO score_pct) > retry/reconnect: network drop => queued (nothing saved), reconnect flush => exactly one row and one XP
+GoTrueClient@sb-mirror-auth-token:1 (2.110.6) 2026-09-25T09:05:20.531Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema = production today (NO score_pct) > retry/reconnect: network drop => queued (nothing saved), reconnect flush => exactly one row and one XP
+[quizPersistence] delivery failed, kept queued: complete_quiz_session failed: TypeError: fetch failed (simulated network drop)
+
+stdout | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema = production today (NO score_pct) > retry/reconnect: network drop => queued (nothing saved), reconnect flush => exactly one row and one XP
+[NEW retry without] flushed 1 rows 1 xp 30
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema = production today (NO score_pct) > retry/reconnect: network drop => queued (nothing saved), reconnect flush => exactly one row and one XP 2402ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema WITH score_pct > one completed quiz => exactly ONE row, XP exactly ONCE, topic stats once
+GoTrueClient@sb-mirror-auth-token:2 (2.110.6) 2026-09-25T09:05:23.002Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+stdout | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema WITH score_pct > one completed quiz => exactly ONE row, XP exactly ONCE, topic stats once
+[NEW/with score_pct] status saved rows 1 xp 30 topic_total 5 queue 0
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema WITH score_pct > one completed quiz => exactly ONE row, XP exactly ONCE, topic stats once 2692ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema WITH score_pct > retry/reconnect: network drop => queued (nothing saved), reconnect flush => exactly one row and one XP
+GoTrueClient@sb-mirror-auth-token:3 (2.110.6) 2026-09-25T09:05:25.816Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema WITH score_pct > retry/reconnect: network drop => queued (nothing saved), reconnect flush => exactly one row and one XP
+[quizPersistence] delivery failed, kept queued: complete_quiz_session failed: TypeError: fetch failed (simulated network drop)
+
+stdout | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema WITH score_pct > retry/reconnect: network drop => queued (nothing saved), reconnect flush => exactly one row and one XP
+[NEW retry with] flushed 1 rows 1 xp 30
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — schema WITH score_pct > retry/reconnect: network drop => queued (nothing saved), reconnect flush => exactly one row and one XP 2596ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > delivered-but-response-lost: server already has the session, replay is a no-op (no second row, no second XP)
+GoTrueClient@sb-mirror-auth-token:4 (2.110.6) 2026-09-25T09:05:28.210Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > delivered-but-response-lost: server already has the session, replay is a no-op (no second row, no second XP) 2079ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > concurrent delivery (double tap + a reconnect flush racing) => still one row, one XP
+GoTrueClient@sb-mirror-auth-token:5 (2.110.6) 2026-09-25T09:05:30.292Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+stdout | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > concurrent delivery (double tap + a reconnect flush racing) => still one row, one XP
+[NEW concurrency] rows 1 xp 30 statuses [{"status":"saved","xpAwarded":30},{"status":"duplicate","xpAwarded":0}]
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > concurrent delivery (double tap + a reconnect flush racing) => still one row, one XP 2228ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > a stale queue entry replayed after success changes nothing
+GoTrueClient@sb-mirror-auth-token:6 (2.110.6) 2026-09-25T09:05:32.495Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > a stale queue entry replayed after success changes nothing 2055ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > two DIFFERENT quizzes are both recorded (dedupe is per session, not over-eager)
+GoTrueClient@sb-mirror-auth-token:7 (2.110.6) 2026-09-25T09:05:34.589Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > two DIFFERENT quizzes are both recorded (dedupe is per session, not over-eager) 2108ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > security: another user cannot claim, overwrite or award XP through someone else's session id
+GoTrueClient@sb-mirror-auth-token:8 (2.110.6) 2026-09-25T09:05:36.737Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > security: another user cannot claim, overwrite or award XP through someone else's session id
+GoTrueClient@sb-mirror-auth-token:9 (2.110.6) 2026-09-25T09:05:36.759Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > security: another user cannot claim, overwrite or award XP through someone else's session id 2202ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > security: an unauthenticated (anon) caller cannot execute the RPC
+GoTrueClient@sb-mirror-auth-token:10 (2.110.6) 2026-09-25T09:05:38.858Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > security: an unauthenticated (anon) caller cannot execute the RPC 1952ms
+stderr | scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > validation: impossible scores/counts are rejected and award nothing
+GoTrueClient@sb-mirror-auth-token:11 (2.110.6) 2026-09-25T09:05:40.820Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+ ✓ scripts/v5/day1/newflow.mirror.test.ts > NEW quiz persistence — idempotency, concurrency, replay, security, validation > validation: impossible scores/counts are rejected and award nothing 2048ms
+stdout | scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S0  production schema today (no score_pct): quiz row is NEVER saved; XP arrives once via the queue
+[S0] rows 0 xp 30 topic_total 5
+
+ ✓ scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S0  production schema today (no score_pct): quiz row is NEVER saved; XP arrives once via the queue 2247ms
+stderr | scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S1  after adding score_pct: PREDICTED defect — two session rows and double XP
+GoTrueClient@sb-mirror-auth-token:1 (2.110.6) 2026-09-25T09:05:46.066Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+stdout | scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S1  after adding score_pct: PREDICTED defect — two session rows and double XP
+[S1] rows 2 xp 60 topic_total 5
+
+ ✓ scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S1  after adding score_pct: PREDICTED defect — two session rows and double XP 2212ms
+
+ Test Files  2 passed (2)
+      Tests  13 passed (13)
+   Start at  14:35:14
+   Duration  31.51s (transform 80ms, setup 154ms, import 148ms, tests 29.35s, environment 1.43s)
+

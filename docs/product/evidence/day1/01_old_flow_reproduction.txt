@@ -1,0 +1,20 @@
+
+ RUN  v4.1.10 /Users/ag/edora
+
+stdout | scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S0  production schema today (no score_pct): quiz row is NEVER saved; XP arrives once via the queue
+[S0] rows 0 xp 30 topic_total 5
+
+ ✓ scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S0  production schema today (no score_pct): quiz row is NEVER saved; XP arrives once via the queue 2546ms
+stderr | scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S1  after adding score_pct: PREDICTED defect — two session rows and double XP
+GoTrueClient@sb-mirror-auth-token:1 (2.110.6) 2026-09-25T09:02:17.775Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+stdout | scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S1  after adding score_pct: PREDICTED defect — two session rows and double XP
+[S1] rows 2 xp 60 topic_total 5
+
+ ✓ scripts/v5/day1/oldflow.mirror.test.ts > OLD quiz persistence flow (baseline) — defect reproduction > S1  after adding score_pct: PREDICTED defect — two session rows and double XP 2513ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  14:32:12
+   Duration  6.08s (transform 50ms, setup 75ms, import 83ms, tests 5.06s, environment 656ms)
+

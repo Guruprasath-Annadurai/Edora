@@ -11,6 +11,42 @@ import { withRetry }   from '@/lib/withRetry';
 
 const QUEUE_KEY = 'edora_sync_queue';
 
+export interface QuizCompletePayload {
+  user_id:         string;
+  session_id:      string;
+  subject:         string;
+  topic:           string;
+  questions:       unknown[];
+  user_answers:    number[];
+  score:           number;
+  questions_count: number;
+  completed_at:    string;
+}
+
+export interface QuizCompleteResult { duplicate: boolean; xp_awarded: number }
+
+/**
+ * Deliver a completed quiz to the server's single, idempotent persistence authority.
+ * Throws on ANY error (network, auth, validation) so the caller keeps the entry queued —
+ * the {error} response is inspected here, never assumed successful. A duplicate response
+ * (same session_id already recorded) is success and awards nothing.
+ */
+export async function submitQuizComplete(p: QuizCompletePayload): Promise<QuizCompleteResult> {
+  const { data, error } = await supabase.rpc('complete_quiz_session', {
+    p_session_id:      p.session_id,
+    p_subject:         p.subject,
+    p_topic:           p.topic,
+    p_questions:       p.questions,
+    p_user_answers:    p.user_answers,
+    p_score:           p.score,
+    p_questions_count: p.questions_count,
+    p_completed_at:    p.completed_at,
+  });
+  if (error) throw new Error(`complete_quiz_session failed: ${error.message}`);
+  const r = (data ?? {}) as Partial<QuizCompleteResult>;
+  return { duplicate: !!r.duplicate, xp_awarded: Number(r.xp_awarded ?? 0) };
+}
+
 export type SyncAction =
   | { type: 'xp_grant';    payload: { user_id: string; amount: number; reason: string } }
   | { type: 'quiz_answer'; payload: { user_id: string; session_id: string; question_id: string; correct: boolean; topic: string; subject: string } }
@@ -20,6 +56,12 @@ export type SyncAction =
       score: number; score_pct: number; completed_at: string;
     }
   }
+  // V5 Day 1: the ONE way a completed quiz is persisted. Delivered to the idempotent
+  // server RPC complete_quiz_session, keyed by session_id, so retries/replays/reconnects
+  // can never duplicate the row or the XP. The legacy quiz_session/xp_grant/topic_perf
+  // action types above remain only so entries already sitting in a device's stored queue
+  // can still drain after an upgrade; nothing enqueues them any more.
+  | { type: 'quiz_complete'; payload: QuizCompletePayload }
   | { type: 'streak_tick'; payload: { user_id: string; date: string } }
   | { type: 'topic_perf';  payload: { user_id: string; subject: string; topic: string; correct: number; total: number } }
   | { type: 'lesson_complete'; payload: { user_id: string; lesson_id: string; xp_earned: number; completed_at: string } }
@@ -64,15 +106,25 @@ export async function clearUserQueue(_userId?: string): Promise<void> {
 }
 
 export const SyncQueue = {
-  async enqueue(action: SyncAction): Promise<void> {
+  /** Returns the queue entry id (callers that deliver immediately use it to remove the entry on success). */
+  async enqueue(action: SyncAction): Promise<string> {
     const queue = await loadQueue();
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     queue.push({
-      id:        `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      id,
       action,
       queued_at: Date.now(),
       attempts:  0,
     });
     await saveQueue(queue);
+    return id;
+  },
+
+  /** Remove one entry (e.g. after it was delivered immediately). Idempotent: unknown ids are ignored. */
+  async remove(id: string): Promise<void> {
+    const queue = await loadQueue();
+    const next = queue.filter(e => e.id !== id);
+    if (next.length !== queue.length) await saveQueue(next);
   },
 
   async size(): Promise<number> {
@@ -192,6 +244,12 @@ async function processAction(action: SyncAction, accessToken: string, sessionUse
         p_correct:  correct,
         p_total:    total,
       }));
+      break;
+    }
+
+    case 'quiz_complete': {
+      if (action.payload.user_id !== sessionUserId) throw new Error('quiz_complete user_id mismatch — discarding');
+      await submitQuizComplete(action.payload);   // throws on any error => entry stays queued
       break;
     }
 

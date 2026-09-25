@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON, geminiCall } from '@/lib/gemini';
 import { OfflineCache } from '@/lib/offlineCache';
-import { SyncQueue } from '@/lib/syncQueue';
+import { persistCompletedQuiz, newQuizSessionId } from '@/lib/quizPersistence';
 import { track } from '@/lib/analytics';
 import { loadUnlockedIds, checkAchievements } from '@/lib/achievements';
 import { scoreQuiz } from '@/lib/quizScoring';
@@ -155,6 +155,8 @@ export default function QuizPage() {
   const qTimerRef    = useRef<ReturnType<typeof setInterval>>();
   const timerPaused  = useRef(false);
   const bgEnteredAt  = useRef<number | null>(null);
+  // Identity of the current quiz RUN — reused by every finishQuiz call in the run, reset when a new run starts.
+  const sessionIdRef = useRef<string | null>(null);
 
   // ── App lifecycle: pause timer when backgrounded, resume when foregrounded ─
   useEffect(() => {
@@ -185,6 +187,10 @@ export default function QuizPage() {
   // ── Novo Memory: top weakness for setup callout ───────────────────────────
   const [topWeakness, setTopWeakness]         = useState<string | null>(null);
   const [topWeaknessLoading, setTopWeaknessLoading] = useState(true);
+
+  // A new quiz run begins every time the phase enters 'quiz' (fresh start, resumed draft, or retry
+  // of the same questions) — give it a new identity. Reused for the whole run, including result.
+  useEffect(() => { if (phase === 'quiz') sessionIdRef.current = null; }, [phase]);
 
   // ── Load draft + top weakness on mount ────────────────────────────────────
   useEffect(() => {
@@ -506,37 +512,25 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
       const completedAt = new Date().toISOString();
       const xpGain      = score * 10;
 
-      // ── Write-ahead: enqueue session + XP BEFORE network calls ──────────
-      // These are durable — if the app dies, network drops, or session expires
-      // between now and the DB write, the SyncQueue re-tries on next launch.
-      await SyncQueue.enqueue({
-        type: 'quiz_session',
-        payload: {
-          user_id: profile.id, subject: topic, topic,
-          questions: questions as unknown[],
-          user_answers: finalAnswers,
-          score, score_pct: pct, completed_at: completedAt,
-        },
+      // ── ONE persistence authority (V5 Day 1) ────────────────────────────────
+      // The session id is minted once per quiz run, so a double-tap or re-entry into
+      // finishQuiz reuses it. The server RPC records the row, grants XP and updates
+      // topic stats exactly once per id; this call is write-ahead-queued and delivered
+      // immediately, and if delivery fails it stays queued for the next reconnect.
+      // (The previous code wrote the quiz through a live insert AND a queued replay
+      // and granted XP twice — masked only because the insert always failed.)
+      if (!sessionIdRef.current) sessionIdRef.current = newQuizSessionId();
+      const persisted = await persistCompletedQuiz({
+        sessionId:   sessionIdRef.current,
+        userId:      profile.id,
+        subject:     topic,
+        topic,
+        questions:   questions as unknown[],
+        userAnswers: finalAnswers,
+        score,
+        completedAt,
       });
-      await SyncQueue.enqueue({
-        type: 'xp_grant',
-        payload: { user_id: profile.id, amount: xpGain, reason: `quiz:${topic}` },
-      });
-      await SyncQueue.enqueue({
-        type: 'topic_perf',
-        payload: { user_id: profile.id, subject: topic, topic, correct: score, total: questions.length },
-      });
-
-      // ── Attempt live save immediately — queue handles failure ─────────────
-      const { error: insertError } = await supabase.from('quiz_sessions').insert({
-        user_id: profile.id, subject: topic, topic, questions,
-        user_answers: finalAnswers, score, score_pct: pct, completed_at: completedAt,
-      });
-      if (!insertError) {
-        // Live save succeeded — remove from queue so we don't double-save
-        await SyncQueue.flush();
-
-        await supabase.rpc('increment_xp', { user_id: profile.id, amount: xpGain });
+      if (persisted.status === 'saved') {
         const unlocked = await loadUnlockedIds(profile.id);
         await checkAchievements({
           userId: profile.id, unlocked,
@@ -544,8 +538,8 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
           extras: { quizScore: score, quizTotal: questions.length },
         });
       }
-      // insertError branch: queue already holds the payload — it will sync
-      // when connection is restored. No action needed here.
+      // 'duplicate': already recorded earlier, nothing more to award.
+      // 'queued': offline / server unreachable — durably queued, delivers on reconnect.
 
       // ── Save confidence ratings (best-effort, not critical) ───────────────
       const confRows = Object.entries(confidence).map(([idx, conf]) => ({

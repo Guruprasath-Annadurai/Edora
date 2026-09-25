@@ -1,0 +1,40 @@
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+(node:39781) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+(node:40377) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+NOTICE:  truncate cascades to table "subscriptions"
+NOTICE:  column "score_pct" of relation "quiz_sessions" does not exist, skipping
+
+ Test Files  3 passed (3)
+      Tests  18 passed (18)
+   Start at  15:57:44
+   Duration  43.86s (transform 91ms, setup 171ms, import 182ms, tests 40.93s, environment 2.00s)
+

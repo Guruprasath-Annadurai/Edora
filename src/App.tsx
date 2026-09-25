@@ -73,7 +73,7 @@ const StudyGroupsPage        = lazy(() => import('@/pages/StudyGroupsPage'));
 const GroupDetailPage        = lazy(() => import('@/pages/GroupDetailPage'));
 const AnalyticsDashboardPage = lazy(() => import('@/pages/AnalyticsDashboardPage'));
 const EvalDashboardPage      = lazy(() => import('@/pages/EvalDashboardPage'));
-const _ProSubscriptionPage    = lazy(() => import('@/pages/ProSubscriptionPage'));
+const ProSubscriptionPage     = lazy(() => import('@/pages/ProSubscriptionPage'));
 // Tier 3 — Voice & Multimodal (lazy-loaded — heavy canvas/camera/video deps)
 const NovoLivePage        = lazy(() => import('@/pages/NovoLivePage'));
 const WhiteboardPage      = lazy(() => import('@/pages/WhiteboardPage'));
@@ -506,7 +506,7 @@ function AppRoutes({ deepLinkNavigateRef }: { deepLinkNavigateRef: { current: ((
           <Route path="/eval"                  element={<RouteErrorBoundary label="eval"><EvalDashboardPage /></RouteErrorBoundary>} />
           <Route path="/referral"              element={<RouteErrorBoundary label="referral"><ReferralPage /></RouteErrorBoundary>} />
           <Route path="/school-admin"          element={<RouteErrorBoundary label="school-admin"><SchoolAdminPage /></RouteErrorBoundary>} />
-          <Route path="/pro"                   element={<Navigate to="/profile" replace />} />
+          <Route path="/pro"                   element={<RouteErrorBoundary label="pro"><ProSubscriptionPage /></RouteErrorBoundary>} />
         </Route>
 
         {/* Tier 3 B2B — Teacher dashboard (full-screen, inside auth, outside AppShell) */}

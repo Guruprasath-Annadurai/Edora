@@ -69,7 +69,9 @@ jobs:
       # --allow-net: auth-guard.test.ts imports auth-guard.ts, which imports
       #   supabase-js from esm.sh — needed for module resolution even though
       #   these tests never make a real network call.
-      - run: deno test --allow-env --allow-net "supabase/functions/**/*.test.ts"
+      # --allow-read: novo-subscription/noBuilderCatch.test.ts statically scans its own
+      #   source (V5 Day 1 regression guard for `.catch()` on Supabase query builders).
+      - run: deno test --allow-env --allow-net --allow-read "supabase/functions/**/*.test.ts"
 
   security-attack-tests:
     name: Security Attack Tests (pgTAP)

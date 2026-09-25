@@ -113,10 +113,16 @@ async function purchaseNative(planId: PlanId): Promise<{ success: boolean }> {
     // Server-side verification — server calls RevenueCat REST API using the user's
     // JWT to look up the entitlement. No sensitive data passed from client.
     const { data: { session } } = await supabase.auth.getSession();
-    const { data: verifyResult, error: verifyErr } = await supabase.functions.invoke('novo-subscription', {
+    const verify = () => supabase.functions.invoke('novo-subscription', {
       body:    { action: 'verify_revenuecat' },
       headers: { Authorization: `Bearer ${session?.access_token}` },
     });
+    let { data: verifyResult, error: verifyErr } = await verify();
+    if (verifyErr || !(verifyResult as { pro_active?: boolean })?.pro_active) {
+      // RevenueCat can take a few seconds to expose a fresh purchase — retry once before giving up.
+      await new Promise(r => setTimeout(r, 3000));
+      ({ data: verifyResult, error: verifyErr } = await verify());
+    }
     if (verifyErr || !(verifyResult as { pro_active?: boolean })?.pro_active) {
       // RC entitlement check failed — may be propagation delay (RC can take ~5s after purchase).
       // The RC webhook will activate Pro when it arrives. Log for reconciliation.
@@ -140,15 +146,50 @@ async function purchaseNative(planId: PlanId): Promise<{ success: boolean }> {
 
 // ── Restore purchases (both platforms) ───────────────────────────────────────
 
+/**
+ * Restore purchases and CONFIRM the entitlement with the backend.
+ *
+ * The backend (novo-subscription `restore_purchases`) is the source of truth: it verifies
+ * with RevenueCat's REST API and writes profiles.is_pro. Returning RevenueCat's local
+ * "entitlement active" flag here — as this function used to — lets the UI say "restored"
+ * while the backend flag (which gates every Pro feature) is unchanged.
+ *
+ * Resolves true ONLY when the server confirms pro_active. Throws (rather than returning
+ * false) when the server could not be reached or refused, so callers never present a sync
+ * failure as "no subscription found".
+ */
 export async function restorePurchases(): Promise<boolean> {
   if (getIAPPlatform() === 'web') return false;
-  if (!revenueCatReady) return false;
-  try {
-    const { Purchases } = await import('@revenuecat/purchases-capacitor');
-    const { customerInfo } = await Purchases.restorePurchases();
-    return !!customerInfo.entitlements.active['pro'];
-  } catch {
-    return false;
+
+  // 1) Ask the store/RevenueCat to re-associate purchases with this account. Best-effort:
+  //    a failure here must not prevent the server-side (DB-backed) check below.
+  if (revenueCatReady) {
+    try {
+      const { Purchases } = await import('@revenuecat/purchases-capacitor');
+      await Purchases.restorePurchases();
+    } catch (err) {
+      console.warn('[IAP] store restore failed, continuing with server check:', (err as Error)?.message);
+    }
+  }
+
+  // 2) Server-side entitlement sync.
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Please sign in again to restore your purchases.');
+  const { data, error } = await supabase.functions.invoke('novo-subscription', {
+    body:    { action: 'restore_purchases' },
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (error) {
+    console.error('[IAP] restore_purchases server error:', error.message);
+    throw new Error('We could not confirm your subscription with the server. Check your connection and try again.');
+  }
+  return (data as { pro_active?: boolean } | null)?.pro_active === true;
+}
+
+/** Web checkout (Razorpay) must never run inside the native Android/iOS app: digital content there is sold through the store. */
+export function assertWebCheckoutAllowed(): void {
+  if (getIAPPlatform() !== 'web') {
+    throw new Error('Web checkout is not available in the app. Please use the in-app purchase.');
   }
 }
 

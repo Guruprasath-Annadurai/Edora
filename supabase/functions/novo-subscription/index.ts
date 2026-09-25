@@ -26,6 +26,7 @@ import { withSentry, captureException } from '../_shared/sentry.ts';
 import { pickActiveEntitlement } from '../_shared/rcEntitlement.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { logAdminAction } from '../_shared/auditLog.ts';
+import { grantProEntitlement, revokeProEntitlement, logDbError } from '../_shared/entitlement.ts';
 // ── Pricing ───────────────────────────────────────────────────────────────────
 const PLANS: Record<string, { amount_paise: number; label: string; months: number }> = {
   monthly: { amount_paise: 9900,  label: '₹99/month',  months: 1  },
@@ -313,25 +314,17 @@ serve(withSentry('novo-subscription', async (req) => {
       : (() => { const d = new Date(); d.setDate(d.getDate() + planDays); return d; })();
 
     if (eventType === 'INITIAL_PURCHASE' || eventType === 'RENEWAL' || eventType === 'UNCANCELLATION') {
-      // Upsert subscription row keyed on (user_id, store) to handle renewals idempotently
       const store = (rcEvent?.store ?? 'PLAY_STORE') as string;
-      await supabase.from('subscriptions').upsert({
-        user_id:      userId,
-        plan,
-        status:       'active',
-        store,
-        expires_at:   expiresAt.toISOString(),
-        rc_event_id:  rcEvent?.id as string ?? null,
-      }, { onConflict: 'user_id,store' }).catch(e =>
-        console.error('[rc_webhook] sub upsert failed:', e?.message)
-      );
-
-      await supabase.from('profiles').update({
-        is_pro:         true,
-        pro_expires_at: expiresAt.toISOString(),
-      }).eq('id', userId).catch(e =>
-        console.error('[rc_webhook] profile update failed:', e?.message)
-      );
+      // Entitlement flag first (what the app gates on), then bookkeeping — see _shared/entitlement.ts.
+      const outcome = await grantProEntitlement(supabase, {
+        userId, plan, store, expiresAt, rcEventId: (rcEvent?.id as string | undefined) ?? null,
+      });
+      if (!outcome.entitlementGranted) {
+        // Non-2xx so RevenueCat retries this event; never acknowledge a grant that did not happen.
+        console.error('[rc_webhook] entitlement NOT granted:', outcome.errors.join('; '));
+        return json({ error: 'entitlement_not_granted' }, 500);
+      }
+      if (outcome.errors.length) console.error('[rc_webhook] bookkeeping issues:', outcome.errors.join('; '));
 
       if (eventType === 'INITIAL_PURCHASE') {
         await supabase.from('novo_memories').insert({
@@ -340,7 +333,7 @@ serve(withSentry('novo-subscription', async (req) => {
           content:     `Upgraded to Novo Pro (${plan}) via ${store} — now has unlimited AI, voice mode, and advanced analytics`,
           importance:  8,
           source:      'system',
-        }).catch(e => console.error('[rc_webhook] milestone memory insert failed:', e?.message));
+        }).then(logDbError('[rc_webhook] milestone memory insert failed:'));
       }
     }
 
@@ -350,7 +343,7 @@ serve(withSentry('novo-subscription', async (req) => {
         .update({ status: 'cancelled' })
         .eq('user_id', userId)
         .eq('status', 'active')
-        .catch(e => console.error('[rc_webhook] cancel update failed:', e?.message));
+        .then(logDbError('[rc_webhook] cancel update failed:'));
       await logAdminAction(supabase, {
         actorId: userId, actorRole: 'service',
         action: 'subscription_cancelled', source: 'novo-subscription:rc_webhook',
@@ -359,22 +352,15 @@ serve(withSentry('novo-subscription', async (req) => {
 
     if (eventType === 'EXPIRATION') {
       // Subscription fully expired — revoke Pro access
-      await supabase.from('subscriptions')
-        .update({ status: 'expired' })
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .catch(e => console.error('[rc_webhook] expire update failed:', e?.message));
+      const revoked = await revokeProEntitlement(supabase, userId);
+      if (!revoked.entitlementGranted) {
+        console.error('[rc_webhook] revoke failed:', revoked.errors.join('; '));
+        return json({ error: 'revoke_failed' }, 500);
+      }
       await logAdminAction(supabase, {
         actorId: userId, actorRole: 'service',
         action: 'subscription_expired', source: 'novo-subscription:rc_webhook',
       });
-
-      await supabase.from('profiles').update({
-        is_pro:         false,
-        pro_expires_at: null,
-      }).eq('id', userId).catch(e =>
-        console.error('[rc_webhook] profile revoke failed:', e?.message)
-      );
     }
 
     if (eventType === 'BILLING_ISSUE') {
@@ -389,13 +375,11 @@ serve(withSentry('novo-subscription', async (req) => {
         .update({ plan, expires_at: expiresAt.toISOString() })
         .eq('user_id', userId)
         .eq('status', 'active')
-        .catch(e => console.error('[rc_webhook] product_change update failed:', e?.message));
+        .then(logDbError('[rc_webhook] product_change update failed:'));
 
       await supabase.from('profiles').update({
         pro_expires_at: expiresAt.toISOString(),
-      }).eq('id', userId).catch(e =>
-        console.error('[rc_webhook] product_change profile update failed:', e?.message)
-      );
+      }).eq('id', userId).then(logDbError('[rc_webhook] product_change profile update failed:'));
     }
 
     if (eventType === 'TRANSFER') {
@@ -404,13 +388,9 @@ serve(withSentry('novo-subscription', async (req) => {
       const newUserId = rcEvent?.transferred_to as string | undefined;
       if (newUserId) {
         await supabase.from('profiles').update({ is_pro: false, pro_expires_at: null })
-          .eq('id', userId).catch(e =>
-            console.error('[rc_webhook] transfer revoke (old user) failed:', e?.message)
-          );
+          .eq('id', userId).then(logDbError('[rc_webhook] transfer revoke (old user) failed:'));
         await supabase.from('profiles').update({ is_pro: true, pro_expires_at: expiresAt.toISOString() })
-          .eq('id', newUserId).catch(e =>
-            console.error('[rc_webhook] transfer grant (new user) failed:', e?.message)
-          );
+          .eq('id', newUserId).then(logDbError('[rc_webhook] transfer grant (new user) failed:'));
         console.log(`[rc_webhook] TRANSFER from ${userId} to ${newUserId}`);
       }
     }
@@ -482,7 +462,7 @@ serve(withSentry('novo-subscription', async (req) => {
       amount_paise:      planDetails.amount_paise,
       currency:          'INR',
     }, { onConflict: 'razorpay_order_id' })
-      .catch(err => console.error('[create_order] pending record failed:', err?.message));
+      .then(logDbError('[create_order] pending record failed:'));
 
     return json({
       order_id:    order.id,
@@ -595,7 +575,7 @@ serve(withSentry('novo-subscription', async (req) => {
       content:     `Upgraded to Novo Pro (${planDetails.label}) — now has access to voice mode, advanced analytics, and unlimited certifications`,
       importance:  8,
       source:      'system',
-    }).catch(e => console.error('[verify_payment] milestone memory insert failed:', e?.message));
+    }).then(logDbError('[verify_payment] milestone memory insert failed:'));
 
     return json({ subscription: sub, pro_active: true, expires_at: expiresAt.toISOString() });
   }
@@ -620,9 +600,7 @@ serve(withSentry('novo-subscription', async (req) => {
       await supabase.from('profiles').update({
         is_pro:         true,
         pro_expires_at: active.expires_at,
-      }).eq('id', user.id).catch(err =>
-        console.error('[get_status] self-heal failed:', err?.message)
-      );
+      }).eq('id', user.id).then(logDbError('[get_status] self-heal failed:'));
     }
 
     return json({
@@ -675,20 +653,14 @@ serve(withSentry('novo-subscription', async (req) => {
       ? new Date(entitlement.expires_date)
       : (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 99); return d; })(); // lifetime
 
-    await supabase.from('subscriptions').upsert({
-      user_id:    user.id,
-      plan,
-      status:     'active',
-      store:      entitlement.store,
-      expires_at: expiresAt.toISOString(),
-    }, { onConflict: 'user_id,store' }).catch(e =>
-      console.error('[verify_revenuecat] subscription upsert failed:', e?.message)
-    );
-
-    await supabase.from('profiles').update({
-      is_pro:         true,
-      pro_expires_at: expiresAt.toISOString(),
-    }).eq('id', user.id);
+    const outcome = await grantProEntitlement(supabase, {
+      userId: user.id, plan, store: (entitlement.store as string | undefined) ?? null, expiresAt,
+    });
+    if (!outcome.entitlementGranted) {
+      console.error('[verify_revenuecat] entitlement NOT granted:', outcome.errors.join('; '));
+      return json({ error: 'entitlement_sync_failed', pro_active: false }, 500);
+    }
+    if (outcome.errors.length) console.error('[verify_revenuecat] bookkeeping issues:', outcome.errors.join('; '));
 
     return json({ pro_active: true, expires_at: expiresAt.toISOString(), plan });
   }
@@ -710,7 +682,7 @@ serve(withSentry('novo-subscription', async (req) => {
         .limit(1)
         .maybeSingle();
 
-      const stillActive = activeSub && new Date(activeSub.expires_at as string) > new Date();
+      const stillActive = !!activeSub && new Date(activeSub.expires_at as string) > new Date();
       return json({
         pro_active: stillActive,
         expires_at: activeSub?.expires_at ?? null,
@@ -724,22 +696,15 @@ serve(withSentry('novo-subscription', async (req) => {
       ? new Date(entitlement.expires_date)
       : (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 99); return d; })();
 
-    await supabase.from('profiles').update({
-      is_pro:         true,
-      pro_expires_at: expiresAt.toISOString(),
-    }).eq('id', user.id).catch(e =>
-      console.error('[restore_purchases] profile update failed:', e?.message)
-    );
-
-    await supabase.from('subscriptions').upsert({
-      user_id:    user.id,
-      plan,
-      status:     'active',
-      store:      entitlement.store,
-      expires_at: expiresAt.toISOString(),
-    }, { onConflict: 'user_id,store' }).catch(e =>
-      console.error('[restore_purchases] subscription upsert failed:', e?.message)
-    );
+    const outcome = await grantProEntitlement(supabase, {
+      userId: user.id, plan, store: (entitlement.store as string | undefined) ?? null, expiresAt,
+    });
+    if (!outcome.entitlementGranted) {
+      // Never tell the client "restored" when the backend flag was not written.
+      console.error('[restore_purchases] entitlement NOT granted:', outcome.errors.join('; '));
+      return json({ error: 'entitlement_sync_failed', pro_active: false }, 500);
+    }
+    if (outcome.errors.length) console.error('[restore_purchases] bookkeeping issues:', outcome.errors.join('; '));
 
     return json({ pro_active: true, expires_at: expiresAt.toISOString(), plan, source: 'revenuecat_restore' });
   }

@@ -1,0 +1,13 @@
+-- HELD — DO NOT MOVE INTO supabase/migrations/ AND DO NOT APPLY TO PRODUCTION.
+--
+-- Additive, tracked, tested in the local mirror (scripts/v5/day1). It is held
+-- because applying it to production while legacy (4.0.0/4.1.x) clients are in
+-- the field would knowingly introduce a production integrity defect: those
+-- clients would start saving every completed quiz TWICE and awarding XP TWICE
+-- (reproduced: docs/product/evidence/day1/01_old_flow_reproduction.txt, S1).
+-- Founder decision D-7 (rejected): no knowingly shipping that, even temporarily.
+--
+-- The V5 client does not need this column (complete_quiz_session does not use it).
+-- Only a coordinated 4.0.1 hotfix that replaces the legacy quiz write path
+-- makes this column safe, and by then it is also unnecessary.
+alter table public.quiz_sessions add column if not exists score_pct numeric;
