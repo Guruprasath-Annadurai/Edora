@@ -282,17 +282,19 @@ export async function parseAndExecuteActions(reply: string, userId: string): Pro
       const [topic, subject] = args;
       await supabase.from('novo_memories').insert({
         user_id: userId,
-        type: 'weakness',
+        memory_type: 'learning_pattern',
+        source: 'chat',
         topic: topic ?? null,
         subject: subject ?? null,
         content: `Auto-logged weak area: ${topic}`,
         created_at: new Date().toISOString() });
     } else if (actionType === 'SCHEDULE' && args.length >= 1) {
       const [topic, subject] = args;
-      // Log as a weak memory so revision planner can pick it up
+      // Log as an academic goal so revision planner can pick it up
       await supabase.from('novo_memories').insert({
         user_id: userId,
-        type: 'schedule_request',
+        memory_type: 'academic_goal',
+        source: 'chat',
         topic: topic ?? null,
         subject: subject ?? null,
         content: `Novo suggested scheduling: ${topic}`,

@@ -240,19 +240,13 @@ serve(withSentry('novo-memory', async (req) => {
     const { current_topic } = body; // optional: topic the student is studying now
     const now = new Date().toISOString();
 
-    // If we have a topic, embed it for semantic ranking
-    let topicEmbedding: number[] | null = null;
-    if (current_topic && typeof current_topic === 'string') {
-      topicEmbedding = await embedText(current_topic);
-    }
-
-    // Run semantic search + standard queries in parallel
-    const [weaknessRes, strengthRes, summaryRes, profileRes, topicStatsRes, semanticRes] = await Promise.all([
+    // Run standard memory queries in parallel (semantic search deferred for V5 pending embedding migration)
+    const [weaknessRes, strengthRes, summaryRes, profileRes, topicStatsRes] = await Promise.all([
       supabase
         .from('novo_memories')
         .select('id,content,subject,topic,importance')
         .eq('user_id', user.id)
-        .eq('memory_type', 'struggle')
+        .eq('memory_type', 'learning_pattern')
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order('importance', { ascending: false })
         .order('created_at', { ascending: false })
@@ -262,7 +256,7 @@ serve(withSentry('novo-memory', async (req) => {
         .from('novo_memories')
         .select('id,content,subject,topic,importance')
         .eq('user_id', user.id)
-        .eq('memory_type', 'strength')
+        .eq('memory_type', 'achievement')
         .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order('importance', { ascending: false })
         .order('created_at', { ascending: false })
@@ -287,24 +281,15 @@ serve(withSentry('novo-memory', async (req) => {
         .eq('user_id', user.id)
         .order('struggle_count', { ascending: false })
         .limit(10),
-
-      // Semantic search — only fires if we have an embedding
-      topicEmbedding
-        ? supabase.rpc('search_novo_memories', {
-            p_user_id:   user.id,
-            p_embedding: `[${topicEmbedding.join(',')}]`,
-            p_limit:     6,
-            p_min_sim:   0.65,
-          })
-        : Promise.resolve({ data: null, error: null }),
     ]);
+
+    const semanticHits: Array<{ id: string; content: string; memory_type: string; subject: string | null; topic: string | null; importance: number; similarity: number }> = [];
 
     const weaknesses      = weaknessRes.data ?? [];
     const strengths       = strengthRes.data ?? [];
     const summaries       = summaryRes.data ?? [];
     const profile         = profileRes.data;
     const topicStats      = topicStatsRes.data ?? [];
-    const semanticHits    = (semanticRes.data ?? []) as Array<{ id: string; content: string; memory_type: string; subject: string | null; topic: string | null; importance: number; similarity: number }>;
     const explanationStyle = profile?.explanation_style ?? 'balanced';
     const studentName     = profile?.full_name?.split(' ')[0] ?? 'there';
 
@@ -423,9 +408,6 @@ serve(withSentry('novo-memory', async (req) => {
       return json({ memory: { id: dup.id }, deduplicated: true });
     }
 
-    // Generate embedding asynchronously — don't block the save on it
-    const embedding = await embedText(`${canonicalType}: ${content}${subject ? ` (${subject})` : ''}`);
-
     const safeSource = source && ['chat','sprint','quiz','tutoring','debate','system'].includes(source) ? source : 'chat';
     const { data, error } = await supabase
       .from('novo_memories')
@@ -437,7 +419,6 @@ serve(withSentry('novo-memory', async (req) => {
         topic,
         importance,
         source: safeSource,
-        embedding: embedding ? `[${embedding.join(',')}]` : null,
       })
       .select('id').single();
     if (error) return json({ error: error.message }, 500);
@@ -543,8 +524,6 @@ ${convo}
       const subj    = m.subject || subject || null;
       const dup     = await findDuplicate(supabase, user.id, content, canonicalType, subj);
       if (dup) { if (imp > dup.importance) await supabase.from('novo_memories').update({ importance: imp }).eq('id', dup.id); continue; }
-      // Generate embedding for semantic search
-      const embedding = await embedText(`${canonicalType}: ${content}${subj ? ` (${subj})` : ''}`);
       const safeSource = source && ['chat','sprint','quiz','tutoring','debate','system'].includes(source) ? source : 'chat';
       const { error } = await supabase.from('novo_memories').insert({
         user_id: user.id,
@@ -554,7 +533,6 @@ ${convo}
         topic: m.topic || null,
         importance: imp,
         source: safeSource,
-        embedding: embedding ? `[${embedding.join(',')}]` : null,
       });
       if (!error) saved++;
     }
