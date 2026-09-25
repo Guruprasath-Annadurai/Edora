@@ -1,5 +1,10 @@
-import { assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
-import { isTrustedPyqCandidate, buildCandidateQuery } from './index.ts';
+import { assertEquals, assertNotEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
+import {
+  isTrustedPyqCandidate,
+  buildCandidateQuery,
+  buildConfigKey,
+  PYQ_TRUST_VERSION,
+} from './index.ts';
 
 Deno.test('mock-paper-composer candidate selection: unreviewed questions excluded', () => {
   const row = {
@@ -87,4 +92,42 @@ Deno.test('mock-paper-composer buildCandidateQuery applies strict filter chain',
   assertEquals(calls[6], { method: 'eq', args: ['is_reviewed', true] });
   assertEquals(calls[7], { method: 'in', args: ['validation_state', ['ai_reviewed_ok', 'human_verified']] });
   assertEquals(calls[8], { method: 'limit', args: [40] });
+});
+
+Deno.test('mock-paper-composer cache trust versioning: old cache key is NOT reused', () => {
+  const sections = [{ subject: 'Physics', count: 10 }];
+  const oldLegacyKey = JSON.stringify({
+    exam: 'JEE',
+    skew: 'balanced',
+    sections: sections.map(s => ({ subject: s.subject, count: s.count })),
+  });
+
+  const newTrustedKey = buildConfigKey('JEE', 'balanced', sections);
+
+  // Must differ because new key incorporates trustVersion
+  assertNotEquals(oldLegacyKey, newTrustedKey);
+  assertEquals(newTrustedKey.includes(PYQ_TRUST_VERSION), true);
+  assertEquals(oldLegacyKey.includes(PYQ_TRUST_VERSION), false);
+});
+
+Deno.test('mock-paper-composer cache trust versioning: new trusted cache is deterministic and reused', () => {
+  const sections = [{ subject: 'Maths', count: 5 }, { subject: 'Chemistry', count: 5 }];
+  const key1 = buildConfigKey('NEET', 'hard', sections);
+  const key2 = buildConfigKey('NEET', 'hard', sections);
+
+  assertEquals(key1, key2);
+});
+
+Deno.test('mock-paper-composer: unreviewed candidate can NEVER pass pool trust filter into cached paper', () => {
+  const candidatePool = [
+    { id: 'q1', is_active: true, is_reviewed: true, flagged_for_review: false, validation_state: 'ai_reviewed_ok' },
+    { id: 'q2', is_active: true, is_reviewed: false, flagged_for_review: false, validation_state: 'unreviewed' },
+    { id: 'q3', is_active: true, is_reviewed: true, flagged_for_review: true, validation_state: 'ai_flagged' },
+    { id: 'q4', is_active: true, is_reviewed: true, flagged_for_review: false, validation_state: 'human_verified' },
+    { id: 'q5', is_active: false, is_reviewed: true, flagged_for_review: false, validation_state: 'rejected' },
+  ];
+
+  const trustedCandidates = candidatePool.filter(isTrustedPyqCandidate);
+
+  assertEquals(trustedCandidates.map(c => c.id), ['q1', 'q4']);
 });

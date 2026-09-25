@@ -99,6 +99,22 @@ export function buildCandidateQuery(
     .limit(limit);
 }
 
+export const PYQ_TRUST_VERSION = 'v5-reviewed-only-1';
+
+export function buildConfigKey(
+  exam: string,
+  skew: string,
+  sections: { subject: string; count: number }[],
+  trustVersion: string = PYQ_TRUST_VERSION,
+): string {
+  return JSON.stringify({
+    trustVersion,
+    exam,
+    skew,
+    sections: sections.map(s => ({ subject: s.subject, count: s.count })),
+  });
+}
+
 export const handler = withSentry('mock-paper-composer', async (req) => {
   const CORS = getCors(req);
   const json = (data: unknown, status = 200) =>
@@ -131,7 +147,7 @@ export const handler = withSentry('mock-paper-composer', async (req) => {
   const rl = await checkRateLimit(supabase, user.id, 'mock_paper_composer', 20, 60);
   if (!rl.allowed) return json({ error: 'Too many requests. Try again later.', retry_after_secs: rl.retryAfterSecs }, 429);
 
-  const configKey = JSON.stringify({ exam, skew, sections: sections.map(s => ({ subject: s.subject, count: s.count })) });
+  const configKey = buildConfigKey(exam, skew, sections);
   const configHash = await sha256Hex(configKey);
   const variant = Math.floor(Math.random() * VARIANT_COUNT);
   const paperKey = `${configHash}_v${variant}`;
