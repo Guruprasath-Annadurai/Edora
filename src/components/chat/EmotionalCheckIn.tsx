@@ -4,6 +4,7 @@ import { Target, Flame, Moon, CloudRain, Brain, Wind, type LucideIcon } from 'lu
 import { spring, stagger } from '@/lib/motion';
 import { supabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -210,6 +211,7 @@ interface EmotionalCheckInProps {
 export function EmotionalCheckIn({ userId, firstName, onComplete, onSkip }: EmotionalCheckInProps) {
   const [_selected, setSelected] = useState<CheckInMood | null>(null);
   const [phase, setPhase] = useState<'pick' | 'breathing' | 'done'>('pick');
+  useBackHandler(true, () => { onSkip(); return true; }, 80);
 
   async function handleMoodSelect(mood: CheckInMood) {
     setSelected(mood);

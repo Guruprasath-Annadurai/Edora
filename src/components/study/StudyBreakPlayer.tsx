@@ -6,6 +6,7 @@ import { Capacitor } from '@capacitor/core';
 import { track } from '@/lib/analytics';
 import { YouTubeSearchPanel } from './YouTubeSearchPanel';
 import type { YouTubeTrack } from '@/lib/youtubeSearch';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 type Source = 'curated' | 'search';
 
@@ -54,6 +55,8 @@ export function StudyBreakPlayer({ open, onClose, breakMin = 10, mood = null, en
   const [playing, setPlaying]         = useState(false);
   const [remaining, setRemaining]     = useState(totalSecs);
   const [ended, setEnded]             = useState(false);
+  // enforced breaks cannot be skipped: Back is swallowed (nothing navigates underneath) but does not close it
+  useBackHandler(open, () => { if (!enforceBreak || ended) onClose(); return true; }, 90);
   const [nowPlaying, setNowPlaying]   = useState<YouTubeTrack | null>(null);
   const playerRef = useRef<HTMLIFrameElement>(null);
 

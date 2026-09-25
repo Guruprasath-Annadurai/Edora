@@ -17,6 +17,9 @@ import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import { Link } from 'react-router-dom';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { useBackHandler } from '@/hooks/useBackStack';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 
 const CONSENT_VERSION = 'v2026.06';
 
@@ -34,6 +37,8 @@ export default function DPDPConsentModal({ userId, onAccepted }: Props) {
   const [saving, setSaving]           = useState(false);
   const [parentEmail, setParentEmail] = useState('');
   const [parentSent, setParentSent]   = useState(false);
+  // Consent is mandatory: Back must not navigate underneath it. It is swallowed; on Android the app is minimised instead.
+  useBackHandler(true, () => { if (Capacitor.getPlatform() === 'android') void CapApp.minimizeApp(); return true; }, 95);
 
   const allChecked = checked.processing && checked.rights && checked.ai;
 

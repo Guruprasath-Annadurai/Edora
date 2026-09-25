@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
+import { examDisplayName } from '@/lib/examTargets';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -136,7 +137,7 @@ export default function MockPostmortemPage() {
   const [loading,       setLoading]       = useState(true);
   const [activeTab,     setActiveTab]     = useState<'batting' | 'radar' | 'coach'>('batting');
 
-  const examName = profile?.exam_name ?? 'JEE';
+  const examName = examDisplayName(profile?.exam_name);
 
   useEffect(() => {
     if (!user) return;

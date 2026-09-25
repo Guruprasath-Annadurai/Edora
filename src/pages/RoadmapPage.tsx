@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/analytics';
 import { OfflineCache } from '@/lib/offlineCache';
 import { useTheme } from '@/contexts/ThemeContext';
+import { isGeneralExam } from '@/lib/examTargets';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RoadmapDay {
@@ -404,7 +405,7 @@ export default function RoadmapPage() {
         return;
       }
       // Pre-fill from profile
-      setExamName(profile?.exam_name ?? '');
+      setExamName(isGeneralExam(profile?.exam_name) ? '' : (profile?.exam_name ?? ''));   // GENERAL is not a typeable exam
       setExamDate(profile?.exam_date ?? '');
       setPhase('setup');
     }

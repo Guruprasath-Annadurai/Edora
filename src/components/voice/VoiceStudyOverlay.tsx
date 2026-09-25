@@ -12,6 +12,7 @@ import { useVoiceStudy, VoicePhase, VOICE_SYSTEM_PROMPTS } from '@/hooks/useVoic
 import type { LanguageOption } from '@/hooks/useLanguage';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { getLangInstruction } from '@/lib/language';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 interface VoiceStudyOverlayProps {
   visible: boolean;
@@ -97,6 +98,7 @@ export default function VoiceStudyOverlay({ visible, mode, userId, onClose, lang
   const [voiceMode, setVoiceMode] = useState<'study' | 'quiz'>('study');
   const [quizTopic, setQuizTopic] = useState('');
   const [quizStarted, setQuizStarted] = useState(false);
+  useBackHandler(visible, () => { handleClose(); return true; }, 90);
 
   // langOption already drives which STT path transcribes the student's speech
   // (see useVoiceStudy's useGcpStt) but was never propagated to the reply

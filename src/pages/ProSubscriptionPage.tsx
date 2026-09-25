@@ -17,6 +17,7 @@ import { maybePromptRating } from '@/lib/appRating';
 import { usePricingVariant, usePaywallCTAVariant } from '@/hooks/useExperiment';
 import { trackConversion, getPricingConfig } from '@/lib/experiments';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ANNUAL_PLAN_SUBLABEL, ANNUAL_SAVINGS_PCT } from '@/lib/proPricing';
 
 // Razorpay checkout SDK (loaded dynamically to avoid SSR issues)
 declare global {
@@ -71,9 +72,9 @@ const PLANS = {
     id: 'annual' as const,
     label: 'Annual',
     price: '₹699',
-    subLabel: 'per year · just ₹58/month',
+    subLabel: ANNUAL_PLAN_SUBLABEL,
     paise: 69900,
-    badge: 'Save 41%',
+    badge: `Save ${ANNUAL_SAVINGS_PCT}%`,
     savings: 'Most JEE toppers prep for 18 months. ₹699 covers your entire journey — less than one coaching class.',
     legalLine: 'Subscription renews automatically every year at ₹699 until cancelled.',
   },

@@ -8,6 +8,7 @@ import { NovoAvatar } from '@/components/novo/NovoAvatar';
 import { isInFreeTrial } from '@/lib/trial';
 import { useBackHandler } from '@/hooks/useBackStack';
 import { useAppFlag } from '@/hooks/useAppFlags';
+import { PRO_PRICE_LINE } from '@/lib/proPricing';
 
 interface ProGateProps {
   /** Feature name shown in the paywall header */
@@ -77,7 +78,7 @@ function InlinePaywall({ featureName, featureDesc }: { featureName: string; feat
         </motion.button>
 
         <p className="text-xs" style={{ color: 'var(--ink-500)' }}>
-          From ₹58/month · Cancel anytime
+          {PRO_PRICE_LINE}
         </p>
         </>)}
       </motion.div>
@@ -154,7 +155,7 @@ function SheetPaywall({
             </motion.button>
 
             <p className="text-center text-xs" style={{ color: 'var(--ink-500)' }}>
-              From ₹58/month · Cancel anytime
+              {PRO_PRICE_LINE}
             </p>
             </>)}
           </motion.div>

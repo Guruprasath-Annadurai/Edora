@@ -5,12 +5,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { LANGUAGE_NAMES, LANGUAGE_NATIVE, type AppLanguage } from '@/lib/language';
 import { track } from '@/lib/analytics';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 const LANGUAGES = Object.entries(LANGUAGE_NAMES) as [AppLanguage, string][];
 
 export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   const { profile, setProfile } = useAuth();
   const [open, setOpen]       = useState(false);
+  useBackHandler(open, () => { setOpen(false); return true; }, 70);
   const [saving, setSaving]   = useState(false);
 
   const current = (profile?.preferred_language ?? 'en') as AppLanguage;

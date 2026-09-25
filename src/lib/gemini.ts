@@ -5,6 +5,7 @@
 
 import * as Sentry from '@sentry/react';
 import { supabase } from '@/lib/supabase';
+import { AiGenerationPausedError } from '@/lib/aiGeneration';
 
 // Adaptive timeout based on network quality (navigator.connection is non-standard but widely available on Android)
 function getRequestTimeoutMs(): number {
@@ -135,6 +136,7 @@ export async function geminiCall(prompt: string, options: GeminiOptions = {}): P
         throw new GeminiRateLimitError();
       }
 
+      if ((error as unknown) instanceof AiGenerationPausedError) throw error;   // flag off: no request was made, no retry
       if (error) {
         // supabase-js hides the JSON body of a non-2xx response inside error.context (a Response).
         try {
@@ -155,7 +157,7 @@ export async function geminiCall(prompt: string, options: GeminiOptions = {}): P
 
     } catch (err) {
       // Re-throw typed errors — no retry
-      if (err instanceof GeminiRateLimitError || err instanceof GeminiBusyError) throw err;
+      if (err instanceof GeminiRateLimitError || err instanceof GeminiBusyError || err instanceof AiGenerationPausedError) throw err;
       // Timeout
       if (err instanceof Error && (err.name === 'AbortError' || err.message === 'AbortError')) {
         throw new GeminiTimeoutError();

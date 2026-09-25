@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
+import { examDisplayName } from '@/lib/examTargets';
 
 interface Flashcard {
   id: string;
@@ -533,7 +534,7 @@ export default function SleepReviewPage() {
         const days = Math.ceil((new Date(profileRes.data.exam_date).getTime() - Date.now()) / 86400000);
         if (days > 0 && days <= 7) {
           setExamDaysLeft(days);
-          setExamName((profileRes.data as { exam_date: string; exam_name?: string }).exam_name ?? 'Your Exam');
+          setExamName(examDisplayName((profileRes.data as { exam_date: string; exam_name?: string }).exam_name));
         }
       }
 

@@ -45,6 +45,9 @@ import { ProactiveBanner } from '@/components/chat/ProactiveBanner';
 import { PersonalityCards } from '@/components/chat/PersonalityCards';
 import { PersonalitySheet } from '@/components/chat/PersonalitySheet';
 import { useAppFlag } from '@/hooks/useAppFlags';
+import { AI_PAUSED_MESSAGE } from '@/lib/aiGeneration';
+import { examDisplayName } from '@/lib/examTargets';
+import { PRO_PRICE_LINE } from '@/lib/proPricing';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -73,6 +76,7 @@ interface Message {
 
 export default function ChatPage() {
   const proEnabled = useAppFlag('pro_enabled');
+  const aiGenEnabled = useAppFlag('ai_generation_enabled');
   const navigate = useNavigate();
   const { profile, user }   = useAuth();
   const { speak, getState } = useNovoTTS();
@@ -401,7 +405,13 @@ export default function ChatPage() {
 
   // ── Quiz generation ──────────────────────────────────────────────────────
 
+  // ai_generation_enabled=false: say so calmly in the thread; no request is made (the invoke guard is the backstop).
+  function replyGenerationPaused() {
+    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: AI_PAUSED_MESSAGE, displayContent: AI_PAUSED_MESSAGE, timestamp: new Date() }]);
+  }
+
   async function handleQuizIntent(topic: string, _userMsgId: string) {
+    if (!aiGenEnabled) { replyGenerationPaused(); return; }
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -491,6 +501,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
 
   async function handleSnapSolve(source: typeof CameraSource.Camera | typeof CameraSource.Photos = CameraSource.Camera) {
     if (snapSolving) return;
+    if (!aiGenEnabled) { replyGenerationPaused(); return; }
     try {
       const photo = await CapCamera.getPhoto({
         resultType: CameraResultType.DataUrl,
@@ -894,7 +905,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
               <NovoEmptyState
                 key="empty-state"
                 firstName={firstName}
-                examName={profile?.exam_name ?? null}
+                examName={profile ? examDisplayName(profile.exam_name) : null}
                 streak={profile?.streak_count ?? 0}
                 personality={personality}
                 personalityLabel={cfg.label}
@@ -1333,7 +1344,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
                 <Crown size={15} /> Upgrade to Pro
               </motion.button>
               <p className="text-center text-xs" style={{ color: 'var(--ink-500)' }}>
-                From ₹58/month · Cancel anytime
+                {PRO_PRICE_LINE}
               </p>
               </>)}
             </motion.div>

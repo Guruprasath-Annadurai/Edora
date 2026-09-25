@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
+import { guardFunctionsInvoke } from '@/lib/aiGeneration';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -29,3 +30,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     flowType: 'pkce',
   },
 });
+
+// ai_generation_enabled=false: refuse AI-generation Edge Function calls before any request is made.
+guardFunctionsInvoke(supabase.functions as unknown as Parameters<typeof guardFunctionsInvoke>[0]);

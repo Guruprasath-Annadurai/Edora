@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, X, BookOpen, Atom, Calculator, FlaskConical, Microscope, Code2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 const SUBJECTS = [
   { label: 'Math',     value: 'Mathematics',        Icon: Calculator,   color: '#93C5FD', bg: 'rgba(59,130,246,0.15)'  },
@@ -17,6 +18,7 @@ export function QuickStartFAB() {
   const { user }    = useAuth();
   const navigate    = useNavigate();
   const [open, setOpen]     = useState(false);
+  useBackHandler(open, () => { setOpen(false); return true; }, 70);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [hiddenByOverlay, setHiddenByOverlay] = useState(false);

@@ -7,7 +7,18 @@
 import { resolveExamName, normaliseExamDate } from '@/lib/examTargets';
 
 export const ONBOARDING_VERSION = 'v5';
-export const NEW_USER_WINDOW_MS = 24 * 60 * 60 * 1000;
+/**
+ * Fixed product-cohort cutoff (V5 onboarding activation point), NOT a rolling window.
+ *  - profile created BEFORE this instant  = pre-V5 learner: never forced through onboarding
+ *    (GENERAL/NULL exam gets the dismissible exam nudge instead).
+ *  - profile created AT/AFTER it and no `study_preferences.onboarding_completed_at` marker = V5-era learner:
+ *    sent to onboarding whenever they next open the app (2 hours, 2 days or 2 weeks later — no expiry).
+ * Basis: production had 42 profiles, the newest created 2026-08-31, so 2026-09-27 00:00 UTC is after every
+ * existing learner. Set this to the release date at the release gate if it needs to move (must be <= the day
+ * the V5 build reaches users; a later-than-release value would let early V5 signups skip onboarding).
+ */
+export const V5_ONBOARDING_COHORT_CUTOFF_ISO = '2026-09-27T00:00:00.000Z';
+const V5_ONBOARDING_COHORT_CUTOFF_MS = Date.parse(V5_ONBOARDING_COHORT_CUTOFF_ISO);
 export const STUDY_LEVELS = ['school', 'college', 'jee_neet', 'sat_act'] as const;
 export type StudyLevel = typeof STUDY_LEVELS[number];
 
@@ -83,12 +94,13 @@ export function hasCompletedOnboarding(p: ProfileForGate | null | undefined): bo
 }
 
 /**
- * Only a brand-new account (created within 24 h) that has not completed V5 onboarding is sent to it.
- * Existing learners are NEVER forced through onboarding; they get a gentle exam-target nudge instead.
+ * True for a V5-era account (created at/after the fixed cutoff) that has not completed onboarding.
+ * Safe behaviour: a missing or unparsable created_at, or a missing profile, is treated as "pre-V5" —
+ * we never trap a learner in onboarding because of bad data.
  */
-export function needsOnboarding(p: ProfileForGate | null | undefined, now: number = Date.now()): boolean {
+export function needsOnboarding(p: ProfileForGate | null | undefined): boolean {
   if (!p || hasCompletedOnboarding(p)) return false;
   const created = p.created_at ? Date.parse(p.created_at) : NaN;
   if (Number.isNaN(created)) return false;
-  return now - created < NEW_USER_WINDOW_MS;
+  return created >= V5_ONBOARDING_COHORT_CUTOFF_MS;
 }

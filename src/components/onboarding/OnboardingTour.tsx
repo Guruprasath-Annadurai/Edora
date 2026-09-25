@@ -14,6 +14,7 @@ import {
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 async function haptic() {
   try { await Haptics.impact({ style: ImpactStyle.Light }); } catch { /* web */ }
@@ -246,6 +247,7 @@ export function OnboardingTour({ onDone }: OnboardingTourProps) {
     setExiting(true);
     setTimeout(onDone, 280);
   }, [onDone]);
+  useBackHandler(!exiting, () => { void skip(); return true; }, 90);
 
   return (
     <AnimatePresence>

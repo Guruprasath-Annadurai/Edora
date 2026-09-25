@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Check, Loader2 } from 'lucide-react';
 import { useLanguage, SUPPORTED_LANGUAGES } from '@/hooks/useLanguage';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 interface LanguageSelectorProps {
   compact?: boolean;   // inline chip mode for header bars
@@ -11,6 +12,7 @@ interface LanguageSelectorProps {
 export function LanguageSelector({ compact = false, className = '' }: LanguageSelectorProps) {
   const { language, setLanguage, saving, langOption } = useLanguage();
   const [open, setOpen] = useState(false);
+  useBackHandler(open, () => { setOpen(false); return true; }, 70);
 
   async function select(code: string) {
     setOpen(false);

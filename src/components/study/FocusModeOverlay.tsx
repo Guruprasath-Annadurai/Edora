@@ -4,6 +4,7 @@ import { X, Pause, Play, RotateCcw } from 'lucide-react';
 import { NovoAvatar } from '@/components/novo/NovoAvatar';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 interface Props {
   open: boolean;
@@ -33,6 +34,7 @@ export function FocusModeOverlay({ open, onClose, durationMin = DEFAULT_MIN }: P
   const [running, setRunning]     = useState(false);
   const [done, setDone]           = useState(false);
   const [msgIdx, setMsgIdx]       = useState(0);
+  useBackHandler(open, () => { onClose(); return true; }, 90);
 
   // Reset when opened
   useEffect(() => {

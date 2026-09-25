@@ -5,6 +5,7 @@ import { X, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { storage } from '@/lib/storage';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 const INTERVAL_MS = 20 * 60 * 1000; // 20 minutes
 const DISMISS_KEY = 'edora_sri_last';
@@ -21,6 +22,7 @@ export function SpacedReviewInterrupt() {
   const [card, setCard]         = useState<Flashcard | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [visible, setVisible]   = useState(false);
+  useBackHandler(visible, () => { dismiss(); return true; }, 70);
 
   const fetchWeakCard = useCallback(async () => {
     if (!user) return;

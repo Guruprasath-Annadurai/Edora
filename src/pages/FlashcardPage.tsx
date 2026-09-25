@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
+import { useAppFlag } from '@/hooks/useAppFlags';
+import { AI_PAUSED_MESSAGE } from '@/lib/aiGeneration';
 import { track } from '@/lib/analytics';
 import { loadUnlockedIds, checkFlashcardCountAchievements } from '@/lib/achievements';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -52,6 +54,7 @@ export default function FlashcardPage() {
   const [newBack, setNewBack]   = useState('');
   const [subject, setSubject]   = useState('');
   const [generating, setGenerating]   = useState(false);
+  const aiEnabled = useAppFlag('ai_generation_enabled');
   const [loadingCards, setLoadingCards] = useState(false);
   const [loadError, setLoadError]       = useState('');
   const [aiTopic, setAiTopic]   = useState('');
@@ -173,6 +176,7 @@ export default function FlashcardPage() {
 
   async function generateWithAI() {
     if (!profile || !aiTopic.trim()) return;
+    if (!aiEnabled) { setAiError(AI_PAUSED_MESSAGE); return; }   // no request is made while generation is paused
     setGenerating(true); setAiError('');
     try {
       const parsed = await geminiJSON<{ front: string; back: string }[]>(
@@ -239,12 +243,15 @@ export default function FlashcardPage() {
                   value={aiTopic} onChange={e => { setAiTopic(e.target.value); setAiError(''); }}
                   className="rounded-2xl px-4 h-11 w-full text-sm outline-none text-white placeholder:text-white/30"
                   style={{ background: 'var(--ink-050)', border: '1px solid var(--ink-080)', WebkitUserSelect: 'text', userSelect: 'text' }} />
-                {aiError && (
+                {!aiEnabled && (
+                  <p role="status" className="text-xs" style={{ color: 'var(--ink-650)' }}>{AI_PAUSED_MESSAGE}</p>
+                )}
+                {aiError && aiEnabled && (
                   <div className="rounded-2xl px-3 py-2" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
                     <p className="text-xs" style={{ color: '#F87171' }}>{aiError}</p>
                   </div>
                 )}
-                <Button onClick={generateWithAI} disabled={generating || !aiTopic.trim()} className="w-full">
+                <Button onClick={generateWithAI} disabled={generating || !aiTopic.trim() || !aiEnabled} className="w-full">
                   {generating ? 'Generating…' : 'Generate 5 Cards'}
                 </Button>
               </div>

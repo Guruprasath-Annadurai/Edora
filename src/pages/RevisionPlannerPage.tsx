@@ -9,6 +9,7 @@ import { geminiJSON } from '@/lib/gemini';
 import { Toast } from '@capacitor/toast';
 import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
+import { examDisplayName } from '@/lib/examTargets';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface PlanWeek {
@@ -320,7 +321,7 @@ function PlanBuilder({ onClose, onGenerate }: { onClose: () => void; onGenerate:
         <div className="flex items-center gap-2 p-3 rounded-2xl mb-4" style={{ background: 'rgba(91,106,245,0.12)', border: '1px solid rgba(91,106,245,0.2)' }}>
           <CalendarCheck size={14} style={{ color: isLight ? '#4338CA' : '#818CF8' }} />
           <p className="text-sm text-white/80">
-            <span className="font-bold text-white">{profile?.exam_name ?? 'Exam'}</span> in {daysLeft} days
+            <span className="font-bold text-white">{examDisplayName(profile?.exam_name)}</span> in {daysLeft} days
           </p>
         </div>
       )}
@@ -424,7 +425,7 @@ export default function RevisionPlannerPage() {
     setGenerating(true);
 
     const examDate = profile.exam_date ?? new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
-    const examName = profile.exam_name ?? 'Exam';
+    const examName = examDisplayName(profile.exam_name);
     const daysLeft = Math.ceil((new Date(examDate).getTime() - Date.now()) / 86400000);
     const weeksLeft = Math.max(1, Math.ceil(daysLeft / 7));
 

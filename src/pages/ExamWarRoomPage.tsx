@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { geminiJSON } from '@/lib/gemini';
 import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
+import { examDisplayName } from '@/lib/examTargets';
 
 // ── Countdown timer hook ──────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ export default function ExamWarRoomPage() {
   const navigate = useNavigate();
 
   const examDate = profile?.exam_date ? new Date(profile.exam_date) : null;
-  const examName = profile?.exam_name ?? 'Your Exam';
+  const examName = examDisplayName(profile?.exam_name);
   const countdown = useCountdown(examDate);
 
   const [checklist, setChecklist] = useState<CheckItem[]>(() => {

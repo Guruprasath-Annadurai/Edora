@@ -27,6 +27,7 @@ import { lessonIdToLabel } from '@/hooks/useStudyContext';
 import { OnboardingTour } from '@/components/onboarding/OnboardingTour';
 import type { NovoProactiveMessage, SprintSession } from '@/types';
 import { useD30RetentionVariant } from '@/hooks/useExperiment';
+import { examDisplayName } from '@/lib/examTargets';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function daysUntil(dateStr: string) {
@@ -1277,7 +1278,7 @@ export default function HomePage() {
         {/* ── URGENT: exam ≤14 days ────────────────────────────────── */}
         {isUrgent && profile?.exam_date && examDays !== null && examDays >= 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
-            <ExamCountdownHeroCard examName={profile.exam_name ?? 'Your Exam'} days={examDays} coveragePct={coveragePct} />
+            <ExamCountdownHeroCard examName={examDisplayName(profile.exam_name)} days={examDays} coveragePct={coveragePct} />
             {weakTopics.length > 0 && <WeakTopicsSection topics={weakTopics} delay={0.08} />}
           </motion.div>
         )}
@@ -1285,7 +1286,7 @@ export default function HomePage() {
         {/* ── WAR ROOM — exam <48h ─────────────────────────────────── */}
         {isWarMode && profile?.exam_date && hoursLeft !== null && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-            <WarRoomBanner examName={profile.exam_name ?? 'Exam'} hoursLeft={Math.round(hoursLeft)} />
+            <WarRoomBanner examName={examDisplayName(profile.exam_name)} hoursLeft={Math.round(hoursLeft)} />
           </motion.div>
         )}
 
@@ -1309,7 +1310,7 @@ export default function HomePage() {
 
         {/* Non-urgent exam countdown */}
         {!isUrgent && profile?.exam_date && examDays !== null && examDays >= 0 && (
-          <ExamCountdownHeroCard examName={profile.exam_name ?? 'Your Exam'} days={examDays} coveragePct={coveragePct} />
+          <ExamCountdownHeroCard examName={examDisplayName(profile.exam_name)} days={examDays} coveragePct={coveragePct} />
         )}
 
         {/* Course resume */}

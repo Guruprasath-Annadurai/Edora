@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { DEFAULT_APP_FLAGS, getAppFlags, type AppFlags } from '@/lib/appFlags';
+import { setAiGenerationEnabled } from '@/lib/aiGeneration';
 
 // Feeds the (frozen) backend flag SDK into React. One fetch at app start, refreshed when the app is
 // resumed (the SDK itself caches for 5 min, so this is cheap). FAIL-CLOSED: until/unless flags load,
@@ -13,7 +14,7 @@ export function AppFlagsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let alive = true;
-    const refresh = () => { void getAppFlags().then(f => { if (alive) setFlags(f); }).catch(() => { /* keep current (fail-closed) */ }); };
+    const refresh = () => { void getAppFlags().then(f => { if (alive) { setFlags(f); setAiGenerationEnabled(f.ai_generation_enabled === true); } }).catch(() => { /* keep current (fail-closed) */ }); };
     refresh();
     const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
     document.addEventListener('visibilitychange', onVisible);

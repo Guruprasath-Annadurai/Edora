@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   EMPTY_DRAFT, TOTAL_STEPS, canProceed, loadDraft, saveDraft, clearDraft, buildProfileUpdate,
-  needsOnboarding, hasCompletedOnboarding, NEW_USER_WINDOW_MS, type OnboardingDraft,
+  needsOnboarding, hasCompletedOnboarding, V5_ONBOARDING_COHORT_CUTOFF_ISO, type OnboardingDraft,
 } from '@/lib/onboardingState';
 
 beforeEach(() => localStorage.clear());
@@ -62,21 +62,46 @@ describe('buildProfileUpdate only uses columns that EXIST in production', () => 
   });
 });
 
-describe('who is sent to onboarding', () => {
-  const now = Date.parse('2026-10-10T12:00:00Z');
-  const iso = (msAgo: number) => new Date(now - msAgo).toISOString();
-  it('a brand-new account without the marker IS', () => expect(needsOnboarding({ created_at: iso(60_000), study_preferences: {} }, now)).toBe(true));
-  it('an existing learner (created earlier) is NEVER forced', () => {
-    expect(needsOnboarding({ created_at: iso(NEW_USER_WINDOW_MS + 1), study_preferences: {} }, now)).toBe(false);
-    expect(needsOnboarding({ created_at: '2026-06-03T00:00:00Z', study_preferences: null }, now)).toBe(false);
+describe('who is sent to onboarding — fixed cohort cutoff, not a rolling window', () => {
+  const cutoff = Date.parse(V5_ONBOARDING_COHORT_CUTOFF_ISO);
+  const at = (msFromCutoff: number) => new Date(cutoff + msFromCutoff).toISOString();
+  const HOUR = 3_600_000, DAY = 24 * HOUR;
+
+  it('the cutoff is after every existing production learner (newest profile: 2026-08-31)', () => {
+    expect(cutoff).toBeGreaterThan(Date.parse('2026-08-31T23:59:59Z'));
   });
-  it('a learner who completed V5 onboarding is not sent again', () => {
-    const p = { created_at: iso(60_000), study_preferences: { onboarding_completed_at: '2026-10-10T11:59:00Z' } };
+  it('pre-cutoff user, no marker => NOT forced (existing users are never sent to onboarding)', () => {
+    expect(needsOnboarding({ created_at: '2026-06-03T00:00:00Z', study_preferences: {} })).toBe(false);
+    expect(needsOnboarding({ created_at: at(-1), study_preferences: null })).toBe(false);
+  });
+  it('post-cutoff user, no marker, returning 2 hours later => forced', () => {
+    expect(needsOnboarding({ created_at: at(2 * HOUR), study_preferences: {} })).toBe(true);
+  });
+  it('post-cutoff user, no marker, returning 3 days later => STILL forced (no 24 h expiry)', () => {
+    expect(needsOnboarding({ created_at: at(3 * DAY), study_preferences: {} })).toBe(true);
+  });
+  it('post-cutoff user, no marker, returning 3 WEEKS later => still forced', () => {
+    expect(needsOnboarding({ created_at: at(21 * DAY), study_preferences: null })).toBe(true);
+  });
+  it('the decision does not depend on the current time at all', () => {
+    const p = { created_at: at(HOUR), study_preferences: {} };
+    const realNow = Date.now;
+    try {
+      Date.now = () => cutoff + 400 * DAY;
+      expect(needsOnboarding(p)).toBe(true);
+    } finally { Date.now = realNow; }
+  });
+  it('post-cutoff user WITH the marker => not forced', () => {
+    const p = { created_at: at(HOUR), study_preferences: { onboarding_completed_at: at(2 * HOUR) } };
     expect(hasCompletedOnboarding(p)).toBe(true);
-    expect(needsOnboarding(p, now)).toBe(false);
+    expect(needsOnboarding(p)).toBe(false);
   });
-  it('missing profile or unparsable created_at never traps the learner', () => {
-    expect(needsOnboarding(null, now)).toBe(false);
-    expect(needsOnboarding({ created_at: 'garbage' }, now)).toBe(false);
+  it('exactly at the cutoff instant counts as V5-era', () => expect(needsOnboarding({ created_at: at(0), study_preferences: {} })).toBe(true));
+  it('invalid / missing created_at, or no profile => safe: never forced', () => {
+    expect(needsOnboarding({ created_at: 'garbage' })).toBe(false);
+    expect(needsOnboarding({ created_at: null })).toBe(false);
+    expect(needsOnboarding({})).toBe(false);
+    expect(needsOnboarding(null)).toBe(false);
+    expect(needsOnboarding(undefined)).toBe(false);
   });
 });

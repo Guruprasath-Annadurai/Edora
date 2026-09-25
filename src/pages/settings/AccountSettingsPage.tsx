@@ -14,6 +14,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { isExportEnabled, setExportEnabled } from '@/lib/exportDocs';
 import { useGmailConnector } from '@/hooks/useGmailConnector';
 import { resolveExamName } from '@/lib/examTargets';
+import { isGeneralExam } from '@/lib/examTargets';
 
 const STUDY_LEVELS = [
   { value: 'school',   label: 'School (Class 6–12)' },
@@ -30,7 +31,7 @@ export default function AccountSettingsPage() {
 
   const [name,      setName]      = useState(profile?.full_name ?? '');
   const [level,     setLevel]     = useState<'school' | 'college' | 'jee_neet' | 'sat_act'>(profile?.study_level ?? 'school');
-  const [examName,  setExamName]  = useState(profile?.exam_name ?? '');
+  const [examName,  setExamName]  = useState(isGeneralExam(profile?.exam_name) ? '' : (profile?.exam_name ?? ''));
   const [examDate,  setExamDate]  = useState(profile?.exam_date ?? '');
   const [saving,    setSaving]    = useState(false);
   const [showDelete,   setShowDelete]   = useState(false);

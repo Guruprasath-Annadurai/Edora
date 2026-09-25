@@ -18,6 +18,8 @@ import { markMissionTaskComplete } from '@/lib/dailyMission';
 import { ReportButton } from '@/components/ui/ReportButton';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { QuizQuestion } from '@/types';
+import { useBackHandler } from '@/hooks/useBackStack';
+import { decideQuizBack, QUIZ_LEAVE_COPY } from '@/lib/quizExit';
 
 interface QuizDraft {
   topic: string;
@@ -126,6 +128,7 @@ export default function QuizPage() {
   const { theme }         = useTheme();
   const isLight           = theme === 'light';
   const [phase, setPhase] = useState<Phase>('setup');
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const [topic, setTopic] = useState('');
   const [count, setCount] = useState(5);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -133,6 +136,26 @@ export default function QuizPage() {
   const [selected, setSelected]   = useState<number | null>(null);
   const [answers, setAnswers]     = useState<number[]>([]);
   const [revealed, setRevealed]   = useState(false);
+
+  // Back (hardware or the in-page arrow) never silently abandons work: see lib/quizExit.ts.
+  // Leaving mid-quiz: put the saved draft back in state so the setup screen offers "Resume" right away
+  // (previously it was only read on mount, so a mid-quiz exit looked like the quiz was gone).
+  function leaveToSetup() {
+    try {
+      const stored = profile ? localStorage.getItem(draftKey(profile.id)) : null;
+      const d = stored ? JSON.parse(stored) as QuizDraft : null;
+      if (d && Array.isArray(d.questions) && d.questions.length > 0) setDraft(d);
+    } catch { /* unreadable draft: nothing to resume */ }
+    setPhase('setup');
+  }
+  function requestLeave(): boolean {
+    const d = decideQuizBack({ phase, selected, confirmOpen: confirmLeave });
+    if (d === 'close_confirm') { setConfirmLeave(false); return true; }
+    if (d === 'confirm_leave') { setConfirmLeave(true); return true; }
+    if (d === 'leave_to_setup') { leaveToSetup(); return true; }
+    return false;
+  }
+  useBackHandler(phase === 'quiz' || confirmLeave, requestLeave, 80);
   const [genError, setGenError]   = useState('');
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadStatus,   setLoadStatus]   = useState('');
@@ -789,7 +812,7 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
 
               {/* Progress bar + nav */}
               <div className="flex items-center gap-3">
-                <button aria-label="Go back" onClick={() => setPhase('setup')}
+                <button aria-label="Go back" onClick={() => { requestLeave(); }}
                   className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 active:scale-90"
                   style={{ background: 'var(--v2-elevated)', border: '1px solid var(--v2-border)' }}>
                   <ChevronLeft size={18} style={{ color: 'var(--v2-text-1)' }} />
@@ -1121,6 +1144,26 @@ Return ONLY valid JSON array with NO markdown: [{"question":"...","options":["A"
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Leave-quiz confirmation: only shown when an unsaved answer would be lost */}
+      {confirmLeave && (
+        <div className="fixed inset-0 z-[600] flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.55)' }}>
+          <div role="dialog" aria-modal="true" aria-label={QUIZ_LEAVE_COPY.title}
+            className="w-full max-w-md rounded-t-3xl p-5 flex flex-col gap-3"
+            style={{ background: 'var(--v2-elevated)', border: '1px solid var(--v2-border)' }}>
+            <h3 className="text-lg font-bold" style={{ color: 'var(--v2-text-1)' }}>{QUIZ_LEAVE_COPY.title}</h3>
+            <p className="text-sm" style={{ color: 'var(--v2-text-2, var(--ink-650))' }}>{QUIZ_LEAVE_COPY.body}</p>
+            <button onClick={() => setConfirmLeave(false)}
+              className="w-full rounded-2xl font-bold text-white" style={{ minHeight: 52, background: '#4F46E5' }}>
+              {QUIZ_LEAVE_COPY.keep}
+            </button>
+            <button onClick={() => { setConfirmLeave(false); leaveToSetup(); }}
+              className="w-full rounded-2xl font-semibold" style={{ minHeight: 48, color: 'var(--v2-text-2, var(--ink-650))' }}>
+              {QUIZ_LEAVE_COPY.leave}
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>

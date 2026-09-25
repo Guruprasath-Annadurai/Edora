@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronUp, ChevronDown, Play, Pause, Type } from 'lucide-react';
+import { useBackHandler } from '@/hooks/useBackStack';
 
 interface Props {
   open: boolean;
@@ -29,6 +30,7 @@ export function SpeedReaderOverlay({ open, onClose, content, title }: Props) {
   const [speed, setSpeed]         = useState(55);   // ms per word
   const [playing, setPlaying]     = useState(false);
   const [wordIdx, setWordIdx]     = useState(0);
+  useBackHandler(open, () => { onClose(); return true; }, 90);
   const words                     = content.split(/\s+/).filter(Boolean);
   const highlightRef              = useRef<HTMLSpanElement>(null);
   const containerRef              = useRef<HTMLDivElement>(null);
