@@ -66,15 +66,22 @@ function parseSqlMigrations() {
       }
     }
 
-    // 2. Match ALTER TABLE ... ADD COLUMN statements
-    const alterTableRegex = /ALTER\s+TABLE(?:\s+IF\s+EXISTS)?\s+(?:ONLY\s+)?(?:public\.)?["']?([a-zA-Z0-9_]+)["']?\s+ADD\s+(?:COLUMN\s+)?(?:IF\s+NOT\s+EXISTS\s+)?["']?([a-zA-Z0-9_]+)["']?/gi;
+    // 2. Match ALTER TABLE statements and all ADD COLUMN clauses
+    const alterTableRegex = /ALTER\s+TABLE(?:\s+IF\s+EXISTS)?\s+(?:ONLY\s+)?(?:public\.)?["']?([a-zA-Z0-9_]+)["']?\s+([\s\S]*?);/gi;
+    const SQL_NON_COLUMN_WORDS = new Set(['constraint', 'primary', 'foreign', 'unique', 'check', 'index']);
     while ((match = alterTableRegex.exec(content)) !== null) {
       const tableName = match[1].toLowerCase();
-      const colName = match[2].toLowerCase();
-      if (!schema.tables[tableName]) {
-        schema.tables[tableName] = new Set();
+      const body = match[2];
+      const colRegex = /ADD\s+(?:COLUMN\s+)?(?:IF\s+NOT\s+EXISTS\s+)?["']?([a-zA-Z0-9_]+)["']?/gi;
+      let cm;
+      while ((cm = colRegex.exec(body)) !== null) {
+        const colName = cm[1].toLowerCase();
+        if (SQL_NON_COLUMN_WORDS.has(colName)) continue;
+        if (!schema.tables[tableName]) {
+          schema.tables[tableName] = new Set();
+        }
+        schema.tables[tableName].add(colName);
       }
-      schema.tables[tableName].add(colName);
     }
 
     // 3. Match CREATE FUNCTION / RPC statements

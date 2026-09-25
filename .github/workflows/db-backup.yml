@@ -121,8 +121,8 @@ jobs:
             # Secrets and credentials are not echoed.
             echo "DURABLE SECONDARY COPY: DISPATCHED"
           else
-            echo "BACKUP FOUNDATION ACTIVE"
-            echo "DURABLE SECONDARY COPY NOT YET CONFIGURED"
+            echo "BACKUP FOUNDATION: READY"
+            echo "DURABLE OFFSITE COPY: MANUAL / NOT YET AUTOMATED"
             echo "Note: Artifact is retained in GitHub storage for 7 days."
             echo "To establish durable DR retention without paid vendors, download"
             echo "the encrypted archive to founder-controlled encrypted offline storage."

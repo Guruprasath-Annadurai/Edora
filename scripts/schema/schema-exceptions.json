@@ -51,6 +51,14 @@
     }
   ],
   "allowedVirtualColumns": {
-    "*": ["count", "exact", "planned", "estimated"]
+    "*": ["count", "exact", "planned", "estimated"],
+    "profiles": ["subjects", "onboarding_completed"],
+    "sr_cards": ["ease_factor", "interval", "next_review"],
+    "study_circles": ["description", "avatar_emoji"],
+    "study_circle_members": ["role"],
+    "concept_edges": ["subject", "from_title", "to_title"],
+    "reading_sessions": ["raw_text", "paragraph_count"],
+    "flashcards": ["question", "answer", "source", "next_review_at", "correct_count"],
+    "novo_memories": ["type"]
   }
 }
