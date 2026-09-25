@@ -1463,7 +1463,7 @@ interface UserProfile {
 
 function buildMemoryContext(profile: UserProfile, memories: NovoMemory[]): string {
   const name     = profile.full_name?.split(' ')[0] ?? 'this student';
-  const exam     = profile.exam_name ?? profile.target_exam ?? 'their exam';
+  const exam     = (profile.exam_name && profile.exam_name.trim() !== '') ? profile.exam_name.trim() : (profile.target_exam?.trim() || 'GENERAL');
   const daysLeft = profile.exam_date
     ? Math.max(0, Math.round((new Date(profile.exam_date).getTime() - Date.now()) / 86400000))
     : null;
