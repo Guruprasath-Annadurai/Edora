@@ -58,7 +58,48 @@ interface Candidate {
 }
 interface SectionPlan { subject: string; ordered_ids: string[]; rationale: string }
 
-serve(withSentry('mock-paper-composer', async (req) => {
+/**
+ * Validates in-memory candidate trust attributes.
+ * Strict trust policy: unreviewed, flagged, inactive, or unverified questions are rejected.
+ */
+export function isTrustedPyqCandidate(row: {
+  is_active?: boolean;
+  flagged_for_review?: boolean;
+  is_reviewed?: boolean;
+  validation_state?: string;
+}): boolean {
+  return (
+    row.is_active === true &&
+    row.flagged_for_review === false &&
+    row.is_reviewed === true &&
+    (row.validation_state === 'ai_reviewed_ok' || row.validation_state === 'human_verified')
+  );
+}
+
+/**
+ * Builds the strict candidate query for mock-paper-composer.
+ * Because mock-paper-composer uses SUPABASE_SERVICE_ROLE_KEY, RLS does NOT protect
+ * this query. The query must explicitly mirror the strict student trust policy.
+ */
+export function buildCandidateQuery(
+  supabase: any,
+  exam: string,
+  subject: string,
+  limit: number,
+) {
+  return supabase
+    .from('pyq_content')
+    .select('id, chapter, difficulty, question_type, marks')
+    .eq('exam', exam)
+    .eq('subject', subject)
+    .eq('is_active', true)
+    .eq('flagged_for_review', false)
+    .eq('is_reviewed', true)
+    .in('validation_state', ['ai_reviewed_ok', 'human_verified'])
+    .limit(limit);
+}
+
+export const handler = withSentry('mock-paper-composer', async (req) => {
   const CORS = getCors(req);
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -109,15 +150,12 @@ serve(withSentry('mock-paper-composer', async (req) => {
   let modelUsed = 'gemini-flash-latest';
 
   for (const sec of sections) {
-    const { data: pool } = await supabase
-      .from('pyq_content')
-      .select('id, chapter, difficulty, question_type, marks')
-      .eq('exam', exam)
-      .eq('subject', sec.subject)
-      .eq('is_active', true)
-      .eq('flagged_for_review', false)
-      .neq('validation_state', 'rejected')
-      .limit(Math.max(sec.count * 4, 40));
+    const { data: pool } = await buildCandidateQuery(
+      supabase,
+      exam,
+      sec.subject,
+      Math.max(sec.count * 4, 40),
+    );
 
     const candidates = (pool ?? []) as Candidate[];
     if (candidates.length === 0) {
@@ -190,4 +228,8 @@ Respond with ONLY this JSON shape:
   if (insertErr) console.error('Failed to cache composed paper:', insertErr.message);
 
   return json({ question_ids: questionIds, model_used: modelUsed, cached: false });
-}));
+});
+
+if (import.meta.main) {
+  serve(handler);
+}
