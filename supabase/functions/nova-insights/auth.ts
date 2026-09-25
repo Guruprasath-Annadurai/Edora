@@ -4,16 +4,22 @@
 // P0 Security Defense:
 // 1. Missing / malformed / garbage token => 401 Unauthorized
 // 2. Invalid or expired Supabase JWT => 401 Unauthorized
-// 3. Authenticated user attempting cross-user access => 403 Forbidden
-// 4. Never use caller-provided user ID as authorization truth
-// 5. Service-role key or cron secret required for cross-user batch operations
+// 3. Standard authenticated user JWT => 403 Forbidden
+//    nova-insights is a weekly scheduled batch job (pg_cron). No student flow
+//    requires direct invocation. Standard users CANNOT invoke Gemini generation
+//    — it runs server-side on a cron schedule and must not be triggerable
+//    at-will by any valid account (cost, abuse, repeat generation).
+// 4. Only accepted callers:
+//    a. CRON_SECRET via x-cron-secret header (pg_cron scheduled invocation)
+//    b. SUPABASE_SERVICE_ROLE_KEY via Bearer header (administrative invocation)
+// 5. Never use caller-provided user ID as authorization truth.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { createClient, SupabaseClient, User } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export interface NovaAuthSuccess {
-  kind: 'service_role' | 'user';
-  userId: string | null;
+  kind: 'service_role';
+  userId: null;
   client: SupabaseClient;
 }
 
@@ -33,24 +39,26 @@ export interface AuthEnv {
 
 /**
  * Authenticates an incoming request for nova-insights.
- * Accepts:
- * - Valid SUPABASE_SERVICE_ROLE_KEY via Bearer header
- * - Valid CRON_SECRET via x-cron-secret header
- * - Valid Supabase User JWT via Bearer header (strictly scoped to auth.uid)
  *
- * Rejects all other inputs with 401 Unauthorized.
+ * Accepts ONLY:
+ * - Valid CRON_SECRET via x-cron-secret header (pg_cron scheduled invocation)
+ * - Valid SUPABASE_SERVICE_ROLE_KEY via Bearer header (administrative)
+ *
+ * Rejects ALL other inputs including standard user JWTs (403).
+ * nova-insights is a server-side batch job. No student flow requires or should
+ * trigger on-demand Gemini generation for all users.
  */
 export async function authenticateNovaRequest(
   req: Request,
   env: AuthEnv,
-  clientFactory?: (url: string, key: string, opts?: any) => SupabaseClient,
+  _clientFactory?: (url: string, key: string, opts?: unknown) => SupabaseClient,
 ): Promise<NovaAuthResult> {
   const authHeader = req.headers.get('Authorization') ?? '';
   const cronHeader = req.headers.get('x-cron-secret') ?? '';
 
-  // 1. Check CRON_SECRET header
+  // 1. Check CRON_SECRET header — pg_cron scheduled invocation
   if (env.cronSecret && cronHeader && cronHeader === env.cronSecret) {
-    const serviceClient = (clientFactory || createClient)(env.supabaseUrl, env.serviceRoleKey, {
+    const serviceClient = createClient(env.supabaseUrl, env.serviceRoleKey, {
       auth: { persistSession: false },
     });
     return { kind: 'service_role', userId: null, client: serviceClient };
@@ -66,42 +74,28 @@ export async function authenticateNovaRequest(
     return { error: 'Missing token in Authorization header', status: 401 };
   }
 
-  // 3. Check for exact Service Role Key match
+  // 3. Check for exact Service Role Key match — administrative invocation
   if (env.serviceRoleKey && token === env.serviceRoleKey) {
-    const serviceClient = (clientFactory || createClient)(env.supabaseUrl, env.serviceRoleKey, {
+    const serviceClient = createClient(env.supabaseUrl, env.serviceRoleKey, {
       auth: { persistSession: false },
     });
     return { kind: 'service_role', userId: null, client: serviceClient };
   }
 
-  // 4. Validate JWT structure (must have 3 dot-separated segments)
-  if (token.split('.').length !== 3) {
-    return { error: 'Malformed or garbage JWT', status: 401 };
-  }
-
-  // 5. Verify User JWT against Supabase Auth
-  try {
-    const userClient = (clientFactory || createClient)(env.supabaseUrl, env.anonKey, {
-      auth: { persistSession: false },
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-
-    const { data, error } = await userClient.auth.getUser();
-    if (error || !data?.user?.id) {
-      return { error: 'Invalid or expired token', status: 401 };
-    }
-
+  // 4. Reject standard user JWTs.
+  //    nova-insights is a weekly batch job. Standard users cannot trigger it.
+  //    A well-formed JWT that is not the service role key is a user JWT — reject it.
+  //    This prevents any valid student account from repeatedly triggering Gemini
+  //    generation, incurring cost, or inflating insight history.
+  if (token.split('.').length === 3) {
     return {
-      kind: 'user',
-      userId: data.user.id,
-      client: userClient,
-    };
-  } catch (err) {
-    return {
-      error: `Authentication failed: ${err instanceof Error ? err.message : String(err)}`,
-      status: 401,
+      error: 'Forbidden: nova-insights is a server-scheduled batch job. Standard user invocation is not permitted.',
+      status: 403,
     };
   }
+
+  // 5. Everything else: malformed / garbage token
+  return { error: 'Malformed or garbage token', status: 401 };
 }
 
 export type TargetUserResult =
@@ -109,38 +103,18 @@ export type TargetUserResult =
   | { ok: false; error: string; status: 403 };
 
 /**
- * Validates cross-user authorization.
- * If caller is authenticated as a standard user:
- * - Calling without user_id defaults strictly to auth.uid.
- * - Calling with user_id === auth.uid is permitted.
- * - Calling with user_id !== auth.uid is strictly rejected with 403 Forbidden.
- * Caller-provided user ID is NEVER trusted as authorization truth.
+ * Resolves target users for a service-role caller.
+ * All invocations are now service_role only, so:
+ * - No user_id specified => batch all active users (null = discover in handler)
+ * - user_id specified => target that specific user (admin refresh)
  */
 export function authorizeTargetUsers(
   auth: NovaAuthSuccess,
   requestedUserId?: string | null,
 ): TargetUserResult {
-  if (auth.kind === 'user') {
-    if (!auth.userId) {
-      return { ok: false, error: 'User session has no valid user identifier', status: 403 };
-    }
-
-    if (requestedUserId && requestedUserId !== auth.userId) {
-      return {
-        ok: false,
-        error: 'Forbidden: cross-user access denied. Caller cannot access or trigger insights for other users.',
-        status: 403,
-      };
-    }
-
-    // Standard user can only ever target themselves
-    return { ok: true, targetUserIds: [auth.userId] };
-  }
-
-  // Service role or cron: can target a single user if specified, or batch all active users
+  // Only service_role reaches here (user kind is rejected in authenticateNovaRequest)
   if (requestedUserId) {
     return { ok: true, targetUserIds: [requestedUserId] };
   }
-
   return { ok: true, targetUserIds: null };
 }

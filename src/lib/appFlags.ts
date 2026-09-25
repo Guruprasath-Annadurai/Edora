@@ -5,6 +5,10 @@
 // - Synchronous in-memory reads via getCachedAppFlag.
 // - Asynchronous fetch with fallback to cached preferences and safe defaults.
 // - Backed by server-authoritative public.get_app_flags() RPC.
+//
+// FAIL-CLOSED: Unknown / missing flags default to FALSE.
+// Feature flags are rollback/containment controls — a missing config must NOT
+// accidentally expose unfinished functionality.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Preferences } from '@capacitor/preferences';
@@ -23,12 +27,21 @@ export interface AppFlags {
   [key: string]: boolean;
 }
 
+/**
+ * Canonical V5 defaults.
+ *
+ * battle_enabled = false  — V5 freeze: not yet re-enabled
+ * new_home_enabled = false — V5 freeze: not yet re-enabled
+ *
+ * FAIL-CLOSED: any unknown flag not listed here returns false from
+ * getCachedAppFlag / isFeatureEnabled. Do NOT use `?? true` for unknown flags.
+ */
 export const DEFAULT_APP_FLAGS: AppFlags = {
   novo_enabled: true,
   ai_generation_enabled: true,
   pyq_enabled: true,
-  battle_enabled: true,
-  new_home_enabled: true,
+  battle_enabled: false,
+  new_home_enabled: false,
   pro_enabled: true,
 };
 
@@ -42,16 +55,22 @@ let lastFetchedAt = 0;
 
 /**
  * Synchronous read of the current flag state from memory.
- * Returns true/safe default if not yet fetched.
+ *
+ * FAIL-CLOSED: returns false for unknown flags — never true.
+ * Only returns true if the flag is explicitly true in the live merged state.
  */
 export function getCachedAppFlag(flag: keyof AppFlags): boolean {
-  return inMemoryFlags[flag] ?? DEFAULT_APP_FLAGS[flag] ?? true;
+  // Explicit false check: unknown flags are NOT in DEFAULT_APP_FLAGS and
+  // are NOT in inMemoryFlags, so they return false (not true).
+  return inMemoryFlags[flag] ?? DEFAULT_APP_FLAGS[flag] ?? false;
 }
 
 /**
  * Retrieve all feature flags.
  * Uses in-memory cache if fresh, then local storage, then queries Supabase RPC.
  * Falls back safely to defaults on any network or database failure.
+ *
+ * FAIL-CLOSED: safe defaults exclude battle and new_home.
  */
 export async function getAppFlags(forceRefresh = false): Promise<AppFlags> {
   const now = Date.now();
@@ -100,10 +119,13 @@ export async function getAppFlags(forceRefresh = false): Promise<AppFlags> {
 
 /**
  * Check if a specific feature flag is enabled.
+ *
+ * FAIL-CLOSED: unknown flags return false, not true.
  */
 export async function isFeatureEnabled(flag: keyof AppFlags, forceRefresh = false): Promise<boolean> {
   const flags = await getAppFlags(forceRefresh);
-  return flags[flag] ?? DEFAULT_APP_FLAGS[flag] ?? true;
+  // Explicit false fallback — unknown flags must not accidentally enable features
+  return flags[flag] ?? DEFAULT_APP_FLAGS[flag] ?? false;
 }
 
 /**

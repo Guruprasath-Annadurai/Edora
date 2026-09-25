@@ -5,7 +5,7 @@
 
 CREATE TABLE IF NOT EXISTS public.app_flags (
   flag_name   TEXT PRIMARY KEY,
-  enabled     BOOLEAN NOT NULL DEFAULT true,
+  enabled     BOOLEAN NOT NULL DEFAULT false,
   description TEXT,
   metadata    JSONB DEFAULT '{}'::jsonb,
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -25,18 +25,21 @@ REVOKE ALL ON public.app_flags FROM public, anon, authenticated;
 GRANT SELECT ON public.app_flags TO anon, authenticated;
 GRANT ALL ON public.app_flags TO service_role;
 
--- Seed canonical V5 feature flags (safe default = true)
+-- Seed canonical V5 feature flags.
+-- FAIL-CLOSED: battle_enabled and new_home_enabled default false (V5 freeze).
+-- Unknown flags not listed here are not served and default false on client.
 INSERT INTO public.app_flags (flag_name, enabled, description)
 VALUES
-  ('novo_enabled', true, 'Master kill-switch for Novo AI tutor and proactive assistance'),
-  ('ai_generation_enabled', true, 'Enables real-time LLM-driven generation (quizzes, explanations, roadmaps)'),
-  ('pyq_enabled', true, 'Enables Previous Year Questions exploration and mock papers'),
-  ('battle_enabled', true, 'Enables multiplayer 1v1 quiz battles'),
-  ('new_home_enabled', true, 'Enables the V5 modular home dashboard experience'),
-  ('pro_enabled', true, 'Enables Pro subscription tier features and checks')
+  ('novo_enabled',           true,  'Master kill-switch for Novo AI tutor and proactive assistance'),
+  ('ai_generation_enabled',  true,  'Enables real-time LLM-driven generation (quizzes, explanations, roadmaps)'),
+  ('pyq_enabled',            true,  'Enables Previous Year Questions exploration and mock papers'),
+  ('battle_enabled',         false, 'Enables multiplayer 1v1 quiz battles (V5 freeze: disabled until re-authorized)'),
+  ('new_home_enabled',       false, 'Enables the V5 modular home dashboard experience (V5 freeze: disabled until re-authorized)'),
+  ('pro_enabled',            true,  'Enables Pro subscription tier features and checks')
 ON CONFLICT (flag_name) DO UPDATE SET
   description = EXCLUDED.description,
   updated_at  = now();
+
 
 -- Canonical read function: aggregates flags into a flat, ultra-small JSON object
 CREATE OR REPLACE FUNCTION public.get_app_flags()

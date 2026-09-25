@@ -33,29 +33,75 @@ describe('appFlags client SDK', () => {
     await resetAppFlagsCache();
   });
 
-  it('returns safe defaults if remote call fails', async () => {
-    rpcMock.mockResolvedValue({ data: null, error: { message: 'Network offline' } });
+  // ── Default values ────────────────────────────────────────────────────────
 
-    const flags = await getAppFlags();
-    expect(flags.novo_enabled).toBe(true);
-    expect(flags.battle_enabled).toBe(true);
-    expect(flags.pyq_enabled).toBe(true);
+  it('battle_enabled defaults to false (V5 freeze)', () => {
+    expect(DEFAULT_APP_FLAGS.battle_enabled).toBe(false);
+    expect(getCachedAppFlag('battle_enabled')).toBe(false);
   });
 
-  it('merges remote flags correctly when RPC succeeds', async () => {
+  it('new_home_enabled defaults to false (V5 freeze)', () => {
+    expect(DEFAULT_APP_FLAGS.new_home_enabled).toBe(false);
+    expect(getCachedAppFlag('new_home_enabled')).toBe(false);
+  });
+
+  it('unknown flag defaults to false (fail-closed)', () => {
+    expect(getCachedAppFlag('nonexistent_feature_flag')).toBe(false);
+  });
+
+  it('known enabled flags default to true (novo, ai_generation, pyq, pro)', () => {
+    expect(DEFAULT_APP_FLAGS.novo_enabled).toBe(true);
+    expect(DEFAULT_APP_FLAGS.ai_generation_enabled).toBe(true);
+    expect(DEFAULT_APP_FLAGS.pyq_enabled).toBe(true);
+    expect(DEFAULT_APP_FLAGS.pro_enabled).toBe(true);
+  });
+
+  // ── Remote override behavior ──────────────────────────────────────────────
+
+  it('remote true can explicitly enable a feature that defaults false (battle_enabled)', async () => {
     rpcMock.mockResolvedValue({
-      data: {
-        novo_enabled: false, // Kill-switch active
-        battle_enabled: true,
-      },
+      data: { battle_enabled: true },
+      error: null,
+    });
+
+    const flags = await getAppFlags();
+    expect(flags.battle_enabled).toBe(true);
+    expect(getCachedAppFlag('battle_enabled')).toBe(true);
+  });
+
+  it('remote false disables a feature that defaults true (novo_enabled kill-switch)', async () => {
+    rpcMock.mockResolvedValue({
+      data: { novo_enabled: false },
       error: null,
     });
 
     const flags = await getAppFlags();
     expect(flags.novo_enabled).toBe(false);
-    expect(flags.battle_enabled).toBe(true);
-    expect(flags.ai_generation_enabled).toBe(true); // Default retained
+    expect(getCachedAppFlag('novo_enabled')).toBe(false);
   });
+
+  // ── Network failure behavior ──────────────────────────────────────────────
+
+  it('network failure preserves safe defaults — battle and new_home remain false', async () => {
+    rpcMock.mockRejectedValue(new Error('Network offline'));
+
+    const flags = await getAppFlags();
+    expect(flags.novo_enabled).toBe(true);       // enabled by default — preserved
+    expect(flags.battle_enabled).toBe(false);    // disabled by default — preserved safe
+    expect(flags.new_home_enabled).toBe(false);  // disabled by default — preserved safe
+    expect(flags.pyq_enabled).toBe(true);
+  });
+
+  it('RPC error response preserves safe defaults', async () => {
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'DB error' } });
+
+    const flags = await getAppFlags();
+    expect(flags.battle_enabled).toBe(false);
+    expect(flags.new_home_enabled).toBe(false);
+    expect(flags.novo_enabled).toBe(true);
+  });
+
+  // ── Cache behavior ────────────────────────────────────────────────────────
 
   it('caches flags in memory and does not hit RPC on subsequent reads within TTL', async () => {
     rpcMock.mockResolvedValue({
@@ -92,8 +138,7 @@ describe('appFlags client SDK', () => {
     expect(refreshed.battle_enabled).toBe(true);
   });
 
-  it('synchronously reads from cache with getCachedAppFlag', async () => {
-    // Before fetch: default is true
+  it('synchronously reads from cache with getCachedAppFlag after fetch', async () => {
     expect(getCachedAppFlag('novo_enabled')).toBe(true);
 
     rpcMock.mockResolvedValue({
@@ -103,5 +148,21 @@ describe('appFlags client SDK', () => {
 
     await getAppFlags();
     expect(getCachedAppFlag('novo_enabled')).toBe(false);
+  });
+
+  it('merges remote flags correctly — unspecified flags retain defaults', async () => {
+    rpcMock.mockResolvedValue({
+      data: {
+        novo_enabled: false, // Kill-switch active
+        battle_enabled: true, // Explicitly re-enabled remotely
+      },
+      error: null,
+    });
+
+    const flags = await getAppFlags();
+    expect(flags.novo_enabled).toBe(false);
+    expect(flags.battle_enabled).toBe(true);
+    expect(flags.ai_generation_enabled).toBe(true); // Default retained
+    expect(flags.new_home_enabled).toBe(false);     // Default retained (false)
   });
 });

@@ -7,12 +7,21 @@ export const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
+/**
+ * Canonical V5 defaults — FAIL-CLOSED.
+ *
+ * battle_enabled = false  — V5 freeze: not yet re-enabled
+ * new_home_enabled = false — V5 freeze: not yet re-enabled
+ *
+ * Unknown flags not in this object will not be served to clients.
+ * The RPC merges from DB; any DB flag overrides these only by explicit value.
+ */
 export const DEFAULT_APP_FLAGS: Record<string, boolean> = {
   novo_enabled: true,
   ai_generation_enabled: true,
   pyq_enabled: true,
-  battle_enabled: true,
-  new_home_enabled: true,
+  battle_enabled: false,
+  new_home_enabled: false,
   pro_enabled: true,
 };
 
@@ -59,6 +68,8 @@ export async function handleRequest(req: Request): Promise<Response> {
       });
     }
 
+    // Merge: DEFAULT_APP_FLAGS provides the fail-closed baseline;
+    // DB values override where explicitly configured.
     const mergedFlags = {
       ...DEFAULT_APP_FLAGS,
       ...(data && typeof data === "object" ? data : {}),

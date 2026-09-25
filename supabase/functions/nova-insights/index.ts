@@ -324,7 +324,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // ── 1. Auth: require valid Supabase JWT or service role / cron token ─────
+    // ── 1. Auth: require service_role key or CRON_SECRET — student JWTs rejected ──
     const supabaseUrl       = Deno.env.get('SUPABASE_URL')!;
     const anonKey           = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
     const serviceRoleKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

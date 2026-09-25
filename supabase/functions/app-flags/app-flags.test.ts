@@ -1,19 +1,14 @@
 import { assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import { DEFAULT_APP_FLAGS, handleRequest } from "./index.ts";
 
-Deno.test("DEFAULT_APP_FLAGS contains all required V5 feature flags enabled by default", () => {
-  const expectedFlags = [
-    "novo_enabled",
-    "ai_generation_enabled",
-    "pyq_enabled",
-    "battle_enabled",
-    "new_home_enabled",
-    "pro_enabled",
-  ];
-
-  for (const flag of expectedFlags) {
-    assertEquals(DEFAULT_APP_FLAGS[flag], true, `Flag ${flag} must be enabled by default`);
-  }
+Deno.test("DEFAULT_APP_FLAGS contains canonical V5 feature flags and fail-closed defaults", () => {
+  assertEquals(DEFAULT_APP_FLAGS.novo_enabled, true);
+  assertEquals(DEFAULT_APP_FLAGS.ai_generation_enabled, true);
+  assertEquals(DEFAULT_APP_FLAGS.pyq_enabled, true);
+  assertEquals(DEFAULT_APP_FLAGS.pro_enabled, true);
+  // V5 freeze: battle and new_home default to false
+  assertEquals(DEFAULT_APP_FLAGS.battle_enabled, false);
+  assertEquals(DEFAULT_APP_FLAGS.new_home_enabled, false);
 });
 
 Deno.test("handleRequest returns 200 with CORS and cache headers for OPTIONS", async () => {
@@ -37,4 +32,7 @@ Deno.test("handleRequest returns safe defaults when DB is unconfigured", async (
   assertEquals(json.novo_enabled, true);
   assertEquals(json.ai_generation_enabled, true);
   assertEquals(json.pyq_enabled, true);
+  assertEquals(json.battle_enabled, false);
+  assertEquals(json.new_home_enabled, false);
+  assertEquals(json.pro_enabled, true);
 });
