@@ -67,8 +67,22 @@ FROM pg_stat_user_tables
 WHERE schemaname = 'public'
 ORDER BY pg_total_relation_size(relid) DESC;
 
--- 5. Access Security & Grants (Staff / Admin Access Only)
-COMMENT ON VIEW public.v_ai_gateway_hourly_metrics IS 'Zero-cost operational view for AI Gateway requests (Rolling 24h)';
-COMMENT ON VIEW public.v_ai_provider_fallback_summary IS 'Zero-cost operational view for AI error patterns and provider fallbacks';
-COMMENT ON VIEW public.v_quiz_session_health IS 'Zero-cost operational view for quiz session persistence health';
-COMMENT ON VIEW public.v_database_table_sizes IS 'Storage footprint monitor against 500MB free-tier limits';
+-- 5. Access Security & Hardening: Operator-Only Visibility
+-- Operational views expose internal tokens, cost, database size, and error patterns.
+-- They must NEVER be accessible to student or anonymous client roles via PostgREST.
+
+REVOKE ALL ON public.v_ai_gateway_hourly_metrics FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.v_ai_provider_fallback_summary FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.v_quiz_session_health FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.v_database_table_sizes FROM PUBLIC, anon, authenticated;
+
+-- Strictly grant SELECT only to administrative backend roles
+GRANT SELECT ON public.v_ai_gateway_hourly_metrics TO service_role, postgres;
+GRANT SELECT ON public.v_ai_provider_fallback_summary TO service_role, postgres;
+GRANT SELECT ON public.v_quiz_session_health TO service_role, postgres;
+GRANT SELECT ON public.v_database_table_sizes TO service_role, postgres;
+
+COMMENT ON VIEW public.v_ai_gateway_hourly_metrics IS 'Zero-cost operational view for AI Gateway requests (Rolling 24h - Operator only)';
+COMMENT ON VIEW public.v_ai_provider_fallback_summary IS 'Zero-cost operational view for AI error patterns and provider fallbacks (Operator only)';
+COMMENT ON VIEW public.v_quiz_session_health IS 'Zero-cost operational view for quiz session persistence health (Operator only)';
+COMMENT ON VIEW public.v_database_table_sizes IS 'Storage footprint monitor against 500MB free-tier limits (Operator only)';
