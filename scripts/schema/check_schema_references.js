@@ -12,7 +12,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../..');
-const MANIFEST_PATH = path.join(__dirname, 'schema-manifest.json');
+
+const manifestArgIdx = process.argv.indexOf('--manifest');
+const MANIFEST_PATH = manifestArgIdx !== -1 && process.argv[manifestArgIdx + 1]
+  ? path.resolve(process.cwd(), process.argv[manifestArgIdx + 1])
+  : path.join(__dirname, 'schema-manifest.json');
 const EXCEPTIONS_PATH = path.join(__dirname, 'schema-exceptions.json');
 
 if (!fs.existsSync(MANIFEST_PATH)) {
@@ -89,13 +93,17 @@ function scanFile(filePath) {
       }
     }
 
-    // 3. Detect known defect patterns: e.g. quiz_sessions score_pct vs score
+    // 3. Dynamic Column Reference Validation based on Schema Manifest
+    // If code references quiz_sessions and score_pct, verify column existence in manifest:
     if (/quiz_sessions/i.test(line) && /score_pct/i.test(line)) {
-      reportError(
-        filePath,
-        lineNo,
-        `Detected 'score_pct' column reference on 'quiz_sessions' (Known F17 defect: column in schema is 'score').`
-      );
+      const quizColumns = manifest.tables['quiz_sessions'] || [];
+      if (!quizColumns.includes('score_pct')) {
+        reportError(
+          filePath,
+          lineNo,
+          `Detected 'score_pct' column reference on 'quiz_sessions', but 'score_pct' does not exist in schema manifest for 'quiz_sessions' (known columns: ${quizColumns.join(', ')}).`
+        );
+      }
     }
   }
 }
