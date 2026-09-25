@@ -1,0 +1,11 @@
+
+/Users/ag/edora/src/pages/MockTestPage.tsx
+  366:3   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  444:17  warning  Unexpected any. Specify a different type                                                        @typescript-eslint/no-explicit-any
+
+/Users/ag/edora/src/pages/tools/StudyPackPage.tsx
+  427:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+✖ 3 problems (0 errors, 3 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+

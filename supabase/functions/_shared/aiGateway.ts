@@ -263,3 +263,54 @@ export async function callAI(serviceDb: any, opts: CallAIOptions): Promise<CallA
     return { ok: false, response: null, blockedReason: null, errorMessage };
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// observedFetch — LOG-ONLY wrapper for the many small helper calls (embeddings, HyDE,
+// query variants, rerank, step-back, memory extraction) that are not gated by callAI().
+// V5 Day 2: "AI health evidence" needs these visible in ai_gateway_requests without
+// changing their behaviour. NO gating: no kill switch, no cost ceiling, never alters the
+// request, response or thrown error. Off unless AI_LOG_HELPERS=1, and logging is
+// best-effort (a logging failure can never break the call it describes).
+// ─────────────────────────────────────────────────────────────────────────────
+let observerDb: any = null;
+let observerDbFactory: (() => any) | null = null;
+/** Test seam / custom wiring: supply the DB used for helper logging. */
+export function setObserverDbFactory(f: (() => any) | null): void { observerDbFactory = f; observerDb = null; }
+
+async function getObserverDb(): Promise<any | null> {
+  if (observerDb) return observerDb;
+  try {
+    if (observerDbFactory) { observerDb = observerDbFactory(); return observerDb; }
+    const url = Deno.env.get('SUPABASE_URL');
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!url || !key) return null;
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    observerDb = createClient(url, key, { auth: { persistSession: false } });
+    return observerDb;
+  } catch { return null; }
+}
+
+export async function observedFetch(
+  meta: { functionName: string; provider: AIProvider; model: string; userId?: string | null },
+  url: string,
+  init?: RequestInit,
+): Promise<Response> {
+  if (Deno.env.get('AI_LOG_HELPERS') !== '1') return fetch(url, init);
+  const started = Date.now();
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch (err) {
+    const db = await getObserverDb();
+    if (db) await logRequest(db, { ...meta, status: 'error', latencyMs: Date.now() - started, errorMessage: (err as Error)?.message ?? 'network error' });
+    throw err;   // unchanged behaviour for the caller
+  }
+  const db = await getObserverDb();
+  if (db) {
+    await logRequest(db, {
+      ...meta, status: res.ok ? 'success' : 'error',
+      latencyMs: Date.now() - started, errorMessage: res.ok ? null : `HTTP ${res.status}`,
+    });
+  }
+  return res;
+}

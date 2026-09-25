@@ -53,6 +53,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
+import { evaluateAiHealth, type AiHealthRow } from '../_shared/aiHealth.ts';
 import { withSentry } from '../_shared/sentry.ts';
 
 interface Alert {
@@ -291,6 +292,20 @@ serve(withSentry('monitoring-check', async (req) => {
         text: `*AI model unavailable:* ${m.provider} model \`${m.model}\` (used by ${m.usedBy}) appears decommissioned/not-found: ${reason}`,
       });
     }
+  }
+
+  // ── 9. AI success rate per required function / provider (V5 Day 2) ─────────
+  // Reads the additive view ai_success_rate_by_function_provider. 0 successes/24h or < 98 % on a
+  // required function alerts; helper calls appear as 'gemini-chat:<kind>' when AI_LOG_HELPERS=1.
+  try {
+    const { data: aiRows, error: aiErr } = await db.from('ai_success_rate_by_function_provider').select('*');
+    if (aiErr) {
+      console.warn('[monitoring-check] ai health view unavailable:', aiErr.message);
+    } else {
+      for (const a of evaluateAiHealth((aiRows ?? []) as AiHealthRow[])) alerts.push(a);
+    }
+  } catch (e) {
+    console.warn('[monitoring-check] ai health check failed:', (e as Error)?.message);
   }
 
   if (alerts.length > 0 && webhookUrl) {

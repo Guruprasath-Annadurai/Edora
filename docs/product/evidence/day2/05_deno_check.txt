@@ -1,0 +1,3 @@
+gemini-chat errors: 25
+novo-subscription errors: 0
+monitoring-check errors: 0

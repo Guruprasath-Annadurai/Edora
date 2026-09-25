@@ -12,9 +12,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors }      from '../_shared/cors.ts';
 import { withSentry }   from '../_shared/sentry.ts';
-import { normalizeMemories } from '../_shared/memoryExtraction.ts';
+import { toAnthropicMessages, toAnthropicTools, anthropicToOpenAIStream, anthropicJsonToOpenAI } from './claudeAdapter.ts';
+import { extractMemories, runInBackground, toDbMemoryType, type MemoryExtractionResult, type MemoryDb } from '../_shared/memoryExtraction.ts';
+import { withRetry } from '../_shared/retryPolicy.ts';
+import { runProviderChain, summarizeAttempts, ALL_TIERS_FAILED_BODY, type ChainTier } from './providerChain.ts';
 import { checkRateLimit as sharedCheckRateLimit, checkGlobalLLMBudget } from '../_shared/rateLimit.ts';
-import { callAI } from '../_shared/aiGateway.ts';
+import { callAI, observedFetch } from '../_shared/aiGateway.ts';
 import { validatePrereqGen, type PrereqGen } from './validate.ts';
 
 // ── Models ────────────────────────────────────────────────────────────────────
@@ -162,113 +165,6 @@ function mapGroqModelToClaude(groqModel: string): string {
   return groqModel === GROQ_MODEL_FALLBACK ? CLAUDE_MODEL_FALLBACK : CLAUDE_MODEL_PRIMARY;
 }
 
-type AnthropicContentBlock =
-  | { type: 'text'; text: string }
-  | { type: 'tool_use'; id: string; name: string; input: unknown }
-  | { type: 'tool_result'; tool_use_id: string; content: string };
-
-// Convert the OpenAI-shaped `messages` array (system message inline, plus
-// assistant tool_calls / role:'tool' turns from the ReAct loop) into
-// Anthropic's shape: a top-level `system` string and a messages array
-// where tool calls are `tool_use` blocks and tool results are `tool_result`
-// blocks inside a user-role message.
-function toAnthropicMessages(msgs: unknown[]): { system?: string; messages: Array<{ role: 'user' | 'assistant'; content: string | AnthropicContentBlock[] }> } {
-  let system = '';
-  const out: Array<{ role: 'user' | 'assistant'; content: string | AnthropicContentBlock[] }> = [];
-  const arr = msgs as Array<{
-    role?: string; content?: string | null;
-    tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
-    tool_call_id?: string;
-  }>;
-  for (const m of arr) {
-    if (!m || !m.role) continue;
-    if (m.role === 'system') { system += (system ? '\n\n' : '') + (m.content ?? ''); continue; }
-    if (m.role === 'user') { out.push({ role: 'user', content: m.content ?? '' }); continue; }
-    if (m.role === 'assistant') {
-      if (m.tool_calls?.length) {
-        const blocks: AnthropicContentBlock[] = [];
-        if (m.content) blocks.push({ type: 'text', text: m.content });
-        for (const tc of m.tool_calls) {
-          let input: unknown = {};
-          try { input = JSON.parse(tc.function.arguments || '{}'); } catch { /* malformed args -> empty input */ }
-          blocks.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input });
-        }
-        out.push({ role: 'assistant', content: blocks });
-      } else {
-        out.push({ role: 'assistant', content: m.content ?? '' });
-      }
-      continue;
-    }
-    if (m.role === 'tool') {
-      const block: AnthropicContentBlock = { type: 'tool_result', tool_use_id: m.tool_call_id ?? '', content: String(m.content ?? '') };
-      const last = out[out.length - 1];
-      if (last && last.role === 'user' && Array.isArray(last.content)) {
-        last.content.push(block);
-      } else {
-        out.push({ role: 'user', content: [block] });
-      }
-      continue;
-    }
-  }
-  return { system: system || undefined, messages: out };
-}
-
-function toAnthropicTools(tools: typeof NOVO_TOOLS): Array<{ name: string; description: string; input_schema: unknown }> {
-  return tools.map(t => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters }));
-}
-
-// Translate Anthropic's typed SSE event stream into the OpenAI-style
-// `data: {"choices":[{"delta":{...},"finish_reason":...}]}` chunks the
-// existing drainStreamRound() parser expects, terminated by `data: [DONE]`.
-function anthropicToOpenAIStream(anthropicBody: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
-  const decoder = new TextDecoder();
-  const encoder = new TextEncoder();
-  return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const reader = anthropicBody.getReader();
-      let buf = '';
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const lines = buf.split('\n');
-          buf = lines.pop() ?? '';
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const raw = line.slice(6).trim();
-            if (!raw) continue;
-            let evt: {
-              type?: string; index?: number;
-              content_block?: { type?: string; id?: string; name?: string };
-              delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string };
-            };
-            try { evt = JSON.parse(raw); } catch { continue; }
-
-            if (evt.type === 'content_block_start' && evt.content_block?.type === 'tool_use') {
-              const chunk = { choices: [{ delta: { tool_calls: [{ index: evt.index ?? 0, id: evt.content_block.id, function: { name: evt.content_block.name, arguments: '' } }] }, finish_reason: null }] };
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-            } else if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-              const chunk = { choices: [{ delta: { content: evt.delta.text ?? '' }, finish_reason: null }] };
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-            } else if (evt.type === 'content_block_delta' && evt.delta?.type === 'input_json_delta') {
-              const chunk = { choices: [{ delta: { tool_calls: [{ index: evt.index ?? 0, function: { arguments: evt.delta.partial_json ?? '' } }] }, finish_reason: null }] };
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-            } else if (evt.type === 'message_delta' && evt.delta?.stop_reason) {
-              const finish = evt.delta.stop_reason === 'tool_use' ? 'tool_calls' : 'stop';
-              const chunk = { choices: [{ delta: {}, finish_reason: finish }] };
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-            } else if (evt.type === 'message_stop') {
-              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            }
-          }
-        }
-      } catch { /* client disconnected or upstream closed */ }
-      controller.close();
-    },
-  });
-}
-
 // Same contract as callGroq(): returns an OpenAI-shaped Response (streaming
 // SSE or single JSON body) so the caller in callGroq() can hand it straight
 // back without the rest of the pipeline knowing the provider changed.
@@ -334,25 +230,8 @@ async function callClaude(
     return new Response(anthropicToOpenAIStream(anthroRes.body), { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
   }
 
-  const anthroJson = await anthroRes.json() as {
-    content?: Array<{ type: string; text?: string; id?: string; name?: string; input?: unknown }>;
-    stop_reason?: string;
-  };
-  const blocks = anthroJson.content ?? [];
-  const textOut = blocks.filter(b => b.type === 'text').map(b => b.text ?? '').join('');
-  const toolUseBlocks = blocks.filter(b => b.type === 'tool_use');
-  const openAIShape = {
-    choices: [{
-      finish_reason: anthroJson.stop_reason === 'tool_use' ? 'tool_calls' : 'stop',
-      message: {
-        content: textOut || null,
-        tool_calls: toolUseBlocks.length
-          ? toolUseBlocks.map(b => ({ id: b.id, function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) } }))
-          : undefined,
-      },
-    }],
-  };
-  return new Response(JSON.stringify(openAIShape), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  const anthroJson = await anthroRes.json();
+  return new Response(JSON.stringify(anthropicJsonToOpenAI(anthroJson)), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
 
 // Wrap a plain-text answer in an OpenAI-shaped Response so downstream
@@ -523,37 +402,41 @@ async function executeToolCalls(
         });
         result = 'Flashcard saved.';
       } else if (tc.function.name === 'log_weak_topic') {
-        await serviceDb.from('novo_memories').insert({
+        // DB vocabulary only (novo_memories CHECK constraints) and the result reflects the REAL outcome:
+        // these inserts previously violated the constraints, yet the model was told "logged".
+        const { error: memErr } = await serviceDb.from('novo_memories').insert({
           user_id:      userId,
-          memory_type:  'struggle',
+          memory_type:  toDbMemoryType('struggle'),
           content:      `Weak: ${args.topic}${args.reason ? ' — ' + String(args.reason) : ''}`,
           subject:      args.subject ? String(args.subject) : null,
           topic:        args.topic   ? String(args.topic)   : null,
           importance:   8,
-          source:       'novo_auto',
+          source:       'chat',
           last_used_at: now,
         });
-        result = 'Weak topic logged.';
+        if (memErr) console.error('[novo] log_weak_topic insert failed:', memErr.code, memErr.message);
+        result = memErr ? 'Could not save that weak topic right now.' : 'Weak topic logged.';
       } else if (tc.function.name === 'schedule_revision') {
         const pri = String(args.priority ?? 'medium');
-        await serviceDb.from('novo_memories').insert({
+        const { error: memErr } = await serviceDb.from('novo_memories').insert({
           user_id:      userId,
-          memory_type:  'schedule_request',
+          memory_type:  toDbMemoryType('schedule_request'),
           content:      `Schedule revision: ${args.topic}`,
           subject:      args.subject ? String(args.subject) : null,
           topic:        args.topic   ? String(args.topic)   : null,
           importance:   pri === 'high' ? 9 : pri === 'medium' ? 6 : 4,
-          source:       'novo_auto',
+          source:       'chat',
           last_used_at: now,
         });
-        result = 'Revision scheduled.';
+        if (memErr) console.error('[novo] schedule_revision insert failed:', memErr.code, memErr.message);
+        result = memErr ? 'Could not schedule that revision right now.' : 'Revision scheduled.';
       } else if (tc.function.name === 'get_student_weakness') {
         const limit = Math.min(Number(args.limit ?? 5), 10);
         let q = serviceDb
           .from('novo_memories')
           .select('topic, subject, content, importance')
           .eq('user_id', userId)
-          .in('memory_type', ['struggle', 'weakness'])
+          .in('memory_type', ['struggle', 'weakness', 'learning_pattern'])
           .order('importance', { ascending: false })
           .limit(limit);
         if (args.subject) q = q.ilike('subject', `%${String(args.subject)}%`);
@@ -584,17 +467,18 @@ async function executeToolCalls(
             : `Week ${weekIdx + 1} complete! Exam: ${pd.exam_name ?? pd.title ?? 'upcoming'}.`;
         }
       } else if (tc.function.name === 'create_note') {
-        await serviceDb.from('novo_memories').insert({
+        const { error: memErr } = await serviceDb.from('novo_memories').insert({
           user_id:      userId,
-          memory_type:  'note',
+          memory_type:  toDbMemoryType('note'),
           content:      `**${String(args.title ?? 'Note')}**\n${String(args.content ?? '')}`.slice(0, 2000),
           subject:      args.subject ? String(args.subject) : null,
           topic:        String(args.title ?? ''),
           importance:   6,
-          source:       'novo_auto',
+          source:       'chat',
           last_used_at: now,
         });
-        result = 'Note saved.';
+        if (memErr) console.error('[novo] create_note insert failed:', memErr.code, memErr.message);
+        result = memErr ? 'Could not save that note right now.' : 'Note saved.';
       } else if (tc.function.name === 'get_prereq_chain') {
         const topicQuery  = String(args.topic   ?? '');
         const subjectArg  = String(args.subject  ?? '');
@@ -613,7 +497,7 @@ async function executeToolCalls(
 
         if (!node || node.prereq_slugs.length === 0) {
           // Auto-enrich: generate prereq chain via LLM and save for future use
-          result = await autoGeneratePrereqs(serviceDb, topicQuery, subjectArg, curriculum, apiKey);
+          result = await autoGeneratePrereqs(serviceDb, topicQuery, subjectArg, curriculum, Deno.env.get('GROQ_API_KEY') ?? '');
         } else {
           // Walk one level of prereq chain — fetch prereq nodes
           const { data: prereqNodes } = await serviceDb
@@ -626,7 +510,7 @@ async function executeToolCalls(
             .from('novo_memories')
             .select('topic')
             .eq('user_id', userId)
-            .in('memory_type', ['struggle', 'weakness'])
+            .in('memory_type', ['struggle', 'weakness', 'learning_pattern'])
             .limit(30);
           const weakSet = new Set((weakTopics ?? []).map((w: { topic?: string }) => (w.topic ?? '').toLowerCase()));
 
@@ -669,7 +553,7 @@ List the prerequisite topics a student must understand BEFORE learning "${topic}
 Respond ONLY as JSON: {"prereqs": [{"topic": "...", "why": "one sentence", "class_level": "11"}], "difficulty": 7}
 Max 5 prereqs, most important first. topic names must be concise (3-6 words).`;
 
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const res = await observedFetch({ functionName: 'gemini-chat:helper', provider: 'groq', model: GROQ_MODEL_FALLBACK }, 'https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
@@ -975,7 +859,8 @@ async function embedQuery(
   taskType: 'RETRIEVAL_QUERY' | 'RETRIEVAL_DOCUMENT' = 'RETRIEVAL_QUERY',
 ): Promise<number[] | null> {
   try {
-    const res = await fetch(
+    const res = await observedFetch(
+      { functionName: 'gemini-chat:embedding', provider: 'gemini', model: 'gemini-embedding-001' },
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${geminiKey}`,
       {
         method: 'POST',
@@ -1268,7 +1153,7 @@ function classifyQuery(query: string, hasLastChunks: boolean): QueryType {
 // The hypothetical document embedding is closer to real document embeddings than the raw query.
 async function generateHypotheticalAnswer(query: string, groqApiKey: string): Promise<string | null> {
   try {
-    const res = await fetch(GROQ_BASE_URL, {
+    const res = await observedFetch({ functionName: 'gemini-chat:helper', provider: 'groq', model: GROQ_MODEL_FALLBACK }, GROQ_BASE_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
       body:    JSON.stringify({
@@ -1317,7 +1202,7 @@ async function getRetrievalEmbedding(
 // Embedding each independently captures chunks any single phrasing would miss.
 // Only generated for multi_hop queries — bounded latency blast radius.
 async function generateQueryVariantsOnce(query: string, groqApiKey: string): Promise<string[]> {
-  const res = await fetch(GROQ_BASE_URL, {
+  const res = await observedFetch({ functionName: 'gemini-chat:helper', provider: 'groq', model: GROQ_MODEL_FALLBACK }, GROQ_BASE_URL, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
     body:    JSON.stringify({
@@ -1390,7 +1275,7 @@ async function crossEncoderRerankOnce(
     `[${i + 1}] ${[c.chapter_title, c.section_title].filter(Boolean).join(' › ')}\n${c.content.slice(0, 320)}`
   ).join('\n\n');
 
-  const res = await fetch(GROQ_BASE_URL, {
+  const res = await observedFetch({ functionName: 'gemini-chat:helper', provider: 'groq', model: GROQ_MODEL_FALLBACK }, GROQ_BASE_URL, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
     body:    JSON.stringify({
@@ -1454,7 +1339,7 @@ function hasSpecificNumerics(query: string): boolean {
 }
 
 async function generateStepBackQueryOnce(query: string, groqApiKey: string): Promise<string | null> {
-  const res = await fetch(GROQ_BASE_URL, {
+  const res = await observedFetch({ functionName: 'gemini-chat:helper', provider: 'groq', model: GROQ_MODEL_FALLBACK }, GROQ_BASE_URL, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
     body:    JSON.stringify({
@@ -1666,70 +1551,31 @@ async function extractAndSaveMemories(
   assistantResponse: string,
   apiKey: string,
   subject?: string,
-): Promise<void> {
-  try {
-    const extractPrompt = `You are a memory extraction system for an AI tutor. Analyse this student-tutor exchange and extract 0–3 important memories to retain about the student.
-
-STUDENT MESSAGE: "${userMessage.slice(0, 1000)}"
-TUTOR RESPONSE: "${assistantResponse.slice(0, 800)}"
-${subject ? `SUBJECT CONTEXT: ${subject}` : ''}
-
-Extract only genuinely useful memories:
-- Specific struggles or misconceptions
-- Achievements or breakthroughs
-- Learning preferences
-- Exam context or schedule
-- Topics they find easy or hard
-
-Return ONLY valid JSON array (empty array if nothing notable):
-[{"memory_type":"struggle|strength|preference|milestone|exam_context","content":"concise 1-sentence memory","subject":"Physics|Chemistry|Mathematics|Biology|null","topic":"specific topic or null","importance":1-10}]
-
-Rules: Only extract specific, useful memories. Max 3. No trivial small talk.`;
-
-    const body = {
-      model:       GROQ_MODEL_FALLBACK,   // use fast small model for background extraction
-      messages:    [{ role: 'user', content: extractPrompt }],
-      temperature: 0.1,
-      max_tokens:  512,
-    };
-
-    // Lightweight network-level retry (2 attempts, backoff) — this runs
-    // fire-and-forget in the background, so one transient Groq failure
-    // shouldn't silently drop the whole extraction for this turn.
-    const MAX_ATTEMPTS = 2;
-    let res: Response | null = null;
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const candidate = await fetch(GROQ_BASE_URL, {
+): Promise<MemoryExtractionResult> {
+  // Every stage reports its outcome (see _shared/memoryExtraction.ts). Previously any failure —
+  // a CHECK-constraint violation on insert, an empty/fenced LLM reply, a non-2xx — was swallowed
+  // by a blanket catch, which is why novo_memories stayed empty with no trace.
+  return await extractMemories({
+    db: serviceDb as unknown as MemoryDb,
+    userId, userMessage, assistantResponse, subject,
+    callLLM: async (prompt) => {
+      // One classified retry only for transient failures (this is background work).
+      const r = await withRetry(() => observedFetch({ functionName: 'gemini-chat:memory', provider: 'groq', model: GROQ_MODEL_FALLBACK }, GROQ_BASE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body: JSON.stringify(body),
-      });
-      if (candidate.ok) { res = candidate; break; }
-      if (attempt < MAX_ATTEMPTS - 1) {
-        await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
-      }
-    }
-
-    if (!res || !res.ok) return;
-
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const raw  = data?.choices?.[0]?.message?.content ?? '[]';
-
-    let memories: Array<{ memory_type: string; content: string; subject?: string; topic?: string; importance: number }> = [];
-    try { memories = JSON.parse(raw); } catch { return; }
-
-    if (!Array.isArray(memories) || memories.length === 0) return;
-
-    const rows = normalizeMemories(memories, userId).map(m => ({
-      ...m,
-      source:       'chat',
-      last_used_at: new Date().toISOString(),
-    }));
-
-    if (rows.length > 0) {
-      await serviceDb.from('novo_memories').insert(rows);
-    }
-  } catch { /* never throw — background work */ }
+        body: JSON.stringify({
+          model:       GROQ_MODEL_FALLBACK,   // fast small model for background extraction
+          messages:    [{ role: 'user', content: prompt }],
+          temperature: 0.1,
+          max_tokens:  1500,                  // gpt-oss models spend tokens on reasoning; 512 could starve the answer
+        }),
+      }), { maxAttempts: 2, label: 'memory-extract' });
+      if (!r.response) throw (r.error instanceof Error ? r.error : new Error('memory extraction request failed'));
+      if (!r.response.ok) return { ok: false, status: r.response.status, text: '' };
+      const data = await r.response.json() as { choices?: Array<{ message?: { content?: string } }> };
+      return { ok: true, status: r.response.status, text: data?.choices?.[0]?.message?.content ?? '' };
+    },
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2017,9 +1863,11 @@ Deno.serve(withSentry('gemini-chat', async (req) => {
   // e.g. weak at "torque" → also retrieve "moment_of_inertia", "angular_momentum"
   let expandedWeakTopics = weakSubtopics;
   if (weakSubtopics.length > 0) {
+    // NB: a supabase-js query builder is a thenable WITHOUT .catch() — calling .catch on it throws a
+    // TypeError before the request is sent (found Day 2; it would 500 the chat for any learner with weak topics).
     const { data: expanded } = await serviceDb.rpc('expand_weak_concepts', {
       p_concepts: weakSubtopics.slice(0, 20),
-    }).catch(() => ({ data: null }));
+    }).then(r => r, () => ({ data: null }));
     if (Array.isArray(expanded) && expanded.length > 0) {
       expandedWeakTopics = expanded as string[];
     }
@@ -2289,8 +2137,9 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
     return gatewayResult.response;
   }
 
+  // Later ReAct rounds share this controller (no timeout, as before: the old timer was cleared
+  // right after the first response). The FIRST call is now governed per tier by the provider chain.
   const controller = new AbortController();
-  const timeoutId  = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   // Proactive admission check across ALL users, not just this one — at real
   // concurrent load, waiting for Groq to hand back a 429 (previous behavior)
@@ -2301,51 +2150,54 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
   // comment in _shared/rateLimit.ts for what this is and isn't.
   const groqRpmBudget = Number(Deno.env.get('GROQ_GLOBAL_RPM_BUDGET')) || 60;
   const { withinBudget } = await checkGlobalLLMBudget(serviceDb, 'gemini-chat-groq', groqRpmBudget, 1);
+  if (!withinBudget) console.warn('[novo] Global Groq budget exhausted this window — skipping Groq tiers');
 
-  let groqRes: Response;
-  let modelUsed = routedModel;
-  if (!withinBudget) {
-    console.warn('[novo] Global Groq budget exhausted this window — skipping straight to Gemini fallback');
-    groqRes = new Response(null, { status: 429 });
-  } else {
-    try {
-      groqRes = await callGroq(routedModel, controller.signal);
+  // ── Provider chain (V5 Day 2, plan §8.3): Groq primary → Groq small → Claude text → message.
+  // Any 429/5xx/timeout/exception moves to the next tier; permanent 4xx are tried once and logged
+  // distinctly. Gemini is NOT in the chat chain (embeddings/vision only) unless explicitly enabled.
+  const claudeKeyPresent = !!(Deno.env.get('ANTHROPIC_API_KEY') ?? '');
+  const claudeFallbackModel = Deno.env.get('AI_CLAUDE_FALLBACK_MODEL') || CLAUDE_MODEL_FALLBACK;
+  const chainTiers: ChainTier[] = [
+    {
+      name: USE_CLAUDE ? 'claude-primary' : 'groq-primary',
+      provider: USE_CLAUDE ? 'anthropic' : 'groq',
+      model: routedModel, timeoutMs: TIMEOUT_MS, enabled: withinBudget || USE_CLAUDE,
+      call: (sig) => callGroq(routedModel, sig),
+    },
+    {
+      name: USE_CLAUDE ? 'claude-small' : 'groq-small',
+      provider: USE_CLAUDE ? 'anthropic' : 'groq',
+      model: GROQ_MODEL_FALLBACK, timeoutMs: 15_000,
+      enabled: (withinBudget || USE_CLAUDE) && routedModel !== GROQ_MODEL_FALLBACK,
+      call: (sig) => callGroq(GROQ_MODEL_FALLBACK, sig, false, fallbackMessages),
+    },
+    {
+      name: 'claude-text-fallback', provider: 'anthropic', model: claudeFallbackModel, timeoutMs: TIMEOUT_MS,
+      enabled: !USE_CLAUDE && claudeKeyPresent,   // text only: no tools on this path
+      call: (sig) => callClaude(claudeFallbackModel, sig, messages, stream, false, serviceDb, userId),
+    },
+    {
+      name: 'gemini-text-fallback', provider: 'gemini', model: GEMINI_FALLBACK_MODEL, timeoutMs: 20_000,
+      enabled: Deno.env.get('AI_CHAT_GEMINI_FALLBACK') === '1',   // off by default (Gemini = embeddings/vision)
+      call: async (sig) => {
+        const t = await callGeminiFallback(messages, sig, serviceDb, userId);
+        return t ? fakeOpenAIResponse(t, stream) : new Response(null, { status: 502 });
+      },
+    },
+  ];
+  const chain = await runProviderChain(chainTiers, { parentSignal: req.signal });
+  console.log('[novo] chain:', summarizeAttempts(chain.attempts));
 
-      // Rate-limited → fall back to small model without tools
-      if (groqRes.status === 429) {
-        console.warn('[novo] Model rate-limited — falling back to', GROQ_MODEL_FALLBACK);
-        modelUsed = GROQ_MODEL_FALLBACK;
-        groqRes   = await callGroq(GROQ_MODEL_FALLBACK, controller.signal, false, fallbackMessages);
-      }
-    } catch (fetchErr) {
-      console.error('[novo] Groq fetch threw:', (fetchErr as Error)?.message);
-      clearTimeout(timeoutId);
-      return jsonRes({ error: `Groq unreachable: ${(fetchErr as Error)?.message}` }, 503);
+  if (chain.allFailed || !chain.response || !chain.tier) {
+    const tried = chain.attempts.filter(a => a.outcome !== 'skipped');
+    const onlyRateLimits = tried.length > 0 && tried.every(a => a.status === 429);
+    if (onlyRateLimits) {
+      return jsonRes({ error: 'rate_limit', message: ALL_TIERS_FAILED_BODY.message, retry_after_secs: ALL_TIERS_FAILED_BODY.retry_after_secs }, 429);
     }
+    return jsonRes({ ...ALL_TIERS_FAILED_BODY }, 503);
   }
-  clearTimeout(timeoutId);
-
-  // Both Groq models rate-limited (or global budget already exhausted) →
-  // last resort: Gemini, plain text, no tools
-  if (groqRes.status === 429) {
-    const gemText = await callGeminiFallback(messages, controller.signal, serviceDb, userId);
-    if (gemText) {
-      console.warn('[novo] Both Groq models rate-limited — fell back to Gemini');
-      modelUsed = GEMINI_FALLBACK_MODEL;
-      groqRes   = fakeOpenAIResponse(gemText, stream);
-    } else {
-      return jsonRes({
-        error:   'rate_limit',
-        message: 'Novo is in very high demand right now. Please wait 30 seconds and try again.',
-        retry_after_secs: 30,
-      }, 429);
-    }
-  }
-  if (!groqRes.ok) {
-    const errBody = await groqRes.json().catch(() => ({})) as { error?: { message?: string } };
-    console.error('[novo] Groq error', groqRes.status, modelUsed, errBody);
-    return jsonRes({ error: errBody?.error?.message ?? `Groq error ${groqRes.status}` }, groqRes.status);
-  }
+  let groqRes: Response = chain.response;
+  let modelUsed = chain.tier.model;
 
   // ── 10. Streaming response — multi-round ReAct loop ─────────────────────────
   if (stream && groqRes.body) {
@@ -2422,7 +2274,9 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
       return { text: accText, toolCalls, finishReason };
     }
 
-    (async () => {
+    // The whole streaming task (incl. post-stream memory extraction) is registered with
+    // EdgeRuntime.waitUntil so the isolate is not reclaimed the moment the response ends.
+    runInBackground((async () => {
       let fullAssistantText = '';
       let streamComplete    = false;
       let currentRes        = groqRes;
@@ -2475,7 +2329,7 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
       await writer.close().catch(() => {});
 
       if (streamComplete && fullAssistantText) {
-        extractAndSaveMemories(serviceDb, user.id, safePrompt, fullAssistantText, apiKey, subject || undefined).catch(() => {});
+        const memoryPromise = extractAndSaveMemories(serviceDb, user.id, safePrompt, fullAssistantText, apiKey, subject || undefined);
         if (ragChunks.length > 0 || queryType === 'simple_factual') {
           serviceDb.rpc('set_rag_cache', {
             p_key: cacheKey, p_query: safePrompt, p_response: fullAssistantText,
@@ -2483,8 +2337,9 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
             p_ttl_hours: 24, p_embedding: queryEmbedding ? `[${queryEmbedding.join(',')}]` : null,
           }).then(undefined, () => {});
         }
+        await memoryPromise;
       }
-    })();
+    })());
 
     return new Response(readable, {
       headers: {
@@ -2555,7 +2410,7 @@ RULES: Tools are invisible to student — never mention them. Multiple tools can
   const text = resolveImageTags(rawText);
 
   if (rawText) {
-    extractAndSaveMemories(serviceDb, user.id, safePrompt, rawText, apiKey, subject || undefined).catch(() => {});
+    runInBackground(extractAndSaveMemories(serviceDb, user.id, safePrompt, rawText, apiKey, subject || undefined));
     if (ragChunks.length > 0 || queryType === 'simple_factual') {
       serviceDb.rpc('set_rag_cache', {
         p_key: cacheKey, p_query: safePrompt, p_response: rawText,

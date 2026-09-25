@@ -10,6 +10,7 @@ import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { callAI }     from '../_shared/aiGateway.ts';
+import { isPermanentStatus } from '../_shared/retryPolicy.ts';
 import { isValidQuestion, type GeneratedQuestion } from './validate.ts';
 const GROQ_MODEL    = 'openai/gpt-oss-120b'; // llama-3.3-70b-versatile decommissioned by Groq (confirmed 2026-08-18)
 const GROQ_API_URL  = 'https://api.groq.com/openai/v1/chat/completions';
@@ -223,6 +224,10 @@ Flags: use "ambiguous_options" if two options could both be argued correct, "cal
       if (!gatewayResult.ok || !gatewayResult.response) {
         lastErr = gatewayResult.errorMessage ?? 'Groq request failed';
         console.error('[ai-question-gen] Groq error:', lastErr);
+        if (gatewayResult.response && isPermanentStatus(gatewayResult.response.status)) {
+          console.error(`[retry][permanent] ai-question-gen HTTP ${gatewayResult.response.status} — not retrying`);
+          break;   // permanent 4xx can never succeed on a retry
+        }
         continue;
       }
 

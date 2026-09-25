@@ -33,6 +33,13 @@ function sanitizeForLog(obj: unknown, depth = 0): unknown {
 export class GeminiRateLimitError extends Error {
   constructor() { super('You\'ve sent too many requests. Please wait a moment and try again.'); this.name = 'GeminiRateLimitError'; }
 }
+/** Every AI provider tier failed (server-side chain exhausted). Friendly message; never retried client-side (each retry walks the whole chain). */
+export class GeminiBusyError extends Error {
+  constructor(message?: string) {
+    super(message || 'Novo is busy right now — your practice and review still work. Please try again in a moment.');
+    this.name = 'GeminiBusyError';
+  }
+}
 export class GeminiTimeoutError extends Error {
   constructor() { super('The AI is taking too long to respond. Please try again.'); this.name = 'GeminiTimeoutError'; }
 }
@@ -129,6 +136,12 @@ export async function geminiCall(prompt: string, options: GeminiOptions = {}): P
       }
 
       if (error) {
+        // supabase-js hides the JSON body of a non-2xx response inside error.context (a Response).
+        try {
+          const ctx = (error as { context?: Response }).context;
+          const body = ctx && typeof ctx.clone === 'function' ? await ctx.clone().json() as { error?: string; message?: string } : null;
+          if (body?.error === 'novo_busy') throw new GeminiBusyError(body.message);
+        } catch (e) { if (e instanceof GeminiBusyError) throw e; /* body unreadable: fall through to the generic error */ }
         const debugInfo = (data as { _debug?: string } | null)?._debug;
         // Strip any auth headers / tokens from the data object before logging
         const safeData = data ? sanitizeForLog(data) : undefined;
@@ -142,7 +155,7 @@ export async function geminiCall(prompt: string, options: GeminiOptions = {}): P
 
     } catch (err) {
       // Re-throw typed errors — no retry
-      if (err instanceof GeminiRateLimitError) throw err;
+      if (err instanceof GeminiRateLimitError || err instanceof GeminiBusyError) throw err;
       // Timeout
       if (err instanceof Error && (err.name === 'AbortError' || err.message === 'AbortError')) {
         throw new GeminiTimeoutError();

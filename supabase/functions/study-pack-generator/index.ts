@@ -15,6 +15,7 @@ import { getCors } from '../_shared/cors.ts';
 import { withSentry } from '../_shared/sentry.ts';
 import { validateStudyPack, type StudyPack, FLASHCARD_COUNT, QUIZ_COUNT, KEY_TERM_COUNT } from './validate.ts';
 import { callAI } from '../_shared/aiGateway.ts';
+import { isPermanentStatus } from '../_shared/retryPolicy.ts';
 // gemini-flash-latest with JSON mode for guaranteed structured output
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
@@ -204,6 +205,10 @@ serve(withSentry('study-pack-generator', async (req) => {
       if (!geminiRes.ok) {
         const errBody = await geminiRes.json().catch(() => ({})) as { error?: { message?: string } };
         lastErr = errBody?.error?.message ?? `Gemini HTTP ${geminiRes.status}`;
+        if (isPermanentStatus(geminiRes.status)) {
+          console.error(`[retry][permanent] study-pack-generator HTTP ${geminiRes.status} — not retrying`);
+          break;   // permanent 4xx can never succeed on a retry
+        }
         if (attempt < MAX_ATTEMPTS - 1) {
           await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
         }

@@ -15,6 +15,7 @@ import { getCors } from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { callAI } from '../_shared/aiGateway.ts';
+import { providerHttpError, isPermanentError } from '../_shared/retryPolicy.ts';
 // ── Gemini with retry ─────────────────────────────────────────────────────────
 // Phase 7 (RISK-006, AI gateway): content-generation calls feeding
 // per-user lesson plans -- migrated per AI_GATEWAY_MIGRATION.md's
@@ -43,6 +44,7 @@ async function gemini(prompt: string, supabase: any, userId: string): Promise<st
   });
   if (gatewayResult.blockedReason) throw new Error(`AI gateway blocked: ${gatewayResult.errorMessage}`);
   if (!gatewayResult.response) throw new Error(gatewayResult.errorMessage ?? 'Gemini request failed');
+  if (!gatewayResult.response.ok) throw providerHttpError(gatewayResult.response.status, `Gemini ${gatewayResult.response.status}`, 'lesson-planner');
   const d = await gatewayResult.response.json();
   return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
@@ -64,6 +66,7 @@ async function geminiJSONWithRetry<T>(prompt: string, supabase: any, userId: str
       return await geminiJSON<T>(prompt, supabase, userId);
     } catch (e) {
       lastErr = e;
+      if (isPermanentError(e)) throw e;   // permanent 4xx: never retried
       if (attempt < maxRetries) {
         await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
       }

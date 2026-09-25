@@ -23,6 +23,7 @@ import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { isValidBriefText } from './validate.ts';
 import { callAI } from '../_shared/aiGateway.ts';
+import { isPermanentStatus } from '../_shared/retryPolicy.ts';
 const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
 
 // Phase 7 (RISK-006, AI gateway): cron-triggered functions are the next
@@ -39,7 +40,8 @@ async function gemini(prompt: string, supabase: ReturnType<typeof createClient>,
   const MAX_ATTEMPTS = 3;
   let lastErr = '';
   let text: string | null = null;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS && text === null; attempt++) {
+  let permanent = false;   // a permanent 4xx (e.g. the 403 that burned 1,512 calls in 12 days) is never retried
+  for (let attempt = 0; attempt < MAX_ATTEMPTS && text === null && !permanent; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, 500 * attempt));
     try {
       const gatewayResult = await callAI(supabase, {
@@ -61,14 +63,18 @@ async function gemini(prompt: string, supabase: ReturnType<typeof createClient>,
       if (gatewayResult.blockedReason) { lastErr = `AI gateway blocked: ${gatewayResult.errorMessage}`; continue; }
       if (!gatewayResult.response) { lastErr = gatewayResult.errorMessage ?? 'Gemini request failed'; continue; }
       const res = gatewayResult.response;
-      if (!res.ok) { lastErr = `Gemini ${res.status}: ${await res.text()}`; continue; }
+      if (!res.ok) {
+        lastErr = `Gemini ${res.status}: ${await res.text()}`;
+        if (isPermanentStatus(res.status)) { console.error(`[retry][permanent] novo-morning-brief HTTP ${res.status} — not retrying`); permanent = true; }
+        continue;
+      }
       const d = await res.json();
       text = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
     } catch (e) {
       lastErr = (e as Error).message ?? 'fetch failed';
     }
   }
-  if (text === null) throw new Error(`Gemini call failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
+  if (text === null) throw new Error(permanent ? `Gemini call failed permanently (not retried): ${lastErr}` : `Gemini call failed after ${MAX_ATTEMPTS} attempts: ${lastErr}`);
   return text;
 }
 

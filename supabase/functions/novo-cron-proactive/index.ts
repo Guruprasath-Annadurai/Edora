@@ -17,6 +17,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCors } from '../_shared/cors.ts';
 import { callAI } from '../_shared/aiGateway.ts';
+import { providerHttpError, isPermanentError } from '../_shared/retryPolicy.ts';
 
 const MIN_GAP_HOURS  = 8;
 const BATCH_SIZE     = 5; // users per invocation — prevents timeout
@@ -62,6 +63,7 @@ async function gemini(prompt: string, supabase: any, userId: string): Promise<st
   if (!gatewayResult.response) {
     throw new Error(gatewayResult.errorMessage ?? 'Gemini request failed');
   }
+  if (!gatewayResult.response.ok) throw providerHttpError(gatewayResult.response.status, `Gemini ${gatewayResult.response.status}`, 'novo-cron-proactive');
   const d = await gatewayResult.response.json();
   return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
@@ -81,6 +83,7 @@ async function geminiJSONWithRetry<T>(prompt: string, supabase: any, userId: str
     try { return await geminiJSON<T>(prompt, supabase, userId); }
     catch (e) {
       lastErr = e;
+      if (isPermanentError(e)) throw e;   // permanent 4xx: never retried
       if (i < maxRetries) await new Promise(r => setTimeout(r, 500 * 2 ** i));
     }
   }
@@ -225,8 +228,10 @@ CTA options: "Start Sprint"→"/sprint", "Chat with Novo"→"/chat", "View Lesso
       if (!candidate.message || candidate.message.trim().length < 10) throw new Error('empty');
       result = candidate;
       break;
-    } catch {
-      // fall through to next attempt (or fallback below if exhausted)
+    } catch (e) {
+      // permanent provider error: stop the outer loop too (was 3 outer x 3 inner attempts); use the fallback message
+      if (isPermanentError(e)) break;
+      // otherwise fall through to next attempt (or fallback below if exhausted)
     }
   }
   if (!result) {

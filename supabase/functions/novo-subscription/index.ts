@@ -329,7 +329,7 @@ serve(withSentry('novo-subscription', async (req) => {
       if (eventType === 'INITIAL_PURCHASE') {
         await supabase.from('novo_memories').insert({
           user_id:     userId,
-          memory_type: 'milestone',
+          memory_type: 'achievement',
           content:     `Upgraded to Novo Pro (${plan}) via ${store} — now has unlimited AI, voice mode, and advanced analytics`,
           importance:  8,
           source:      'system',
@@ -571,7 +571,7 @@ serve(withSentry('novo-subscription', async (req) => {
     // Save milestone memory (non-fatal)
     await supabase.from('novo_memories').insert({
       user_id:     user.id,
-      memory_type: 'milestone',
+      memory_type: 'achievement',
       content:     `Upgraded to Novo Pro (${planDetails.label}) — now has access to voice mode, advanced analytics, and unlimited certifications`,
       importance:  8,
       source:      'system',

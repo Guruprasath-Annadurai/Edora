@@ -14,6 +14,7 @@ import { withSentry } from '../_shared/sentry.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { validateWeeks } from './validate.ts';
 import { callAI } from '../_shared/aiGateway.ts';
+import { providerHttpError, isPermanentError } from '../_shared/retryPolicy.ts';
 const GEMINI_MODEL = 'gemini-flash-latest';
 
 // Phase 7 (RISK-006, AI gateway): content-generation call feeding a
@@ -43,7 +44,7 @@ async function callGeminiOnce(prompt: string, apiKey: string, supabase: ReturnTy
   if (gatewayResult.blockedReason) throw new Error(`AI gateway blocked: ${gatewayResult.errorMessage}`);
   if (!gatewayResult.response) throw new Error(gatewayResult.errorMessage ?? 'Gemini request failed');
   const res = gatewayResult.response;
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw providerHttpError(res.status, `Gemini ${res.status}: ${await res.text()}`, 'revision-planner');
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   const match = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
@@ -61,6 +62,7 @@ async function callGemini(prompt: string, apiKey: string, supabase: ReturnType<t
       return await callGeminiOnce(prompt, apiKey, supabase, userId);
     } catch (e) {
       lastErr = e;
+      if (isPermanentError(e)) throw e;   // permanent 4xx: never retried
       if (attempt < maxRetries) {
         await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
       }
@@ -159,6 +161,7 @@ Return ONLY JSON:
           lastPlanErr = validationErr;
         } catch (e) {
           lastPlanErr = e instanceof Error ? e.message : String(e);
+          if (isPermanentError(e)) break;   // do not re-run the whole generation cycle for a permanent provider error
         }
       }
       if (!result) {

@@ -18,6 +18,7 @@ import { getCors }      from '../_shared/cors.ts';
 
 import { withSentry } from '../_shared/sentry.ts';
 import { callAI }     from '../_shared/aiGateway.ts';
+import { providerHttpError, isPermanentError } from '../_shared/retryPolicy.ts';
 import {
   validateSolveResult,       type SolveResult,
   validateDrawingAnalysis,   type DrawingAnalysis,
@@ -137,7 +138,7 @@ async function callGeminiVision(
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Gemini Vision error ${res.status}: ${err}`);
+    throw providerHttpError(res.status, `Gemini Vision error ${res.status}: ${err}`, 'gemini-vision');
   }
   const data = await res.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
@@ -171,7 +172,7 @@ async function callGeminiVisionJSONOnce<T>(
 
   const res = await fetchGeminiWithRetry(serviceDb, userId, body);
 
-  if (!res.ok) throw new Error(`Gemini Vision JSON error ${res.status}`);
+  if (!res.ok) throw providerHttpError(res.status, `Gemini Vision JSON error ${res.status}`, 'gemini-vision');
   const data = await res.json();
   const raw  = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
   return JSON.parse(raw) as T;
@@ -205,6 +206,7 @@ async function callGeminiVisionJSON<T>(
       return result;
     } catch (e) {
       lastErr = e;
+      if (isPermanentError(e)) break;   // permanent 4xx: never retried
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error('Failed to get valid JSON from Gemini Vision');

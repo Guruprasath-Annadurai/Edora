@@ -227,3 +227,51 @@ Deno.test('registerPromptVersion deactivates the previous active version for the
   await registerPromptVersion(db, { promptKey: 'existing.key', template: 'v2 template' });
   assertEquals((updated[0] as { is_active: boolean }).is_active, false);
 });
+
+// ── observedFetch (V5 Day 2): log-only, env-gated, never alters behaviour ──────
+import { observedFetch, setObserverDbFactory } from './aiGateway.ts';
+
+function withStubs(fn: (ctx: { rows: Record<string, unknown>[] }) => Promise<void>, fetchImpl: () => Promise<Response>, enabled: boolean) {
+  return async () => {
+    const rows: Record<string, unknown>[] = [];
+    const realFetch = globalThis.fetch;
+    const prev = Deno.env.get('AI_LOG_HELPERS');
+    globalThis.fetch = (() => fetchImpl()) as typeof fetch;
+    setObserverDbFactory(() => ({ from: () => ({ insert: (r: Record<string, unknown>) => { rows.push(r); return Promise.resolve({ error: null }); } }) }));
+    if (enabled) Deno.env.set('AI_LOG_HELPERS', '1'); else Deno.env.delete('AI_LOG_HELPERS');
+    try { await fn({ rows }); } finally {
+      globalThis.fetch = realFetch; setObserverDbFactory(null);
+      if (prev === undefined) Deno.env.delete('AI_LOG_HELPERS'); else Deno.env.set('AI_LOG_HELPERS', prev);
+    }
+  };
+}
+const meta = { functionName: 'gemini-chat:embedding', provider: 'gemini' as const, model: 'gemini-embedding-001' };
+
+Deno.test('observedFetch: disabled by default — passes through, logs nothing', withStubs(async ({ rows }) => {
+  const r = await observedFetch(meta, 'https://x', {});
+  assertEquals(r.status, 200);
+  assertEquals(rows.length, 0);
+}, () => Promise.resolve(new Response('ok')), false));
+
+Deno.test('observedFetch: enabled logs success and returns the untouched response', withStubs(async ({ rows }) => {
+  const r = await observedFetch(meta, 'https://x', {});
+  assertEquals(await r.text(), 'body');
+  assertEquals(rows.length, 1);
+  assertEquals(rows[0].status, 'success');
+  assertEquals(rows[0].function_name, 'gemini-chat:embedding');
+}, () => Promise.resolve(new Response('body')), true));
+
+Deno.test('observedFetch: a 403 is logged as an error with its status and still returned (NO gating)', withStubs(async ({ rows }) => {
+  const r = await observedFetch(meta, 'https://x', {});
+  assertEquals(r.status, 403);
+  assertEquals(rows[0].status, 'error');
+  assertEquals(rows[0].error_message, 'HTTP 403');
+}, () => Promise.resolve(new Response('no', { status: 403 })), true));
+
+Deno.test('observedFetch: fetch exceptions are logged then re-thrown unchanged', withStubs(async ({ rows }) => {
+  let thrown: unknown = null;
+  try { await observedFetch(meta, 'https://x', {}); } catch (e) { thrown = e; }
+  assertEquals((thrown as Error).message, 'econnreset');
+  assertEquals(rows[0].status, 'error');
+  assertEquals(rows[0].error_message, 'econnreset');
+}, () => Promise.reject(new Error('econnreset')), true));

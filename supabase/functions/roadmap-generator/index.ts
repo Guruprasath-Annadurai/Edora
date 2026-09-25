@@ -31,6 +31,7 @@ import { withSentry } from '../_shared/sentry.ts';
 import { validateWeeks, type RoadmapWeek, type GeminiRoadmap } from './validate.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { callAI } from '../_shared/aiGateway.ts';
+import { providerHttpError, isPermanentError } from '../_shared/retryPolicy.ts';
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
@@ -186,7 +187,7 @@ async function callGeminiOnce(
 
     if (!resp.ok) {
       const msg = await resp.text();
-      throw new Error(`Gemini ${resp.status}: ${msg.slice(0, 200)}`);
+      throw providerHttpError(resp.status, `Gemini ${resp.status}: ${msg.slice(0, 200)}`, 'roadmap-generator');
     }
     const json = await resp.json();
     const raw  = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
@@ -214,6 +215,7 @@ async function callGemini(
       return await callGeminiOnce(systemPrompt, userPrompt, apiKey, db, userId);
     } catch (e) {
       lastErr = e;
+      if (isPermanentError(e)) throw e;   // permanent 4xx: never retried
       if (attempt < maxRetries) {
         await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
       }
@@ -285,7 +287,7 @@ Respond with ONLY a single JSON object, no markdown fencing, matching exactly th
     if (gatewayResult.blockedReason) throw new Error(`AI gateway blocked: ${gatewayResult.errorMessage}`);
     if (!gatewayResult.response) throw new Error(gatewayResult.errorMessage ?? 'NVIDIA request failed');
     const res = gatewayResult.response;
-    if (!res.ok) throw new Error(`NVIDIA API error: ${res.status}`);
+    if (!res.ok) throw providerHttpError(res.status, `NVIDIA API error: ${res.status}`, 'roadmap-generator');
     const d = await res.json();
     const raw = d.choices?.[0]?.message?.content ?? '{}';
     return JSON.parse(raw) as GeminiRoadmap;
@@ -320,6 +322,7 @@ async function generateValidatedRoadmap(
       lastErr = validationErr;
     } catch (e) {
       lastErr = e instanceof Error ? e.message : String(e);
+      if (isPermanentError(e)) break;   // do not re-run the whole generation cycle for a permanent provider error
     }
   }
   throw new Error(`Roadmap generation failed semantic validation after ${maxAttempts} attempts: ${lastErr}`);
