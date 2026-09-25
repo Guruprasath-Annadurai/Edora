@@ -587,6 +587,10 @@ Return ONLY valid JSON (no markdown, no code blocks):
     const content = (text ?? input).trim();
     if (!content || loading || rateLimitCountdown > 0) return;
 
+    // ai_generation_enabled=false: nothing below may run (no persisted user message, no usage increment, no
+    // prompt building/translation/retrieval, no stream). Saved history stays visible; the input is left as typed.
+    if (!aiGenEnabled) { replyGenerationPaused(); return; }
+
     // Check free-tier daily AI limit
     const proActive = (!!profile?.is_pro && (!profile.pro_expires_at || new Date(profile.pro_expires_at) > new Date()))
       || (user?.created_at ? isInFreeTrial(user.created_at) : false);

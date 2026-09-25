@@ -10,6 +10,7 @@ import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { geminiCall } from '@/lib/gemini';
 import type { GeminiMessage } from '@/lib/gemini';
+import { isAiGenerationEnabled, AiGenerationPausedError } from '@/lib/aiGeneration';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -42,6 +43,10 @@ export function useGeminiStream(): UseGeminiStreamReturn {
     prompt: string,
     opts: StreamOptions = {},
   ): Promise<string> => {
+    // ai_generation_enabled=false: this direct fetch does NOT pass through supabase.functions.invoke (and so not
+    // through guardFunctionsInvoke), so it must fail closed itself — before any state change or request.
+    if (!isAiGenerationEnabled()) throw new AiGenerationPausedError();
+
     // Cancel any in-flight stream
     abortRef.current?.abort();
     const controller = new AbortController();

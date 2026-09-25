@@ -13,6 +13,8 @@ export const ONBOARDING_VERSION = 'v5';
  *    (GENERAL/NULL exam gets the dismissible exam nudge instead).
  *  - profile created AT/AFTER it and no `study_preferences.onboarding_completed_at` marker = V5-era learner:
  *    sent to onboarding whenever they next open the app (2 hours, 2 days or 2 weeks later — no expiry).
+ * PROVISIONAL: 2026-09-27T00:00:00Z MUST be reconciled with the actual V5 rollout date before the Day-17 release
+ * freeze, and must never be later than the first V5 production availability.
  * Basis: production had 42 profiles, the newest created 2026-08-31, so 2026-09-27 00:00 UTC is after every
  * existing learner. Set this to the release date at the release gate if it needs to move (must be <= the day
  * the V5 build reaches users; a later-than-release value would let early V5 signups skip onboarding).
