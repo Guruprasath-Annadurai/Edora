@@ -20,15 +20,16 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authenticateNovaRequest, authorizeTargetUsers } from './auth.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 const FCM_LEGACY_URL = 'https://fcm.googleapis.com/fcm/send';
 
 // Maximum users processed per invocation (guards against timeouts on large user bases)
@@ -323,20 +324,48 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // ── 1. Auth: require a valid JWT (anon or service role) ──────────────────
-    const authHeader = req.headers.get('Authorization') ?? '';
-    if (!authHeader.startsWith('Bearer ')) {
+    // ── 1. Auth: require valid Supabase JWT or service role / cron token ─────
+    const supabaseUrl       = Deno.env.get('SUPABASE_URL')!;
+    const anonKey           = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const serviceRoleKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const cronSecret        = Deno.env.get('CRON_SECRET') ?? '';
+    const geminiApiKey      = Deno.env.get('GEMINI_API_KEY') ?? '';
+    const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY') ?? '';
+
+    const authResult = await authenticateNovaRequest(req, {
+      supabaseUrl,
+      anonKey,
+      serviceRoleKey,
+      cronSecret,
+    });
+
+    if ('error' in authResult) {
       return new Response(
-        JSON.stringify({ error: 'Missing Authorization header' }),
-        { status: 401, headers: { ...CORS, 'Content-Type': 'application/json' } },
+        JSON.stringify({ error: authResult.error }),
+        { status: authResult.status, headers: { ...CORS, 'Content-Type': 'application/json' } },
       );
     }
 
-    // ── 2. Build service-role client for cross-user data access ──────────────
-    const supabaseUrl      = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const geminiApiKey     = Deno.env.get('GEMINI_API_KEY') ?? '';
-    const firebaseServerKey = Deno.env.get('FIREBASE_SERVER_KEY') ?? '';
+    let body: any = {};
+    if (req.method === 'POST') {
+      try {
+        const text = await req.text();
+        if (text) {
+          body = JSON.parse(text);
+        }
+      } catch (_) {
+        // body remains empty object
+      }
+    }
+
+    const requestedUserId = body?.userId || body?.user_id || null;
+    const targetAuth = authorizeTargetUsers(authResult, requestedUserId);
+    if (!targetAuth.ok) {
+      return new Response(
+        JSON.stringify({ error: targetAuth.error }),
+        { status: targetAuth.status, headers: { ...CORS, 'Content-Type': 'application/json' } },
+      );
+    }
 
     if (!geminiApiKey) {
       return new Response(
@@ -345,40 +374,46 @@ serve(async (req) => {
       );
     }
 
-    // Service-role client — bypasses RLS, can read all users
+    // Service-role client — bypasses RLS for processing authorized users
     const db = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     });
 
-    // ── 3. Discover active users (had quiz/sprint/mistake in last 30 days) ──
+    // ── 3. Target users: either explicit authorized user(s) or batch discovery ──
     const thirtyDaysAgo = daysAgo(30);
     const sevenDaysAgo  = daysAgo(7);
     const weekStart     = getWeekStart();
 
-    // Get distinct user_ids from recent activity
-    const [quizUsers, sprintUsers, mistakeUsers] = await Promise.all([
-      db.from('quiz_sessions')
-        .select('user_id')
-        .gte('created_at', thirtyDaysAgo)
-        .not('score', 'is', null),
-      db.from('sprint_sessions')
-        .select('user_id')
-        .gte('created_at', thirtyDaysAgo)
-        .eq('completed', true),
-      db.from('mistake_journal')
-        .select('user_id')
-        .gte('created_at', thirtyDaysAgo),
-    ]);
+    let targetUserIds: string[] = [];
 
-    const activeUserIds = [
-      ...new Set([
-        ...(quizUsers.data ?? []).map((r: { user_id: string }) => r.user_id),
-        ...(sprintUsers.data ?? []).map((r: { user_id: string }) => r.user_id),
-        ...(mistakeUsers.data ?? []).map((r: { user_id: string }) => r.user_id),
-      ]),
-    ].slice(0, MAX_USERS_PER_RUN);
+    if (targetAuth.targetUserIds && targetAuth.targetUserIds.length > 0) {
+      targetUserIds = targetAuth.targetUserIds;
+    } else {
+      // Discover active users (had quiz/sprint/mistake in last 30 days)
+      const [quizUsers, sprintUsers, mistakeUsers] = await Promise.all([
+        db.from('quiz_sessions')
+          .select('user_id')
+          .gte('created_at', thirtyDaysAgo)
+          .not('score', 'is', null),
+        db.from('sprint_sessions')
+          .select('user_id')
+          .gte('created_at', thirtyDaysAgo)
+          .eq('completed', true),
+        db.from('mistake_journal')
+          .select('user_id')
+          .gte('created_at', thirtyDaysAgo),
+      ]);
 
-    if (activeUserIds.length === 0) {
+      targetUserIds = [
+        ...new Set([
+          ...(quizUsers.data ?? []).map((r: { user_id: string }) => r.user_id),
+          ...(sprintUsers.data ?? []).map((r: { user_id: string }) => r.user_id),
+          ...(mistakeUsers.data ?? []).map((r: { user_id: string }) => r.user_id),
+        ]),
+      ].slice(0, MAX_USERS_PER_RUN);
+    }
+
+    if (targetUserIds.length === 0) {
       return new Response(
         JSON.stringify({ ok: true, message: 'No active users found', processed: 0 }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } },
@@ -389,7 +424,7 @@ serve(async (req) => {
     const { data: profiles } = await db
       .from('profiles')
       .select('id, full_name, study_level, streak_count, xp, last_sprint_date, push_token')
-      .in('id', activeUserIds);
+      .in('id', targetUserIds);
 
     if (!profiles || profiles.length === 0) {
       return new Response(
@@ -402,7 +437,7 @@ serve(async (req) => {
     const { data: weekSprints } = await db
       .from('sprint_sessions')
       .select('user_id, xp_earned')
-      .in('user_id', activeUserIds)
+      .in('user_id', targetUserIds)
       .gte('created_at', sevenDaysAgo);
 
     const xpByUser: Record<string, number> = {};
@@ -467,7 +502,7 @@ serve(async (req) => {
 
         // Upsert insight
         const { error: upsertErr } = await db
-          .from('nova_insights')
+          .from('novo_insights')
           .upsert({
             user_id:            profile.id,
             week_start:         weekStart,
